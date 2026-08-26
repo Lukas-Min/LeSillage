@@ -1,7 +1,7 @@
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db/client";
-import { type RateLimitBucket } from "@/db/schema";
+import { rateLimits, type RateLimitBucket } from "@/db/schema";
 
 export interface RateLimitOptions {
   bucket: RateLimitBucket;
@@ -22,33 +22,36 @@ export async function rateLimit({
   windowMs,
 }: RateLimitOptions): Promise<RateLimitDecision> {
   const client = db();
-  const row = await client.execute<{
-    count: number | string;
-    window_start: Date | string;
-  }>(
-    sql`
-      INSERT INTO rate_limit ("bucket", "key", "count", "windowStart")
-      VALUES (${bucket}, ${key}, 1, NOW())
-      ON CONFLICT ("bucket", "key") DO UPDATE
-        SET
-          "count" = CASE
-            WHEN rate_limit."windowStart" < NOW() - (${windowMs} * INTERVAL '1 millisecond')
-              THEN 1
-            ELSE rate_limit."count" + 1
-          END,
-          "windowStart" = CASE
-            WHEN rate_limit."windowStart" < NOW() - (${windowMs} * INTERVAL '1 millisecond')
-              THEN NOW()
-            ELSE rate_limit."windowStart"
-          END
-      RETURNING "count"::int AS count, "windowStart" AS window_start
-    `,
-  );
-  const next = Number(row.rows[0]?.count ?? 1);
-  return {
-    allowed: next <= limit,
-    remaining: Math.max(0, limit - next),
-  };
+  const windowStart = new Date(Date.now() - windowMs);
+
+  await client
+    .delete(rateLimits)
+    .where(
+      and(
+        eq(rateLimits.bucket, bucket),
+        eq(rateLimits.key, key),
+        sql`${rateLimits.windowStart} < ${windowStart}`,
+      ),
+    );
+
+  const existing = await client
+    .select()
+    .from(rateLimits)
+    .where(and(eq(rateLimits.bucket, bucket), eq(rateLimits.key, key), sql`${rateLimits.windowStart} >= ${windowStart}`));
+
+  const row = existing[0];
+  if (!row) {
+    await client.insert(rateLimits).values({ bucket, key, count: 1, windowStart: new Date() });
+    return { allowed: true, remaining: limit - 1 };
+  }
+  if (row.count >= limit) {
+    return { allowed: false, remaining: 0 };
+  }
+  await client
+    .update(rateLimits)
+    .set({ count: row.count + 1 })
+    .where(eq(rateLimits.id, row.id));
+  return { allowed: true, remaining: Math.max(0, limit - (row.count + 1)) };
 }
 
 export async function getRequestKey(prefix: string, scope?: string): Promise<string> {

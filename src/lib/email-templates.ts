@@ -135,3 +135,99 @@ ${input.lines.map(formatLineForEmail).join("\n")}
 — Le Sillage admin`;
   return { subject, text };
 }
+
+function brandedCodeEmail(args: {
+  subject: string;
+  greeting: string;
+  body: string;
+  code: string;
+}): { subject: string; text: string; html: string } {
+  const spaced = args.code.split("").join(" ");
+  const text = `Hi,
+
+${args.body}
+
+Your code: ${args.code}
+
+It expires in 10 minutes. If you did not request this, you can ignore this email.
+
+— Le Sillage`;
+  const html = `<div style="font-family:Georgia,serif;background:#f7f3ea;padding:32px;color:#2b241c">
+  <p style="letter-spacing:0.3em;text-transform:uppercase;font-size:12px;color:#b0893d">Le Sillage</p>
+  <h1 style="font-size:22px">${args.subject}</h1>
+  <p>${args.body}</p>
+  <p style="font-size:32px;letter-spacing:0.4em;font-weight:700;margin:24px 0">${spaced}</p>
+  <p style="font-size:13px;color:#6b645c">This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>
+</div>`;
+  return { subject: args.subject, text, html };
+}
+
+export function confirmSignupEmail(code: string): { subject: string; text: string; html: string } {
+  return brandedCodeEmail({
+    subject: "Confirm your Le Sillage account",
+    greeting: "Welcome",
+    body: "Use this 6-digit code to verify your email and finish creating your account.",
+    code,
+  });
+}
+
+export function resetPasswordEmail(code: string): { subject: string; text: string; html: string } {
+  return brandedCodeEmail({
+    subject: "Reset your Le Sillage password",
+    greeting: "Hello",
+    body: "Use this 6-digit code to choose a new password.",
+    code,
+  });
+}
+
+export function changeEmailEmail(code: string): { subject: string; text: string; html: string } {
+  return brandedCodeEmail({
+    subject: "Confirm your new email",
+    greeting: "Hello",
+    body: "Use this 6-digit code to confirm the new email address on your Le Sillage account.",
+    code,
+  });
+}
+
+export function reauthEmail(code: string): { subject: string; text: string; html: string } {
+  return brandedCodeEmail({
+    subject: "Confirm a sensitive change",
+    greeting: "Hello",
+    body: "Use this 6-digit code to confirm a password change or account deletion.",
+    code,
+  });
+}
+
+export function securityNoticeEmail(args: {
+  subject: string;
+  body: string;
+}): { subject: string; text: string } {
+  return {
+    subject: args.subject,
+    text: `Hi,
+
+${args.body}
+
+If this was not you, reply to this email immediately.
+
+— Le Sillage`,
+  };
+}
+
+export function orderCreatedPaymentEmail(input: OrderEmailInput): { subject: string; text: string } {
+  const subject = `Pay for order ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+Your order ${input.orderNumber} is waiting for payment.
+
+Total to pay: ${formatPHP(input.totalCentavos)}
+Items:
+${input.lines.map(formatLineForEmail).join("\n")}
+Delivery: ${deliveryLine(input)}
+
+Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.
+
+— Le Sillage`;
+  return { subject, text };
+}
+

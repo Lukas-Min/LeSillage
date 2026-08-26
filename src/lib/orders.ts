@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   carts,
@@ -14,18 +14,23 @@ import {
   stockMovements,
   notificationLog,
   users,
+  addresses,
   type FulfillmentMethod,
   type OrderStatus,
 } from "@/db/schema";
-import { priceCart, type PricingOptions } from "@/domain/cart";
+import { priceCart } from "@/domain/cart";
 import { generateOrderNumber } from "@/domain/order-number";
-import { DEFAULT_PROMO_CONFIG, isTesterBonusEligible } from "@/domain/promo";
+import { isTesterBonusEligible } from "@/domain/promo";
+import { buildCartTotals } from "@/domain/checkout-totals";
+import { mlToReserve } from "@/domain/decant";
+import { loadPromoConfig, effectiveFulfillment } from "@/lib/cart";
 import { uploadPrivateImage } from "@/lib/blob";
 import { sendEmail } from "@/lib/email";
 import { getEnv } from "@/lib/env";
 import {
   adminReceiptNotification,
   orderConfirmedEmail,
+  orderCreatedPaymentEmail,
   orderShippedEmail,
   receiptRejectedEmail,
   receiptSubmittedEmail,
@@ -47,7 +52,8 @@ export interface CreateOrderInput {
   addressSnapshot?: Record<string, unknown> | null;
   pickupNotes?: string | null;
   notes?: string | null;
-  cartId?: string | null;
+  savedAddressId?: string | null;
+  saveAddress?: boolean;
 }
 
 export async function loadActiveCartForUser(userId: string) {
@@ -62,23 +68,6 @@ export async function loadActiveCartForUser(userId: string) {
     .from(cartItems)
     .where(eq(cartItems.cartId, cart.id));
   return { cart, items };
-}
-
-interface PromoConfig {
-  decantThresholdCentavos: number;
-  deliveryFeeCentavos: number;
-  freeDeliveryEnabled: boolean;
-  testerBonusEnabled: boolean;
-}
-
-async function loadPromoConfig(): Promise<PromoConfig> {
-  const row = (await db().select().from(promoSettings).where(eq(promoSettings.id, "singleton")))[0];
-  return {
-    decantThresholdCentavos: row?.decantThresholdCentavos ?? DEFAULT_PROMO_CONFIG.decantThresholdCentavos,
-    deliveryFeeCentavos: row?.deliveryFeeCentavos ?? DEFAULT_PROMO_CONFIG.deliveryFeeCentavos,
-    freeDeliveryEnabled: row?.freeDeliveryEnabled ?? DEFAULT_PROMO_CONFIG.freeDeliveryEnabled,
-    testerBonusEnabled: row?.testerBonusEnabled ?? DEFAULT_PROMO_CONFIG.testerBonusEnabled,
-  };
 }
 
 export async function createOrderFromCart(input: CreateOrderInput) {
@@ -96,6 +85,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       productId: products.id,
       productName: products.name,
       productCategory: products.fragranceCategory,
+      remainingMl: products.remainingMl,
     })
     .from(skus)
     .innerJoin(products, eq(products.id, skus.productId))
@@ -116,13 +106,42 @@ export async function createOrderFromCart(input: CreateOrderInput) {
 
   const promoConfig = await loadPromoConfig();
   const isPickup = input.fulfillmentMethod === "PICKUP";
+  let addressSnapshot = input.addressSnapshot ?? null;
+  let recipientName = input.recipientName;
+  let phone = input.phone;
+  if (input.savedAddressId) {
+    const saved = (
+      await client
+        .select()
+        .from(addresses)
+        .where(and(eq(addresses.id, input.savedAddressId), eq(addresses.userId, input.user.userId)))
+    )[0];
+    if (!saved) throw new Error("Saved address not found");
+    addressSnapshot = {
+      region: saved.region,
+      province: saved.province,
+      city: saved.city,
+      barangay: saved.barangay,
+      postalCode: saved.postalCode,
+      street: saved.street,
+    };
+    recipientName = saved.recipientName;
+    phone = saved.phone.replace(/^\+63/, "").replace(/^0/, "");
+  }
 
   const priced = priceCart(
     items.map((item) => {
       const found = skuRows.find((row) => row.sku.id === item.skuId);
       if (!found) throw new Error("Cart item missing product data");
+      const fulfillment = effectiveFulfillment({
+        productType: found.productType,
+        skuFulfillment: found.sku.fulfillment,
+        sizeMl: found.sku.sizeMl,
+        remainingMl: found.remainingMl,
+        thresholdMl: promoConfig.decantPreOrderThresholdMl,
+      });
       return {
-        sku: found.sku,
+        sku: { ...found.sku, fulfillment },
         quantity: item.quantity,
         productType: found.productType,
         productBrand: found.productBrand,
@@ -131,10 +150,11 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       };
     }),
     {
-      deliveryFeeCentavos: isPickup ? 0 : promoConfig.deliveryFeeCentavos,
-      freeShipping: isPickup ? true : promoConfig.freeDeliveryEnabled,
-    } as PricingOptions,
+      deliveryFeeCentavos: promoConfig.deliveryFeeCentavos,
+      freeShipping: false,
+    },
   );
+  const totals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod);
 
   const testerEligible =
     !isPickup &&
@@ -144,16 +164,11 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         productType: line.productType,
         discountedLineTotalCentavos: line.lineSubtotalCentavos,
       })),
-      {
-        decantThresholdCentavos: promoConfig.decantThresholdCentavos,
-        deliveryFeeCentavos: promoConfig.deliveryFeeCentavos,
-        freeDeliveryEnabled: promoConfig.freeDeliveryEnabled,
-        testerBonusEnabled: promoConfig.testerBonusEnabled,
-      },
+      promoConfig,
     );
 
   const orderNumber = generateOrderNumber();
-  const e164Phone = `+63${input.phone.replace(/\D/g, "").slice(-10)}`;
+  const e164Phone = `+63${phone.replace(/\D/g, "").slice(-10)}`;
   const created = await client
     .insert(orders)
     .values({
@@ -161,16 +176,16 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       userId: input.user.userId,
       status: "AWAITING_PAYMENT",
       fulfillmentMethod: input.fulfillmentMethod,
-      recipientName: input.recipientName,
+      recipientName,
       email: input.email,
       phone: e164Phone,
-      addressSnapshot: input.addressSnapshot ?? null,
+      addressSnapshot,
       pickupNotes: input.pickupNotes ?? null,
       notes: input.notes ?? null,
-      subtotalCentavos: priced.merchandiseSubtotalCentavos,
-      discountCentavos: priced.discountCentavos,
-      deliveryFeeCentavos: priced.deliveryFeeCentavos,
-      totalCentavos: priced.totalCentavos,
+      subtotalCentavos: totals.merchandiseSubtotalCentavos,
+      discountCentavos: totals.discountCentavos,
+      deliveryFeeCentavos: totals.deliveryFeeCentavos,
+      totalCentavos: totals.totalCentavos,
       promoTesterResult: testerEligible ? "PENDING" : "SKIPPED",
     })
     .returning();
@@ -190,7 +205,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         condition: found.sku.condition,
         provenance: found.sku.provenance,
         packaging: found.sku.packaging,
-        fulfillment: found.sku.fulfillment,
+        fulfillment: line.fulfillment,
         quantity: line.quantity,
         originalUnitCentavos: line.unitPriceCentavos,
         unitPriceCentavos: line.discountedUnitCentavos,
@@ -201,6 +216,83 @@ export async function createOrderFromCart(input: CreateOrderInput) {
   );
 
   await client.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+
+  if (input.saveAddress && !isPickup && addressSnapshot) {
+    const existing = Number(
+      (
+        await client
+          .select({ value: count() })
+          .from(addresses)
+          .where(eq(addresses.userId, input.user.userId))
+      )[0]?.value ?? 0,
+    );
+    if (existing < 5) {
+      const snap = addressSnapshot as {
+        region: string;
+        province: string;
+        city: string;
+        barangay: string;
+        postalCode: string;
+        street: string;
+      };
+      await client.insert(addresses).values({
+        userId: input.user.userId,
+        recipientName,
+        phone: e164Phone,
+        region: snap.region,
+        province: snap.province,
+        city: snap.city,
+        barangay: snap.barangay,
+        postalCode: snap.postalCode,
+        street: snap.street,
+        isDefault: existing === 0,
+      });
+    }
+  }
+
+  try {
+    const paymentEmail = await sendEmail({
+      to: input.email,
+      ...orderCreatedPaymentEmail({
+        orderNumber,
+        status: "AWAITING_PAYMENT",
+        recipientName,
+        email: input.email,
+        fulfillmentMethod: input.fulfillmentMethod,
+        lines: priced.lines.map((line) => {
+          const found = skuRows.find((row) => row.sku.id === line.skuId);
+          return {
+            productName: found?.productName ?? "Fragrance",
+            skuLabel: found?.sku.label ?? "",
+            quantity: line.quantity,
+            originalUnitCentavos: line.unitPriceCentavos,
+            unitPriceCentavos: line.discountedUnitCentavos,
+            discountCentavos: line.lineDiscountCentavos,
+            lineTotalCentavos: line.lineSubtotalCentavos,
+            productType: line.productType,
+            fulfillment: line.fulfillment,
+          };
+        }),
+        subtotalCentavos: totals.merchandiseSubtotalCentavos,
+        discountCentavos: totals.discountCentavos,
+        deliveryFeeCentavos: totals.deliveryFeeCentavos,
+        totalCentavos: totals.totalCentavos,
+        defaultDeliveryFeeCentavos: totals.defaultDeliveryFeeCentavos,
+        freeDeliveryReason: totals.freeShipping && !isPickup ? "Decant subtotal over ₱2,000" : null,
+        orderedAt: new Date(),
+        pickupNotes: input.pickupNotes,
+      }),
+    });
+    await client.insert(notificationLog).values({
+      orderId: order.id,
+      recipient: input.email,
+      template: "order_created_payment",
+      status: paymentEmail.ok ? "SENT" : "FAILED",
+      error: paymentEmail.ok ? null : paymentEmail.error ?? "unknown",
+    });
+  } catch {
+    // Order is already committed; email failure must not fail checkout.
+  }
 
   return { order, totals: priced, orderItems: priced.lines, skuRows, promoConfig };
 }
@@ -325,20 +417,29 @@ export async function submitReceipt(
   return { ok: true };
 }
 
-async function tryReserveOneSku(skuId: string, quantity: number): Promise<boolean> {
-  const client = db();
-  const result = await client.execute<{ stock: number }>(
-    sql`UPDATE sku SET "stock" = "stock" - ${quantity} WHERE "id" = ${skuId} AND "stock" >= ${quantity} AND "isActive" = true RETURNING "stock"`,
-  );
-  return result.rows.length > 0;
+async function tryReserveOneSku(
+  tx: Pick<ReturnType<typeof db>, "update" | "select">,
+  skuId: string,
+  quantity: number,
+): Promise<boolean> {
+  const updated = await tx
+    .update(skus)
+    .set({ stock: sql`${skus.stock} - ${quantity}` })
+    .where(and(eq(skus.id, skuId), gte(skus.stock, quantity), eq(skus.isActive, true)))
+    .returning({ stock: skus.stock });
+  return updated.length > 0;
 }
 
-async function tryReserveTesterSku(skuId: string): Promise<boolean> {
-  const client = db();
-  const result = await client.execute<{ stock: number }>(
-    sql`UPDATE sku SET "stock" = "stock" - 1 WHERE "id" = ${skuId} AND "stock" >= 1 AND "isTester" = true AND "isActive" = true RETURNING "stock"`,
-  );
-  return result.rows.length > 0;
+async function tryReserveTesterSku(
+  tx: Pick<ReturnType<typeof db>, "update" | "select">,
+  skuId: string,
+): Promise<boolean> {
+  const updated = await tx
+    .update(skus)
+    .set({ stock: sql`${skus.stock} - 1` })
+    .where(and(eq(skus.id, skuId), gte(skus.stock, 1), eq(skus.isTester, true), eq(skus.isActive, true)))
+    .returning({ stock: skus.stock });
+  return updated.length > 0;
 }
 
 export async function reserveStockForOrder(orderId: string): Promise<void> {
@@ -352,8 +453,40 @@ export async function reserveStockForOrder(orderId: string): Promise<void> {
 
   return client.transaction(async (tx) => {
     for (const item of items) {
+      if (item.productType === "DECANT" && item.fulfillment === "ON_HAND") {
+        const sku = (
+          await tx
+            .select({ productId: skus.productId, sizeMl: skus.sizeMl })
+            .from(skus)
+            .where(eq(skus.id, item.skuId))
+        )[0];
+        if (sku) {
+          const product = (
+            await tx.select().from(products).where(eq(products.id, sku.productId))
+          )[0];
+          const deduct = mlToReserve({
+            remainingMl: product?.remainingMl ?? 0,
+            sizeMl: sku.sizeMl ?? 0,
+            quantity: item.quantity,
+            fulfillment: item.fulfillment,
+          });
+          if (deduct > 0) {
+            await tx
+              .update(products)
+              .set({ remainingMl: sql`GREATEST(0, ${products.remainingMl} - ${deduct})` })
+              .where(eq(products.id, sku.productId));
+            await tx.insert(stockMovements).values({
+              skuId: item.skuId,
+              delta: -deduct,
+              reason: "ML_RESERVED",
+              orderId,
+            });
+          }
+        }
+        continue;
+      }
       if (item.fulfillment !== "ON_HAND") continue;
-      const ok = await tryReserveOneSku(item.skuId, item.quantity);
+      const ok = await tryReserveOneSku(tx, item.skuId, item.quantity);
       if (!ok) throw new Error(`Not enough stock for order ${orderId}`);
       await tx.insert(stockMovements).values({
         skuId: item.skuId,
@@ -403,7 +536,7 @@ export async function reserveStockForOrder(orderId: string): Promise<void> {
         return;
       }
       const chosen = finalPool[Math.floor(Math.random() * finalPool.length)];
-      const ok = await tryReserveTesterSku(chosen.id);
+      const ok = await tryReserveTesterSku(tx, chosen.id);
       if (!ok) {
         await tx.update(orders).set({ promoTesterResult: "SKIPPED" }).where(eq(orders.id, orderId));
         return;
@@ -428,28 +561,56 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
     const reserved = await tx
       .select()
       .from(stockMovements)
-      .where(and(eq(stockMovements.orderId, orderId), eq(stockMovements.reason, "ORDER_RESERVED")));
+      .where(
+        and(
+          eq(stockMovements.orderId, orderId),
+          inArray(stockMovements.reason, ["ORDER_RESERVED", "ML_RESERVED"]),
+        ),
+      );
     if (reserved.length === 0) return;
     const alreadyReleased = new Set<string>();
     const existingReleases = await tx
       .select()
       .from(stockMovements)
-      .where(and(eq(stockMovements.orderId, orderId), eq(stockMovements.reason, "ORDER_RELEASED")));
+      .where(
+        and(
+          eq(stockMovements.orderId, orderId),
+          inArray(stockMovements.reason, ["ORDER_RELEASED", "ML_RELEASED"]),
+        ),
+      );
     for (const m of existingReleases) {
-      alreadyReleased.add(`${m.skuId}:${-m.delta}`);
+      alreadyReleased.add(`${m.reason === "ML_RELEASED" ? "ml" : "unit"}:${m.skuId}:${-m.delta}`);
     }
     for (const movement of reserved) {
-      const key = `${movement.skuId}:${-movement.delta}`;
+      const isMl = movement.reason === "ML_RESERVED";
+      const key = `${isMl ? "ml" : "unit"}:${movement.skuId}:${-movement.delta}`;
       if (alreadyReleased.has(key)) continue;
-      await tx.execute(
-        sql`UPDATE sku SET "stock" = "stock" - ${movement.delta} WHERE "id" = ${movement.skuId}`,
-      );
-      await tx.insert(stockMovements).values({
-        skuId: movement.skuId,
-        delta: -movement.delta,
-        reason: "ORDER_RELEASED",
-        orderId,
-      });
+      if (isMl) {
+        const sku = (await tx.select({ productId: skus.productId }).from(skus).where(eq(skus.id, movement.skuId)))[0];
+        if (sku) {
+          await tx
+            .update(products)
+            .set({ remainingMl: sql`${products.remainingMl} - ${movement.delta}` })
+            .where(eq(products.id, sku.productId));
+        }
+        await tx.insert(stockMovements).values({
+          skuId: movement.skuId,
+          delta: -movement.delta,
+          reason: "ML_RELEASED",
+          orderId,
+        });
+      } else {
+        await tx
+          .update(skus)
+          .set({ stock: sql`${skus.stock} - ${movement.delta}` })
+          .where(eq(skus.id, movement.skuId));
+        await tx.insert(stockMovements).values({
+          skuId: movement.skuId,
+          delta: -movement.delta,
+          reason: "ORDER_RELEASED",
+          orderId,
+        });
+      }
     }
 
     const tester = await tx
@@ -467,9 +628,10 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
     for (const movement of tester) {
       const key = `${movement.skuId}:${1}`;
       if (testerReleased.has(key)) continue;
-      await tx.execute(
-        sql`UPDATE sku SET "stock" = "stock" - ${movement.delta} WHERE "id" = ${movement.skuId}`,
-      );
+      await tx
+        .update(skus)
+        .set({ stock: sql`${skus.stock} - ${movement.delta}` })
+        .where(eq(skus.id, movement.skuId));
       await tx.insert(stockMovements).values({
         skuId: movement.skuId,
         delta: -movement.delta,

@@ -26,6 +26,8 @@ const checkoutSchema = z.object({
   pickupNotes: z.string().max(280).nullable().optional(),
   notes: z.string().max(280).nullable().optional(),
   acceptedTerms: z.literal(true),
+  savedAddressId: z.string().min(1).nullable().optional(),
+  saveAddress: z.boolean().optional(),
 });
 
 export async function createCheckoutOrder(input: unknown) {
@@ -39,6 +41,9 @@ export async function createCheckoutOrder(input: unknown) {
   });
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
   const parsed = checkoutSchema.parse(input);
+  if (parsed.fulfillmentMethod === "DELIVERY" && !parsed.savedAddressId && !parsed.addressSnapshot) {
+    throw new Error("A delivery address is required");
+  }
   const result = await createOrderFromCart({
     user: {
       userId: session.user.id as string,
@@ -53,6 +58,8 @@ export async function createCheckoutOrder(input: unknown) {
     addressSnapshot: parsed.addressSnapshot ?? null,
     pickupNotes: parsed.pickupNotes ?? null,
     notes: parsed.notes ?? null,
+    savedAddressId: parsed.savedAddressId ?? null,
+    saveAddress: parsed.saveAddress ?? false,
   });
   revalidatePath("/", "layout");
   return { orderId: result.order.id, orderNumber: result.order.orderNumber };

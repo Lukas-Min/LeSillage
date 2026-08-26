@@ -37,6 +37,9 @@ yarn-error.log*
 # local blob fallback (holds customer payment receipts)
 /.blob/
 
+# local scratch (dev logs, curl dumps)
+/tmp/
+
 # vercel
 .vercel
 

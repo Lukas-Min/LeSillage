@@ -2,82 +2,142 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ShoppingBag, User } from "lucide-react";
+import { Menu, Search, ShoppingBag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartCount } from "@/components/store/cart-context";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+const PRIMARY_LINKS = [
+  { href: "/shop", label: "Shop" },
+  { href: "/how-to-pay", label: "How to pay" },
+] as const;
+
+const MENU_LINKS = [
+  { href: "/shop", label: "Shop" },
+  { href: "/shop?type=DECANT", label: "Decants" },
+  { href: "/shop?type=FULL_BOTTLE", label: "Full bottles" },
+  { href: "/shop?type=PARTIAL", label: "Partials" },
+  { href: "/how-to-pay", label: "How to pay" },
+  { href: "/search", label: "Search" },
+  { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/contact", label: "Contact" },
+  { href: "/policies", label: "Policies" },
+] as const;
 
 export function StoreHeader({
   signedIn,
   isAdmin,
-  role,
 }: {
   signedIn: boolean;
   isAdmin: boolean;
-  role: "ADMIN" | "CUSTOMER" | null;
 }) {
   const count = useCartCount();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     Promise.resolve().then(() => setMounted(true));
   }, []);
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
-        <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
-          <span className="inline-block h-2 w-2 rounded-full bg-gold" />
-          Le Sillage
-        </Link>
-        <nav className="hidden gap-4 text-sm md:flex">
-          <Link href="/shop" className="hover:text-gold">Shop</Link>
-          <Link href="/collections/niche" className="hover:text-gold">Niche</Link>
-          <Link href="/collections/designer" className="hover:text-gold">Designer</Link>
-          <Link href="/collections/middle-eastern" className="hover:text-gold">ME</Link>
-          <Link href="/brands" className="hover:text-gold">Brands</Link>
-          <Link href="/search" className="hover:text-gold">Search</Link>
-          <Link href="/how-to-pay" className="hover:text-gold">How to pay</Link>
-          <Link href="/contact" className="hover:text-gold">Contact</Link>
-        </nav>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="icon" aria-label="Cart">
+          <MobileMenu signedIn={signedIn} isAdmin={isAdmin} />
+          <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
+            <span className="inline-block h-2 w-2 rounded-full bg-gold" />
+            Le Sillage
+          </Link>
+        </div>
+        <nav className="hidden items-center gap-6 text-sm md:flex">
+          {PRIMARY_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="min-h-11 inline-flex items-center hover:text-gold"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="flex items-center gap-1">
+          <Button asChild variant="ghost" size="icon-lg" aria-label="Search" className="min-h-11 min-w-11">
+            <Link href="/search">
+              <Search className="h-5 w-5" />
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="icon-lg" aria-label="Cart" className="relative min-h-11 min-w-11">
             <Link href="/cart">
               <ShoppingBag className="h-5 w-5" />
               {mounted && count > 0 ? (
-                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-xs font-semibold text-charcoal">
+                <span className="absolute top-1 right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-charcoal">
                   {count}
                 </span>
               ) : null}
             </Link>
           </Button>
-          {signedIn ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/account">
-                <User className="mr-1 h-4 w-4" />
-                {isAdmin ? "Admin" : "Account"}
-              </Link>
+          <Button asChild variant="ghost" size="icon-lg" aria-label={signedIn ? "Account" : "Sign in"} className="min-h-11 min-w-11">
+            <Link href={signedIn ? "/account" : "/sign-in"}>
+              <User className="h-5 w-5" />
+            </Link>
+          </Button>
+          {isAdmin ? (
+            <Button asChild variant="outline" size="sm" className="hidden min-h-11 md:inline-flex">
+              <Link href="/admin">Admin</Link>
             </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/sign-in">
-                <User className="mr-1 h-4 w-4" />
-                Sign in
-              </Link>
-            </Button>
-          )}
+          ) : null}
         </div>
       </div>
-      <div className="border-t border-border/40 bg-secondary/40 md:hidden">
-        <nav className="mx-auto flex max-w-6xl items-center gap-3 overflow-x-auto px-4 py-2 text-xs">
-          <Link href="/shop" className="hover:text-gold">Shop</Link>
-          <Link href="/collections/niche" className="hover:text-gold">Niche</Link>
-          <Link href="/collections/designer" className="hover:text-gold">Designer</Link>
-          <Link href="/collections/middle-eastern" className="hover:text-gold">ME</Link>
-          <Link href="/brands" className="hover:text-gold">Brands</Link>
-          <Link href="/search" className="hover:text-gold">Search</Link>
-          <Link href="/how-to-pay" className="hover:text-gold">How to pay</Link>
-          <Link href="/contact" className="hover:text-gold">Contact</Link>
-        </nav>
-      </div>
-      <span className="sr-only">{role}</span>
     </header>
+  );
+}
+
+function MobileMenu({ signedIn, isAdmin }: { signedIn: boolean; isAdmin: boolean }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon-lg" aria-label="Open menu" className="min-h-11 min-w-11 md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72">
+        <SheetHeader>
+          <SheetTitle className="font-serif-display">Le Sillage</SheetTitle>
+        </SheetHeader>
+        <nav className="flex flex-col gap-1 px-2">
+          {MENU_LINKS.map((link) => (
+            <SheetClose asChild key={link.href}>
+              <Link
+                href={link.href}
+                className="flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-muted"
+              >
+                {link.label}
+              </Link>
+            </SheetClose>
+          ))}
+          {isAdmin ? (
+            <SheetClose asChild>
+              <Link href="/admin" className="flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-muted">
+                Admin
+              </Link>
+            </SheetClose>
+          ) : null}
+          <SheetClose asChild>
+            <Link
+              href={signedIn ? "/account" : "/sign-in"}
+              className="flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-muted"
+            >
+              {signedIn ? "Account" : "Sign in"}
+            </Link>
+          </SheetClose>
+        </nav>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -8,8 +8,15 @@ const optionalString = z
 
 const baseSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  APP_URL: z.string().url().default("http://localhost:3000"),
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  APP_PORT: z
+    .string()
+    .regex(/^[0-9]{2,5}$/, "APP_PORT must be a numeric port")
+    .default("3030"),
+  APP_URL: z.string().url().default("http://localhost:3030"),
+  DATABASE_URL: z
+    .string()
+    .min(1, "DATABASE_URL is required (Supabase project → Settings → Database)"),
+  DATABASE_DIRECT_URL: optionalString,
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   AUTH_URL: optionalString,
   ADMIN_PASSWORD: z
@@ -19,6 +26,9 @@ const baseSchema = z.object({
   GMAIL_USER: z.string().email().default("le.sillage.mnl@gmail.com"),
   GMAIL_APP_PASSWORD: z.string().min(8, "GMAIL_APP_PASSWORD is required"),
   ADMIN_EMAIL: z.string().email().default("le.sillage.mnl@gmail.com"),
+  NEXT_PUBLIC_SUPABASE_URL: optionalString,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalString,
+  SUPABASE_SERVICE_ROLE_KEY: optionalString,
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
   FACEBOOK_CLIENT_ID: optionalString,
@@ -28,7 +38,7 @@ const baseSchema = z.object({
 });
 
 const clientSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3030"),
   NEXT_PUBLIC_PHONE: z.string().optional(),
   NEXT_PUBLIC_PICKUP_NOTES: z.string().optional(),
 });

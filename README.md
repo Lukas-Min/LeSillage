@@ -1,6 +1,6 @@
 # Le Sillage
 
-A retail perfume storefront and admin portal for Le Sillage, Manila. Built on Next.js 16 App Router with Drizzle ORM, Neon Postgres, Auth.js (Google + Facebook), and Gmail SMTP for notifications.
+A retail perfume storefront and admin portal for Le Sillage, Manila. Built on Next.js 16 App Router with Drizzle ORM, Supabase Postgres (via the `postgres` driver — matching the LapTrip stack), Auth.js (Google + Facebook), Gmail SMTP, and Vercel Blob for storage.
 
 Le Sillage sells **full bottles (pre-order)**, **partials**, and **decants** with **on-hand** fulfillment. There is **no payment gateway**: customers pay via bank QR codes and upload a payment screenshot.
 
@@ -22,10 +22,10 @@ Every page, component, and interaction is designed mobile-first and progressivel
    cp .env.example .env.local
    ```
 
-3. Generate the database schema and seed it:
+3. Run the migration and seed (matches LapTrip's `db:migrate` + `db:seed` scripts):
 
    ```bash
-   npm run db:push
+   npm run db:migrate
    npm run db:seed
    ```
 
@@ -35,14 +35,15 @@ Every page, component, and interaction is designed mobile-first and progressivel
    npm run dev
    ```
 
-   Visit `http://localhost:3000`. Admin lives at `/admin`.
+   Visit `http://localhost:3030`. Admin lives at `/admin`.
 
 ## Required services
 
 | Service | Why | Free tier |
 | --- | --- | --- |
-| Neon Postgres | Persistent storage | Yes |
+| Supabase Postgres | Persistent storage | Yes (cloud). Locally you can also point `DATABASE_URL` at any Postgres 17 instance. |
 | Vercel Blob | Image / QR / receipt storage | Yes (local fallback to disk) |
+| Supabase Storage | Signed upload URLs for `receipts` bucket (optional) | Yes |
 | Google OAuth | Customer sign-in | Yes, up to 50k MAU |
 | Facebook OAuth | Customer sign-in | Yes |
 | Gmail SMTP | Notifications | Yes (app password) |
@@ -67,7 +68,8 @@ See [CHANGELOG.md](./CHANGELOG.md) for every change, including schema, business 
 - `src/app/account/` — authenticated customer area
 - `src/app/admin/` — protected admin area
 - `src/components/` — UI by surface
-- `src/db/` — Drizzle schema, migrations, seed
+- `src/db/` — Drizzle schema + Drizzle client (`postgres` driver).
+- `scripts/migrate.ts`, `scripts/seed.ts` — explicit SQL migration and seed scripts (matching LapTrip's per-file `db:migrate-NNN.ts` style).
 - `src/domain/` — pricing, promo, ETA, order-state (pure)
 - `src/actions/` — Server Actions
 - `src/lib/` — env, blob, email, auth, rate limits
@@ -83,7 +85,7 @@ npm test
 If a destructive schema change needs reverting:
 
 1. Revert the application code.
-2. Run the generated down migration before any destructive schema rollback: `npx drizzle-kit down`.
+2. Reverse the corresponding changes in `scripts/migrate.ts` and run it again (`npm run db:migrate` is idempotent).
 3. Restore inventory from `stock_movement` records.
 
 ## Deploy

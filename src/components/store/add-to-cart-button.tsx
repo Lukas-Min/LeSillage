@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useCart, type CartItem } from "@/components/store/cart-context";
+import { useCart } from "@/components/store/cart-context";
 
-export function AddToCartButton(props: Omit<CartItem, "quantity">) {
+export function AddToCartButton({ skuId }: { skuId: string }) {
   const cart = useCart();
   const [isPending, startTransition] = useTransition();
   const [qty, setQty] = useState(1);
@@ -31,7 +31,7 @@ export function AddToCartButton(props: Omit<CartItem, "quantity">) {
         onClick={() =>
           startTransition(async () => {
             try {
-              await cart.add({ ...props, quantity: qty });
+              await cart.add({ skuId, quantity: qty });
               toast.success("Added to cart");
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Could not add to cart");

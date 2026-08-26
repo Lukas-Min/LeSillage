@@ -51,6 +51,18 @@ export default async function PromoSettingsPage() {
               />
               Tester bonus enabled
             </label>
+            <div className="space-y-1">
+              <Label htmlFor="decantPreOrderThresholdMl">Decant pre-order threshold (ml)</Label>
+              <Input
+                id="decantPreOrderThresholdMl"
+                name="decantPreOrderThresholdMl"
+                type="number"
+                defaultValue={row?.decantPreOrderThresholdMl ?? 10}
+              />
+              <p className="text-xs text-muted-foreground">
+                When remaining ml drops below this, every size on that fragrance becomes pre-order.
+              </p>
+            </div>
             <Button type="submit">Save</Button>
           </form>
         </CardContent>

@@ -13,7 +13,10 @@ export default async function AccountLayout({ children }: { children: React.Reac
       <aside className="w-full sm:w-48">
         <nav className="flex flex-col gap-2 text-sm">
           <Button asChild variant="ghost" className="justify-start">
-            <Link href="/account">Profile</Link>
+            <Link href="/account">Home</Link>
+          </Button>
+          <Button asChild variant="ghost" className="justify-start">
+            <Link href="/account/profile">Profile</Link>
           </Button>
           <Button asChild variant="ghost" className="justify-start">
             <Link href="/account/orders">Orders</Link>
@@ -23,6 +26,12 @@ export default async function AccountLayout({ children }: { children: React.Reac
           </Button>
           <Button asChild variant="ghost" className="justify-start">
             <Link href="/account/wishlist">Wishlist</Link>
+          </Button>
+          <Button asChild variant="ghost" className="justify-start">
+            <Link href="/account/notifications">Notifications</Link>
+          </Button>
+          <Button asChild variant="ghost" className="justify-start">
+            <Link href="/account/delete">Delete account</Link>
           </Button>
           <Button asChild variant="ghost" className="justify-start">
             <Link href="/api/auth/signout">Sign out</Link>

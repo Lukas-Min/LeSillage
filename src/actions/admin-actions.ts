@@ -16,6 +16,7 @@ const promoSchema = z.object({
   deliveryFeeCentavos: z.coerce.number().int().min(0).max(1_000_000_00),
   freeDeliveryEnabled: z.coerce.boolean(),
   testerBonusEnabled: z.coerce.boolean(),
+  decantPreOrderThresholdMl: z.coerce.number().int().min(0).max(1000),
 });
 
 export async function adminOAuthSignIn(provider: "google" | "facebook", returnTo?: string) {
@@ -47,6 +48,7 @@ export async function updatePromoSettings(formData: FormData) {
     deliveryFeeCentavos: formData.get("deliveryFeeCentavos"),
     freeDeliveryEnabled: formData.get("freeDeliveryEnabled") === "on",
     testerBonusEnabled: formData.get("testerBonusEnabled") === "on",
+    decantPreOrderThresholdMl: formData.get("decantPreOrderThresholdMl"),
   });
   await db()
     .update(promoSettings)

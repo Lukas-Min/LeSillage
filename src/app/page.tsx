@@ -1,34 +1,17 @@
 import Link from "next/link";
-import { asc, eq } from "drizzle-orm";
-import { db } from "@/db/client";
-import { products } from "@/db/schema";
+import { loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProductCard } from "@/components/store/product-card";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const shelves = await Promise.all([
-    db()
-      .select({ id: products.id, name: products.name, brand: products.brand, family: products.family })
-      .from(products)
-      .where(eq(products.fragranceCategory, "NICHE"))
-      .orderBy(asc(products.brand))
-      .limit(4),
-    db()
-      .select({ id: products.id, name: products.name, brand: products.brand, family: products.family })
-      .from(products)
-      .where(eq(products.fragranceCategory, "DESIGNER"))
-      .orderBy(asc(products.brand))
-      .limit(4),
-    db()
-      .select({ id: products.id, name: products.name, brand: products.brand, family: products.family })
-      .from(products)
-      .where(eq(products.fragranceCategory, "MIDDLE_EASTERN"))
-      .orderBy(asc(products.brand))
-      .limit(4),
+  const [niche, designer, me] = await Promise.all([
+    loadCatalogCards({ fragranceCategory: "NICHE" }),
+    loadCatalogCards({ fragranceCategory: "DESIGNER" }),
+    loadCatalogCards({ fragranceCategory: "MIDDLE_EASTERN" }),
   ]);
-  const [niche, designer, me] = shelves;
   return (
     <main className="flex flex-1 flex-col">
       <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-5 py-16 text-center sm:py-24">
@@ -49,9 +32,9 @@ export default async function Home() {
         </div>
       </section>
       <section className="mx-auto grid w-full max-w-6xl gap-6 px-5 pb-16 sm:grid-cols-3">
-        <Shelf title="Niche" subtitle="Bold, original" items={niche} href="/collections/niche" />
-        <Shelf title="Designer" subtitle="House classics" items={designer} href="/collections/designer" />
-        <Shelf title="Middle Eastern" subtitle="Oud-led, spicy" items={me} href="/collections/middle-eastern" />
+        <Shelf title="Niche" subtitle="Bold, original" items={niche.slice(0, 4)} href="/collections/niche" />
+        <Shelf title="Designer" subtitle="House classics" items={designer.slice(0, 4)} href="/collections/designer" />
+        <Shelf title="Middle Eastern" subtitle="Oud-led, spicy" items={me.slice(0, 4)} href="/collections/middle-eastern" />
       </section>
       <section className="mx-auto w-full max-w-6xl px-5 pb-16">
         <Card>
@@ -69,22 +52,32 @@ export default async function Home() {
   );
 }
 
-function Shelf({ title, subtitle, items, href }: { title: string; subtitle: string; items: { id: string; name: string; brand: string }[]; href: string }) {
+function Shelf({
+  title,
+  subtitle,
+  items,
+  href,
+}: {
+  title: string;
+  subtitle: string;
+  items: CatalogCardModel[];
+  href: string;
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-serif-display text-base">{title}</CardTitle>
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </CardHeader>
-      <CardContent className="space-y-1 text-sm">
+      <CardContent className="space-y-3 text-sm">
         {items.length === 0 ? (
           <p className="text-xs text-muted-foreground">No items yet.</p>
         ) : (
-          items.map((item) => (
-            <p key={item.id}>
-              <span className="text-muted-foreground">{item.brand}</span> · {item.name}
-            </p>
-          ))
+          <div className="grid grid-cols-1 gap-3">
+            {items.map((item) => (
+              <ProductCard key={item.productId} card={item} />
+            ))}
+          </div>
         )}
         <Link href={href} className="mt-2 inline-block text-xs underline-offset-4 hover:underline">
           Browse {title.toLowerCase()}

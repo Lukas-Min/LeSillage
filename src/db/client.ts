@@ -1,28 +1,23 @@
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-serverless";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { getEnv } from "@/lib/env";
 import * as schema from "./schema";
 
 const globalForDb = globalThis as unknown as {
-  __leSillagePool?: Pool;
-  __leSillageDb?: ReturnType<typeof drizzle<typeof schema>>;
+  __leSillagePg?: ReturnType<typeof postgres>;
 };
 
-function getPool(): Pool {
-  if (!globalForDb.__leSillagePool) {
+function getSql() {
+  if (!globalForDb.__leSillagePg) {
     const env = getEnv();
-    globalForDb.__leSillagePool = new Pool({ connectionString: env.DATABASE_URL });
+    globalForDb.__leSillagePg = postgres(env.DATABASE_URL, { prepare: false });
   }
-  return globalForDb.__leSillagePool;
+  return globalForDb.__leSillagePg;
 }
 
 export function db() {
-  if (!globalForDb.__leSillageDb) {
-    const pool = getPool();
-    globalForDb.__leSillageDb = drizzle(pool, { schema });
-  }
-  return globalForDb.__leSillageDb;
+  return drizzle(getSql(), { schema });
 }
 
 export type Db = ReturnType<typeof db>;
-export { schema, neonConfig };
+export { schema };

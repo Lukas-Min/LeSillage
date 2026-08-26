@@ -51,6 +51,15 @@ export default async function PaymentPage({
             Scan any active QR code below using your banking or e-wallet app, then upload the
             receipt screenshot here.
           </p>
+          {qrs.length === 0 ? (
+            <p className="rounded-lg border border-dashed p-4 text-sm">
+              No payment QR is configured yet. Your order is saved. Email us from the{" "}
+              <Link href="/contact" className="underline-offset-4 hover:underline">
+                contact page
+              </Link>{" "}
+              and we will send payment instructions. You can upload a receipt here as soon as a QR is added.
+            </p>
+          ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {qrs.map((qr) => (
               <div key={qr.id} className="rounded-lg border p-4">
@@ -68,6 +77,7 @@ export default async function PaymentPage({
               </div>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
       <ReceiptUploader orderId={order.id} />

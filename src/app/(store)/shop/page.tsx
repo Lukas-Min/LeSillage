@@ -1,158 +1,41 @@
-import Link from "next/link";
-import { and, desc, eq, inArray } from "drizzle-orm";
-import { db } from "@/db/client";
-import { products, skus, productImages, productDiscounts } from "@/db/schema";
-import { applyDiscount, bestDiscount } from "@/domain/discount";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Price } from "@/components/store/price";
+import { CatalogGrid } from "@/components/store/catalog-grid";
+import { ShopFilters } from "@/components/store/shop-filters";
+import { loadCatalogCards } from "@/lib/catalog";
+import { productType, type ProductType } from "@/db/schema";
+import { DECANT_SIZES_ML } from "@/domain/decant";
 
 export const dynamic = "force-dynamic";
 
-export default async function ShopPage() {
-  const client = db();
-  const productRows = await client
-    .select({
-      id: products.id,
-      name: products.name,
-      brand: products.brand,
-      family: products.family,
-      type: products.type,
-    })
-    .from(products)
-    .where(eq(products.isActive, true))
-    .orderBy(desc(products.createdAt));
-  if (productRows.length === 0) {
-    return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-12">
-        <h1 className="font-serif-display text-2xl">No fragrances yet</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Check back soon — we&apos;re curating the shelf.
-        </p>
-      </main>
-    );
-  }
-  const productIds = productRows.map((p) => p.id);
-  const [skuRows, imageRows, discountRows] = await Promise.all([
-    client
-      .select({
-        productId: skus.productId,
-        skuId: skus.id,
-        retailPrice: skus.retailPrice,
-        fulfillment: skus.fulfillment,
-        stock: skus.stock,
-        condition: skus.condition,
-      })
-      .from(skus)
-      .where(and(eq(skus.isActive, true), eq(skus.isTester, false))),
-    client
-      .select({ productId: productImages.productId, url: productImages.url })
-      .from(productImages)
-      .where(inArray(productImages.productId, productIds)),
-    client
-      .select()
-      .from(productDiscounts)
-      .where(inArray(productDiscounts.productId, productIds)),
-  ]);
-  const skusByProduct = new Map<string, typeof skuRows>();
-  for (const sku of skuRows) {
-    const arr = skusByProduct.get(sku.productId) ?? [];
-    arr.push(sku);
-    skusByProduct.set(sku.productId, arr);
-  }
-  const imageByProduct = new Map<string, string>();
-  for (const img of imageRows) imageByProduct.set(img.productId, img.url);
-  const discountsByProduct = new Map<string, typeof discountRows>();
-  for (const d of discountRows) {
-    const arr = discountsByProduct.get(d.productId) ?? [];
-    arr.push(d);
-    discountsByProduct.set(d.productId, arr);
-  }
-
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string; size?: string }>;
+}) {
+  const params = await searchParams;
+  const type = productType.includes(params.type as ProductType)
+    ? (params.type as ProductType)
+    : undefined;
+  const sizeMl = Number(params.size);
+  const validSize = DECANT_SIZES_ML.includes(sizeMl as (typeof DECANT_SIZES_ML)[number])
+    ? sizeMl
+    : undefined;
+  const cards = await loadCatalogCards({
+    type,
+    sizeMl: type === "DECANT" ? validSize : undefined,
+  });
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-12">
-      <header className="mb-6 flex flex-col gap-2">
-        <p className="text-xs uppercase tracking-[0.4em] text-gold">Catalog</p>
-        <h1 className="font-serif-display text-2xl sm:text-3xl">Every scent, in your size</h1>
-        <p className="text-sm text-muted-foreground">
-          Full bottles are pre-order; partials and decants are on hand.
-        </p>
-      </header>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
-        {productRows.map((row) => {
-          const variants = skusByProduct.get(row.id) ?? [];
-          const sku = variants
-            .filter((v) => v.fulfillment === "ON_HAND")
-            .sort((a, b) => a.retailPrice - b.retailPrice)[0] ?? variants[0];
-          if (!sku) return null;
-          const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(
-            sku.retailPrice,
-            bestDiscount(discountsByProduct.get(row.id) ?? [], sku.retailPrice),
-          );
-          return (
-            <Card key={row.id} className="overflow-hidden">
-              <CardHeader className="p-0">
-                <div className="aspect-[4/5] w-full bg-cream-foreground/5">
-                  {imageByProduct.get(row.id) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={imageByProduct.get(row.id)}
-                      alt={row.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs uppercase tracking-widest text-muted-foreground">
-                      {row.brand}
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-1 p-4">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">{row.brand}</p>
-                <CardTitle className="font-serif-display text-lg">{row.name}</CardTitle>
-                <p className="text-xs text-muted-foreground">{row.family ?? row.type}</p>
-                <div className="flex flex-wrap gap-1 pt-2">
-                  <Badge variant={sku.fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
-                    {sku.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
-                  </Badge>
-                  {sku.fulfillment === "ON_HAND" && sku.stock <= 0 ? (
-                    <Badge variant="destructive">Sold out</Badge>
-                  ) : null}
-                  {sku.condition !== "BNIB" ? (
-                    <Badge variant="outline">{labelForCondition(sku.condition)}</Badge>
-                  ) : null}
-                </div>
-              </CardContent>
-              <CardFooter className="flex items-center justify-between gap-3 p-4 pt-0">
-                <Price
-                  originalCentavos={sku.retailPrice}
-                  discountedCentavos={discountedUnitCentavos}
-                  savedCentavos={perUnitDiscountCentavos}
-                />
-                <Link
-                  href={`/shop/${sku.skuId}`}
-                  className="text-sm font-medium underline-offset-4 hover:underline"
-                >
-                  View
-                </Link>
-              </CardFooter>
-            </Card>
-          );
-        })}
-      </div>
-    </main>
+    <CatalogGrid
+      title="Every scent, in your size"
+      subtitle="Full bottles are pre-order. Partials ship from stock. Decants stay listed even when the bottle is low — they switch to pre-order under 10ml."
+      cards={cards}
+      emptyLabel="Nothing on this shelf yet."
+      filters={
+        <ShopFilters
+          activeType={type}
+          showDecantSizes={type === "DECANT"}
+          activeSize={validSize}
+        />
+      }
+    />
   );
-}
-
-function labelForCondition(c: typeof skus.$inferSelect.condition): string {
-  switch (c) {
-    case "BNIB":
-      return "Brand new";
-    case "SEALED":
-      return "Sealed";
-    case "FEW_SPRAYS_MISSING":
-      return "A few sprays missing";
-    case "PARTIAL_ML":
-      return "Partial (ml)";
-  }
 }

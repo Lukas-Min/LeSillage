@@ -4,6 +4,33 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Compact storefront header (logo, Shop, How to Pay, search/cart/account icons) and structured footer in `src/components/store/`
+- URL-backed shop filters for All, Decants, Full bottles, and Partials, plus GET search by name, brand, and family
+- Shared catalog loader and full-link product cards with square images and 3ml–30ml decant price ranges
+- Shared decant ml pool (`product.sourceMl` / `product.remainingMl`) with a 10ml pre-order threshold
+- Admin product, SKU, image, discount, and ml-pool management with archive-first deletion
+- Email/password signup and sign-in with hashed 6-digit verification codes, password reset, and JWT sessions
+- Authentication and security notification email templates, plus an order-created payment email
+- Postgres guest and account carts with guest-to-user merge, checkout line review, saved addresses, and live delivery vs pickup totals
+- Customer profile, addresses, wishlist add-to-cart, marketing opt-in, and reauthentication-gated account deletion
+
+### Changed
+- Auth.js session strategy switched from database to JWT, with `sessionVersion` for password, email, and deletion revocation
+- Decant availability and order snapshots now use derived fulfillment from the ml pool instead of per-size unit stock
+- Home shelves, sitemap, admin nav (Customers, Audit), and promo settings include the new catalog and threshold fields
+
+### Fixed
+- Unused catalog helper arguments and a leftover promo-config wrapper removed from the storefront loaders
+- Brand pages decode slugs once so names like Maison Ivre display and filter correctly
+- Collection slug `middle-eastern` maps to `MIDDLE_EASTERN` instead of 404ing
+- Guest cart, checkout totals, and payment QR empty state now share the database cart and promo rules
+- Account default-address helper was restored after a broken function body
+
+### Security
+- Passwords hashed with bcryptjs at cost 12; verification codes stored only as hashes with attempt limits and 10-minute expiry
+- JWT cookies cannot be revoked server-side except via `sessionVersion`; password change, email change, and deletion increment it
+
+### Added
 - Strict transaction-capable driver: `drizzle-orm/neon-serverless` with a pooled client in `src/db/client.ts`, so `db.transaction()` works for stock reservation and tester assignment
 - Three-axis condition model on `sku` (`condition` BNIB/Sealed/FewSprays/PartialMl, `provenance` Retail/Tester, `packaging` WithBox/BottleOnly) and `fragranceCategory` on `products` (Niche/Designer/MiddleEastern)
 - Optional list tables `option_list` and `option_value` plus `/admin/settings` editor with add/activate/deactivate flows and `audit_log` rows on each change
@@ -73,6 +100,11 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ### Added
 - Local `.env.local` with generated `AUTH_SECRET`, Gmail SMTP credentials, and admin email; `DATABASE_URL` left as a placeholder pending Neon provisioning
+- Stack realigned to match LapTrip: Supabase Postgres via the `postgres` driver, `scripts/migrate.ts` + `scripts/seed.ts` migration entries, `@supabase/ssr` + `@supabase/supabase-js` clients in `package.json`, `src/lib/storage.ts` helper for signed Supabase Storage URLs, and Supabase credential slots in `.env.example`
+- Live dev stack now wired: Supabase project `ijqobofmnteqdalpqhnq` (Asia-Pacific), `DATABASE_URL` pooler on `:6543`, `DATABASE_DIRECT_URL` on `:5432` for migrations, Supabase anon + service-role keys in `.env.local`, baseline migration applied (`scripts/migrate.ts`), seed loaded, `npm run dev` serves `/`, `/shop`, `/collections/*`, `/cart`, redirects `/admin` to `/sign-in`
+- `src/db/client.ts` prefers `DATABASE_URL` (Supabase pooler) for runtime, since the direct `db.*` host is not DNS-resolvable from this network
+- CSP is dev-conditional: production keeps `'self' 'unsafe-inline'` only; development adds `'unsafe-eval'` plus `ws://localhost:3030` so React's dev-only stack-trace reconstruction and Turbopack's HMR socket still work without warnings
+- Dev/start port moved from 3000 (LapTrip) to 3030 so both projects can run side-by-side; `APP_PORT` added to env schema with that default, `package.json` scripts pass `-p 3030`, README and `.env.example` redirect URIs updated to match
 
 ### Fixed
 - `.gitignore` no longer excludes `.env.example`, which the `.env*` pattern was silently ignoring so the template could never be committed

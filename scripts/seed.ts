@@ -1,6 +1,10 @@
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
+import { eq, inArray } from "drizzle-orm";
 import { computeRetailPrice } from "@/domain/pricing";
-import type { PricingMode } from "@/db/schema";
-import { db } from "./client";
+import type { PricingMode } from "../src/db/schema";
+import { db } from "../src/db/client";
 import {
   products,
   skus,
@@ -11,7 +15,7 @@ import {
   siteContent,
   optionLists,
   optionValues,
-} from "./schema";
+} from "../src/db/schema";
 
 interface SeedSkuInput {
   id: string;
@@ -19,7 +23,6 @@ interface SeedSkuInput {
   sku: string;
   label: string;
   sizeMl: number;
-  remainingMl?: number | null;
   condition: "BNIB" | "SEALED" | "FEW_SPRAYS_MISSING" | "PARTIAL_ML";
   provenance: "RETAIL" | "TESTER";
   packaging: "WITH_BOX" | "BOTTLE_ONLY";
@@ -83,31 +86,37 @@ async function main() {
         notes: "Tester — bottle only.",
       },
       {
-        id: "p_velvet_oud_5ml",
+        id: "p_velvet_oud_decant",
         type: "DECANT",
         fragranceCategory: "DESIGNER",
-        name: "Velvet Oud — 5ml",
+        name: "Velvet Oud",
         brand: "Maison Ivre",
         family: "Woody",
-        description: "5ml decant of Velvet Oud from a sealed tester bottle.",
+        description: "Decants of Velvet Oud from a sealed tester bottle. 3ml, 5ml, 10ml, and 30ml.",
+        sourceMl: 100,
+        remainingMl: 80,
       },
       {
-        id: "p_velvet_oud_10ml",
-        type: "DECANT",
-        fragranceCategory: "DESIGNER",
-        name: "Velvet Oud — 10ml",
-        brand: "Maison Ivre",
-        family: "Woody",
-        description: "10ml decant of Velvet Oud from a sealed tester bottle.",
-      },
-      {
-        id: "p_salt_breeze_5ml",
+        id: "p_salt_breeze_decant",
         type: "DECANT",
         fragranceCategory: "MIDDLE_EASTERN",
-        name: "Salt Breeze — 5ml",
+        name: "Salt Breeze",
         brand: "Casa Luz",
         family: "Aquatic",
-        description: "5ml decant of Salt Breeze.",
+        description: "Decants of Salt Breeze. Listed sizes stay available; low millilitres switch to pre-order.",
+        sourceMl: 100,
+        remainingMl: 8,
+      },
+      {
+        id: "p_oud_royal_decant",
+        type: "DECANT",
+        fragranceCategory: "NICHE",
+        name: "Oud Royal",
+        brand: "Maison Ivre",
+        family: "Woody",
+        description: "Decants of Oud Royal.",
+        sourceMl: 100,
+        remainingMl: 50,
       },
       {
         id: "p_tester_velvet",
@@ -135,15 +144,6 @@ async function main() {
         brand: "Maison Ivre",
         family: "Woody",
         description: "Premium oud with saffron and rose petals.",
-      },
-      {
-        id: "p_oud_royal_5ml",
-        type: "DECANT",
-        fragranceCategory: "NICHE",
-        name: "Oud Royal — 5ml",
-        brand: "Maison Ivre",
-        family: "Woody",
-        description: "5ml decant of Oud Royal.",
       },
     ])
     .onConflictDoNothing();
@@ -189,7 +189,6 @@ async function main() {
       sku: "MI-AMBER-30",
       label: "30ml Partial Bottle",
       sizeMl: 30,
-      remainingMl: 22,
       condition: "PARTIAL_ML",
       provenance: "TESTER",
       packaging: "BOTTLE_ONLY",
@@ -202,8 +201,25 @@ async function main() {
       isTester: false,
     },
     {
+      id: "sku_velvet_3",
+      productId: "p_velvet_oud_decant",
+      sku: "MI-VELOUD-3",
+      label: "3ml Decant",
+      sizeMl: 3,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 33000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 52800,
+      fulfillment: "ON_HAND",
+      stock: 99,
+      isTester: false,
+    },
+    {
       id: "sku_velvet_5",
-      productId: "p_velvet_oud_5ml",
+      productId: "p_velvet_oud_decant",
       sku: "MI-VELOUD-5",
       label: "5ml Decant",
       sizeMl: 5,
@@ -215,12 +231,12 @@ async function main() {
       pricingInput: 60,
       retailPrice: 88000,
       fulfillment: "ON_HAND",
-      stock: 12,
+      stock: 99,
       isTester: false,
     },
     {
       id: "sku_velvet_10",
-      productId: "p_velvet_oud_10ml",
+      productId: "p_velvet_oud_decant",
       sku: "MI-VELOUD-10",
       label: "10ml Decant",
       sizeMl: 10,
@@ -232,12 +248,46 @@ async function main() {
       pricingInput: 65,
       retailPrice: 165000,
       fulfillment: "ON_HAND",
-      stock: 8,
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_velvet_30",
+      productId: "p_velvet_oud_decant",
+      sku: "MI-VELOUD-30",
+      label: "30ml Decant",
+      sizeMl: 30,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 300000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 480000,
+      fulfillment: "ON_HAND",
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_salt_3",
+      productId: "p_salt_breeze_decant",
+      sku: "CL-SALT-3",
+      label: "3ml Decant",
+      sizeMl: 3,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 24000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 38400,
+      fulfillment: "PRE_ORDER",
+      stock: 99,
       isTester: false,
     },
     {
       id: "sku_salt_5",
-      productId: "p_salt_breeze_5ml",
+      productId: "p_salt_breeze_decant",
       sku: "CL-SALT-5",
       label: "5ml Decant",
       sizeMl: 5,
@@ -248,8 +298,42 @@ async function main() {
       pricingMode: "PERCENTAGE",
       pricingInput: 60,
       retailPrice: 64000,
-      fulfillment: "ON_HAND",
-      stock: 10,
+      fulfillment: "PRE_ORDER",
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_salt_10",
+      productId: "p_salt_breeze_decant",
+      sku: "CL-SALT-10",
+      label: "10ml Decant",
+      sizeMl: 10,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 80000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 128000,
+      fulfillment: "PRE_ORDER",
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_salt_30",
+      productId: "p_salt_breeze_decant",
+      sku: "CL-SALT-30",
+      label: "30ml Decant",
+      sizeMl: 30,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 240000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 384000,
+      fulfillment: "PRE_ORDER",
+      stock: 99,
       isTester: false,
     },
     {
@@ -271,7 +355,7 @@ async function main() {
     },
     {
       id: "sku_oudroyal_5",
-      productId: "p_oud_royal_5ml",
+      productId: "p_oud_royal_decant",
       sku: "MI-OUDR-5",
       label: "5ml Decant",
       sizeMl: 5,
@@ -283,7 +367,58 @@ async function main() {
       pricingInput: 60,
       retailPrice: 192000,
       fulfillment: "ON_HAND",
-      stock: 6,
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_oudroyal_3",
+      productId: "p_oud_royal_decant",
+      sku: "MI-OUDR-3",
+      label: "3ml Decant",
+      sizeMl: 3,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 72000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 115200,
+      fulfillment: "ON_HAND",
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_oudroyal_10",
+      productId: "p_oud_royal_decant",
+      sku: "MI-OUDR-10",
+      label: "10ml Decant",
+      sizeMl: 10,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 240000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 384000,
+      fulfillment: "ON_HAND",
+      stock: 99,
+      isTester: false,
+    },
+    {
+      id: "sku_oudroyal_30",
+      productId: "p_oud_royal_decant",
+      sku: "MI-OUDR-30",
+      label: "30ml Decant",
+      sizeMl: 30,
+      condition: "SEALED",
+      provenance: "TESTER",
+      packaging: "BOTTLE_ONLY",
+      costPrice: 720000,
+      pricingMode: "PERCENTAGE",
+      pricingInput: 60,
+      retailPrice: 1152000,
+      fulfillment: "ON_HAND",
+      stock: 99,
       isTester: false,
     },
     {
@@ -330,6 +465,39 @@ async function main() {
 
   await client.insert(skus).values(skuRows).onConflictDoNothing();
 
+  const reparent: Array<{ id: string; productId: string }> = [
+    { id: "sku_velvet_5", productId: "p_velvet_oud_decant" },
+    { id: "sku_velvet_10", productId: "p_velvet_oud_decant" },
+    { id: "sku_salt_5", productId: "p_salt_breeze_decant" },
+    { id: "sku_oudroyal_5", productId: "p_oud_royal_decant" },
+  ];
+  for (const row of reparent) {
+    await client.update(skus).set({ productId: row.productId }).where(eq(skus.id, row.id));
+  }
+  await client
+    .update(products)
+    .set({ isActive: false })
+    .where(
+      inArray(products.id, [
+        "p_velvet_oud_5ml",
+        "p_velvet_oud_10ml",
+        "p_salt_breeze_5ml",
+        "p_oud_royal_5ml",
+      ]),
+    );
+  await client
+    .update(products)
+    .set({ remainingMl: 80, sourceMl: 100 })
+    .where(eq(products.id, "p_velvet_oud_decant"));
+  await client
+    .update(products)
+    .set({ remainingMl: 8, sourceMl: 100 })
+    .where(eq(products.id, "p_salt_breeze_decant"));
+  await client
+    .update(products)
+    .set({ remainingMl: 50, sourceMl: 100 })
+    .where(eq(products.id, "p_oud_royal_decant"));
+
   await client.insert(productImages).values([
     {
       productId: "p_velvet_oud",
@@ -344,17 +512,17 @@ async function main() {
       position: 0,
     },
     {
-      productId: "p_velvet_oud_5ml",
-      url: "/placeholder/velvet-oud-5ml.svg",
-      alt: "Velvet Oud 5ml decant",
+      productId: "p_velvet_oud_decant",
+      url: "/placeholder/velvet-oud.svg",
+      alt: "Velvet Oud decant",
       position: 0,
     },
   ]).onConflictDoNothing();
 
   await client.insert(productDiscounts).values([
-    { productId: "p_velvet_oud_10ml", type: "PERCENTAGE", amount: 5, isActive: true },
-    { productId: "p_salt_breeze_5ml", type: "FIXED", amount: 10000, isActive: true },
-    { productId: "p_oud_royal_5ml", type: "PERCENTAGE", amount: 10, isActive: true },
+    { productId: "p_velvet_oud_decant", type: "PERCENTAGE", amount: 5, isActive: true },
+    { productId: "p_salt_breeze_decant", type: "FIXED", amount: 10000, isActive: true },
+    { productId: "p_oud_royal_decant", type: "PERCENTAGE", amount: 10, isActive: true },
   ]).onConflictDoNothing();
 
   await client.insert(promoSettings).values({
@@ -363,7 +531,12 @@ async function main() {
     deliveryFeeCentavos: 12000,
     freeDeliveryEnabled: true,
     testerBonusEnabled: true,
+    decantPreOrderThresholdMl: 10,
   }).onConflictDoNothing();
+  await client
+    .update(promoSettings)
+    .set({ decantPreOrderThresholdMl: 10 })
+    .where(eq(promoSettings.id, "singleton"));
 
   await client.insert(qrCodes).values([
     {

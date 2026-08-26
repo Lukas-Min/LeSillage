@@ -23,6 +23,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/products">Products</Link>
           </Button>
           <Button asChild variant="ghost" className="justify-start">
+            <Link href="/admin/customers">Customers</Link>
+          </Button>
+          <Button asChild variant="ghost" className="justify-start">
+            <Link href="/admin/audit">Audit log</Link>
+          </Button>
+          <Button asChild variant="ghost" className="justify-start">
             <Link href="/admin/promo">Promo & delivery</Link>
           </Button>
           <Button asChild variant="ghost" className="justify-start">

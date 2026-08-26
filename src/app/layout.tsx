@@ -4,7 +4,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 import { auth } from "@/auth";
 import { StoreHeader } from "@/components/store/store-header";
+import { StoreFooter } from "@/components/store/store-footer";
 import "./globals.css";
+import { loadCartView, resolveActiveCart } from "@/lib/cart";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -17,7 +19,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3030"),
   title: {
     default: "Le Sillage",
     template: "%s | Le Sillage",
@@ -36,26 +38,24 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  const role =
-    ((session?.user as { role?: string } | undefined)?.role as "ADMIN" | "CUSTOMER" | undefined) ??
-    null;
-  const isAdmin = role === "ADMIN";
+  const isAdmin = session?.user?.role === "ADMIN";
+  let initialCart;
+  try {
+    const { cart } = await resolveActiveCart();
+    initialCart = await loadCartView(cart.id);
+  } catch {
+    initialCart = undefined;
+  }
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Providers>
-          <StoreHeader
-            signedIn={Boolean(session?.user)}
-            isAdmin={isAdmin}
-            role={role}
-          />
+        <Providers initialCart={initialCart}>
+          <StoreHeader signedIn={Boolean(session?.user)} isAdmin={isAdmin} />
           <div className="flex-1">{children}</div>
-          <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Le Sillage · Manila
-          </footer>
+          <StoreFooter />
           <Toaster richColors position="top-center" />
         </Providers>
       </body>

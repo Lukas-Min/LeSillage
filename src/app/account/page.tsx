@@ -17,6 +17,7 @@ export default async function AccountPage() {
         <CardContent className="space-y-2 text-sm">
           <p>Signed in as {session.user.email}</p>
           <div className="flex flex-wrap gap-2 pt-2">
+            <Button asChild size="sm" variant="outline"><Link href="/account/profile">Profile</Link></Button>
             <Button asChild size="sm" variant="outline"><Link href="/account/orders">Orders</Link></Button>
             <Button asChild size="sm" variant="outline"><Link href="/account/addresses">Addresses</Link></Button>
             <Button asChild size="sm" variant="outline"><Link href="/account/wishlist">Wishlist</Link></Button>

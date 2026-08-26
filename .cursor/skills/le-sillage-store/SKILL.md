@@ -5,7 +5,7 @@ description: Project-specific guidance for the Le Sillage Next.js perfume storef
 
 # Le Sillage Store
 
-Le Sillage is a Philippine retail perfume storefront and admin portal built on Next.js 16 App Router, Drizzle ORM with Neon Postgres, Auth.js (Google + Facebook), and Gmail SMTP for notifications. There is no payment gateway — payment is manual via uploaded QR receipts.
+Le Sillage is a Philippine retail perfume storefront and admin portal built on Next.js 16 App Router, Drizzle ORM with Supabase Postgres (via the `postgres` driver — matching LapTrip's stack), Auth.js (Google + Facebook), Gmail SMTP for notifications, and Vercel Blob for image storage. There is no payment gateway — payment is manual via uploaded QR receipts.
 
 ## Core business rules
 
@@ -23,10 +23,10 @@ Le Sillage is a Philippine retail perfume storefront and admin portal built on N
 
 ## File layout
 
-- `src/db/` — Drizzle schema, migrations, seed, client.
+- `src/db/` — Drizzle schema + `db()` client. SQL migration scripts live in `scripts/` (matching LapTrip: `npm run db:migrate`, `npm run db:seed`).
 - `src/domain/` — money, pricing, promos, ETA, and order-state logic. Pure functions only.
 - `src/actions/` — Server Actions for cart, orders, admin, and account flows.
-- `src/lib/` — env validation, blob, email, rate limits, auth/session, formatter helpers.
+- `src/lib/` — env validation, blob, email, storage (Supabase), rate limits, auth helpers, formatter.
 - `src/app/(store)/` — storefront routes.
 - `src/app/account/` — authenticated customer area.
 - `src/app/admin/` — protected admin area.

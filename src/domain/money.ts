@@ -21,6 +21,22 @@ export function formatPHP(centavos: number): string {
   return pesoFormatter.format(fromCentavos(centavos));
 }
 
+export function formatPHPCompact(centavos: number): string {
+  const pesos = fromCentavos(centavos);
+  const whole = Number.isInteger(pesos);
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(pesos);
+}
+
+export function formatPHPRange(minCentavos: number, maxCentavos: number): string {
+  if (minCentavos === maxCentavos) return formatPHPCompact(minCentavos);
+  return `${formatPHPCompact(minCentavos)} – ${formatPHPCompact(maxCentavos)}`;
+}
+
 export function formatPHPShort(pesos: number): string {
   return pesoFormatter.format(pesos);
 }

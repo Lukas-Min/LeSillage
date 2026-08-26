@@ -56,6 +56,9 @@ export const stockMovementReason = [
   "ORDER_FULFILLED",
   "TESTER_ASSIGNED",
   "TESTER_RELEASED",
+  "ML_RESERVED",
+  "ML_RELEASED",
+  "ML_ADJUST",
 ] as const;
 export type StockMovementReason = (typeof stockMovementReason)[number];
 
@@ -66,13 +69,28 @@ export const auditAction = [
   "PRODUCT_CREATE",
   "PRODUCT_UPDATE",
   "PRODUCT_DELETE",
+  "PRODUCT_ARCHIVE",
+  "SKU_CREATE",
+  "SKU_UPDATE",
+  "SKU_DELETE",
   "STOCK_ADJUST",
+  "ML_ADJUST",
   "DISCOUNT_UPDATE",
+  "IMAGE_UPDATE",
   "PROMO_UPDATE",
   "QR_UPDATE",
   "ORDER_STATUS",
   "ORDER_NOTE",
   "OPTION_VALUE_CHANGE",
+  "ACCOUNT_UPDATE",
+  "ACCOUNT_DELETE",
+  "ADDRESS_CREATE",
+  "ADDRESS_UPDATE",
+  "ADDRESS_DELETE",
+  "WISHLIST_TOGGLE",
+  "AUTH_SIGNUP",
+  "AUTH_PASSWORD_CHANGE",
+  "AUTH_EMAIL_CHANGE",
 ] as const;
 export type AuditAction = (typeof auditAction)[number];
 
@@ -86,7 +104,16 @@ export const rateLimitBucket = [
   "RECEIPT",
   "LOOKUP",
   "PASSWORD",
+  "ACCOUNT",
 ] as const;
+
+export const emailVerificationPurpose = [
+  "SIGNUP",
+  "RESET_PASSWORD",
+  "CHANGE_EMAIL",
+  "REAUTH",
+] as const;
+export type EmailVerificationPurpose = (typeof emailVerificationPurpose)[number];
 export type RateLimitBucket = (typeof rateLimitBucket)[number];
 
 export const notificationChannel = ["EMAIL"] as const;
@@ -108,9 +135,34 @@ export const users = pgTable("user", {
   phone: text("phone"),
   defaultAddressId: text("defaultAddressId"),
   marketingOptIn: boolean("marketingOptIn").notNull().default(false),
+  passwordHash: text("passwordHash"),
+  sessionVersion: integer("sessionVersion").notNull().default(0),
   deletedAt: timestamp("deletedAt", { mode: "date" }),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
 });
+
+export const emailVerificationCodes = pgTable(
+  "email_verification_code",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    identifier: text("identifier").notNull(),
+    purpose: text("purpose").$type<EmailVerificationPurpose>().notNull(),
+    tokenHash: text("tokenHash").notNull(),
+    expiresAt: timestamp("expiresAt", { mode: "date" }).notNull(),
+    attemptCount: integer("attemptCount").notNull().default(0),
+    consumedAt: timestamp("consumedAt", { mode: "date" }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    identifierPurposeIdx: index("email_verification_identifier_purpose_idx").on(
+      t.identifier,
+      t.purpose,
+    ),
+  }),
+);
 
 export const accounts = pgTable(
   "account",
@@ -251,6 +303,8 @@ export const products = pgTable(
     family: text("family"),
     description: text("description"),
     notes: text("notes"),
+    sourceMl: integer("sourceMl"),
+    remainingMl: integer("remainingMl"),
     isActive: boolean("isActive").notNull().default(true),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
@@ -274,7 +328,6 @@ export const skus = pgTable(
     sku: text("sku").notNull(),
     label: text("label").notNull(),
     sizeMl: integer("sizeMl"),
-    remainingMl: integer("remainingMl"),
     condition: text("condition").$type<Condition>().notNull().default("BNIB"),
     provenance: text("provenance").$type<Provenance>().notNull().default("RETAIL"),
     packaging: text("packaging").$type<Packaging>().notNull().default("WITH_BOX"),
@@ -346,6 +399,7 @@ export const promoSettings = pgTable("promo_setting", {
   deliveryFeeCentavos: integer("deliveryFeeCentavos").notNull().default(12000),
   freeDeliveryEnabled: boolean("freeDeliveryEnabled").notNull().default(true),
   testerBonusEnabled: boolean("testerBonusEnabled").notNull().default(true),
+  decantPreOrderThresholdMl: integer("decantPreOrderThresholdMl").notNull().default(10),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -586,3 +640,4 @@ export type ProductDiscount = typeof productDiscounts.$inferSelect;
 export type QrCode = typeof qrCodes.$inferSelect;
 export type OptionList = typeof optionLists.$inferSelect;
 export type OptionValue = typeof optionValues.$inferSelect;
+export type EmailVerificationCode = typeof emailVerificationCodes.$inferSelect;

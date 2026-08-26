@@ -1,4 +1,5 @@
 import { desc } from "drizzle-orm";
+import Link from "next/link";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +30,11 @@ export default async function AdminCustomersPage() {
         rows.map((row) => (
           <Card key={row.id}>
             <CardHeader>
-              <CardTitle className="text-base">{row.email}</CardTitle>
+              <CardTitle className="text-base">
+                <Link href={`/admin/customers/${row.id}`} className="hover:underline">
+                  {row.email}
+                </Link>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <p>Name: {row.name ?? "—"}</p>

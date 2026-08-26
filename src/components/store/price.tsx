@@ -1,4 +1,4 @@
-import { formatPHP } from "@/domain/money";
+import { formatPHP, formatPHPRange } from "@/domain/money";
 
 interface PriceProps {
   originalCentavos: number;
@@ -18,34 +18,66 @@ export function Price({
   className,
 }: PriceProps) {
   const hasDiscount = savedCentavos > 0 && discountedCentavos < originalCentavos;
+  const percent =
+    originalCentavos > 0 ? Math.round((savedCentavos / originalCentavos) * 100) : 0;
   if (!hasDiscount) {
     return (
       <span className={className} aria-label={suffix ?? undefined}>
-        {formatPHP(discountedCentavos * quantity)}
-      </span>
-    );
-  }
-  const percent =
-    originalCentavos > 0
-      ? Math.round((savedCentavos / originalCentavos) * 100)
-      : 0;
-  return (
-    <span className={className}>
-      <span className="flex items-baseline gap-2">
-        <s className="text-xs text-muted-foreground">
-          <span className="sr-only">Original price</span>
-          {formatPHP(originalCentavos)}
-        </s>
-        <span className="font-medium" aria-label="Now">
+        <span className="font-serif-display text-2xl tracking-tight">
           {formatPHP(discountedCentavos * quantity)}
         </span>
       </span>
-      <span className="ml-2 inline-flex items-center rounded-full bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold-foreground">
-        {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(savedCentavos)}`}
+    );
+  }
+  return (
+    <span className={className}>
+      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="font-serif-display text-2xl tracking-tight" aria-label="Now">
+          {formatPHP(discountedCentavos * quantity)}
+        </span>
+        <s className="text-sm text-muted-foreground">
+          <span className="sr-only">Original price</span>
+          {formatPHP(originalCentavos)}
+        </s>
+        <span className="inline-flex items-center rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
+          {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(savedCentavos)}`}
+        </span>
       </span>
-      {suffix ? (
-        <span className="ml-2 text-xs text-muted-foreground">{suffix}</span>
-      ) : null}
+      {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}
     </span>
+  );
+}
+
+export function CatalogPrice({
+  minOriginalCentavos,
+  maxOriginalCentavos,
+  minDiscountedCentavos,
+  maxDiscountedCentavos,
+  savePercent,
+}: {
+  minOriginalCentavos: number;
+  maxOriginalCentavos: number;
+  minDiscountedCentavos: number;
+  maxDiscountedCentavos: number;
+  savePercent: number | null;
+}) {
+  const hasDiscount =
+    minDiscountedCentavos < minOriginalCentavos || maxDiscountedCentavos < maxOriginalCentavos;
+  return (
+    <div className="space-y-1">
+      <p className="font-serif-display text-2xl leading-none tracking-tight">
+        {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
+      </p>
+      {hasDiscount ? (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <s>{formatPHPRange(minOriginalCentavos, maxOriginalCentavos)}</s>
+          {savePercent && savePercent > 0 ? (
+            <span className="inline-flex items-center rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
+              Save {savePercent}%
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+    </div>
   );
 }
