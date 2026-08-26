@@ -1,0 +1,21 @@
+import { Card, CardContent } from "@/components/ui/card";
+
+export default function HowToPayPage() {
+  return (
+    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
+      <h1 className="font-serif-display text-2xl">How to pay</h1>
+      <Card>
+        <CardContent className="space-y-2 p-4 text-sm">
+          <p>1. Place your order on the checkout page.</p>
+          <p>2. Pay the total using any of our bank or e-wallet QR codes.</p>
+          <p>3. Upload a screenshot of your receipt on the payment page.</p>
+          <p>4. We will verify and confirm by email within one business day.</p>
+          <p className="text-muted-foreground">
+            Stock is reserved only after your receipt is verified. If something becomes unavailable,
+            we will reach out with options.
+          </p>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}

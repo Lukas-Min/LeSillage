@@ -1,0 +1,30 @@
+---
+description: Document every change in CHANGELOG.md with a single bullet entry.
+globs: **/*.{ts,tsx,js,jsx,css,md,mdc,json,yml,yaml}
+alwaysApply: true
+---
+
+# Document Every Change
+
+Whenever you modify, add, or delete code, configuration, schema, content, or documentation for Le Sillage, append a short bullet to `CHANGELOG.md` under the current `[Unreleased]` section.
+
+## How to apply
+
+1. Make the code change.
+2. Open `CHANGELOG.md`.
+3. Add one bullet under `### Added`, `### Changed`, `### Fixed`, or `### Security` as appropriate.
+4. The bullet must be a single line, plain English, no trailing period. Reference the area (e.g., "pricing calculator helper in `src/domain/pricing.ts`").
+
+## Examples
+
+- Add: `pricing calculator helper supporting percentage markup, fixed markup, and direct price in src/domain/pricing.ts`
+- Fix: `cart merge no longer exceeds available stock for ON_HAND SKUs`
+- Security: `Gmail app password rotated; `.env.example` updated with the new placeholder`
+
+## When you can skip
+
+Skip only if the change is purely cosmetic whitespace, formatting, or a changelog-only edit itself.
+
+## Why
+
+Le Sillage is a small retail business with no formal review pipeline; the changelog is the durable record of intent and behavior for the owner, future contributors, and audits.

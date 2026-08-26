@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Le Sillage
 
-## Getting Started
+A retail perfume storefront and admin portal for Le Sillage, Manila. Built on Next.js 16 App Router with Drizzle ORM, Neon Postgres, Auth.js (Google + Facebook), and Gmail SMTP for notifications.
 
-First, run the development server:
+Le Sillage sells **full bottles (pre-order)**, **partials**, and **decants** with **on-hand** fulfillment. There is **no payment gateway**: customers pay via bank QR codes and upload a payment screenshot.
+
+## Mobile-first
+
+Every page, component, and interaction is designed mobile-first and progressively enhanced for larger screens. Test on narrow viewports (≤414px) before desktop.
+
+## Getting started
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Copy the example environment and fill in real values:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Generate the database schema and seed it:
+
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+
+4. Start the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Visit `http://localhost:3000`. Admin lives at `/admin`.
+
+## Required services
+
+| Service | Why | Free tier |
+| --- | --- | --- |
+| Neon Postgres | Persistent storage | Yes |
+| Vercel Blob | Image / QR / receipt storage | Yes (local fallback to disk) |
+| Google OAuth | Customer sign-in | Yes, up to 50k MAU |
+| Facebook OAuth | Customer sign-in | Yes |
+| Gmail SMTP | Notifications | Yes (app password) |
+
+## Payment
+
+No payment API is integrated. Customers scan the admin-provided QR code from `/checkout/payment`, pay via bank transfer, and upload a screenshot. Admin reviews and confirms via `/admin/orders`.
+
+## Documentation
+
+See [CHANGELOG.md](./CHANGELOG.md) for every change, including schema, business rules, and security events.
+
+## Security notes
+
+- The original Gmail app password was exposed in chat and has been revoked. Generate a new app password and supply it via `GMAIL_APP_PASSWORD` in `.env.local`. Never commit `.env.local`.
+- Never expose `costPrice` to customer-facing routes.
+- All order totals, discounts, and stock changes are computed server-side.
+
+## Project layout
+
+- `src/app/(store)/` — public storefront
+- `src/app/account/` — authenticated customer area
+- `src/app/admin/` — protected admin area
+- `src/components/` — UI by surface
+- `src/db/` — Drizzle schema, migrations, seed
+- `src/domain/` — pricing, promo, ETA, order-state (pure)
+- `src/actions/` — Server Actions
+- `src/lib/` — env, blob, email, auth, rate limits
+
+## Testing
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Rollback
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If a destructive schema change needs reverting:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Revert the application code.
+2. Run the generated down migration before any destructive schema rollback: `npx drizzle-kit down`.
+3. Restore inventory from `stock_movement` records.
 
-## Learn More
+## Deploy
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deployment and Vercel provisioning are intentionally out of scope for this repository at this time. The app is fully runnable locally with the free-tier services listed above.
