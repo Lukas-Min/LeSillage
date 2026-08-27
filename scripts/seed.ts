@@ -1,10 +1,10 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { eq, isNotNull } from "drizzle-orm";
+import { eq, ilike, isNotNull, or } from "drizzle-orm";
 import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
 import { guessConcentration } from "@/domain/concentration";
-import { lookupFragella, buildFragellaQuery, type FragellaRecord } from "@/lib/fragella";
+import { normalize, searchFragella, buildFragellaQuery, type FragellaRecord } from "@/lib/fragella";
 import type { FragranceCategory } from "../src/db/schema";
 import { db } from "../src/db/client";
 import {
@@ -17,7 +17,46 @@ import {
   siteContent,
   optionLists,
   optionValues,
+  fragellaMirror,
 } from "../src/db/schema";
+
+// Inlined instead of imported from src/lib/fragella-mirror.ts: that module
+// starts with `import "server-only"`, which only resolves inside Next's
+// build pipeline and crashes a plain tsx script.
+async function findOrCacheFragellaRecord(query: string): Promise<FragellaRecord | null> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return null;
+  const needle = `%${trimmed.toLowerCase().replace(/%/g, "\\%")}%`;
+  const cached = await db()
+    .select()
+    .from(fragellaMirror)
+    .where(or(ilike(fragellaMirror.name, needle), ilike(fragellaMirror.brand, needle), ilike(fragellaMirror.searchName, needle)))
+    .limit(1);
+  if (cached[0]) return normalize(cached[0].payload as Record<string, unknown>);
+
+  const records = await searchFragella(trimmed, { limit: 1 });
+  const record = records[0];
+  if (!record || !record.id || !record.name || !record.brand) return null;
+  const now = new Date();
+  await db()
+    .insert(fragellaMirror)
+    .values({
+      id: record.id,
+      name: record.name,
+      brand: record.brand,
+      year: record.year ?? null,
+      gender: record.gender ?? null,
+      imageUrl: record.imageUrl ?? null,
+      searchName: `${record.brand} ${record.name}`.toLowerCase(),
+      payload: record.raw,
+      requestCount: 1,
+      lastFetchedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+  return record;
+}
 
 const MIN_FRAGRANCES = 10;
 
@@ -112,8 +151,13 @@ async function pickRandomFragrances(min: number): Promise<Array<{ record: Fragel
   for (const entry of shuffle(QUERY_POOL)) {
     if (alreadySeeded + picked.length >= min) break;
     try {
-      const record = await lookupFragella(entry.query);
-      if (!record || existingIds.has(record.id) || pickedIds.has(record.id)) continue;
+      // Checks the local mirror first (src/lib/fragella-mirror.ts) and only
+      // hits the live API on a miss, caching the result either way — so a
+      // re-seed after purging products doesn't re-spend API quota on
+      // fragrances we've already looked up before.
+      const record = await findOrCacheFragellaRecord(entry.query);
+      if (!record) continue;
+      if (existingIds.has(record.id) || pickedIds.has(record.id)) continue;
       pickedIds.add(record.id);
       picked.push({ record, category: entry.category });
     } catch (err) {

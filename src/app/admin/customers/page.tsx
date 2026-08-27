@@ -28,22 +28,20 @@ export default async function AdminCustomersPage() {
         </Card>
       ) : (
         rows.map((row) => (
-          <Card key={row.id}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                <Link href={`/admin/customers/${row.id}`} className="hover:underline">
-                  {row.email}
-                </Link>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1 text-sm">
-              <p>Name: {row.name ?? "—"}</p>
-              <p>Role: {row.role}</p>
-              <p className="text-xs text-muted-foreground">
-                Joined {row.createdAt.toLocaleDateString()}
-              </p>
-            </CardContent>
-          </Card>
+          <Link key={row.id} href={`/admin/customers/${row.id}`} className="block">
+            <Card className="transition-colors hover:border-gold/40 hover:bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-base">{row.email}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1 text-sm">
+                <p>Name: {row.name ?? "—"}</p>
+                <p>Role: {row.role}</p>
+                <p className="text-xs text-muted-foreground">
+                  Joined {row.createdAt.toLocaleDateString()}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))
       )}
     </div>

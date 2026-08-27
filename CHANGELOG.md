@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- `scripts/seed.ts` now checks the local Fragella mirror cache before hitting the live API (inlined, since `@/lib/fragella-mirror` imports `server-only` which crashes a plain script) — a re-seed no longer re-spends the free-tier's 20/month quota on fragrances already looked up before. Also fixes an admin customer list card where only the email text was clickable while the rest of the card looked interactive but wasn't — same pattern already fixed on the product list, now the whole card links to the customer detail page
+
 ### Changed
 - **Pricing model redesign**: cost price and the pricing formula (percentage markup / fixed ₱ increment / direct retail price, defaulting to 30% percentage) now live once per product instead of being set independently per SKU. Every SKU's retail price derives from that one reference: `reference price ÷ product's reference size (ml) × that SKU's size (ml)` — e.g. a ₱2,000 reference for a 100ml bottle prices a 10ml decant at ₱200. A sizeless SKU just takes the reference price directly. Saving the product's cost/formula/reference-size now cascades and recomputes every one of its SKUs automatically (`resyncSkuPricesForProduct`). Added `products.costPrice/pricingMode/pricingInput`, a `computeSkuRetailPrice` domain helper, migrated existing data by backfilling each product's reference from its largest-size SKU, and reworked both admin product forms (new + edit) and `scripts/seed.ts` accordingly. Per-SKU cost/pricing form fields are gone
 - Removed the `/brands` and `/brands/[brand]` pages and every nav link to them (header, footer, sitemap) — brand still shows on product cards/PDP as before, just no dedicated browse-by-brand view. The wishlist's fallback link for items with no active SKU now points to `/shop` instead of the removed brand page
