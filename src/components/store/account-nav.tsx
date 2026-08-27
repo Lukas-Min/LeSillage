@@ -56,6 +56,8 @@ function isActive(pathname: string, item: AccountNavItem) {
   return pathname === item.href || pathname.startsWith(item.href + "/");
 }
 
+const adminHomeItem: AccountNavItem = { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true };
+
 function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: string }) {
   return (
     <ul className="space-y-1">
@@ -87,9 +89,7 @@ function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: strin
 export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const primaryItems = isAdmin
-    ? accountNavItems.map((item) =>
-        item.href === "/account" ? { ...item, label: "Dashboard", href: "/admin" } : item,
-      )
+    ? accountNavItems.map((item) => (item.href === "/account" ? adminHomeItem : item))
     : accountNavItems;
   return (
     <nav className="hidden w-56 shrink-0 md:block">
@@ -116,19 +116,27 @@ export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
 
 export function AccountBottomNav() {
   const pathname = usePathname();
-  const items = accountNavItems.filter((item) => !item.destructive);
+  const inAdmin = pathname?.startsWith("/admin") ?? false;
+  const items = inAdmin
+    ? [adminHomeItem, ...adminNavItems]
+    : accountNavItems.filter((item) => !item.destructive);
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden">
-      <ul className="mx-auto flex max-w-6xl items-stretch justify-around px-2 py-1">
+      <ul
+        className={cn(
+          "mx-auto flex max-w-6xl items-stretch px-2 py-1",
+          inAdmin ? "gap-1 overflow-x-auto" : "justify-around",
+        )}
+      >
         {items.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname ?? "", item);
           return (
-            <li key={item.href} className="flex-1">
+            <li key={item.href} className={inAdmin ? "shrink-0" : "flex-1"}>
               <Link
                 href={item.href}
                 className={cn(
-                  "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md text-[11px] font-medium transition-colors",
+                  "flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-3 text-[11px] font-medium whitespace-nowrap transition-colors",
                   active ? "text-gold" : "text-muted-foreground hover:text-foreground",
                 )}
               >

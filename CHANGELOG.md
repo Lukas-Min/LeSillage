@@ -4,6 +4,25 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- `loading.tsx` for every route that was missing one (26 pages: all `(auth)` routes, `about`/`contact`/`faq`/`how-to-pay`/`policies`/`cart`/`bottles`/`decants`, `account/profile`/`notifications`/`delete`, and 10 admin pages) so every page shows a skeleton instead of a blank screen while it loads
+- `scripts/set-admin-password.ts` (`npm run db:set-admin-password`) hashes `ADMIN_PASSWORD` from env into the admin user's `passwordHash` so email/password login works
+- Homepage "Browse by type" tiles (Decant / Full bottle / Partial) in `src/app/page.tsx`: one row, no price, just a link to the shelf
+
+### Changed
+- Restored `/shop` as the single catalog page (All / Decants / Full bottles / Partials tabs); `/bottles` and `/decants` now redirect there and every internal link (header, footer, hero, PDP back-link, cart/checkout, wishlist, orders, 404) was repointed to `/shop`
+- Home hero now shows a flagship product panel (brand, name, tagline, price, CTAs) plus an italic closing quote, matching the Maison Ivre reference
+- `CompositionCanvas` only renders the real note pyramid on the PDP (`showComposition` prop); catalog cards and the hero use a plain bottle glyph placeholder instead of leaking fallback note text
+- Shipping & delivery and Returns & authenticity are always-visible static sections on the PDP instead of a collapsible accordion; Composition stays collapsible
+- Cart drawer empty state redesigned with an icon, heading, subtext, and a "Browse the catalog" link
+- Search overlay copy matches the reference ("Search the shelf", placeholder, "Type to search the catalog.")
+- Account sidebar (`src/components/store/account-nav.tsx`) is shared between customers and admins; admin tools render as a labeled sub-list under the same sidebar instead of a separate admin-only layout, and the duplicate "Dashboard"/"Home" entry was removed
+- Global corner radius tightened (0.625rem to 0.35rem) with hover-lift/shadow transitions on product cards and the new browse tiles
+
+### Fixed
+- `src/lib/rate-limit.ts` crashed every password sign-in/sign-up with a 500 because a raw `Date` was interpolated into a `sql` template instead of using Drizzle's `lt`/`gte` operators
+- `AccountBottomNav` (mobile) was hardcoded to customer links even inside `/admin`, so admins on a phone had no way to reach any admin tool and "Home" dropped them into the customer account; it now shows the admin item set (horizontally scrollable) whenever the path is under `/admin`
+
+### Added
 - Maison Ivre restyle across customer surfaces: composition canvas (live note pyramid), search overlay, cart drawer, and account preview sheet
 - Gold `Button` variant and catalog `types[]` filter so `/bottles` loads only full bottles and partials
 
