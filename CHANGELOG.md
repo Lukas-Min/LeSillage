@@ -4,6 +4,10 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- **Pricing model redesign**: cost price and the pricing formula (percentage markup / fixed ₱ increment / direct retail price, defaulting to 30% percentage) now live once per product instead of being set independently per SKU. Every SKU's retail price derives from that one reference: `reference price ÷ product's reference size (ml) × that SKU's size (ml)` — e.g. a ₱2,000 reference for a 100ml bottle prices a 10ml decant at ₱200. A sizeless SKU just takes the reference price directly. Saving the product's cost/formula/reference-size now cascades and recomputes every one of its SKUs automatically (`resyncSkuPricesForProduct`). Added `products.costPrice/pricingMode/pricingInput`, a `computeSkuRetailPrice` domain helper, migrated existing data by backfilling each product's reference from its largest-size SKU, and reworked both admin product forms (new + edit) and `scripts/seed.ts` accordingly. Per-SKU cost/pricing form fields are gone
+- Removed the `/brands` and `/brands/[brand]` pages and every nav link to them (header, footer, sitemap) — brand still shows on product cards/PDP as before, just no dedicated browse-by-brand view. The wishlist's fallback link for items with no active SKU now points to `/shop` instead of the removed brand page
+- Search modal results now show the product type (Decant/Full bottle/Partial) next to the brand, so two same-named rows (e.g. a decant and a full bottle of the same fragrance) aren't indistinguishable
+- Search modal debounce is now 1 second (was 220ms, briefly 2s)
 - Every empty-list state (wishlist, orders, admin orders/customers/products, the shared `EmptyState` component) now fills the remaining page height and vertically centers its message, instead of sitting near the top with a large dead gap below — matches the fix already applied to `/shop`. Populated lists are unaffected, they stay top-aligned. Required propagating `flex flex-1 flex-col` through `account/layout.tsx` and `admin/layout.tsx`, which previously broke the chain (the sidebar `<div>` had no `flex-1`, `<main>` had `flex-1` but no `flex-col`)
 - Homepage flagship panel now shows "View" instead of "View the perfume", and the two hero buttons are now equal width (`sm:w-44`) instead of sizing to their own text
 - The storefront search modal's debounce went from 220ms to 2 seconds — searching now waits until the user actually stops typing instead of firing on nearly every keystroke
@@ -14,6 +18,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - "Account home" renamed to "Dashboard" in the account dropdown
 
 ### Fixed
+- `upsertProduct` never returned the new product's id on create, but `/admin/products/new` redirected to `/admin/products/${id}` after calling it — creating a product manually redirected to `/admin/products/undefined`. Now returns the id
 - The root `error.tsx` boundary rendered the raw thrown `error.message` straight to the customer — any uncaught domain error (invalid order transition, unknown pricing mode, etc.) would leak internal wording. Now shows a generic message and logs the real error to the console instead
 
 ### Changed

@@ -73,6 +73,10 @@ export default async function AdminProductDetailPage({
       .filter((row) => !isTerminal(row.status))
       .reduce((sum, row) => sum + row.quantity * (row.sizeMl ?? 0), 0);
   }
+  async function saveProduct(formData: FormData) {
+    "use server";
+    await upsertProduct(formData);
+  }
   return (
     <div className="space-y-4">
       <h1 className="font-serif-display text-2xl">{product.name}</h1>
@@ -81,7 +85,7 @@ export default async function AdminProductDetailPage({
           <CardTitle className="text-base">Product</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={upsertProduct} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <form action={saveProduct} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input type="hidden" name="productId" value={product.id} />
             <Field label="Name" htmlFor="p-name">
               <Input id="p-name" name="name" defaultValue={product.name} required />
@@ -116,16 +120,32 @@ export default async function AdminProductDetailPage({
                 <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
               </select>
             </Field>
+            <Field label="Reference size (ml)" htmlFor="p-sourceMl">
+              <Input id="p-sourceMl" name="sourceMl" type="number" defaultValue={product.sourceMl ?? ""} placeholder="e.g. 100" />
+            </Field>
             {product.type === "DECANT" ? (
-              <>
-                <Field label="Source bottle size (ml)" htmlFor="p-sourceMl">
-                  <Input id="p-sourceMl" name="sourceMl" type="number" defaultValue={product.sourceMl ?? ""} placeholder="e.g. 100" />
-                </Field>
-                <Field label="Remaining in pool (ml)" htmlFor="p-remainingMl">
-                  <Input id="p-remainingMl" name="remainingMl" type="number" defaultValue={product.remainingMl ?? ""} placeholder="e.g. 80" />
-                </Field>
-              </>
+              <Field label="Remaining in pool (ml)" htmlFor="p-remainingMl">
+                <Input id="p-remainingMl" name="remainingMl" type="number" defaultValue={product.remainingMl ?? ""} placeholder="e.g. 80" />
+              </Field>
             ) : null}
+            <Field label="Cost price (₱ centavos, what you paid wholesale)" htmlFor="p-costPrice" className="sm:col-span-2">
+              <Input id="p-costPrice" name="costPrice" type="number" defaultValue={product.costPrice ?? ""} required />
+            </Field>
+            <Field label="Pricing formula" htmlFor="p-pricingMode">
+              <select id="p-pricingMode" name="pricingMode" defaultValue={product.pricingMode} className={selectClass}>
+                <option value="PERCENTAGE">Percentage markup</option>
+                <option value="FIXED">Fixed ₱ increment</option>
+                <option value="DIRECT">Direct retail price</option>
+              </select>
+            </Field>
+            <Field label="Markup % (or ₱ for fixed/direct)" htmlFor="p-pricingInput">
+              <Input id="p-pricingInput" name="pricingInput" type="number" defaultValue={product.pricingInput} />
+            </Field>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Reference retail price = cost price run through the formula above. Every SKU&apos;s price is derived from
+              it: reference price ÷ reference size × that SKU&apos;s size — e.g. a ₱2,000 / 100ml reference prices a
+              10ml decant at ₱200. A SKU without a size just uses the reference price directly.
+            </p>
             <Field label="Description" htmlFor="p-description" className="sm:col-span-2">
               <Textarea id="p-description" name="description" defaultValue={product.description ?? ""} />
             </Field>
@@ -185,19 +205,6 @@ export default async function AdminProductDetailPage({
                 </Field>
                 <Field label="Size (ml)" htmlFor={`sku-size-${sku.id}`}>
                   <Input id={`sku-size-${sku.id}`} name="sizeMl" type="number" defaultValue={sku.sizeMl ?? ""} />
-                </Field>
-                <Field label="Cost price (₱ centavos)" htmlFor={`sku-cost-${sku.id}`}>
-                  <Input id={`sku-cost-${sku.id}`} name="costPrice" type="number" defaultValue={sku.costPrice} />
-                </Field>
-                <Field label="Pricing mode" htmlFor={`sku-mode-${sku.id}`}>
-                  <select id={`sku-mode-${sku.id}`} name="pricingMode" defaultValue={sku.pricingMode} className={selectClass}>
-                    <option value="PERCENTAGE">Percentage markup</option>
-                    <option value="FIXED">Fixed ₱ increment</option>
-                    <option value="DIRECT">Direct retail price</option>
-                  </select>
-                </Field>
-                <Field label="Pricing input" htmlFor={`sku-input-${sku.id}`}>
-                  <Input id={`sku-input-${sku.id}`} name="pricingInput" type="number" defaultValue={sku.pricingInput} />
                 </Field>
                 <Field label="Fulfillment" htmlFor={`sku-fulfillment-${sku.id}`}>
                   <select id={`sku-fulfillment-${sku.id}`} name="fulfillment" defaultValue={sku.fulfillment} className={selectClass}>
@@ -269,20 +276,7 @@ export default async function AdminProductDetailPage({
                   <Input id="new-sku-label" name="label" placeholder="e.g. 100ml Eau de Parfum" required />
                 </Field>
                 <Field label="Size (ml)" htmlFor="new-sku-size">
-                  <Input id="new-sku-size" name="sizeMl" type="number" placeholder="e.g. 100" />
-                </Field>
-                <Field label="Cost price (₱ centavos)" htmlFor="new-sku-cost">
-                  <Input id="new-sku-cost" name="costPrice" type="number" placeholder="e.g. 500000 = ₱5,000" required />
-                </Field>
-                <Field label="Pricing mode" htmlFor="new-sku-mode">
-                  <select id="new-sku-mode" name="pricingMode" defaultValue="PERCENTAGE" className={selectClass}>
-                    <option value="PERCENTAGE">Percentage markup</option>
-                    <option value="FIXED">Fixed ₱ increment</option>
-                    <option value="DIRECT">Direct retail price</option>
-                  </select>
-                </Field>
-                <Field label="Pricing input" htmlFor="new-sku-input">
-                  <Input id="new-sku-input" name="pricingInput" type="number" defaultValue={60} />
+                  <Input id="new-sku-size" name="sizeMl" type="number" placeholder="e.g. 10 — price derives from the product formula above" />
                 </Field>
                 <Field label="Fulfillment" htmlFor="new-sku-fulfillment">
                   <select id="new-sku-fulfillment" name="fulfillment" defaultValue="ON_HAND" className={selectClass}>

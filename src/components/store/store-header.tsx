@@ -29,7 +29,6 @@ const MENU_LINKS = [
   { href: "/shop", label: "Shop" },
   { href: "/faq", label: "FAQs" },
   { href: "/contact", label: "Contact" },
-  { href: "/brands", label: "Brands" },
   { href: "/how-to-pay", label: "How to pay" },
   { href: "/about", label: "About" },
   { href: "/policies", label: "Policies" },

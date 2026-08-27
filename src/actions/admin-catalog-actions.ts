@@ -23,7 +23,7 @@ import {
   type ProductType,
   type Provenance,
 } from "@/db/schema";
-import { computeRetailPrice } from "@/domain/pricing";
+import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { uploadPublicImage } from "@/lib/blob";
@@ -37,6 +37,28 @@ async function limitAdmin(adminId: string, key: string) {
     windowMs: 60_000,
   });
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
+}
+
+/** Recomputes every SKU's retail price from the product's reference formula (costPrice/pricingMode/pricingInput, scaled by sourceMl -> sizeMl). */
+async function resyncSkuPricesForProduct(
+  productId: string,
+  product: { costPrice: number; pricingMode: PricingMode; pricingInput: number; sourceMl: number | null },
+) {
+  const referenceRetailPriceCentavos = computeRetailPrice({
+    costPriceCentavos: product.costPrice,
+    mode: product.pricingMode,
+    input: product.pricingInput,
+  });
+  const productSkus = await db().select({ id: skus.id, sizeMl: skus.sizeMl }).from(skus).where(eq(skus.productId, productId));
+  for (const sku of productSkus) {
+    const retailPrice = computeSkuRetailPrice({
+      referenceRetailPriceCentavos,
+      sourceMl: product.sourceMl,
+      sizeMl: sku.sizeMl,
+    });
+    await db().update(skus).set({ retailPrice, updatedAt: new Date() }).where(eq(skus.id, sku.id));
+  }
+  return referenceRetailPriceCentavos;
 }
 
 const productSchema = z.object({
@@ -53,6 +75,9 @@ const productSchema = z.object({
   notes: z.string().max(2000).optional(),
   sourceMl: z.coerce.number().int().min(0).optional(),
   remainingMl: z.coerce.number().int().min(0).optional(),
+  costPrice: z.coerce.number().int().min(0),
+  pricingMode: z.enum(["PERCENTAGE", "FIXED", "DIRECT"]),
+  pricingInput: z.coerce.number().min(0),
   isActive: z.boolean(),
 });
 
@@ -71,6 +96,9 @@ export async function upsertProduct(formData: FormData) {
     notes: formData.get("notes") || undefined,
     sourceMl: formData.get("sourceMl") || undefined,
     remainingMl: formData.get("remainingMl") || undefined,
+    costPrice: formData.get("costPrice"),
+    pricingMode: formData.get("pricingMode"),
+    pricingInput: formData.get("pricingInput"),
     isActive: formData.get("isActive") === "on",
   });
   const values = {
@@ -82,13 +110,17 @@ export async function upsertProduct(formData: FormData) {
     family: parsed.family ?? null,
     description: parsed.description ?? null,
     notes: parsed.notes ?? null,
-    sourceMl: parsed.type === "DECANT" ? parsed.sourceMl ?? null : null,
+    sourceMl: parsed.sourceMl ?? null,
     remainingMl: parsed.type === "DECANT" ? clampRemainingMl(parsed.remainingMl ?? 0) : null,
+    costPrice: parsed.costPrice,
+    pricingMode: parsed.pricingMode as PricingMode,
+    pricingInput: parsed.pricingInput,
     isActive: parsed.isActive,
     updatedAt: new Date(),
   };
   if (parsed.productId) {
     await db().update(products).set(values).where(eq(products.id, parsed.productId));
+    await resyncSkuPricesForProduct(parsed.productId, values);
     await auditLogSubject({
       actor: admin.id,
       action: "PRODUCT_UPDATE",
@@ -107,6 +139,7 @@ export async function upsertProduct(formData: FormData) {
     targetId: inserted[0].id,
   });
   revalidatePath("/admin/products");
+  return inserted[0].id;
 }
 
 const skuSchema = z.object({
@@ -118,9 +151,6 @@ const skuSchema = z.object({
   condition: z.enum(["BNIB", "SEALED", "FEW_SPRAYS_MISSING", "PARTIAL_ML"]),
   provenance: z.enum(["RETAIL", "TESTER"]),
   packaging: z.enum(["WITH_BOX", "BOTTLE_ONLY"]),
-  costPrice: z.coerce.number().int().min(0),
-  pricingMode: z.enum(["PERCENTAGE", "FIXED", "DIRECT"]),
-  pricingInput: z.coerce.number().min(0),
   fulfillment: z.enum(["PRE_ORDER", "ON_HAND"]),
   stock: z.coerce.number().int().min(0),
   isTester: z.boolean(),
@@ -139,18 +169,27 @@ export async function upsertSku(formData: FormData) {
     condition: formData.get("condition"),
     provenance: formData.get("provenance"),
     packaging: formData.get("packaging"),
-    costPrice: formData.get("costPrice"),
-    pricingMode: formData.get("pricingMode"),
-    pricingInput: formData.get("pricingInput"),
     fulfillment: formData.get("fulfillment"),
     stock: formData.get("stock"),
     isTester: formData.get("isTester") === "on",
     isActive: formData.get("isActive") === "on",
   });
-  const retailPrice = computeRetailPrice({
-    costPriceCentavos: parsed.costPrice,
-    mode: parsed.pricingMode as PricingMode,
-    input: parsed.pricingInput,
+  const product = (
+    await db()
+      .select({ costPrice: products.costPrice, pricingMode: products.pricingMode, pricingInput: products.pricingInput, sourceMl: products.sourceMl })
+      .from(products)
+      .where(eq(products.id, parsed.productId))
+  )[0];
+  if (!product) throw new Error("Product not found");
+  const referenceRetailPriceCentavos = computeRetailPrice({
+    costPriceCentavos: product.costPrice ?? 0,
+    mode: product.pricingMode,
+    input: product.pricingInput,
+  });
+  const retailPrice = computeSkuRetailPrice({
+    referenceRetailPriceCentavos,
+    sourceMl: product.sourceMl,
+    sizeMl: parsed.sizeMl ?? null,
   });
   const values = {
     productId: parsed.productId,
@@ -160,9 +199,9 @@ export async function upsertSku(formData: FormData) {
     condition: parsed.condition as Condition,
     provenance: parsed.provenance as Provenance,
     packaging: parsed.packaging as Packaging,
-    costPrice: parsed.costPrice,
-    pricingMode: parsed.pricingMode as PricingMode,
-    pricingInput: parsed.pricingInput,
+    costPrice: 0,
+    pricingMode: "DIRECT" as PricingMode,
+    pricingInput: retailPrice,
     retailPrice,
     fulfillment: parsed.fulfillment as Fulfillment,
     stock: parsed.stock,

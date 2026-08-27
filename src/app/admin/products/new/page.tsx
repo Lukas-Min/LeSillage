@@ -42,9 +42,33 @@ export default function NewProductPage() {
               <option value="PARFUM">Parfum</option>
               <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
             </select>
-            <Input name="sourceMl" type="number" placeholder="Source ml (decants)" />
+            <Input name="sourceMl" type="number" placeholder="Reference size, ml (e.g. 100 for a 100ml bottle)" />
             <Input name="remainingMl" type="number" placeholder="Remaining ml (decants)" />
             <Textarea name="description" placeholder="Description" className="sm:col-span-2" />
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="new-costPrice">Cost price (₱ centavos, what you paid wholesale)</Label>
+              <Input id="new-costPrice" name="costPrice" type="number" placeholder="e.g. 500000 = ₱5,000" required />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-pricingMode">Pricing formula</Label>
+              <select
+                id="new-pricingMode"
+                name="pricingMode"
+                defaultValue="PERCENTAGE"
+                className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
+              >
+                <option value="PERCENTAGE">Percentage markup</option>
+                <option value="FIXED">Fixed ₱ increment</option>
+                <option value="DIRECT">Direct retail price</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-pricingInput">Markup % (or ₱ for fixed/direct)</Label>
+              <Input id="new-pricingInput" name="pricingInput" type="number" defaultValue={30} />
+            </div>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              For decants, every size&apos;s retail price is derived from this: reference price ÷ source ml × that size&apos;s ml.
+            </p>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="isActive" defaultChecked />
               Visible on storefront

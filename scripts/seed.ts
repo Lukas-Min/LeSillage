@@ -2,10 +2,10 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { eq, isNotNull } from "drizzle-orm";
-import { computeRetailPrice } from "@/domain/pricing";
+import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
 import { guessConcentration } from "@/domain/concentration";
 import { lookupFragella, buildFragellaQuery, type FragellaRecord } from "@/lib/fragella";
-import type { PricingMode, FragranceCategory } from "../src/db/schema";
+import type { FragranceCategory } from "../src/db/schema";
 import { db } from "../src/db/client";
 import {
   products,
@@ -63,8 +63,11 @@ interface SeedSkuInput {
   condition: "BNIB" | "SEALED" | "FEW_SPRAYS_MISSING" | "PARTIAL_ML";
   provenance: "RETAIL" | "TESTER";
   packaging: "WITH_BOX" | "BOTTLE_ONLY";
+  // Legacy per-SKU pricing columns — no longer used to compute retailPrice
+  // (that now derives from the product's costPrice/pricingMode/pricingInput,
+  // scaled by sourceMl -> sizeMl). Kept populated only for NOT NULL compliance.
   costPrice: number;
-  pricingMode: PricingMode;
+  pricingMode: "DIRECT";
   pricingInput: number;
   retailPrice: number;
   fulfillment: "PRE_ORDER" | "ON_HAND";
@@ -72,19 +75,6 @@ interface SeedSkuInput {
   isTester: boolean;
   testerFamily?: string | null;
   testerBrand?: string | null;
-}
-
-function assertPricing(sku: SeedSkuInput) {
-  const expected = computeRetailPrice({
-    costPriceCentavos: sku.costPrice,
-    mode: sku.pricingMode,
-    input: sku.pricingInput,
-  });
-  if (expected !== sku.retailPrice) {
-    throw new Error(
-      `Seed mismatch on ${sku.sku}: stored retail ${sku.retailPrice} != computed ${expected}`,
-    );
-  }
 }
 
 function shuffle<T>(input: T[]): T[] {
@@ -183,18 +173,33 @@ async function seedFragrances() {
       fragellaPayload: record.raw,
     };
 
+    // Product-level pricing formula: one reference retail price per product
+    // (cost run through the pricing mode), from which every SKU's price
+    // derives as reference / sourceMl * sizeMl. Full bottles have sourceMl
+    // equal to their own sizeMl (ratio 1); decants share one reference
+    // across all their sizes.
+    const fullBottleCostPrice = costPerMlCentavos * 100;
+    const fullBottleMarkup = randomInt(40, 70);
+    const fullBottleReference = computeRetailPrice({
+      costPriceCentavos: fullBottleCostPrice,
+      mode: "PERCENTAGE",
+      input: fullBottleMarkup,
+    });
+
     const [fullBottleProduct] = await client
       .insert(products)
       .values({
         type: "FULL_BOTTLE",
         fragranceCategory: category,
         concentration,
+        sourceMl: 100,
+        costPrice: fullBottleCostPrice,
+        pricingMode: "PERCENTAGE",
+        pricingInput: fullBottleMarkup,
         ...sharedFields,
       })
       .returning({ id: products.id });
 
-    const fullBottleCostPrice = costPerMlCentavos * 100;
-    const fullBottleMarkup = randomInt(40, 70);
     skuRows.push({
       productId: fullBottleProduct.id,
       sku: `${brandSlug}-${nameSlug}-100`,
@@ -203,17 +208,25 @@ async function seedFragrances() {
       condition: "BNIB",
       provenance: "RETAIL",
       packaging: "WITH_BOX",
-      costPrice: fullBottleCostPrice,
-      pricingMode: "PERCENTAGE",
-      pricingInput: fullBottleMarkup,
-      retailPrice: computeRetailPrice({
-        costPriceCentavos: fullBottleCostPrice,
-        mode: "PERCENTAGE",
-        input: fullBottleMarkup,
+      costPrice: 0,
+      pricingMode: "DIRECT",
+      pricingInput: fullBottleReference,
+      retailPrice: computeSkuRetailPrice({
+        referenceRetailPriceCentavos: fullBottleReference,
+        sourceMl: 100,
+        sizeMl: 100,
       }),
       fulfillment: "PRE_ORDER",
       stock: 0,
       isTester: false,
+    });
+
+    const decantCostPrice = costPerMlCentavos * 100;
+    const decantMarkup = 30;
+    const decantReference = computeRetailPrice({
+      costPriceCentavos: decantCostPrice,
+      mode: "PERCENTAGE",
+      input: decantMarkup,
     });
 
     const [decantProduct] = await client
@@ -224,14 +237,20 @@ async function seedFragrances() {
         concentration,
         sourceMl: 100,
         remainingMl: randomInt(20, 90),
+        costPrice: decantCostPrice,
+        pricingMode: "PERCENTAGE",
+        pricingInput: decantMarkup,
         ...sharedFields,
         description: `Decants of ${record.name}.`,
       })
       .returning({ id: products.id });
 
     for (const sizeMl of [3, 5, 10] as const) {
-      const decantMarkup = randomInt(55, 65);
-      const costPrice = costPerMlCentavos * sizeMl;
+      const retailPrice = computeSkuRetailPrice({
+        referenceRetailPriceCentavos: decantReference,
+        sourceMl: 100,
+        sizeMl,
+      });
       skuRows.push({
         productId: decantProduct.id,
         sku: `${brandSlug}-${nameSlug}-${sizeMl}`,
@@ -240,14 +259,10 @@ async function seedFragrances() {
         condition: "SEALED",
         provenance: "TESTER",
         packaging: "BOTTLE_ONLY",
-        costPrice,
-        pricingMode: "PERCENTAGE",
-        pricingInput: decantMarkup,
-        retailPrice: computeRetailPrice({
-          costPriceCentavos: costPrice,
-          mode: "PERCENTAGE",
-          input: decantMarkup,
-        }),
+        costPrice: 0,
+        pricingMode: "DIRECT",
+        pricingInput: retailPrice,
+        retailPrice,
         // Decant fulfillment/availability is derived from the shared remainingMl pool
         // (see decantFulfillment) — per-SKU stock is unused for this product type.
         fulfillment: "ON_HAND",
@@ -265,7 +280,7 @@ async function seedFragrances() {
         condition: "FEW_SPRAYS_MISSING",
         provenance: "TESTER",
         packaging: "BOTTLE_ONLY",
-        costPrice: costPerMlCentavos * 2,
+        costPrice: 0,
         pricingMode: "DIRECT",
         pricingInput: 0,
         retailPrice: 0,
@@ -296,7 +311,6 @@ async function seedFragrances() {
     }
   }
 
-  for (const sku of skuRows) assertPricing(sku);
   if (skuRows.length > 0) {
     await client.insert(skus).values(skuRows).onConflictDoNothing();
   }

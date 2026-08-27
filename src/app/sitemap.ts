@@ -13,7 +13,6 @@ export default async function sitemap() {
     "/about",
     "/faq",
     "/policies",
-    "/brands",
     "/collections/niche",
     "/collections/designer",
     "/collections/middle-eastern",

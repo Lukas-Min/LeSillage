@@ -10,7 +10,6 @@ const COLUMNS = [
       { href: "/shop?type=DECANT", label: "Decants" },
       { href: "/shop?type=FULL_BOTTLE", label: "Full bottles" },
       { href: "/shop?type=PARTIAL", label: "Partials" },
-      { href: "/brands", label: "Brands" },
     ],
   },
   {

@@ -532,6 +532,30 @@ async function main() {
     `ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountAmount" integer NOT NULL DEFAULT 0`,
   );
 
+  // Pricing moved from per-SKU to one reference formula per product (costPrice/pricingMode/
+  // pricingInput), from which every SKU's retail price is derived: referencePrice / sourceMl * sizeMl.
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "costPrice" integer`);
+  await db.execute(
+    `ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "pricingMode" text NOT NULL DEFAULT 'PERCENTAGE'`,
+  );
+  await db.execute(
+    `ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "pricingInput" integer NOT NULL DEFAULT 30`,
+  );
+  // Backfill the reference from each product's largest-size SKU so existing pricing carries over
+  // instead of collapsing to the 0/PERCENTAGE/30 default on first save.
+  await db.execute(`
+    UPDATE "product" p
+    SET "costPrice" = s."costPrice",
+        "pricingMode" = s."pricingMode",
+        "pricingInput" = s."pricingInput"
+    FROM (
+      SELECT DISTINCT ON ("productId") "productId", "costPrice", "pricingMode", "pricingInput"
+      FROM "sku"
+      ORDER BY "productId", "sizeMl" DESC NULLS LAST
+    ) s
+    WHERE p.id = s."productId" AND p."costPrice" IS NULL
+  `);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -545,6 +569,9 @@ async function main() {
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountEnabled";
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountType";
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountAmount";
+// ALTER TABLE "product" DROP COLUMN IF EXISTS "costPrice";
+// ALTER TABLE "product" DROP COLUMN IF EXISTS "pricingMode";
+// ALTER TABLE "product" DROP COLUMN IF EXISTS "pricingInput";
 // DROP TABLE IF EXISTS "email_verification_code";
 
 main().catch((error) => {

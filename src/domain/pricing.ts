@@ -31,6 +31,26 @@ export function computeRetailPrice({
   }
 }
 
+/**
+ * Every SKU's retail price derives from the product's single reference
+ * price (computed via computeRetailPrice from the product's cost/mode/
+ * input) scaled by size — e.g. a 2,000-centavo reference for a 100ml
+ * bottle prices a 10ml decant at 2000/100*10 = 200. Sizeless SKUs
+ * (sizeMl null/0, or sourceMl unset) just take the reference price as-is.
+ */
+export function computeSkuRetailPrice({
+  referenceRetailPriceCentavos,
+  sourceMl,
+  sizeMl,
+}: {
+  referenceRetailPriceCentavos: number;
+  sourceMl: number | null | undefined;
+  sizeMl: number | null | undefined;
+}): number {
+  if (!sourceMl || !sizeMl) return referenceRetailPriceCentavos;
+  return Math.round((referenceRetailPriceCentavos / sourceMl) * sizeMl);
+}
+
 export function pricingInputLabel(mode: PricingMode): string {
   switch (mode) {
     case "PERCENTAGE":

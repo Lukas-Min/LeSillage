@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { searchCatalog } from "@/actions/catalog-search-actions";
 import type { CatalogCardModel } from "@/lib/catalog";
+import { labelForType } from "@/domain/product-type";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +33,7 @@ export function SearchOverlay() {
       startTransition(async () => {
         setResults(await searchCatalog(term));
       });
-    }, 2000);
+    }, 1000);
     return () => window.clearTimeout(handle);
   }, [query]);
 
@@ -74,7 +75,7 @@ export function SearchOverlay() {
               >
                 <span>
                   <span className="block text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                    {card.brand}
+                    {card.brand} · {labelForType(card.type)}
                   </span>
                   <span className="font-serif-display text-base">{card.name}</span>
                 </span>
