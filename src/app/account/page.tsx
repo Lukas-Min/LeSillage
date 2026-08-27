@@ -73,7 +73,7 @@ export default async function AccountPage() {
               </span>
             ) : null}
             <Button asChild>
-              <Link href="/shop">
+              <Link href="/bottles">
                 Continue shopping
                 <ArrowRight className="h-4 w-4" />
               </Link>

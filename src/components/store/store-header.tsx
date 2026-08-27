@@ -17,7 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const PRIMARY_LINKS = [
-  { href: "/shop", label: "Shop" },
+  { href: "/bottles", label: "Bottles" },
+  { href: "/decants", label: "Decants" },
   { href: "/how-to-pay", label: "How to pay" },
 ] as const;
 
@@ -30,10 +31,9 @@ const ACCOUNT_LINKS = [
 ] as const;
 
 const MENU_LINKS = [
-  { href: "/shop", label: "Shop" },
-  { href: "/shop?type=DECANT", label: "Decants" },
-  { href: "/shop?type=FULL_BOTTLE", label: "Full bottles" },
-  { href: "/shop?type=PARTIAL", label: "Partials" },
+  { href: "/bottles", label: "Bottles" },
+  { href: "/decants", label: "Decants" },
+  { href: "/brands", label: "Brands" },
   { href: "/how-to-pay", label: "How to pay" },
   { href: "/search", label: "Search" },
   { href: "/about", label: "About" },

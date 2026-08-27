@@ -20,7 +20,13 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Home shelves, sitemap, admin nav (Customers, Audit), and promo settings include the new catalog and threshold fields
 
 ### Added
-- Redesigned `/account` surface with a left sidebar on desktop and bottom tab bar on mobile, plus new home tab, profile (name, phone, sign-in methods, change password, change email), orders, addresses, wishlist, notifications, and delete flows
+- New top-level storefront routes `/bottles` (FULL_BOTTLE + PARTIAL with type pills) and `/decants` (DECANT with size pills), with `/shop` redirecting to the right surface based on `?type`
+- PDP redesign matching the reference layout: gold brand eyebrow, accord strip, size pills, price + save chip, qty stepper + Add to bag + wishlist strip, and a Composition accordion with top/heart/base notes
+- Collapsible Shipping & Returns blocks on the PDP, `/policies`, and the cart summary, all sourced from `src/lib/policy-copy.ts`
+- Shared `DisclosureAccordion` primitive in `src/components/ui/disclosure-accordion.tsx` for always-visible, collapsible content rows
+
+### Changed
+- Store header primary nav swapped `Shop` for `Bottles` + `Decants`; in-app links to the catalog now point to `/bottles` or `/decants`
 - Shared `Section`/`PageHeader`/`EmptyState`/`StatTile`/`SurfaceCard`/`OrderStatusPill` primitives in `src/components/ui/section.tsx` and `src/components/ui/status-pill.tsx`
 - Admin Fragrantica import at `/admin/products/fragrantica` powered by Fragella with a manual HTML/JSON paste fallback; fields stored on `product` and a daily cron refreshes products older than 15 days
 - Vercel cron schedule in `vercel.json` calling `/api/cron/fragella-refresh` once per day

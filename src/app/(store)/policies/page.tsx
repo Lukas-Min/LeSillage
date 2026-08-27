@@ -1,16 +1,40 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
+import { PageHeader, SectionCard } from "@/components/ui/section";
+import { policyCopy } from "@/lib/policy-copy";
+
+export const metadata = {
+  title: "Policies · Le Sillage",
+};
 
 export default function PoliciesPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
-      <h1 className="font-serif-display text-2xl">Policies</h1>
-      <Card>
-        <CardContent className="space-y-2 p-4 text-sm text-muted-foreground">
-          <p>Orders are confirmed only after payment verification.</p>
-          <p>Pre-orders take 3–30 days. On-hand items typically ship in 1–2 days, with same-day delivery available on weekends.</p>
-          <p>We collect the minimum data needed to fulfill your order and notify you about it. We never sell your data.</p>
-        </CardContent>
-      </Card>
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+      <PageHeader
+        eyebrow="Policies"
+        title="Shipping, returns, authenticity"
+        subtitle="Plain-language details on how we ship, what we accept back, and where our stock comes from."
+      />
+      <SectionCard eyebrow="Operations" title="How we fulfil orders">
+        <DisclosureAccordion
+          items={[
+            {
+              id: "shipping",
+              label: policyCopy.shipping.label,
+              content: <p>{policyCopy.shipping.body}</p>,
+            },
+            {
+              id: "returns",
+              label: policyCopy.returns.label,
+              content: <p>{policyCopy.returns.body}</p>,
+            },
+            {
+              id: "privacy",
+              label: policyCopy.privacy.label,
+              content: <p>{policyCopy.privacy.body}</p>,
+            },
+          ]}
+        />
+      </SectionCard>
     </main>
   );
 }

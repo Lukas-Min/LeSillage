@@ -32,7 +32,7 @@ export default async function CheckoutPage() {
         <h1 className="font-serif-display text-2xl">Checkout</h1>
         <p className="mt-4 text-muted-foreground">Your cart is empty.</p>
         <Button asChild className="mt-4">
-          <Link href="/shop">Browse the catalog</Link>
+          <Link href="/bottles">Browse the catalog</Link>
         </Button>
       </main>
     );

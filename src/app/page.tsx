@@ -32,7 +32,7 @@ export default async function Home() {
           </p>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild size="lg">
-              <Link href="/shop">
+              <Link href="/bottles">
                 Shop the catalog
                 <ArrowRight className="h-4 w-4" />
               </Link>

@@ -28,7 +28,7 @@ export default async function OrdersPage() {
         subtitle="Receipts, payments, confirmations, and shipping — all in one place."
         actions={
           <Button asChild variant="outline">
-            <Link href="/shop">Find another fragrance</Link>
+            <Link href="/bottles">Find another fragrance</Link>
           </Button>
         }
       />
@@ -40,7 +40,7 @@ export default async function OrdersPage() {
           description="Browse the catalog to add a decant, partial, or full bottle to your cart."
           action={
             <Button asChild>
-              <Link href="/shop">Visit the shop</Link>
+              <Link href="/bottles">Visit the shop</Link>
             </Button>
           }
         />

@@ -9,12 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { Price } from "@/components/store/price";
 import { ProductImage } from "@/components/store/product-image";
-import { Separator } from "@/components/ui/separator";
-import { labelForCondition } from "@/lib/catalog";
+import { AccordStrip } from "@/components/store/accord-strip";
 import { WishlistButton } from "@/components/store/wishlist-button";
+import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
+import { Eyebrow } from "@/components/ui/section";
+import { labelForCondition } from "@/lib/catalog";
+import { productAccords } from "@/lib/product-accords";
+import { policyCopy } from "@/lib/policy-copy";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+type NotePyramid = { top: string[]; middle: string[]; base: string[] } | null;
 
 export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
   const { skuId } = await params;
@@ -28,7 +34,11 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         family: products.family,
         type: products.type,
         description: products.description,
+        notes: products.notes,
         remainingMl: products.remainingMl,
+        notePyramid: products.notePyramid,
+        accords: products.accords,
+        perfumers: products.perfumers,
         condition: skus.condition,
         provenance: skus.provenance,
         packaging: skus.packaging,
@@ -84,6 +94,11 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const discount = bestDiscount(discounts, row.retailPrice);
   const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
   const image = images[0];
+  const accords = productAccords(row.accords);
+  const notePyramid = normaliseNotePyramid(row.notePyramid, row.notes);
+  const familyLabel = (row.family ?? "").trim();
+  const backHref = row.type === "DECANT" ? "/decants" : "/bottles";
+
   const sizeOptions =
     row.type === "DECANT"
       ? DECANT_SIZES_ML.map((size) => {
@@ -93,11 +108,14 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
       : siblings.map((s) => ({ size: s.sizeMl, skuId: s.id, label: s.label }));
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
-      <Link href="/shop" className="text-sm text-muted-foreground hover:underline">
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
+      <Link
+        href={backHref}
+        className="text-xs uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground"
+      >
         ← Back to catalog
       </Link>
-      <div className="mt-4 grid grid-cols-1 gap-8 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-2">
         <ProductImage
           src={image?.url ?? null}
           alt={image?.alt ?? row.name}
@@ -105,32 +123,37 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           className="aspect-square w-full rounded-2xl"
           sizes="(max-width: 640px) 100vw, 50vw"
         />
-        <div className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.4em] text-gold">{row.brand}</p>
-          <h1 className="font-serif-display text-3xl">{row.name}</h1>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
-              {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
-            </Badge>
-            {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
-            {row.condition !== "BNIB" ? (
-              <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
-            ) : null}
-            {row.provenance !== "RETAIL" ? <Badge variant="outline">{row.provenance}</Badge> : null}
-            {row.packaging !== "WITH_BOX" ? <Badge variant="outline">Bottle only</Badge> : null}
+        <div className="flex flex-col gap-5">
+          <div className="space-y-2">
+            <Eyebrow>{row.brand}</Eyebrow>
+            <h1 className="font-serif-display text-3xl leading-tight sm:text-4xl">{row.name}</h1>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Badge variant={fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
+                {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
+              </Badge>
+              <Badge variant="outline">{row.condition === "BNIB" ? "Sealed" : labelForCondition(row.condition)}</Badge>
+              {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">{row.description}</p>
-          <Separator />
+
+          <AccordStrip accords={accords} />
+
+          {familyLabel ? (
+            <p className="font-serif-display italic text-sm text-muted-foreground">
+              {describeFamily(row.type, familyLabel)}
+            </p>
+          ) : null}
+
           {row.type === "DECANT" ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Size</p>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
               <div className="flex flex-wrap gap-2">
                 {sizeOptions.map((option) => {
                   if (!("size" in option) || option.size == null) return null;
                   const href = option.skuId ? `/shop/${option.skuId}` : null;
                   const active = option.skuId === row.skuId;
                   const className = cn(
-                    "inline-flex min-h-11 min-w-14 items-center justify-center rounded-full border px-4 text-sm",
+                    "inline-flex min-h-11 min-w-16 items-center justify-center rounded-full border px-4 text-xs uppercase tracking-[0.2em]",
                     active
                       ? "border-foreground bg-foreground text-background"
                       : href
@@ -154,14 +177,14 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             </div>
           ) : siblings.length > 1 ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Options</p>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Options</p>
               <div className="flex flex-wrap gap-2">
                 {siblings.map((option) => (
                   <Link
                     key={option.id}
                     href={`/shop/${option.id}`}
                     className={cn(
-                      "inline-flex min-h-11 items-center rounded-full border px-4 text-sm",
+                      "inline-flex min-h-11 items-center rounded-full border px-4 text-xs uppercase tracking-[0.2em]",
                       option.id === row.skuId
                         ? "border-foreground bg-foreground text-background"
                         : "border-border hover:bg-muted",
@@ -173,13 +196,17 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Size · {row.skuLabel}</p>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+              Size · {row.skuLabel}
+            </p>
           )}
+
           <Price
             originalCentavos={row.retailPrice}
             discountedCentavos={discountedUnitCentavos}
             savedCentavos={perUnitDiscountCentavos}
           />
+
           {soldOut ? (
             <p className="text-sm text-destructive">Sold out — check back soon.</p>
           ) : (
@@ -190,6 +217,104 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           )}
         </div>
       </div>
+
+      <section className="mt-12 border-t border-border/60 pt-8">
+        <DisclosureAccordion
+          items={[
+            {
+              id: "composition",
+              label: "Composition",
+              defaultOpen: true,
+              content: <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} notes={row.notes ?? null} />,
+            },
+            {
+              id: "shipping",
+              label: policyCopy.shipping.label,
+              content: <p>{policyCopy.shipping.body}</p>,
+            },
+            {
+              id: "returns",
+              label: policyCopy.returns.label,
+              content: <p>{policyCopy.returns.body}</p>,
+            },
+          ]}
+        />
+      </section>
     </main>
   );
+}
+
+function CompositionContent({
+  pyramid,
+  perfumers,
+  notes,
+}: {
+  pyramid: NotePyramid;
+  perfumers: string[] | null;
+  notes: string | null;
+}) {
+  const fallback = (notes ?? "").split(/[,;]/).map((part) => part.trim()).filter(Boolean);
+  const top = pyramid?.top ?? (pyramid ? [] : fallback);
+  const middle = pyramid?.middle ?? [];
+  const base = pyramid?.base ?? [];
+  const hasAny = top.length > 0 || middle.length > 0 || base.length > 0;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <NoteColumn label="Top" notes={top} />
+        <NoteColumn label="Heart" notes={middle} />
+        <NoteColumn label="Base" notes={base} />
+      </div>
+      {!hasAny ? (
+        <p className="text-xs text-muted-foreground">No note breakdown yet.</p>
+      ) : null}
+      {perfumers && perfumers.length > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          <span className="uppercase tracking-[0.28em]">Perfumer</span>: {perfumers.join(", ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function NoteColumn({ label, notes }: { label: string; notes: string[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
+      {notes.length === 0 ? (
+        <p className="text-xs text-muted-foreground">—</p>
+      ) : (
+        <p className="text-sm leading-relaxed text-foreground">{notes.join(" · ")}</p>
+      )}
+    </div>
+  );
+}
+
+function normaliseNotePyramid(value: unknown, fallbackNotes: string | null): NotePyramid {
+  if (value && typeof value === "object") {
+    const top = pickNotes((value as { top?: unknown }).top);
+    const middle = pickNotes((value as { middle?: unknown }).middle);
+    const base = pickNotes((value as { base?: unknown }).base);
+    return { top, middle, base };
+  }
+  if (fallbackNotes && fallbackNotes.trim().length > 0) {
+    const parts = fallbackNotes
+      .split(/[,;]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    return { top: parts, middle: [], base: [] };
+  }
+  return null;
+}
+
+function pickNotes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+    .filter(Boolean);
+}
+
+function describeFamily(type: string, family: string): string {
+  if (type === "DECANT") return `A softer pour of ${family.toLowerCase()}.`;
+  return `${family}.`;
 }

@@ -6,9 +6,11 @@ import { useCart } from "@/components/store/cart-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { formatPHP } from "@/domain/money";
 import { Input } from "@/components/ui/input";
 import { Price } from "@/components/store/price";
+import { policyCopy } from "@/lib/policy-copy";
 
 export default function CartPage() {
   const cart = useCart();
@@ -21,7 +23,7 @@ export default function CartPage() {
           <CardContent className="space-y-3 p-6 text-center">
             <p className="text-muted-foreground">Your cart is empty.</p>
             <Button asChild>
-              <Link href="/shop">Browse the catalog</Link>
+              <Link href="/bottles">Browse the catalog</Link>
             </Button>
           </CardContent>
         </Card>
@@ -102,6 +104,22 @@ export default function CartPage() {
                 <Link href="/checkout">Checkout</Link>
               </Button>
             </CardFooter>
+            <div className="border-t border-border/60 px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+              <DisclosureAccordion
+                items={[
+                  {
+                    id: "shipping",
+                    label: policyCopy.shipping.label,
+                    content: <p>{policyCopy.shipping.body}</p>,
+                  },
+                  {
+                    id: "returns",
+                    label: policyCopy.returns.label,
+                    content: <p>{policyCopy.returns.body}</p>,
+                  },
+                ]}
+              />
+            </div>
           </Card>
         </div>
       )}
