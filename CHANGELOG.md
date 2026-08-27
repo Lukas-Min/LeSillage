@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- `CatalogPrice` (product cards) now shows the struck-through original price above the sale price instead of below
 - On sign-in, "New here? Create an account" now sits above the Google/Facebook buttons; on sign-up, "Already have an account? Sign in" now sits above them too (was below on both)
 
 ### Added

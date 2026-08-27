@@ -71,9 +71,6 @@ export function CatalogPrice({
   const rowJustify = align === "right" ? "justify-end" : "justify-start";
   return (
     <div className={`space-y-1 ${alignClass}`}>
-      <p className="font-serif-display text-2xl leading-none tracking-tight">
-        {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
-      </p>
       {hasDiscount ? (
         <p className={`flex flex-wrap items-center gap-2 text-sm text-muted-foreground ${rowJustify}`}>
           <s>{formatPHPRange(minOriginalCentavos, maxOriginalCentavos)}</s>
@@ -84,6 +81,9 @@ export function CatalogPrice({
           ) : null}
         </p>
       ) : null}
+      <p className="font-serif-display text-2xl leading-none tracking-tight">
+        {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
+      </p>
     </div>
   );
 }
