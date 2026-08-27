@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- `scripts/seed.ts` no longer seeds 9 hardcoded fictional products — it now picks at least 10 random real fragrances (from a pool of well-known designer/niche/Middle Eastern names) via the live Fragella API each run, and generates a `FULL_BOTTLE` + `DECANT` (3/5/10ml) product pair with randomized but realistic cost/markup/stock for each. Idempotent: reruns skip fragrances already in the catalog (matched by `fragellaId`) instead of duplicating
 - Cart drawer ("Your bag") no longer bakes the delivery fee into its total — shows the merchandise subtotal only and a note that delivery is calculated at checkout; the delivery fee still shows as its own line on `/cart` and at checkout
 - Homepage flagship panel now picks a random in-stock card on every load (was always the first `FULL_BOTTLE`, or `cards[0]`); its "How to pay" button is now "View the perfume" linking straight to that card's PDP, and it now leads before "Shop the catalog" (order swapped)
 - `CatalogPrice` (product cards) now shows the struck-through original price above the sale price instead of below
