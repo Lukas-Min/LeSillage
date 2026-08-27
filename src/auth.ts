@@ -56,13 +56,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: "/sign-in",
   },
-  allowDangerousEmailAccountLinking: true,
   providers: [
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? [Google({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET })]
+      ? [
+          Google({
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
       : []),
     ...(env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET
-      ? [Facebook({ clientId: env.FACEBOOK_CLIENT_ID, clientSecret: env.FACEBOOK_CLIENT_SECRET })]
+      ? [
+          Facebook({
+            clientId: env.FACEBOOK_CLIENT_ID,
+            clientSecret: env.FACEBOOK_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
       : []),
     Credentials({
       credentials: {
@@ -164,13 +175,6 @@ declare module "next-auth" {
     user: DefaultSession["user"] & { id: string; role?: UserRole };
   }
   interface User {
-    role?: UserRole;
-    sessionVersion?: number;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
     role?: UserRole;
     sessionVersion?: number;
   }

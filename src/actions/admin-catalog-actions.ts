@@ -91,7 +91,7 @@ export async function upsertProduct(formData: FormData) {
     });
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${parsed.productId}`);
-    return parsed.productId;
+    return;
   }
   const inserted = await db().insert(products).values(values).returning();
   await auditLogSubject({
@@ -101,7 +101,6 @@ export async function upsertProduct(formData: FormData) {
     targetId: inserted[0].id,
   });
   revalidatePath("/admin/products");
-  return inserted[0].id;
 }
 
 const skuSchema = z.object({

@@ -10,7 +10,6 @@ function makeSku(overrides: Partial<Sku> = {}): Sku {
     sku: "X",
     label: "X",
     sizeMl: null,
-    remainingMl: null,
     condition: "BNIB",
     provenance: "RETAIL",
     packaging: "WITH_BOX",
