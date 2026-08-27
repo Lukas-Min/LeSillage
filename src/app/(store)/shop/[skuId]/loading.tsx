@@ -4,7 +4,7 @@ export default function ProductLoading() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
       <Skeleton className="h-3 w-40" />
-      <div className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-[2fr_1fr] md:gap-12 md:divide-x md:divide-border/60">
+      <div className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
         <div className="flex flex-col gap-6 md:pr-12">
           <Skeleton className="aspect-square w-full rounded-md" />
           <Skeleton className="h-24 w-full" />

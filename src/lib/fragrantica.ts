@@ -8,6 +8,7 @@ export interface ParsedFragranticaPage {
   brand?: string;
   year?: number | null;
   gender?: string | null;
+  concentration?: string | null;
   description?: string | null;
   perfumers?: string[];
   accords?: FragellaAccord[];
@@ -145,6 +146,13 @@ function extractGender(html: string): string | null {
   return cleaned || null;
 }
 
+function extractConcentration(html: string): string | null {
+  const block = extractBetween(html, "Concentration", "</p>");
+  if (!block) return null;
+  const cleaned = stripTags(block).trim();
+  return cleaned || null;
+}
+
 function extractRating(html: string): { ratingValue: number | null; ratingCount: number | null } {
   const ratingBlock = extractBetween(html, "Rating", "</div>");
   if (!ratingBlock) return { ratingValue: null, ratingCount: null };
@@ -183,6 +191,7 @@ export function parseFragranticaHtml(html: string): ParsedFragranticaPage {
     brand,
     year: extractYear(html),
     gender: extractGender(html),
+    concentration: extractConcentration(html),
     description: extractDescription(html),
     perfumers: extractPerfumers(html),
     accords: extractAccords(html),
@@ -202,6 +211,7 @@ export function parseFragranticaJson(payload: unknown): ParsedFragranticaPage {
     brand: asString(data.brand ?? data.Brand),
     year: typeof data.year === "number" ? data.year : null,
     gender: asString(data.gender ?? data.Gender),
+    concentration: asString(data.concentration ?? data.Concentration),
     description: asString(data.description ?? data.Description),
     imageUrl: asString(data.imageUrl ?? data.image_url ?? data.Image ?? data.primaryImageUrl),
   };

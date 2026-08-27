@@ -19,6 +19,7 @@ export interface ReviewDefaults {
   description: string;
   releaseYear: string;
   gender: string;
+  concentration: string;
   longevity: string;
   sillage: string;
   priceValue: string;
@@ -109,6 +110,22 @@ export function FragranticaReviewForm({
             <div className="space-y-1">
               <Label htmlFor="gender">Gender</Label>
               <Input id="gender" name="gender" defaultValue={defaults.gender} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="concentration">Concentration</Label>
+              <select
+                id="concentration"
+                name="concentration"
+                defaultValue={defaults.concentration}
+                className="h-11 rounded-lg border bg-background px-3 text-sm"
+              >
+                <option value="">No concentration set</option>
+                <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
+                <option value="EAU_DE_TOILETTE">Eau de Toilette</option>
+                <option value="EAU_DE_PARFUM">Eau de Parfum</option>
+                <option value="PARFUM">Parfum</option>
+                <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
+              </select>
             </div>
           </div>
           <div className="space-y-1">

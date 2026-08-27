@@ -33,6 +33,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         family: products.family,
         fragranceCategory: products.fragranceCategory,
         concentration: products.concentration,
+        gender: products.gender,
         type: products.type,
         description: products.description,
         notes: products.notes,
@@ -100,13 +101,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-10 md:grid-cols-[2fr_1fr] md:gap-12 md:divide-x md:divide-border/60">
+      <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
         <div className="flex flex-col gap-6 md:pr-12">
           <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
 
           <div className="rounded-md border border-border p-4">
             <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
-              {shelfEyebrow(row.fragranceCategory, familyLabel)}
+              {shelfEyebrow(row.fragranceCategory, concentration)}
             </p>
             {familyLabel || row.description ? (
               <p className="mt-2 font-serif-display italic text-base text-foreground/80">
@@ -126,7 +127,6 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             <div className="space-y-1.5">
               <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
               <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{row.name}</h1>
-              {concentration ? <p className="text-sm text-muted-foreground">{concentration}</p> : null}
             </div>
             <WishlistButton productId={row.productId} variant="icon" />
           </div>
@@ -136,6 +136,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
               {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
             </Badge>
             <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
+            {row.gender ? <Badge variant="outline">{row.gender}</Badge> : null}
             {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
           </div>
 
@@ -278,18 +279,18 @@ function describeFamily(type: string, family: string): string {
   return `${family}.`;
 }
 
-function shelfEyebrow(category: string, familyLabel: string): string {
-  const familyPart = familyLabel ? familyLabel.toUpperCase() : "FRAGRANCE";
+function shelfEyebrow(category: string, concentration: string | null): string {
+  const concentrationPart = concentration ? concentration.toUpperCase() : "FRAGRANCE";
   switch (category) {
     case "DESIGNER":
-      return `${familyPart} · DESIGNER SHELF`;
+      return `${concentrationPart} · DESIGNER SHELF`;
     case "MIDDLE_EASTERN":
-      return `${familyPart} · MIDDLE EASTERN SHELF`;
+      return `${concentrationPart} · MIDDLE EASTERN SHELF`;
     case "NICHE":
-      return `${familyPart} · NICHE SHELF`;
+      return `${concentrationPart} · NICHE SHELF`;
     default: {
       const exhaustive: never = category as never;
-      return `${familyPart} · ${String(exhaustive)}`;
+      return `${concentrationPart} · ${String(exhaustive)}`;
     }
   }
 }

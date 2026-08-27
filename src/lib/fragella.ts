@@ -31,6 +31,7 @@ export interface FragellaRecord {
   brand: string;
   year?: number | null;
   gender?: string | null;
+  concentration?: string | null;
   perfumers?: string[];
   description?: string | null;
   notes?: { top: string[]; middle: string[]; base: string[] };
@@ -195,6 +196,9 @@ function normalize(raw: Record<string, unknown>): FragellaRecord {
     brand,
     year,
     gender: asString(raw.Gender ?? raw.gender),
+    concentration: asString(
+      raw.Concentration ?? raw.concentration ?? raw.Type ?? raw.PerfumeType ?? raw.perfumeType,
+    ),
     perfumers: asStringList(raw.Perfumers ?? raw.perfumers),
     description: asString(raw.Description ?? raw.description),
     notes: normalizedNotes,

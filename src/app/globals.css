@@ -79,7 +79,7 @@
   --charcoal-foreground: oklch(0.97 0.012 80);
   --gold: oklch(0.78 0.1 80);
   --gold-foreground: oklch(0.22 0.01 40);
-  --radius: 0.35rem;
+  --radius: 0rem;
   --sidebar: oklch(0.99 0.005 80);
   --sidebar-foreground: oklch(0.18 0.01 40);
   --sidebar-primary: oklch(0.18 0.01 40);

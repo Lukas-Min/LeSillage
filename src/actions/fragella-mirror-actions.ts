@@ -21,6 +21,7 @@ import {
   parseFragranticaJson,
   type ParsedFragranticaPage,
 } from "@/lib/fragrantica";
+import { guessConcentration, isConcentration } from "@/domain/concentration";
 
 export interface MirrorLookupHit {
   id: string;
@@ -124,12 +125,18 @@ export async function saveFragranticaFromMirror(formData: FormData) {
     imageUrl: entry.imageUrl ?? null,
   });
 
+  const concentrationRaw = String(formData.get("concentration") ?? "").trim();
+  const concentration = isConcentration(concentrationRaw)
+    ? concentrationRaw
+    : guessConcentration(concentrationRaw);
+
   const productId = crypto.randomUUID();
   const now = new Date();
   await db().insert(products).values({
     id: productId,
     type: parseType(formData.get("type")),
     fragranceCategory: parseCategory(formData.get("fragranceCategory")),
+    concentration,
     name: parsed.name ?? entry.name,
     brand: parsed.brand ?? entry.brand,
     family: String(formData.get("family") ?? "").trim() || null,

@@ -6,6 +6,7 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
 import { products, skus } from "@/db/schema";
+import { guessConcentration, isConcentration } from "@/domain/concentration";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import {
@@ -116,6 +117,10 @@ export async function saveFragranticaImport(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim() || null;
   const releaseYear = parseIntOptional(formData.get("releaseYear"));
   const gender = String(formData.get("gender") ?? "").trim() || null;
+  const concentrationRaw = String(formData.get("concentration") ?? "").trim();
+  const concentration = isConcentration(concentrationRaw)
+    ? concentrationRaw
+    : guessConcentration(concentrationRaw);
   const ratingValue = parseFloatOptional(formData.get("ratingValue"));
   const ratingCount = parseIntOptional(formData.get("ratingCount"));
   const reviewsCount = parseIntOptional(formData.get("reviewsCount"));
@@ -155,6 +160,7 @@ export async function saveFragranticaImport(formData: FormData) {
     id: productId,
     type,
     fragranceCategory,
+    concentration,
     name: merged.name ?? name,
     brand: merged.brand ?? brand,
     family,
@@ -257,6 +263,8 @@ export async function refreshStaleFragellaRecords() {
           fragellaFetchedAt: new Date(),
           notePyramid: record.notes ?? null,
           accords: record.accords ?? null,
+          gender: record.gender ?? null,
+          concentration: guessConcentration(record.concentration),
           perfumers: record.perfumers ?? null,
           longevity: record.longevity ?? null,
           sillage: record.sillage ?? null,

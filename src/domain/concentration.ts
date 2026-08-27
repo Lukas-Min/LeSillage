@@ -1,4 +1,8 @@
-import type { Concentration } from "@/db/schema";
+import { concentration as CONCENTRATIONS, type Concentration } from "@/db/schema";
+
+export function isConcentration(value: string | null | undefined): value is Concentration {
+  return !!value && (CONCENTRATIONS as readonly string[]).includes(value);
+}
 
 export const CONCENTRATION_LABELS: Record<Concentration, string> = {
   EAU_DE_COLOGNE: "Eau de Cologne",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { FragranticaReviewForm, type ReviewDefaults } from "./review-form";
 import { getFragellaMirrorEntry } from "@/lib/fragella-mirror";
+import { guessConcentration } from "@/domain/concentration";
 import {
   lookupFragella,
   type FragellaRecord,
@@ -26,6 +27,7 @@ function recordToDefaults(record: FragellaRecord): ReviewDefaults {
     description: record.description ?? "",
     releaseYear: record.year?.toString() ?? "",
     gender: record.gender ?? "",
+    concentration: guessConcentration(record.concentration) ?? "",
     longevity: record.longevity ?? "",
     sillage: record.sillage ?? "",
     priceValue: record.priceValue ?? "",
@@ -59,6 +61,7 @@ function pendingToDefaults(pending: Awaited<ReturnType<typeof lookupPendingPaylo
     description: parsed?.description ?? record?.description ?? "",
     releaseYear: parsed?.year?.toString() ?? record?.year?.toString() ?? "",
     gender: parsed?.gender ?? record?.gender ?? "",
+    concentration: guessConcentration(parsed?.concentration ?? record?.concentration) ?? "",
     longevity: parsed?.longevity ?? record?.longevity ?? "",
     sillage: parsed?.sillage ?? record?.sillage ?? "",
     priceValue: parsed?.priceValue ?? record?.priceValue ?? "",
@@ -99,6 +102,7 @@ export default async function FragranticaReviewPage({ searchParams }: PageProps)
     description: "",
     releaseYear: "",
     gender: "",
+    concentration: "",
     longevity: "",
     sillage: "",
     priceValue: "",
