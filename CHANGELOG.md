@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Cart drawer ("Your bag") no longer bakes the delivery fee into its total — shows the merchandise subtotal only and a note that delivery is calculated at checkout; the delivery fee still shows as its own line on `/cart` and at checkout
 - Homepage flagship panel now picks a random in-stock card on every load (was always the first `FULL_BOTTLE`, or `cards[0]`); its "How to pay" button is now "View the perfume" linking straight to that card's PDP, and it now leads before "Shop the catalog" (order swapped)
 - `CatalogPrice` (product cards) now shows the struck-through original price above the sale price instead of below
 - On sign-in, "New here? Create an account" now sits above the Google/Facebook buttons; on sign-up, "Already have an account? Sign in" now sits above them too (was below on both)

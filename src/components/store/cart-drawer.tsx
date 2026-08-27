@@ -90,9 +90,12 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
             </ul>
             <div className="space-y-3 border-t border-border/60 px-4 py-4">
               <p className="flex justify-between text-sm">
-                <span>Total</span>
-                <span className="font-serif-display text-lg">{formatPHP(cart.totals.totalCentavos)}</span>
+                <span>Subtotal</span>
+                <span className="font-serif-display text-lg">
+                  {formatPHP(cart.totals.merchandiseSubtotalCentavos)}
+                </span>
               </p>
+              <p className="text-xs text-muted-foreground">Delivery fee calculated at checkout.</p>
               <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
                 <Link href="/checkout">Checkout</Link>
               </Button>
