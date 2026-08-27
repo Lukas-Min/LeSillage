@@ -144,10 +144,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!user.id) return;
       await promoteAdmin(user.email, user.id);
     },
-    async signIn() {
-      const { mergeGuestCartIntoUser } = await import("@/lib/cart");
-      await mergeGuestCartIntoUser();
-    },
   },
 });
 

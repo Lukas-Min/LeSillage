@@ -1,10 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   addItemToCart,
   getCart,
   importLegacyCart,
+  mergeGuestCartIntoUser,
   removeCartItem,
   updateCartItem,
 } from "@/actions/cart-actions";
@@ -47,6 +49,18 @@ export function CartProvider({
   initialCart?: CartView;
 }) {
   const [view, setView] = useState<CartView>(initialCart ?? EMPTY);
+  const { data: session, status } = useSession();
+  const mergeFlagKey = "lesillage.guestCartMerged";
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem(mergeFlagKey) === "1") return;
+    window.sessionStorage.setItem(mergeFlagKey, "1");
+    void mergeGuestCartIntoUser().then(() => {
+      void getCart().then(setView);
+    });
+  }, [status]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
