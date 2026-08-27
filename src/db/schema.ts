@@ -650,7 +650,31 @@ export const siteContent = pgTable("site_content", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 
+export const fragellaMirror = pgTable(
+  "fragella_mirror",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    brand: text("brand").notNull(),
+    year: integer("year"),
+    gender: text("gender"),
+    imageUrl: text("imageUrl"),
+    searchName: text("searchName").notNull(),
+    payload: jsonb("payload").notNull(),
+    requestCount: integer("requestCount").notNull().default(1),
+    lastFetchedAt: timestamp("lastFetchedAt", { mode: "date" }).notNull().defaultNow(),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    nameIdx: index("fragella_mirror_name_idx").on(t.name),
+    brandIdx: index("fragella_mirror_brand_idx").on(t.brand),
+    updatedIdx: index("fragella_mirror_updated_idx").on(t.lastFetchedAt),
+  }),
+);
+
 export type Product = typeof products.$inferSelect;
+export type FragellaMirrorEntry = typeof fragellaMirror.$inferSelect;
 export type Sku = typeof skus.$inferSelect;
 export type Cart = typeof carts.$inferSelect;
 export type CartItem = typeof cartItems.$inferSelect;

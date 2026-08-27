@@ -5,35 +5,79 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { lookupFragranticaFromUrl, previewPasteFragrantica } from "@/actions/fragrantica-actions";
+import { lookupFragranticaFromUrl } from "@/actions/fragrantica-actions";
+import { previewPasteFragranticaAction } from "@/actions/fragella-mirror-actions";
+import {
+  countFragellaMirror,
+  listRecentFragellaMirrorEntries,
+  searchFragellaMirror,
+} from "@/lib/fragella-mirror";
+import { FragellaMirrorPicker } from "./fragella-mirror-picker";
 
-export default function FragranticaImportPage() {
+export const dynamic = "force-dynamic";
+
+export default async function FragranticaImportPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const query = (params.q ?? "").trim();
+  const [result, mirrorTotal, recent] = await Promise.all([
+    query.length > 0
+      ? searchFragellaMirror(query, { limit: 10 })
+      : Promise.resolve({ hits: [], filledFromFragella: 0 }),
+    countFragellaMirror(),
+    listRecentFragellaMirrorEntries(20),
+  ]);
+  const recentHits = recent.map((hit) => ({
+    ...hit,
+    lastFetchedAt: hit.lastFetchedAt.toISOString(),
+  }));
+
   async function lookup(formData: FormData) {
     "use server";
     await lookupFragranticaFromUrl(formData);
   }
   async function pastePreview(formData: FormData) {
     "use server";
-    await previewPasteFragrantica(formData);
+    await previewPasteFragranticaAction(formData);
   }
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Catalog"
         title="Import from Fragrantica"
-        subtitle="Paste a Fragrantica URL or perfume name and Fragella fills the form. Anything missing can be filled from a paste of the Fragrantica page."
+        subtitle="Pick from the local Fragella mirror — no extra API calls unless the mirror is empty. New fragrances are warmed once and reused."
         actions={
           <Button asChild variant="outline">
             <Link href="/admin/products">Back to products</Link>
           </Button>
         }
       />
+      <SectionCard
+        eyebrow="Local mirror"
+        title="Pick a fragrance from the cache"
+        description="Searches the local mirror first. Cold lookups fall back to Fragella and store the result so future imports are free."
+        actions={<Sparkles className="h-4 w-4 text-gold" />}
+      >
+        <FragellaMirrorPicker
+          initialHits={
+            result.hits.length > 0
+              ? result.hits.map((hit) => ({ ...hit, lastFetchedAt: hit.lastFetchedAt.toISOString() }))
+              : recentHits
+          }
+          initialQuery={query}
+          initialFilledFromFragella={result.filledFromFragella}
+          mirrorTotal={mirrorTotal}
+        />
+      </SectionCard>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SectionCard
-          eyebrow="Option 1"
-          title="Look up with Fragella"
-          description="One free request per import. Fills brand, name, year, notes, accords, perfumers, ratings, longevity, sillage, season, and gender."
-          actions={<Sparkles className="h-4 w-4 text-gold" />}
+          eyebrow="Live lookup"
+          title="Fetch from Fragella now"
+          description="One request per import. Pick this when the perfume is not yet in the mirror."
+          actions={<ArrowRight className="h-4 w-4 text-gold" />}
         >
           <form action={lookup} className="space-y-3">
             <div className="space-y-1">
@@ -52,9 +96,9 @@ export default function FragranticaImportPage() {
           </form>
         </SectionCard>
         <SectionCard
-          eyebrow="Option 2"
+          eyebrow="Manual paste"
           title="Paste Fragrantica HTML or JSON"
-          description="Right-click the Fragrantica page → View Source → copy → paste here. JSON exports from Apify or ScrapingBee also work."
+          description="Right-click the Fragrantica page → View Source → copy → paste here."
           actions={<ClipboardPaste className="h-4 w-4 text-gold" />}
         >
           <form action={pastePreview} className="space-y-3">
@@ -76,9 +120,9 @@ export default function FragranticaImportPage() {
         </SectionCard>
       </div>
       <SurfaceCard className="border-gold/40 bg-gold/5 p-4 text-sm">
-        <Eyebrow>Tip</Eyebrow>
+        <Eyebrow>How the mirror works</Eyebrow>
         <p>
-          Fragella's free tier gives 20 requests per month. We only refresh products older than 15 days, and never more than 8 per day.
+          Every Fragella call lands here. The daily cron refreshes rows older than 15 days, capped at 8 requests per run so the free 20/month tier lasts.
         </p>
       </SurfaceCard>
     </div>

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { saveFragranticaImport } from "@/actions/fragrantica-actions";
+import { saveFragranticaFromMirror } from "@/actions/fragella-mirror-actions";
 
 export interface ReviewDefaults {
   name: string;
@@ -32,7 +33,15 @@ export interface ReviewDefaults {
   accords: string;
 }
 
-export function FragranticaReviewForm({ defaults, query }: { defaults: ReviewDefaults; query: string }) {
+export function FragranticaReviewForm({
+  defaults,
+  query,
+  mirrorId,
+}: {
+  defaults: ReviewDefaults;
+  query: string;
+  mirrorId?: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -42,7 +51,11 @@ export function FragranticaReviewForm({ defaults, query }: { defaults: ReviewDef
     setError(null);
     try {
       const fd = new FormData(event.currentTarget);
-      await saveFragranticaImport(fd);
+      if (mirrorId) {
+        await saveFragranticaFromMirror(fd);
+      } else {
+        await saveFragranticaImport(fd);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save");
       setBusy(false);
@@ -51,6 +64,7 @@ export function FragranticaReviewForm({ defaults, query }: { defaults: ReviewDef
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <input type="hidden" name="query" value={query} />
+      {mirrorId ? <input type="hidden" name="mirrorId" value={mirrorId} /> : null}
       <Card>
         <CardContent className="space-y-3 p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

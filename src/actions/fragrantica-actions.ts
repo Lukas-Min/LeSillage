@@ -21,13 +21,15 @@ import {
   parseFragranticaJson,
   type ParsedFragranticaPage,
 } from "@/lib/fragrantica";
+import {
+  clearPendingPayload,
+  persistPendingPayload,
+  lookupPendingPayload,
+  type ReviewPayload,
+} from "@/lib/fragella-pending-store";
 
-interface ReviewPayload {
-  fragella: FragellaRecord | null;
-  parsed: ParsedFragranticaPage | null;
-  query: string;
-  fragranticaUrl: string | null;
-}
+// Re-export the canonical type so other modules import from this file.
+export type { ReviewPayload };
 
 export async function lookupFragranticaFromUrl(formData: FormData) {
   const admin = await requireAdmin();
@@ -100,7 +102,9 @@ export async function saveFragranticaImport(formData: FormData) {
     limit: 15,
     windowMs: 60_000,
   });
-  const payload = await loadPendingPayload(admin.id);
+  const query = String(formData.get("query") ?? "").trim();
+  if (!query) throw new Error("Your paste/lookup expired. Try again.");
+  const payload = await lookupPendingPayload(admin.id, query);
   if (!payload) throw new Error("Your paste/lookup expired. Try again.");
 
   const type = parseType(formData.get("type"));
@@ -214,7 +218,7 @@ export async function saveFragranticaImport(formData: FormData) {
       fragellaId: payload.fragella?.id ?? null,
     },
   });
-  await clearPendingPayload(admin.id);
+  await clearPendingPayload(admin.id, query);
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${productId}`);
   redirect(`/admin/products/${productId}?welcome=1`);
@@ -381,24 +385,6 @@ function deriveSku(brand: string, name: string) {
   return base || `imported-${Date.now()}`;
 }
 
-async function persistPendingPayload(adminId: string, payload: ReviewPayload) {
-  const key = pendingKey(adminId);
-  pendingStore.set(key, { payload, storedAt: Date.now() });
+async function persistPendingPayloadLocal(adminId: string, payload: ReviewPayload) {
+  persistPendingPayload(adminId, payload);
 }
-
-async function loadPendingPayload(adminId: string): Promise<ReviewPayload | null> {
-  const entry = pendingStore.get(pendingKey(adminId));
-  if (!entry) return null;
-  if (Date.now() - entry.storedAt > 15 * 60 * 1000) {
-    pendingStore.delete(pendingKey(adminId));
-    return null;
-  }
-  return entry.payload;
-}
-
-async function clearPendingPayload(adminId: string) {
-  pendingStore.delete(pendingKey(adminId));
-}
-
-const pendingStore = new Map<string, { payload: ReviewPayload; storedAt: number }>();
-const pendingKey = (adminId: string) => `fragella:${adminId}`;

@@ -239,6 +239,8 @@ export async function lookupFragella(query: string): Promise<FragellaRecord | nu
   return records[0] ?? null;
 }
 
+export const lookupFragrantica = lookupFragella;
+
 export async function getFragellaUsage(): Promise<FragellaUsage> {
   return cached("usage", async () => {
     const data = await fragellaFetch<Record<string, unknown>>("/usage", {});

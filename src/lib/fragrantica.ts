@@ -18,6 +18,13 @@ export interface ParsedFragranticaPage {
   imageUrl?: string | null;
   ratingValue?: number | null;
   ratingCount?: number | null;
+  reviewsCount?: number | null;
+  longevityBreakout?: Record<string, number>;
+  sillageBreakout?: Record<string, number>;
+  priceValueBreakout?: Record<string, number>;
+  seasonBreakout?: Record<string, number>;
+  genderBreakout?: Record<string, number>;
+  relationBreakout?: Record<string, number>;
 }
 
 const NOTE_BLOCK_TITLES: Record<string, "top" | "middle" | "base"> = {

@@ -477,6 +477,32 @@ async function main() {
   await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaFetchedAt" timestamp`);
   await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaPayload" jsonb`);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "fragella_mirror" (
+      "id" text PRIMARY KEY,
+      "name" text NOT NULL,
+      "brand" text NOT NULL,
+      "year" integer,
+      "gender" text,
+      "imageUrl" text,
+      "searchName" text NOT NULL,
+      "payload" jsonb NOT NULL,
+      "requestCount" integer NOT NULL DEFAULT 1,
+      "lastFetchedAt" timestamp NOT NULL DEFAULT now(),
+      "createdAt" timestamp NOT NULL DEFAULT now(),
+      "updatedAt" timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "fragella_mirror_name_idx" ON "fragella_mirror" ("name")`,
+  );
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "fragella_mirror_brand_idx" ON "fragella_mirror" ("brand")`,
+  );
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "fragella_mirror_updated_idx" ON "fragella_mirror" ("lastFetchedAt")`,
+  );
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
