@@ -42,10 +42,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="flex flex-col bg-background text-foreground">
         <Providers>
-          <StoreHeader />
-          <div className="min-h-dvh flex-1">{children}</div>
+          <div className="flex min-h-dvh flex-col">
+            <StoreHeader />
+            <div className="flex flex-1 flex-col">{children}</div>
+          </div>
           <StoreFooter />
           <Toaster richColors position="top-center" />
         </Providers>

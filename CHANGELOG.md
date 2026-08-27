@@ -5,7 +5,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ## [Unreleased]
 ### Changed
 - Content pages (FAQ, Contact, About, How to pay, Policies) now center their card/prose content within the wide `max-w-6xl` shell instead of leaving it flush left, which was leaving a large lopsided empty gap on the right on anything wider than a laptop screen
-- The main content area now has `min-h-dvh` so the footer is never visible without scrolling, even on an empty/short page — previously `flex-1` alone let the footer sit flush after short content
+- The main content area now has `min-h-dvh` so the footer is never visible without scrolling, even on an empty/short page — previously `flex-1` alone let the footer sit flush after short content. Moved the `min-h-dvh` to wrap the navbar together with the content (not content alone), so the 100vh minimum is navbar+content combined, and made the flex chain down through `/shop`'s empty-state box propagate properly so "Nothing on this shelf yet" centers in the leftover space instead of sitting near the top with dead space below it
 - `/shop` with no `type` filter now defaults to Decants instead of showing every type unfiltered — matches removing the "All" tab, there's no longer an unfiltered view to land on
 
 ### Fixed

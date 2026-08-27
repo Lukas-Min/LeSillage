@@ -16,14 +16,14 @@ export function CatalogResults({
 }) {
   const countLabel = `${cards.length} fragrance${cards.length === 1 ? "" : "s"}`;
   return (
-    <>
+    <div className="flex flex-1 flex-col">
       {showCount ? (
         <p className="mb-6 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           {countLabel}
         </p>
       ) : null}
       {cards.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border/80 p-10 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center rounded-md border border-dashed border-border/80 p-10 text-center">
           <p className="text-sm text-muted-foreground">{emptyLabel}</p>
           <Link href="/shop" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
             Browse the shop
@@ -36,7 +36,7 @@ export function CatalogResults({
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -58,7 +58,7 @@ export function CatalogGrid({
   breadcrumbs?: BreadcrumbItem[];
 }) {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:py-14">
       {breadcrumbs ? <Breadcrumbs items={breadcrumbs} className="mb-6" /> : null}
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
         {eyebrow ? eyebrow : <Eyebrow>Le Sillage · Manila</Eyebrow>}
