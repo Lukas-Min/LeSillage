@@ -20,6 +20,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Home shelves, sitemap, admin nav (Customers, Audit), and promo settings include the new catalog and threshold fields
 
 ### Fixed
+- Facebook sign-in uses OAuth state checks only so Auth.js PKCE does not fail the Meta callback
 - Production TypeScript build: Auth.js account linking is a provider option, admin product save no longer returns a form-action value, and the cart test SKU fixture matches the schema
 - Unused catalog helper arguments and a leftover promo-config wrapper removed from the storefront loaders
 - Brand pages decode slugs once so names like Maison Ivre display and filter correctly

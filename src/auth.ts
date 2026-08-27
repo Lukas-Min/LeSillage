@@ -72,6 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             clientId: env.FACEBOOK_CLIENT_ID,
             clientSecret: env.FACEBOOK_CLIENT_SECRET,
             allowDangerousEmailAccountLinking: true,
+            checks: ["state"],
           }),
         ]
       : []),
