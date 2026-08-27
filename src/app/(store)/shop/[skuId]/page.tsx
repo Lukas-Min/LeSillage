@@ -100,7 +100,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_2fr] md:gap-12 md:divide-x md:divide-border/60">
+      <div className="grid grid-cols-1 gap-10 md:grid-cols-[2fr_1fr] md:gap-12 md:divide-x md:divide-border/60">
         <div className="flex flex-col gap-6 md:pr-12">
           <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
 
