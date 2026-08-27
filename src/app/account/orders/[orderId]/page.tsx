@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
+import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, orderItems } from "@/db/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
+import { OrderStatusPill } from "@/components/ui/status-pill";
+import { Price } from "@/components/store/price";
+import { ReceiptUploader } from "@/components/store/receipt-uploader";
 import { describeStatus } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
 import { computeEtaSummary } from "@/domain/eta";
-import { Price } from "@/components/store/price";
-import { ReceiptUploader } from "@/components/store/receipt-uploader";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -38,25 +40,46 @@ export default async function OrderDetailPage({
   );
 
   return (
-    <div className="space-y-4">
-      <Link href="/account/orders" className="text-sm text-muted-foreground hover:underline">
-        ← All orders
-      </Link>
-      <Card className={order.status === "RECEIPT_SUBMITTED" ? "watermark-pending" : ""}>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="font-serif-display text-lg">{order.orderNumber}</CardTitle>
-          <Badge>{describeStatus(order.status)}</Badge>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {order.statusReason ? <p className="text-destructive">Reason: {order.statusReason}</p> : null}
-          <p>Placed {order.createdAt.toLocaleString()}</p>
-          <p>Fulfillment: {order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}</p>
-          <ul className="mt-2 space-y-2">
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={order.orderNumber}
+        title={formatPHP(order.totalCentavos)}
+        subtitle={`Placed ${order.createdAt.toLocaleString()} · ${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}`}
+        actions={
+          <>
+            <OrderStatusPill status={order.status} />
+            <Button asChild variant="outline" size="sm">
+              <Link href="/account/orders">
+                <ArrowLeft className="h-4 w-4" />
+                All orders
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      {order.statusReason ? (
+        <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {order.statusReason}
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <SectionCard
+          className="lg:col-span-2"
+          eyebrow="Items"
+          title={`${items.length} ${items.length === 1 ? "line" : "lines"}`}
+          contentClassName="space-y-3"
+        >
+          <ul className="divide-y divide-border/60">
             {items.map((item) => (
-              <li key={item.id} className="flex justify-between gap-3">
-                <span>
-                  {item.productName} · {item.skuLabel} × {item.quantity}
-                </span>
+              <li key={item.id} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-serif-display text-base leading-tight">{item.productName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.skuLabel} · × {item.quantity}
+                  </p>
+                </div>
                 <Price
                   originalCentavos={item.originalUnitCentavos}
                   discountedCentavos={item.unitPriceCentavos}
@@ -66,11 +89,17 @@ export default async function OrderDetailPage({
               </li>
             ))}
           </ul>
-          <div className="mt-3 space-y-1 border-t pt-3 text-sm">
-            <p className="flex justify-between"><span>Subtotal</span><span>{formatPHP(order.subtotalCentavos)}</span></p>
-            <p className="flex justify-between"><span>Discount</span><span>-{formatPHP(order.discountCentavos)}</span></p>
+          <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
             <p className="flex justify-between">
-              <span>Delivery</span>
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>{formatPHP(order.subtotalCentavos)}</span>
+            </p>
+            <p className="flex justify-between">
+              <span className="text-muted-foreground">Discount</span>
+              <span>-{formatPHP(order.discountCentavos)}</span>
+            </p>
+            <p className="flex justify-between">
+              <span className="text-muted-foreground">Delivery</span>
               <Price
                 originalCentavos={12000}
                 discountedCentavos={order.deliveryFeeCentavos}
@@ -78,20 +107,65 @@ export default async function OrderDetailPage({
                 suffix="Free when applicable"
               />
             </p>
-            <p className="flex justify-between font-medium"><span>Total</span><span>{formatPHP(order.totalCentavos)}</span></p>
+            <p className="flex justify-between border-t border-border/60 pt-2 font-serif-display text-base">
+              <span>Total</span>
+              <span>{formatPHP(order.totalCentavos)}</span>
+            </p>
           </div>
-          <div className="mt-4 space-y-1">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Estimated arrival</p>
-            <ul className="text-sm">
+        </SectionCard>
+
+        <div className="space-y-4">
+          <SectionCard
+            eyebrow="Status"
+            title={describeStatus(order.status)}
+            description="Updated by the team as your order moves through verification and shipping."
+          >
+            <ol className="space-y-2 text-sm">
+              {[
+                { label: "Awaiting payment", status: "AWAITING_PAYMENT" },
+                { label: "Receipt submitted", status: "RECEIPT_SUBMITTED" },
+                { label: "Confirmed", status: "CONFIRMED" },
+                { label: "Shipped", status: "SHIPPED" },
+                { label: "Completed", status: "COMPLETED" },
+              ].map((step) => (
+                <li
+                  key={step.status}
+                  className={
+                    step.status === order.status
+                      ? "font-medium text-gold"
+                      : "text-muted-foreground"
+                  }
+                >
+                  {step.label}
+                </li>
+              ))}
+            </ol>
+          </SectionCard>
+          <SectionCard eyebrow="Estimated arrival" title="When to expect it">
+            <ul className="space-y-1 text-sm">
               {eta.map((range, idx) => (
-                <li key={idx}>{range.label}</li>
+                <li key={idx} className="flex items-center gap-2">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-gold" />
+                  {range.label}
+                </li>
               ))}
             </ul>
-          </div>
-        </CardContent>
-      </Card>
+            <Eyebrow className="pt-2">Reference</Eyebrow>
+            <p className="text-xs text-muted-foreground">
+              Status: {order.status}
+            </p>
+          </SectionCard>
+        </div>
+      </div>
+
       {order.status === "AWAITING_PAYMENT" || order.status === "REJECTED" ? (
-        <ReceiptUploader orderId={order.id} />
+        <SectionCard
+          eyebrow="Payment"
+          title="Upload a receipt"
+          description="Upload a screenshot of your bank or e-wallet transfer. Stock is reserved as soon as we verify it."
+        >
+          <ReceiptUploader orderId={order.id} />
+        </SectionCard>
       ) : null}
     </div>
   );

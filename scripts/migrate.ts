@@ -454,6 +454,29 @@ async function main() {
     `CREATE INDEX IF NOT EXISTS "email_verification_identifier_purpose_idx" ON "email_verification_code" ("identifier", "purpose")`,
   );
 
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "notePyramid" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "accords" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "perfumers" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "longevity" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "sillage" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "priceValue" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "longevityBreakout" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "sillageBreakout" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "priceValueBreakout" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "seasonBreakout" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "genderBreakout" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "relationBreakout" jsonb`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "ratingValue" numeric(4,2)`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "ratingCount" integer`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "reviewsCount" integer`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "releaseYear" integer`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "gender" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragranticaUrl" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaId" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaQuery" text`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaFetchedAt" timestamp`);
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaPayload" jsonb`);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }

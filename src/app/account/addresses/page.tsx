@@ -1,11 +1,13 @@
+import { desc, eq } from "drizzle-orm";
+import { MapPin } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { addresses } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader, SectionCard, EmptyState, Eyebrow } from "@/components/ui/section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { createAddress, deleteAddress, setDefaultAddressForm, updateAddress } from "@/actions/account-actions";
 
 export const dynamic = "force-dynamic";
@@ -18,77 +20,200 @@ export default async function AddressesPage() {
     .where(eq(addresses.userId, user.id))
     .orderBy(desc(addresses.createdAt));
   return (
-    <div className="space-y-4">
-      <h1 className="font-serif-display text-2xl">Saved addresses</h1>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Addresses"
+        title="Where we ship to"
+        subtitle="Save up to 5 addresses. Mark your default so checkout is one tap."
+      />
+
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You have no saved addresses yet.</p>
+        <EmptyState
+          eyebrow="No saved addresses"
+          title="Add your first delivery address"
+          description="You can edit or remove it any time. We never share your address."
+        />
       ) : (
-        rows.map((address) => (
-          <Card key={address.id}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {address.label ?? address.recipientName}
-                {address.isDefault ? " · Default" : ""}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <form action={updateAddress} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <input type="hidden" name="addressId" value={address.id} />
-                <Input name="label" defaultValue={address.label ?? ""} placeholder="Label" />
-                <Input name="recipientName" defaultValue={address.recipientName} required />
-                <Input name="phone" defaultValue={address.phone.replace(/^\+63/, "")} required />
-                <Input name="street" defaultValue={address.street} required className="sm:col-span-2" />
-                <Input name="barangay" defaultValue={address.barangay} required />
-                <Input name="city" defaultValue={address.city} required />
-                <Input name="province" defaultValue={address.province} required />
-                <Input name="region" defaultValue={address.region} required />
-                <Input name="postalCode" defaultValue={address.postalCode} required />
-                <label className="flex items-center gap-2 text-xs sm:col-span-2">
-                  <input type="checkbox" name="isDefault" defaultChecked={address.isDefault} />
-                  Default address
-                </label>
-                <SubmitButton>Save</SubmitButton>
-              </form>
-              <div className="flex gap-2">
-                <form action={setDefaultAddressForm}>
+        <ul className="space-y-4">
+          {rows.map((address) => (
+            <li key={address.id}>
+              <SectionCard
+                eyebrow={address.label ?? "Address"}
+                title={address.recipientName}
+                description={`${address.street}, ${address.barangay}, ${address.city}, ${address.province} · ${address.postalCode}`}
+                actions={
+                  address.isDefault ? <Badge variant="default">Default</Badge> : null
+                }
+                contentClassName="space-y-3"
+              >
+                <form action={updateAddress} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input type="hidden" name="addressId" value={address.id} />
-                  <SubmitButton variant="outline">Make default</SubmitButton>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label htmlFor={`label-${address.id}`}>Label</Label>
+                    <Input
+                      id={`label-${address.id}`}
+                      name="label"
+                      defaultValue={address.label ?? ""}
+                      placeholder="Home, Office…"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`recipient-${address.id}`}>Recipient</Label>
+                    <Input
+                      id={`recipient-${address.id}`}
+                      name="recipientName"
+                      defaultValue={address.recipientName}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`phone-${address.id}`}>Mobile (PH)</Label>
+                    <Input
+                      id={`phone-${address.id}`}
+                      name="phone"
+                      defaultValue={address.phone.replace(/^\+63/, "")}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label htmlFor={`street-${address.id}`}>Street</Label>
+                    <Input
+                      id={`street-${address.id}`}
+                      name="street"
+                      defaultValue={address.street}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`barangay-${address.id}`}>Barangay</Label>
+                    <Input
+                      id={`barangay-${address.id}`}
+                      name="barangay"
+                      defaultValue={address.barangay}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`city-${address.id}`}>City</Label>
+                    <Input
+                      id={`city-${address.id}`}
+                      name="city"
+                      defaultValue={address.city}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`province-${address.id}`}>Province</Label>
+                    <Input
+                      id={`province-${address.id}`}
+                      name="province"
+                      defaultValue={address.province}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`region-${address.id}`}>Region</Label>
+                    <Input
+                      id={`region-${address.id}`}
+                      name="region"
+                      defaultValue={address.region}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`postal-${address.id}`}>Postal code</Label>
+                    <Input
+                      id={`postal-${address.id}`}
+                      name="postalCode"
+                      defaultValue={address.postalCode}
+                      required
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-xs sm:col-span-2">
+                    <input type="checkbox" name="isDefault" defaultChecked={address.isDefault} />
+                    Set as default
+                  </label>
+                  <div className="flex flex-wrap gap-2 sm:col-span-2">
+                    <Button type="submit" size="sm">Save changes</Button>
+                    <form action={setDefaultAddressForm} className="contents">
+                      <input type="hidden" name="addressId" value={address.id} />
+                      {!address.isDefault ? (
+                        <Button type="submit" size="sm" variant="outline">
+                          Make default
+                        </Button>
+                      ) : null}
+                    </form>
+                    <form action={deleteAddress} className="contents">
+                      <input type="hidden" name="addressId" value={address.id} />
+                      <Button type="submit" size="sm" variant="destructive">
+                        Delete
+                      </Button>
+                    </form>
+                  </div>
                 </form>
-                <form action={deleteAddress}>
-                  <input type="hidden" name="addressId" value={address.id} />
-                  <SubmitButton variant="destructive">Delete</SubmitButton>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
-        ))
+              </SectionCard>
+            </li>
+          ))}
+        </ul>
       )}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Add address</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={createAddress} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="space-y-1 sm:col-span-2">
-              <Label htmlFor="recipientName">Recipient</Label>
-              <Input id="recipientName" name="recipientName" required />
-            </div>
-            <Input name="phone" placeholder="9171234567" required />
-            <Input name="label" placeholder="Home, office…" />
-            <Input name="street" placeholder="Street" required className="sm:col-span-2" />
-            <Input name="barangay" placeholder="Barangay" required />
-            <Input name="city" placeholder="City" required />
-            <Input name="province" defaultValue="Metro Manila" required />
-            <Input name="region" defaultValue="NCR" required />
-            <Input name="postalCode" placeholder="Postal code" required />
-            <label className="flex items-center gap-2 text-xs sm:col-span-2">
-              <input type="checkbox" name="isDefault" />
-              Set as default
-            </label>
-            <SubmitButton>Save address</SubmitButton>
-          </form>
-        </CardContent>
-      </Card>
+
+      <SectionCard
+        eyebrow="Add"
+        title="New address"
+        description="We will prefill Metro Manila. Adjust to match your address."
+        actions={<MapPin className="h-4 w-4 text-gold" />}
+      >
+        <form action={createAddress} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label htmlFor="new-recipient">Recipient</Label>
+            <Input id="new-recipient" name="recipientName" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-phone">Mobile (PH)</Label>
+            <Input id="new-phone" name="phone" placeholder="9171234567" required />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="new-street">Street</Label>
+            <Input id="new-street" name="street" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-barangay">Barangay</Label>
+            <Input id="new-barangay" name="barangay" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-city">City</Label>
+            <Input id="new-city" name="city" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-province">Province</Label>
+            <Input id="new-province" name="province" defaultValue="Metro Manila" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-region">Region</Label>
+            <Input id="new-region" name="region" defaultValue="NCR" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-postal">Postal code</Label>
+            <Input id="new-postal" name="postalCode" required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="new-label">Label</Label>
+            <Input id="new-label" name="label" placeholder="Home, Office…" />
+          </div>
+          <label className="flex items-center gap-2 text-xs sm:col-span-2">
+            <input type="checkbox" name="isDefault" />
+            Set as default
+          </label>
+          <div className="sm:col-span-2">
+            <Button type="submit">Save address</Button>
+          </div>
+        </form>
+      </SectionCard>
+
+      <p className="text-xs text-muted-foreground">
+        <Eyebrow className="inline">Privacy</Eyebrow>{" "}
+        Addresses are encrypted in transit and used only for shipping and pickup.
+      </p>
     </div>
   );
 }

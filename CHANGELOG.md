@@ -19,6 +19,18 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Decant availability and order snapshots now use derived fulfillment from the ml pool instead of per-size unit stock
 - Home shelves, sitemap, admin nav (Customers, Audit), and promo settings include the new catalog and threshold fields
 
+### Added
+- Redesigned `/account` surface with a left sidebar on desktop and bottom tab bar on mobile, plus new home tab, profile (name, phone, sign-in methods, change password, change email), orders, addresses, wishlist, notifications, and delete flows
+- Shared `Section`/`PageHeader`/`EmptyState`/`StatTile`/`SurfaceCard`/`OrderStatusPill` primitives in `src/components/ui/section.tsx` and `src/components/ui/status-pill.tsx`
+- Admin Fragrantica import at `/admin/products/fragrantica` powered by Fragella with a manual HTML/JSON paste fallback; fields stored on `product` and a daily cron refreshes products older than 15 days
+- Vercel cron schedule in `vercel.json` calling `/api/cron/fragella-refresh` once per day
+- Loading skeletons at `src/app/loading.tsx` and `src/app/account/loading.tsx`; polished error and not-found pages
+
+### Changed
+- Storefront header now includes an Account dropdown with Profile / Orders / Wishlist / Addresses and uses a gold underline for the active nav link
+- Storefront footer is a four-column layout with phone, email, and Instagram handle pulled from env
+- Home (`/`) redesigned with a hero, three curated shelves, a step-by-step "how it works" panel, and a "new here" callout
+
 ### Fixed
 - Guest cart merge runs from a client effect after sign-in instead of during the `/account` layout render, so the edge runtime no longer throws `revalidatePath` during render
 - Facebook sign-in uses OAuth state checks only so Auth.js PKCE does not fail the Meta callback

@@ -35,6 +35,9 @@ const baseSchema = z.object({
   FACEBOOK_CLIENT_SECRET: optionalString,
   BLOB_READ_WRITE_TOKEN: optionalString,
   BLOB_BASE_URL: optionalString,
+  FRAGELLA_API_KEY: optionalString,
+  FRAGELLA_BASE_URL: optionalString,
+  FRAGELLA_DAILY_REQUEST_BUDGET: optionalString,
 });
 
 const clientSchema = z.object({

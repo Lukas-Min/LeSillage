@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AtSign, Mail, Phone } from "lucide-react";
+import { getEnv } from "@/lib/env";
 
 const COLUMNS = [
   {
@@ -17,21 +19,51 @@ const COLUMNS = [
       { href: "/how-to-pay", label: "How to pay" },
       { href: "/faq", label: "FAQ" },
       { href: "/contact", label: "Contact" },
+      { href: "/policies", label: "Policies" },
     ],
   },
   {
     title: "Maison",
     links: [
       { href: "/about", label: "About" },
-      { href: "/policies", label: "Policies" },
+      { href: "/search", label: "Search" },
+      { href: "/sign-in", label: "Sign in" },
     ],
   },
 ] as const;
 
 export function StoreFooter() {
+  const env = getEnv();
+  const email = env.GMAIL_USER;
+  const phone = env.NEXT_PUBLIC_PHONE;
   return (
-    <footer className="mt-auto border-t border-border bg-secondary/30">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
+    <footer className="mt-auto border-t border-border bg-secondary/40">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
+        <div className="space-y-3">
+          <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
+            <span className="inline-block h-2 w-2 rounded-full bg-gold" />
+            Le Sillage
+          </Link>
+          <p className="text-sm text-muted-foreground">
+            Curated retail perfume from independent and iconic houses. Full bottles, partials, and decants.
+          </p>
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            {phone ? (
+              <li className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 text-gold" />
+                <a href={`tel:${phone}`} className="hover:text-foreground">{phone}</a>
+              </li>
+            ) : null}
+            <li className="flex items-center gap-2">
+              <Mail className="h-3.5 w-3.5 text-gold" />
+              <a href={`mailto:${email}`} className="hover:text-foreground">{email}</a>
+            </li>
+            <li className="flex items-center gap-2">
+              <AtSign className="h-3.5 w-3.5 text-gold" />
+              <span>@le.sillage.mnl</span>
+            </li>
+          </ul>
+        </div>
         {COLUMNS.map((column) => (
           <div key={column.title} className="space-y-3">
             <p className="text-xs uppercase tracking-[0.3em] text-gold">{column.title}</p>

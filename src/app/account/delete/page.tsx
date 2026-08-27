@@ -1,35 +1,32 @@
+import { TriangleAlert } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { deleteAccount, requestReauthCode } from "@/actions/account-actions";
+import { PageHeader, SectionCard } from "@/components/ui/section";
+import { DeleteAccountForm } from "./delete-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function DeleteAccountPage() {
   const user = await requireActiveCustomer();
   return (
-    <div className="space-y-4">
-      <h1 className="font-serif-display text-2xl">Delete account</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">This cannot be undone</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p>
-            Order history is kept for records. Your name, email, addresses, wishlist, and login methods are removed.
-            Open orders must be completed or cancelled first.
-          </p>
-          <form action={requestReauthCode}>
-            <SubmitButton variant="outline">Email a confirmation code</SubmitButton>
-          </form>
-          <form action={deleteAccount} className="space-y-3">
-            <Input name="confirmEmail" placeholder={user.email} required className="h-11" />
-            <Input name="code" placeholder="6-digit code" required className="h-11" />
-            <SubmitButton variant="destructive">Delete my account</SubmitButton>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Account"
+        title="Delete account"
+        subtitle="Removing your account deletes your profile, addresses, wishlist, and login methods. Order history is kept for our records."
+      />
+      <SectionCard
+        className="border-destructive/30"
+        eyebrow="Danger"
+        title="This cannot be undone"
+        actions={<TriangleAlert className="h-4 w-4 text-destructive" />}
+      >
+        <ul className="ml-5 list-disc text-sm text-muted-foreground">
+          <li>We will remove your name, email, addresses, wishlist, and linked sign-in methods.</li>
+          <li>Open orders must be completed or cancelled first.</li>
+          <li>You will receive a final confirmation email after deletion.</li>
+        </ul>
+      </SectionCard>
+      <DeleteAccountForm email={user.email} />
     </div>
   );
 }
