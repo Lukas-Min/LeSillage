@@ -87,16 +87,19 @@ function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: strin
 
 export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
-  const primaryItems = isAdmin
-    ? accountNavItems.map((item) => (item.href === "/account" ? adminHomeItem : item))
-    : accountNavItems;
+  const items = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
   return (
     <nav className="hidden w-56 shrink-0 md:block">
-      <NavList items={primaryItems} pathname={pathname ?? ""} />
+      <NavList items={items} pathname={pathname ?? ""} />
       {isAdmin ? (
-        <div className="mt-4 space-y-1 border-t border-border/60 pt-4">
-          <p className="px-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Admin</p>
-          <NavList items={adminNavItems} pathname={pathname ?? ""} />
+        <div className="mt-4 border-t border-border/60 pt-4">
+          <Link
+            href="/account"
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <User className="h-4 w-4" />
+            <span>My account</span>
+          </Link>
         </div>
       ) : null}
       <div className="pt-2">

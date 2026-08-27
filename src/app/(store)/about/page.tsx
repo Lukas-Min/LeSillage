@@ -4,13 +4,13 @@ import { Eyebrow } from "@/components/ui/section";
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "About" }]} />
       <header className="space-y-2">
         <Eyebrow>Maison</Eyebrow>
         <h1 className="font-serif-display text-4xl">About Le Sillage</h1>
       </header>
-      <Card className="rounded-md">
+      <Card className="max-w-3xl rounded-md">
         <CardContent className="space-y-3 p-6 text-sm leading-relaxed">
           <p>
             Le Sillage curates full bottles, partials, and decants across niche, designer, and

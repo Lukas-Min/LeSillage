@@ -28,6 +28,7 @@ export interface CatalogFilter {
   query?: string;
   sizeMl?: number;
   sort?: CatalogSort;
+  limit?: number;
 }
 
 export interface CatalogCardModel {
@@ -209,7 +210,8 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       savePercent,
     });
   }
-  return sortCards(cards, filter.sort ?? "featured");
+  const sorted = sortCards(cards, filter.sort ?? "featured");
+  return filter.limit ? sorted.slice(0, filter.limit) : sorted;
 }
 
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {

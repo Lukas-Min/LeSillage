@@ -1,24 +1,34 @@
 import Link from "next/link";
 import { db } from "@/db/client";
-import { products, skus } from "@/db/schema";
+import { products, skus, promoSettings } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPHP } from "@/domain/money";
 import { concentrationLabel } from "@/domain/concentration";
+import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductsAdminPage() {
-  const productRows = await db().select().from(products);
-  const skuRows = await db().select().from(skus);
+  const [productRows, skuRows, promoRow] = await Promise.all([
+    db().select().from(products),
+    db().select().from(skus),
+    db().select().from(promoSettings),
+  ]);
+  const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-serif-display text-2xl">Products</h1>
-        <Button asChild>
-          <Link href="/admin/products/new">New product</Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/products/new" className="text-xs text-muted-foreground hover:underline">
+            Add manually
+          </Link>
+          <Button asChild>
+            <Link href="/admin/products/fragrantica">New product</Link>
+          </Button>
+        </div>
       </div>
       {productRows.length === 0 ? (
         <Card>
@@ -54,17 +64,27 @@ export default async function ProductsAdminPage() {
                 {product.type === "DECANT" ? ` · ${product.remainingMl ?? 0}ml left` : ""}
               </p>
               <ul className="mt-2 space-y-1">
-                {skusForProduct.map((sku) => (
-                  <li key={sku.id} className="flex justify-between border-t pt-1">
-                    <span>
-                      {sku.label} · {sku.fulfillment} · stock {sku.stock}
-                      {sku.isActive ? "" : " · archived"}
-                    </span>
-                    <span>
-                      {formatPHP(sku.retailPrice)} (cost {formatPHP(sku.costPrice)})
-                    </span>
-                  </li>
-                ))}
+                {skusForProduct.map((sku) => {
+                  const availability =
+                    product.type === "DECANT"
+                      ? decantFulfillment({
+                          remainingMl: product.remainingMl ?? 0,
+                          sizeMl: sku.sizeMl ?? 0,
+                          thresholdMl: threshold,
+                        })
+                      : `${sku.fulfillment} · stock ${sku.stock}`;
+                  return (
+                    <li key={sku.id} className="flex justify-between border-t pt-1">
+                      <span>
+                        {sku.label} · {availability}
+                        {sku.isActive ? "" : " · archived"}
+                      </span>
+                      <span>
+                        {formatPHP(sku.retailPrice)} (cost {formatPHP(sku.costPrice)})
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>

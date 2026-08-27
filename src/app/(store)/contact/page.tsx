@@ -6,13 +6,13 @@ import { getEnv } from "@/lib/env";
 export default function ContactPage() {
   const env = getEnv();
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
       <header className="space-y-2">
         <Eyebrow>Help</Eyebrow>
         <h1 className="font-serif-display text-4xl">Contact</h1>
       </header>
-      <Card className="rounded-md">
+      <Card className="max-w-3xl rounded-md">
         <CardContent className="space-y-2 p-6 text-sm">
           <p>For order questions: {env.GMAIL_USER}</p>
           {env.NEXT_PUBLIC_PHONE ? <p>Phone: {env.NEXT_PUBLIC_PHONE}</p> : null}

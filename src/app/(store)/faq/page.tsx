@@ -23,13 +23,13 @@ const FAQ = [
 
 export default function FaqPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "FAQs" }]} />
       <header className="space-y-2">
         <Eyebrow>Help</Eyebrow>
         <h1 className="font-serif-display text-4xl">FAQ</h1>
       </header>
-      <Card className="rounded-md">
+      <Card className="max-w-3xl rounded-md">
         <CardContent className="space-y-4 p-6 text-sm">
           {FAQ.map((item) => (
             <div key={item.q} className="space-y-1 border-t border-border/60 pt-4 first:border-t-0 first:pt-0">

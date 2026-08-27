@@ -32,7 +32,7 @@ export default async function ShopPage({
   const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "featured";
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop" }]} />
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
         <Eyebrow>The catalog</Eyebrow>
@@ -70,6 +70,7 @@ async function ShopResults({
     ...(category ? { fragranceCategory: category } : {}),
     ...(concentration ? { concentration } : {}),
     sort,
+    limit: 15,
   });
   return (
     <>

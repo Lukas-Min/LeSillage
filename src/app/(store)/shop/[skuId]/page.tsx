@@ -15,6 +15,7 @@ import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
 import { labelForCondition } from "@/lib/catalog";
+import { labelForType } from "@/domain/product-type";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
 import { normaliseNotePyramid } from "@/lib/note-pyramid";
@@ -104,15 +105,17 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
   const isDecant = row.type === "DECANT";
   const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
-  const concentrationGender = [concentration, row.gender].filter(Boolean).join(" · ") || null;
+  const genderLabel = row.gender ? capitalizeFirst(row.gender) : null;
+  const concentrationGender = [concentration, genderLabel].filter(Boolean).join(" · ") || null;
   const topSeasons = topSeasonLabels(row.seasonBreakout);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-8 sm:pt-6 sm:pb-12">
       <Breadcrumbs
         items={[
           { label: "Home", href: "/" },
           { label: "Shop", href: "/shop" },
+          { label: labelForType(row.type), href: `/shop?type=${row.type}` },
           { label: row.name },
         ]}
       />
@@ -160,7 +163,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-6 md:pl-12">
+        <div className="flex flex-col gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1.5">
               <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
@@ -314,12 +317,16 @@ function NoteColumn({ notes }: { notes: string[] }) {
   return <p className="text-center text-sm text-foreground">{notes.join(", ")}</p>;
 }
 
+function capitalizeFirst(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
 function topSeasonLabels(breakout: unknown, limit = 2): string | null {
   if (!breakout || typeof breakout !== "object") return null;
   const entries = Object.entries(breakout as Record<string, number>)
     .filter(([, count]) => typeof count === "number" && count > 0)
     .sort(([, a], [, b]) => b - a)
     .slice(0, limit)
-    .map(([season]) => season.charAt(0).toUpperCase() + season.slice(1).toLowerCase());
+    .map(([season]) => capitalizeFirst(season));
   return entries.length > 0 ? entries.join(", ") : null;
 }

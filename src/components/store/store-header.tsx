@@ -50,7 +50,7 @@ export function StoreHeader() {
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
       <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-2">
-          <MobileMenu signedIn={signedIn} isAdmin={Boolean(isAdmin)} />
+          <MobileMenu signedIn={signedIn} />
           <Link href="/" className="font-serif-display text-lg">
             Le Sillage
           </Link>
@@ -90,18 +90,13 @@ export function StoreHeader() {
               <Link href="/sign-in">Sign in</Link>
             </Button>
           )}
-          {isAdmin ? (
-            <Button asChild variant="outline" size="sm" className="hidden min-h-11 rounded-md md:inline-flex">
-              <Link href="/admin">Admin</Link>
-            </Button>
-          ) : null}
         </div>
       </div>
     </header>
   );
 }
 
-function MobileMenu({ signedIn, isAdmin }: { signedIn: boolean; isAdmin: boolean }) {
+function MobileMenu({ signedIn }: { signedIn: boolean }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -121,13 +116,6 @@ function MobileMenu({ signedIn, isAdmin }: { signedIn: boolean; isAdmin: boolean
               </Link>
             </SheetClose>
           ))}
-          {isAdmin ? (
-            <SheetClose asChild>
-              <Link href="/admin" className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-muted">
-                Admin
-              </Link>
-            </SheetClose>
-          ) : null}
           <SheetClose asChild>
             <Link
               href={signedIn ? "/account" : "/sign-in"}

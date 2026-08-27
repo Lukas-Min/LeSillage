@@ -3,7 +3,25 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- `src/lib/fragella.ts` had several field-mapping bugs against the real Fragella API response shape: `"Main Accords"` (a plain string array, with a space in the key) wasn't matched by the old `MainAccords`/`accords`/`Accords` lookup and its string entries were dropped by an object-only parser, so every imported product's Main Accords/Notes sections silently rendered empty even though the API returned the data; note objects use lowercase `name` but the parser only checked `Name`; `Year`/rating fields arrive as numeric strings but were parsed with a number-only check; and the image URL lives under `"Image URL"`/`"Image URL Transparent"`/`"Image Fallbacks"`, none of which the old lookup matched, so every Fragella-imported product fell back to placeholder art regardless of what photo the API actually had. All fixed with case/key-insensitive lookups and a shared numeric-string coercion helper
+- Fixed a bug in `scripts/seed.ts` where a product discount's `type` and `amount` were rolled with two independent `Math.random()` calls, so a `PERCENTAGE` discount could get paired with a `FIXED`-range amount (e.g. "Save 8984%") — now one roll decides both
+- Decant SKUs (3/5/10ml) no longer get an independent random `stock` number — availability for decants is already fully derived from the shared `remainingMl` pool on the product (`decantFulfillment`); the per-SKU `stock` field is dead weight for that product type and was only confusing the admin product list
+- Admin sidebar (`AccountSidebar`) showed the customer's own account nav (Profile/Orders/Addresses/Wishlist/...) stacked above a separate "Admin" section — on `/admin/*` it now shows only the admin nav, with a single "My account" link back to the customer side
+- The header rendered both an "Account" icon (whose dropdown already includes an "Admin" link when signed in as admin) and a separate standalone "Admin" button/link in both the desktop header and the mobile hamburger menu — removed the redundant standalone links, admin access now lives in one place
+- `/admin/qr` was read-only — no way to add, edit, or delete a QR code. Added `src/actions/admin-qr-actions.ts` (create/update/delete, image upload via the existing blob helper) and rebuilt the page with real forms
+- Purged 13 leftover fictional products (`Maison Ivre`, `Casa Luz`) from the database that predated this session's seed rewrite and were never removed — the admin product list was showing a mix of real Fragella-sourced products and this stale placeholder data
+- `/shop` and the PDP now cap top padding so the breadcrumb sits closer to the navbar instead of the previous large gap
+- Every storefront content page (FAQ, Contact, About, Brands, How to pay, Policies) used a `max-w-3xl` shell while `/shop` uses `max-w-6xl`, so breadcrumbs/headers landed at a different left edge per page. All now share `/shop`'s `max-w-6xl` shell; prose/card content inside stays at a readable `max-w-3xl`
+
 ### Changed
+- Importing `labelForType` (a real function, not just a type) from `@/lib/catalog` into the client component `ProductCard` pulled the server-only `db`/`postgres` module into the client bundle and crashed `/shop` at build time. Moved `labelForType` to a new pure `src/domain/product-type.ts` module safe for both server and client
+- PDP breadcrumb now includes the product type: `Home > Shop > Full bottle > {name}` (was missing that segment)
+- PDP right column (brand/name/price/buy box) is now `sticky` so it stays in view while scrolling past the longer notes/accords column on the left
+- Gender is now capitalized on the PDP ("Men" instead of "men") — Fragella returns it lowercase
+- `/shop` now caps results to 15 cards
+- Admin product list's "New product" now links to the existing Fragella search/picker flow (`/admin/products/fragrantica`) instead of the blank manual form; the manual form is still reachable via a small "Add manually" link
+- Admin product list now shows computed decant availability (from the shared `remainingMl` pool) instead of the now-unused per-SKU stock number
 - `scripts/seed.ts` no longer seeds 9 hardcoded fictional products — it now picks at least 10 random real fragrances (from a pool of well-known designer/niche/Middle Eastern names) via the live Fragella API each run, and generates a `FULL_BOTTLE` + `DECANT` (3/5/10ml) product pair with randomized but realistic cost/markup/stock for each. Idempotent: reruns skip fragrances already in the catalog (matched by `fragellaId`) instead of duplicating
 - Cart drawer ("Your bag") no longer bakes the delivery fee into its total — shows the merchandise subtotal only and a note that delivery is calculated at checkout; the delivery fee still shows as its own line on `/cart` and at checkout
 - Homepage flagship panel now picks a random in-stock card on every load (was always the first `FULL_BOTTLE`, or `cards[0]`); its "How to pay" button is now "View the perfume" linking straight to that card's PDP, and it now leads before "Shop the catalog" (order swapped)

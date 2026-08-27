@@ -116,9 +116,18 @@ async function fragellaFetch<T>(
 
 function asString(value: unknown): string | null {
   if (typeof value === "string") return value;
-  if (value && typeof value === "object" && "Name" in value) {
-    const name = (value as { Name?: unknown }).Name;
+  if (value && typeof value === "object") {
+    const name = (value as { Name?: unknown; name?: unknown }).Name ?? (value as { name?: unknown }).name;
     return typeof name === "string" ? name : null;
+  }
+  return null;
+}
+
+function asNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
 }
@@ -130,10 +139,29 @@ function asStringList(value: unknown): string[] {
     .filter((entry): entry is string => Boolean(entry));
 }
 
-function asAccordList(value: unknown): FragellaAccord[] {
+const ACCORD_STRENGTH_LABELS: Record<string, number> = {
+  dominant: 5,
+  prominent: 4,
+  moderate: 3,
+  light: 2,
+  faint: 1,
+};
+
+function asAccordList(value: unknown, strengthMap?: unknown): FragellaAccord[] {
   if (!Array.isArray(value)) return [];
+  const strengths =
+    strengthMap && typeof strengthMap === "object" ? (strengthMap as Record<string, unknown>) : undefined;
   const items: FragellaAccord[] = [];
   for (const entry of value) {
+    if (typeof entry === "string") {
+      const name = entry.trim();
+      if (!name) continue;
+      const label = strengths?.[name];
+      const strength =
+        typeof label === "string" ? ACCORD_STRENGTH_LABELS[label.toLowerCase()] : undefined;
+      items.push({ name, strength, color: null });
+      continue;
+    }
     if (!entry || typeof entry !== "object") continue;
     const record = entry as Record<string, unknown>;
     const name = asString(record.name ?? record.Name);
@@ -170,11 +198,6 @@ function asBreakout(value: unknown): Record<string, number> | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-function firstNumber(value: unknown): number | null {
-  if (typeof value === "number") return value;
-  return null;
-}
-
 function normalize(raw: Record<string, unknown>): FragellaRecord {
   const notes = (raw.notes ?? raw.Notes) as Record<string, unknown> | undefined;
   const normalizedNotes = notes
@@ -188,8 +211,7 @@ function normalize(raw: Record<string, unknown>): FragellaRecord {
   const brand = asString(raw.Brand ?? raw.brand) ?? "";
   const idRaw = raw.id ?? raw.Id ?? raw.uuid ?? raw.UUID;
   const id = typeof idRaw === "string" ? idRaw : `${brand}::${name}`;
-  const yearRaw = raw.Year ?? raw.year;
-  const year = typeof yearRaw === "number" ? yearRaw : null;
+  const year = asNumber(raw.Year ?? raw.year);
   return {
     id,
     name,
@@ -202,7 +224,10 @@ function normalize(raw: Record<string, unknown>): FragellaRecord {
     perfumers: asStringList(raw.Perfumers ?? raw.perfumers),
     description: asString(raw.Description ?? raw.description),
     notes: normalizedNotes,
-    accords: asAccordList(raw.MainAccords ?? raw.accords ?? raw.Accords),
+    accords: asAccordList(
+      raw.MainAccords ?? raw.accords ?? raw.Accords ?? raw["Main Accords"],
+      raw["Main Accords Percentage"],
+    ),
     longevity: asString(raw.Longevity ?? raw.longevity),
     sillage: asString(raw.Sillage ?? raw.sillage),
     priceValue: asString(raw.PriceValue ?? raw.priceValue),
@@ -212,10 +237,18 @@ function normalize(raw: Record<string, unknown>): FragellaRecord {
     seasonBreakout: asBreakout(raw.SeasonBreakout ?? raw.seasonBreakout),
     genderBreakout: asBreakout(raw.GenderBreakout ?? raw.genderBreakout),
     relationBreakout: asBreakout(raw.RelationBreakout ?? raw.relationBreakout),
-    ratingValue: firstNumber(raw.RatingValue ?? raw.ratingValue ?? raw.rating_value),
-    ratingCount: firstNumber(raw.RatingCount ?? raw.ratingCount),
-    reviewsCount: firstNumber(raw.ReviewsCount ?? raw.reviewsCount),
-    imageUrl: asString(raw.ImageURL ?? raw.imageUrl ?? raw.image_url ?? raw.Image),
+    ratingValue: asNumber(raw.RatingValue ?? raw.ratingValue ?? raw.rating_value ?? raw.rating),
+    ratingCount: asNumber(raw.RatingCount ?? raw.ratingCount),
+    reviewsCount: asNumber(raw.ReviewsCount ?? raw.reviewsCount),
+    imageUrl: asString(
+      raw.ImageURL ??
+        raw.imageUrl ??
+        raw.image_url ??
+        raw.Image ??
+        raw["Image URL"] ??
+        raw["Image URL Transparent"] ??
+        (Array.isArray(raw["Image Fallbacks"]) ? (raw["Image Fallbacks"] as unknown[])[0] : undefined),
+    ),
     popularityTier: asString(raw.Popularity ?? raw.popularity),
     raw,
   };

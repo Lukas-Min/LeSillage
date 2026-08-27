@@ -14,13 +14,13 @@ export default async function BrandsPage() {
     .where(eq(products.isActive, true))
     .orderBy(asc(products.brand));
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Brands" }]} />
       <header className="space-y-2 text-center">
         <Eyebrow>Le Sillage · Manila</Eyebrow>
         <h1 className="font-serif-display text-4xl">Brands</h1>
       </header>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {rows.map((row) => (
           <li key={row.brand}>
             <Link

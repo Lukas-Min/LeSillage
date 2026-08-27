@@ -248,8 +248,10 @@ async function seedFragrances() {
           mode: "PERCENTAGE",
           input: decantMarkup,
         }),
+        // Decant fulfillment/availability is derived from the shared remainingMl pool
+        // (see decantFulfillment) — per-SKU stock is unused for this product type.
         fulfillment: "ON_HAND",
-        stock: randomInt(10, 99),
+        stock: 0,
         isTester: false,
       });
     }
@@ -284,10 +286,11 @@ async function seedFragrances() {
 
     if (Math.random() < 0.3) {
       discountTargetCount += 1;
+      const isPercentage = Math.random() < 0.5;
       await client.insert(productDiscounts).values({
         productId: decantProduct.id,
-        type: Math.random() < 0.5 ? "PERCENTAGE" : "FIXED",
-        amount: Math.random() < 0.5 ? randomInt(5, 15) : randomInt(5000, 15000),
+        type: isPercentage ? "PERCENTAGE" : "FIXED",
+        amount: isPercentage ? randomInt(5, 15) : randomInt(5000, 15000),
         isActive: true,
       });
     }

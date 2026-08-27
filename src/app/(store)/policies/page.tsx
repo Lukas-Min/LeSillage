@@ -9,14 +9,14 @@ export const metadata = {
 
 export default function PoliciesPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Policies" }]} />
       <PageHeader
         eyebrow="Policies"
         title="Shipping, returns, authenticity"
         subtitle="Plain-language details on how we ship, what we accept back, and where our stock comes from."
       />
-      <SectionCard eyebrow="Operations" title="How we fulfil orders">
+      <SectionCard className="max-w-3xl" eyebrow="Operations" title="How we fulfil orders">
         <DisclosureAccordion
           items={[
             {

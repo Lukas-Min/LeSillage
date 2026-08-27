@@ -7,6 +7,7 @@ import { CatalogPrice } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { concentrationLabel } from "@/domain/concentration";
+import { labelForType } from "@/domain/product-type";
 import type { CatalogCardModel } from "@/lib/catalog";
 
 export function ProductCard({ card }: { card: CatalogCardModel }) {
@@ -68,19 +69,4 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
       </div>
     </article>
   );
-}
-
-function labelForType(type: CatalogCardModel["type"]): string {
-  switch (type) {
-    case "DECANT":
-      return "Decant";
-    case "FULL_BOTTLE":
-      return "Full bottle";
-    case "PARTIAL":
-      return "Partial";
-    default: {
-      const exhaustive: never = type;
-      return String(exhaustive);
-    }
-  }
 }
