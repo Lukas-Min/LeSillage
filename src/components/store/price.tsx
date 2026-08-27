@@ -54,24 +54,30 @@ export function CatalogPrice({
   minDiscountedCentavos,
   maxDiscountedCentavos,
   savePercent,
+  align = "left",
+  showSaveBadge = true,
 }: {
   minOriginalCentavos: number;
   maxOriginalCentavos: number;
   minDiscountedCentavos: number;
   maxDiscountedCentavos: number;
   savePercent: number | null;
+  align?: "left" | "right";
+  showSaveBadge?: boolean;
 }) {
   const hasDiscount =
     minDiscountedCentavos < minOriginalCentavos || maxDiscountedCentavos < maxOriginalCentavos;
+  const alignClass = align === "right" ? "text-right" : "text-left";
+  const rowJustify = align === "right" ? "justify-end" : "justify-start";
   return (
-    <div className="space-y-1">
+    <div className={`space-y-1 ${alignClass}`}>
       <p className="font-serif-display text-2xl leading-none tracking-tight">
         {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
       </p>
       {hasDiscount ? (
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <p className={`flex flex-wrap items-center gap-2 text-sm text-muted-foreground ${rowJustify}`}>
           <s>{formatPHPRange(minOriginalCentavos, maxOriginalCentavos)}</s>
-          {savePercent && savePercent > 0 ? (
+          {showSaveBadge && savePercent && savePercent > 0 ? (
             <span className="inline-flex items-center rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
               Save {savePercent}%
             </span>

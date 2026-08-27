@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Product card (`src/components/store/product-card.tsx`) restyled per feedback: rating badge (star + value) overlaid top-left on the image, save% badge moved from inline-with-price to a top-right overlay on the image, price block right-aligned (`CatalogPrice` gained `align`/`showSaveBadge` props in `src/components/store/price.tsx`)
+
 ### Added
 - Ported the repo's Cursor rules/skills/agents to Claude Code-native config: `.claude/skills/le-sillage-store/SKILL.md`, `.claude/agents/domain-reviewer.md` and `storefront-reviewer.md`, and the document-changes/mobile-first/loading-state rules folded into `CLAUDE.md`
 - `products.concentration` column (`EAU_DE_COLOGNE`/`EAU_DE_TOILETTE`/`EAU_DE_PARFUM`/`PARFUM`/`EXTRAIT_DE_PARFUM`) with a full-name label map and legacy-label guesser in `src/domain/concentration.ts`; admin product forms and `/admin/products` listing expose it, and the PDP shows it as its own row separate from size

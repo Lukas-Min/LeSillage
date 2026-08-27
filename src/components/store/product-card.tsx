@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CatalogPrice } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
@@ -14,7 +15,18 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link href={card.href} className="flex flex-1 flex-col">
-        <div className="overflow-hidden">
+        <div className="relative overflow-hidden">
+          {card.ratingValue ? (
+            <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm">
+              <Star className="h-3 w-3 fill-gold text-gold" aria-hidden="true" />
+              {card.ratingValue.toFixed(1)}
+            </span>
+          ) : null}
+          {card.savePercent && card.savePercent > 0 ? (
+            <span className="absolute right-2 top-2 z-10 rounded-full bg-gold px-2 py-1 text-[11px] font-medium text-charcoal shadow-sm">
+              Save {card.savePercent}%
+            </span>
+          ) : null}
           <CompositionCanvas brand={card.brand} name={card.name} pyramid={card.notePyramid} />
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-4">
@@ -38,6 +50,8 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
                 minDiscountedCentavos={card.minDiscountedCentavos}
                 maxDiscountedCentavos={card.maxDiscountedCentavos}
                 savePercent={card.savePercent}
+                align="right"
+                showSaveBadge={false}
               />
             </div>
           </div>
