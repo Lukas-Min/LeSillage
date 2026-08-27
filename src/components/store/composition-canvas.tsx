@@ -6,11 +6,13 @@ export function CompositionCanvas({
   name,
   pyramid,
   className,
+  showComposition = false,
 }: {
   brand: string;
   name: string;
   pyramid: NotePyramid | null;
   className?: string;
+  showComposition?: boolean;
 }) {
   return (
     <div
@@ -24,20 +26,41 @@ export function CompositionCanvas({
         {brand}
       </p>
       <div className="relative flex flex-1 items-center justify-center px-2 py-4">
-        {pyramid ? (
-          <div className="grid w-full grid-cols-3 gap-2">
-            <PyramidColumn label="Top" notes={pyramid.top} accent="#8b6b9e" />
-            <PyramidColumn label="Heart" notes={pyramid.middle} accent="#c4b0d4" />
-            <PyramidColumn label="Base" notes={pyramid.base} accent="#2c2a4a" />
-          </div>
+        {showComposition ? (
+          pyramid ? (
+            <div className="grid w-full grid-cols-3 gap-2">
+              <PyramidColumn label="Top" notes={pyramid.top} accent="#8b6b9e" />
+              <PyramidColumn label="Heart" notes={pyramid.middle} accent="#c4b0d4" />
+              <PyramidColumn label="Base" notes={pyramid.base} accent="#2c2a4a" />
+            </div>
+          ) : (
+            <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+              No composition yet
+            </p>
+          )
         ) : (
-          <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-            No composition yet
-          </p>
+          <BottleGlyph />
         )}
       </div>
       <p className="relative text-center font-serif-display text-xl leading-tight sm:text-2xl">{name}</p>
     </div>
+  );
+}
+
+function BottleGlyph() {
+  return (
+    <svg
+      viewBox="0 0 64 96"
+      className="h-24 w-auto text-gold/50"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <rect x="24" y="4" width="16" height="10" rx="2" />
+      <path d="M20 14h24l4 8v66a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V22Z" />
+      <path d="M28 22v70" opacity="0.5" />
+    </svg>
   );
 }
 

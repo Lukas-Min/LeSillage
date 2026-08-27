@@ -23,7 +23,7 @@ export default function CartPage() {
           <CardContent className="space-y-3 p-6 text-center">
             <p className="text-muted-foreground">Your cart is empty.</p>
             <Button asChild variant="gold" className="rounded-md">
-              <Link href="/bottles">Browse bottles</Link>
+              <Link href="/shop">Browse the shop</Link>
             </Button>
           </CardContent>
         </Card>

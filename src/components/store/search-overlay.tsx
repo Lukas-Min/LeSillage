@@ -45,19 +45,21 @@ export function SearchOverlay() {
       </DialogTrigger>
       <DialogContent className="max-h-[80vh] overflow-hidden rounded-md bg-background sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-serif-display text-2xl">Search</DialogTitle>
+          <DialogTitle className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
+            Search the shelf
+          </DialogTitle>
         </DialogHeader>
         <Input
           autoFocus
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Brand, fragrance, or family"
+          placeholder="Oud, amber, Maison Ivre…"
           aria-label="Search"
           className="h-11 rounded-md"
         />
         <div className="max-h-[50vh] space-y-1 overflow-y-auto">
           {query.trim().length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Try a brand or a fragrance name.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">Type to search the catalog.</p>
           ) : isPending && results.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Searching…</p>
           ) : results.length === 0 ? (

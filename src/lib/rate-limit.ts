@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db/client";
 import { rateLimits, type RateLimitBucket } from "@/db/schema";
@@ -30,14 +30,14 @@ export async function rateLimit({
       and(
         eq(rateLimits.bucket, bucket),
         eq(rateLimits.key, key),
-        sql`${rateLimits.windowStart} < ${windowStart}`,
+        lt(rateLimits.windowStart, windowStart),
       ),
     );
 
   const existing = await client
     .select()
     .from(rateLimits)
-    .where(and(eq(rateLimits.bucket, bucket), eq(rateLimits.key, key), sql`${rateLimits.windowStart} >= ${windowStart}`));
+    .where(and(eq(rateLimits.bucket, bucket), eq(rateLimits.key, key), gte(rateLimits.windowStart, windowStart)));
 
   const row = existing[0];
   if (!row) {

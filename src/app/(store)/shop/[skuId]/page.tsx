@@ -84,7 +84,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, row.notes);
   const familyLabel = (row.family ?? "").trim();
-  const backHref = row.type === "DECANT" ? "/decants" : "/bottles";
+  const backHref = "/shop";
   const isDecant = row.type === "DECANT";
 
   return (
@@ -97,7 +97,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
       </Link>
 
       <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-[1.05fr_1fr] sm:gap-12">
-        <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} />
+        <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
 
         <div className="flex flex-col gap-6">
           <div className="space-y-3">
@@ -175,20 +175,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                     />
                   ),
                 },
-                {
-                  id: "shipping",
-                  label: policyCopy.shipping.label,
-                  defaultOpen: true,
-                  content: <p>{policyCopy.shipping.body}</p>,
-                },
-                {
-                  id: "returns",
-                  label: policyCopy.returns.label,
-                  defaultOpen: true,
-                  content: <p>{policyCopy.returns.body}</p>,
-                },
               ]}
             />
+          </section>
+
+          <section className="space-y-4 border-t border-border/60 pt-4">
+            <PolicySection label={policyCopy.shipping.label} body={policyCopy.shipping.body} />
+            <PolicySection label={policyCopy.returns.label} body={policyCopy.returns.body} />
           </section>
         </div>
       </div>
@@ -232,6 +225,15 @@ function SizeSection({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function PolicySection({ label, body }: { label: string; body: string }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground">{label}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
     </div>
   );
 }

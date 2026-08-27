@@ -36,8 +36,8 @@ export function CatalogGrid({
       {cards.length === 0 ? (
         <div className="rounded-md border border-dashed border-border/80 p-10 text-center">
           <p className="text-sm text-muted-foreground">{emptyLabel}</p>
-          <Link href="/bottles" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
-            Browse bottles
+          <Link href="/shop" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
+            Browse the shop
           </Link>
         </div>
       ) : (

@@ -12,6 +12,12 @@ import {
   Bell,
   Trash2,
   LayoutDashboard,
+  Package,
+  Users,
+  ScrollText,
+  Tag,
+  QrCode,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,48 +41,75 @@ export const accountNavItems: AccountNavItem[] = [
   { href: "/account/delete", label: "Delete account", icon: Trash2, destructive: true },
 ];
 
+export const adminNavItems: AccountNavItem[] = [
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/audit", label: "Audit log", icon: ScrollText },
+  { href: "/admin/promo", label: "Promo & delivery", icon: Tag },
+  { href: "/admin/qr", label: "QR codes", icon: QrCode },
+  { href: "/admin/settings", label: "Admin settings", icon: Settings },
+];
+
 function isActive(pathname: string, item: AccountNavItem) {
   if (item.exact) return pathname === item.href;
   return pathname === item.href || pathname.startsWith(item.href + "/");
 }
 
-export function AccountSidebar() {
+function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: string }) {
+  return (
+    <ul className="space-y-1">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = isActive(pathname, item);
+        return (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                active
+                  ? "bg-gold/15 font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                item.destructive && !active ? "text-destructive/80 hover:bg-destructive/5" : "",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{item.label}</span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const primaryItems = isAdmin
+    ? accountNavItems.map((item) =>
+        item.href === "/account" ? { ...item, label: "Dashboard", href: "/admin" } : item,
+      )
+    : accountNavItems;
   return (
     <nav className="hidden w-56 shrink-0 md:block">
-      <ul className="space-y-1">
-        {accountNavItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(pathname ?? "", item);
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "bg-gold/15 font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  item.destructive && !active ? "text-destructive/80 hover:bg-destructive/5" : "",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-        <li className="pt-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => signOut({ callbackUrl: "/" })}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
-        </li>
-      </ul>
+      <NavList items={primaryItems} pathname={pathname ?? ""} />
+      {isAdmin ? (
+        <div className="mt-4 space-y-1 border-t border-border/60 pt-4">
+          <p className="px-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Admin</p>
+          <NavList items={adminNavItems} pathname={pathname ?? ""} />
+        </div>
+      ) : null}
+      <div className="pt-2">
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={() => signOut({ callbackUrl: "/" })}
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
+      </div>
     </nav>
   );
 }

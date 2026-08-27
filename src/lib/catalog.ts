@@ -30,6 +30,7 @@ export interface CatalogCardModel {
   name: string;
   brand: string;
   family: string | null;
+  description: string | null;
   type: ProductType;
   href: string;
   imageUrl: string | null;
@@ -85,6 +86,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       name: products.name,
       brand: products.brand,
       family: products.family,
+      description: products.description,
       type: products.type,
       remainingMl: products.remainingMl,
       notes: products.notes,
@@ -172,6 +174,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       name: product.name,
       brand: product.brand,
       family: product.family,
+      description: product.description,
       type: product.type,
       href: `/shop/${destination.skuId}`,
       imageUrl: image?.url ?? null,

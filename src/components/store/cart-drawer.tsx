@@ -38,9 +38,15 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
         </SheetHeader>
         {cart.items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-            <p className="text-sm text-muted-foreground">Your bag is empty.</p>
-            <Button asChild variant="gold" className="rounded-md">
-              <Link href="/bottles">Shop bottles</Link>
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border">
+              <ShoppingBag className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </span>
+            <p className="font-serif-display text-xl">Your bag is empty</p>
+            <p className="text-sm text-muted-foreground">
+              Full bottles, partials, and decants — the shelf is waiting.
+            </p>
+            <Button asChild variant="outline" className="rounded-md">
+              <Link href="/shop">Browse the catalog</Link>
             </Button>
           </div>
         ) : (

@@ -9,7 +9,7 @@ import type { CatalogCardModel } from "@/lib/catalog";
 
 export function ProductCard({ card }: { card: CatalogCardModel }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card">
+    <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link href={card.href} className="flex flex-1 flex-col">
         <CompositionCanvas brand={card.brand} name={card.name} pyramid={card.notePyramid} />
         <div className="flex flex-1 flex-col gap-2 p-4">

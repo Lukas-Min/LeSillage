@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AccountPreview } from "@/components/store/account-preview";
@@ -19,14 +19,15 @@ import {
 import { cn } from "@/lib/utils";
 
 const PRIMARY_LINKS = [
-  { href: "/bottles", label: "Bottles" },
-  { href: "/decants", label: "Decants" },
+  { href: "/shop", label: "Shop" },
+  { href: "/shop?type=DECANT", label: "Decants" },
+  { href: "/brands", label: "Brands" },
   { href: "/how-to-pay", label: "How to pay" },
 ] as const;
 
 const MENU_LINKS = [
-  { href: "/bottles", label: "Bottles" },
-  { href: "/decants", label: "Decants" },
+  { href: "/shop", label: "Shop" },
+  { href: "/shop?type=DECANT", label: "Decants" },
   { href: "/brands", label: "Brands" },
   { href: "/how-to-pay", label: "How to pay" },
   { href: "/search", label: "Search" },
@@ -49,6 +50,8 @@ export function StoreHeader({
 }) {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeType = searchParams.get("type");
   useEffect(() => {
     Promise.resolve().then(() => setMounted(true));
   }, []);
@@ -64,7 +67,9 @@ export function StoreHeader({
         </div>
         <nav className="hidden items-center gap-7 text-xs uppercase tracking-[0.22em] md:flex">
           {PRIMARY_LINKS.map((link) => {
-            const active = pathname === link.href || pathname?.startsWith(link.href + "/");
+            const [linkPath, linkQuery] = link.href.split("?");
+            const linkType = new URLSearchParams(linkQuery).get("type");
+            const active = pathname === linkPath && activeType === linkType;
             return (
               <Link
                 key={link.href}

@@ -40,7 +40,7 @@ export default async function WishlistPage() {
           description="Saved items appear here so you can find them again at checkout."
           action={
             <Button asChild variant="gold" className="rounded-md">
-              <Link href="/bottles">Browse fragrances</Link>
+              <Link href="/shop">Browse fragrances</Link>
             </Button>
           }
         />
@@ -82,7 +82,7 @@ export default async function WishlistPage() {
         subtitle="Items you hearted from the shop. Tap a card to view, or move it straight to your cart."
         actions={
           <Button asChild variant="outline">
-            <Link href="/bottles">Find more</Link>
+            <Link href="/shop">Find more</Link>
           </Button>
         }
       />

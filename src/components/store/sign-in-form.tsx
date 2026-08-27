@@ -57,7 +57,7 @@ export function SignInForm({
           .
         </p>
         <Button asChild variant="ghost" className="w-full">
-          <Link href="/bottles">Continue browsing as guest</Link>
+          <Link href="/shop">Continue browsing as guest</Link>
         </Button>
       </CardContent>
     </Card>

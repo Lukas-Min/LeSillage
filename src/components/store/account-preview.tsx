@@ -68,7 +68,7 @@ export function AccountPreview({
             </nav>
             <SheetClose asChild>
               <Button asChild variant="gold" className="rounded-md">
-                <Link href="/bottles">Continue shopping</Link>
+                <Link href="/shop">Continue shopping</Link>
               </Button>
             </SheetClose>
             <Button variant="outline" className="rounded-md" onClick={() => signOut({ callbackUrl: "/" })}>
