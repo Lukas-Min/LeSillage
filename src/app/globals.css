@@ -183,4 +183,22 @@
     pointer-events: none;
     white-space: nowrap;
   }
+  .animate-link-pending {
+    animation:
+      link-pending-fade-in 200ms ease forwards,
+      link-pending-pulse 1s ease-in-out infinite;
+    animation-delay: 100ms, 100ms;
+  }
+}
+
+@keyframes link-pending-fade-in {
+  to {
+    opacity: 0.6;
+  }
+}
+
+@keyframes link-pending-pulse {
+  50% {
+    opacity: 0.2;
+  }
 }

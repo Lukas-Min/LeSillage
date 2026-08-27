@@ -1,7 +1,8 @@
-import Link from "next/link";
+"use client";
+
+import Link, { useLinkStatus } from "next/link";
 import { cn } from "@/lib/utils";
 import type { ProductType } from "@/db/schema";
-import { DECANT_SIZES_ML } from "@/domain/decant";
 
 const TYPE_FILTERS: Array<{ type?: ProductType; label: string; href: string }> = [
   { label: "All", href: "/shop" },
@@ -10,48 +11,39 @@ const TYPE_FILTERS: Array<{ type?: ProductType; label: string; href: string }> =
   { type: "PARTIAL", label: "Partials", href: "/shop?type=PARTIAL" },
 ];
 
-const pillClass = (active: boolean) =>
-  cn(
-    "inline-flex min-h-11 items-center rounded-md border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
-    active
-      ? "border-foreground bg-foreground text-background"
-      : "border-border bg-background hover:bg-muted",
-  );
-
-export function ShopFilters({
-  activeType,
-  showDecantSizes = false,
-  activeSize,
-}: {
-  activeType?: ProductType;
-  showDecantSizes?: boolean;
-  activeSize?: number;
-}) {
+function PendingDot() {
+  const { pending } = useLinkStatus();
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap justify-center gap-2">
-        {TYPE_FILTERS.map((filter) => {
-          const isActive = filter.type === activeType || (!filter.type && !activeType);
-          return (
-            <Link key={filter.href} href={filter.href} className={pillClass(isActive)}>
-              {filter.label}
-            </Link>
-          );
-        })}
-      </div>
-      {showDecantSizes ? (
-        <div className="flex flex-wrap justify-center gap-2">
-          {DECANT_SIZES_ML.map((size) => {
-            const href = `/shop?type=DECANT&size=${size}`;
-            const isActive = activeSize === size;
-            return (
-              <Link key={size} href={href} className={pillClass(isActive)}>
-                {size}ml
-              </Link>
-            );
-          })}
-        </div>
-      ) : null}
+    <span
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute top-1/2 -right-3 h-1 w-1 -translate-y-1/2 rounded-full bg-current opacity-0",
+        pending && "animate-link-pending",
+      )}
+    />
+  );
+}
+
+export function ShopFilters({ activeType }: { activeType?: ProductType }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
+      {TYPE_FILTERS.map((filter) => {
+        const isActive = filter.type === activeType || (!filter.type && !activeType);
+        return (
+          <Link
+            key={filter.href}
+            href={filter.href}
+            className={cn(
+              "relative inline-flex min-h-11 items-center pb-2 text-xs uppercase tracking-[0.22em] transition-colors",
+              isActive ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {filter.label}
+            {isActive ? <span className="absolute inset-x-0 -bottom-px h-[1.5px] bg-foreground" /> : null}
+            <PendingDot />
+          </Link>
+        );
+      })}
     </div>
   );
 }
