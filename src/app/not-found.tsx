@@ -9,7 +9,7 @@ export default function NotFound() {
       <h1 className="font-serif-display text-3xl">This trail ends here.</h1>
       <p className="text-sm text-muted-foreground">The page you are looking for has drifted.</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <Button asChild>
+        <Button asChild variant="gold" className="rounded-md">
           <Link href="/">Return home</Link>
         </Button>
         <Button asChild variant="outline">

@@ -1,11 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Eyebrow } from "@/components/ui/section";
 
 export default function HowToPayPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
-      <h1 className="font-serif-display text-2xl">How to pay</h1>
-      <Card>
-        <CardContent className="space-y-2 p-4 text-sm">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+      <header className="space-y-2">
+        <Eyebrow>Help</Eyebrow>
+        <h1 className="font-serif-display text-4xl">How to pay</h1>
+      </header>
+      <Card className="rounded-md">
+        <CardContent className="space-y-3 p-6 text-sm leading-relaxed">
           <p>1. Place your order on the checkout page.</p>
           <p>2. Pay the total using any of our bank or e-wallet QR codes.</p>
           <p>3. Upload a screenshot of your receipt on the payment page.</p>

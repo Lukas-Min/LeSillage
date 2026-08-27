@@ -19,7 +19,7 @@ export default function Error({
         {error.message || "The page could not be loaded. Try again."}
       </p>
       <div className="flex flex-wrap justify-center gap-2">
-        <Button type="button" onClick={() => reset()}>
+        <Button type="button" variant="gold" className="rounded-md" onClick={() => reset()}>
           Try again
         </Button>
         <Button asChild variant="outline">

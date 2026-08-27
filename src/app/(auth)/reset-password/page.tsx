@@ -25,7 +25,7 @@ export default async function ResetPasswordPage({
               <Label htmlFor="password">New password</Label>
               <Input id="password" name="password" type="password" required minLength={10} className="h-11" />
             </div>
-            <SubmitButton className="h-11 w-full" pendingLabel="Saving…">
+            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Saving…">
               Update password
             </SubmitButton>
           </form>

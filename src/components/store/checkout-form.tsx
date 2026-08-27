@@ -328,7 +328,7 @@ export function CheckoutForm({
           </label>
         </CardContent>
       </Card>
-      <Button type="submit" size="lg" disabled={isPending || !accepted}>
+      <Button type="submit" variant="gold" size="lg" className="h-11 rounded-md" disabled={isPending || !accepted}>
         {isPending ? "Placing order…" : "Place order"}
       </Button>
     </form>

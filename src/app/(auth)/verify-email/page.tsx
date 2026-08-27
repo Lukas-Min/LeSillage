@@ -31,7 +31,7 @@ export default async function VerifyEmailPage({
               <Label htmlFor="password">Password (to sign you in)</Label>
               <Input id="password" name="password" type="password" className="h-11" />
             </div>
-            <SubmitButton className="h-11 w-full" pendingLabel="Verifying…">
+            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Verifying…">
               Verify
             </SubmitButton>
           </form>

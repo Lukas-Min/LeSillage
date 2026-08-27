@@ -2,6 +2,7 @@ import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { products } from "@/db/schema";
+import { Eyebrow } from "@/components/ui/section";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,17 @@ export default async function BrandsPage() {
     .where(eq(products.isActive, true))
     .orderBy(asc(products.brand));
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
-      <h1 className="font-serif-display text-2xl">Brands</h1>
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+      <header className="space-y-2 text-center">
+        <Eyebrow>Le Sillage · Manila</Eyebrow>
+        <h1 className="font-serif-display text-4xl">Brands</h1>
+      </header>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {rows.map((row) => (
           <li key={row.brand}>
             <Link
               href={`/brands/${encodeURIComponent(row.brand)}`}
-              className="block rounded border px-3 py-2 text-sm hover:bg-secondary"
+              className="block rounded-md border border-border px-3 py-3 text-sm hover:border-gold/40 hover:bg-muted/40"
             >
               {row.brand}
             </Link>

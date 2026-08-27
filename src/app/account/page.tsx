@@ -72,7 +72,7 @@ export default async function AccountPage() {
                 {role}
               </span>
             ) : null}
-            <Button asChild>
+            <Button asChild variant="gold" className="rounded-md">
               <Link href="/bottles">
                 Continue shopping
                 <ArrowRight className="h-4 w-4" />

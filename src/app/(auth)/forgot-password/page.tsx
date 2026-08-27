@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" required className="h-11" />
             </div>
-            <SubmitButton className="h-11 w-full" pendingLabel="Sending…">
+            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Sending…">
               Send code
             </SubmitButton>
           </form>

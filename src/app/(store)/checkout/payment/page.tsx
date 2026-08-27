@@ -18,7 +18,7 @@ export default async function PaymentPage({
   const session = await auth();
   if (!session?.user) redirect("/sign-in?returnTo=/checkout");
   const { orderNumber } = await searchParams;
-  if (!orderNumber) redirect("/shop");
+  if (!orderNumber) redirect("/bottles");
   const client = db();
   const order = (
     await client

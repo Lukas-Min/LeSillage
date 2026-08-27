@@ -11,13 +11,13 @@ export default async function ShopRedirect({
   const type = (params.type ?? "").toUpperCase();
   if (type === "DECANT") {
     const size = params.size ? `?size=${encodeURIComponent(params.size)}` : "";
-    redirect(`/decants${size}`, "replace");
+    redirect(`/decants${size}`);
   }
   if (type === "PARTIAL") {
-    redirect("/bottles?type=PARTIAL", "replace");
+    redirect("/bottles?type=PARTIAL");
   }
   if (type === "FULL_BOTTLE") {
-    redirect("/bottles?type=FULL_BOTTLE", "replace");
+    redirect("/bottles?type=FULL_BOTTLE");
   }
-  redirect("/bottles", "replace");
+  redirect("/bottles");
 }

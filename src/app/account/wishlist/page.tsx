@@ -39,7 +39,7 @@ export default async function WishlistPage() {
           title="Tap the heart on any fragrance"
           description="Saved items appear here so you can find them again at checkout."
           action={
-            <Button asChild>
+            <Button asChild variant="gold" className="rounded-md">
               <Link href="/bottles">Browse fragrances</Link>
             </Button>
           }

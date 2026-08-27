@@ -161,6 +161,9 @@
       radial-gradient(ellipse at top, color-mix(in oklch, var(--gold) 12%, transparent), transparent 55%),
       linear-gradient(to bottom, transparent, color-mix(in oklch, var(--background) 50%, var(--secondary) 50%));
   }
+  .surface-frame {
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--gold) 22%, transparent);
+  }
   .watermark-pending {
     position: relative;
     overflow: hidden;

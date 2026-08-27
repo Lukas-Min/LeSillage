@@ -13,9 +13,11 @@ import {
 } from "@/db/schema";
 import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 
 export interface CatalogFilter {
   type?: ProductType;
+  types?: ProductType[];
   fragranceCategory?: FragranceCategory;
   brand?: string;
   query?: string;
@@ -24,6 +26,7 @@ export interface CatalogFilter {
 
 export interface CatalogCardModel {
   productId: string;
+  skuId: string;
   name: string;
   brand: string;
   family: string | null;
@@ -31,9 +34,10 @@ export interface CatalogCardModel {
   href: string;
   imageUrl: string | null;
   imageAlt: string | null;
+  notePyramid: NotePyramid | null;
   fulfillment: Fulfillment;
   soldOut: boolean;
-  conditionLabel: string | null;
+  conditionLabel: string;
   minOriginalCentavos: number;
   maxOriginalCentavos: number;
   minDiscountedCentavos: number;
@@ -56,7 +60,11 @@ interface SkuRow {
 export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
   const client = db();
   const conditions: SQL[] = [eq(products.isActive, true)];
-  if (filter.type) conditions.push(eq(products.type, filter.type));
+  if (filter.types && filter.types.length > 0) {
+    conditions.push(inArray(products.type, filter.types));
+  } else if (filter.type) {
+    conditions.push(eq(products.type, filter.type));
+  }
   if (filter.fragranceCategory) {
     conditions.push(eq(products.fragranceCategory, filter.fragranceCategory));
   }
@@ -79,6 +87,8 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       family: products.family,
       type: products.type,
       remainingMl: products.remainingMl,
+      notes: products.notes,
+      notePyramid: products.notePyramid,
     })
     .from(products)
     .where(and(...conditions))
@@ -158,6 +168,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     const image = imageByProduct.get(product.id);
     cards.push({
       productId: product.id,
+      skuId: destination.skuId,
       name: product.name,
       brand: product.brand,
       family: product.family,
@@ -165,10 +176,10 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       href: `/shop/${destination.skuId}`,
       imageUrl: image?.url ?? null,
       imageAlt: image?.alt ?? product.name,
+      notePyramid: normaliseNotePyramid(product.notePyramid, product.notes),
       fulfillment: destFulfillment,
       soldOut,
-      conditionLabel:
-        destination.condition !== "BNIB" ? labelForCondition(destination.condition) : null,
+      conditionLabel: labelForCondition(destination.condition),
       minOriginalCentavos: minOriginal,
       maxOriginalCentavos: maxOriginal,
       minDiscountedCentavos: minDiscounted,
@@ -226,7 +237,7 @@ function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
 export function labelForCondition(c: (typeof skus.$inferSelect)["condition"]): string {
   switch (c) {
     case "BNIB":
-      return "Brand new";
+      return "Sealed";
     case "SEALED":
       return "Sealed";
     case "FEW_SPRAYS_MISSING":

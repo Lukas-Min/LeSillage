@@ -6,10 +6,48 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/components/store/cart-context";
 
-export function AddToCartButton({ skuId }: { skuId: string }) {
+export function AddToCartButton({
+  skuId,
+  variant = "full",
+  soldOut = false,
+}: {
+  skuId: string;
+  variant?: "full" | "compact";
+  soldOut?: boolean;
+}) {
   const cart = useCart();
   const [isPending, startTransition] = useTransition();
   const [qty, setQty] = useState(1);
+  const add = (quantity: number) =>
+    startTransition(async () => {
+      try {
+        await cart.add({ skuId, quantity });
+        toast.success("Added to bag");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not add to bag");
+      }
+    });
+
+  if (variant === "compact") {
+    return (
+      <Button
+        type="button"
+        variant="gold"
+        size="lg"
+        className="h-11 w-full rounded-md"
+        disabled={isPending || soldOut}
+        aria-busy={isPending}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!soldOut) add(1);
+        }}
+      >
+        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add"}
+      </Button>
+    );
+  }
+
   const decrement = () => setQty((value) => Math.max(1, value - 1));
   const increment = () => setQty((value) => Math.min(99, value + 1));
   return (
@@ -46,23 +84,15 @@ export function AddToCartButton({ skuId }: { skuId: string }) {
       </div>
       <Button
         type="button"
+        variant="gold"
         size="lg"
-        className="h-11 flex-1 bg-gold text-gold-foreground hover:bg-gold/90"
-        disabled={isPending}
+        className="h-11 flex-1 rounded-md"
+        disabled={isPending || soldOut}
         aria-busy={isPending}
-        onClick={() =>
-          startTransition(async () => {
-            try {
-              await cart.add({ skuId, quantity: qty });
-              toast.success("Added to bag");
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : "Could not add to bag");
-            }
-          })
-        }
+        onClick={() => add(qty)}
       >
         <ShoppingBag className="h-4 w-4" />
-        {isPending ? "Adding…" : "Add to bag"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to bag"}
       </Button>
     </div>
   );

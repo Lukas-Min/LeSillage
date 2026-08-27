@@ -30,7 +30,7 @@ export function SignInForm({
             <Input id="password" name="password" type="password" required autoComplete="current-password" className="h-11" />
           </div>
           {error ? <p className="text-sm text-destructive">Sign-in failed. Check your email and password.</p> : null}
-          <SubmitButton className="h-11 w-full" pendingLabel="Signing in…">
+          <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Signing in…">
             Sign in
           </SubmitButton>
         </form>

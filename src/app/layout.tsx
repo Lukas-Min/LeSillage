@@ -53,7 +53,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers initialCart={initialCart}>
-          <StoreHeader signedIn={Boolean(session?.user)} isAdmin={isAdmin} />
+          <StoreHeader
+            signedIn={Boolean(session?.user)}
+            isAdmin={isAdmin}
+            name={session?.user?.name}
+            email={session?.user?.email}
+          />
           <div className="flex-1">{children}</div>
           <StoreFooter />
           <Toaster richColors position="top-center" />

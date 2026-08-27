@@ -19,6 +19,7 @@ export function CatalogGrid({
   filters?: ReactNode;
   eyebrow?: ReactNode;
 }) {
+  const countLabel = `${cards.length} fragrance${cards.length === 1 ? "" : "s"}`;
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
@@ -28,12 +29,15 @@ export function CatalogGrid({
           <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>
         ) : null}
       </header>
-      <div className="mb-8 flex justify-center">{filters}</div>
+      {filters ? <div className="mb-4 flex justify-center">{filters}</div> : null}
+      <p className="mb-6 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        {countLabel}
+      </p>
       {cards.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/80 p-10 text-center">
+        <div className="rounded-md border border-dashed border-border/80 p-10 text-center">
           <p className="text-sm text-muted-foreground">{emptyLabel}</p>
           <Link href="/bottles" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
-            Browse the full catalog
+            Browse bottles
           </Link>
         </div>
       ) : (

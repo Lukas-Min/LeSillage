@@ -14,7 +14,7 @@ export function OAuthButton({
     <Button
       type="button"
       variant="outline"
-      className="w-full"
+      className="w-full rounded-md"
       onClick={() => signIn(provider, { callbackUrl: returnTo })}
     >
       Continue with {provider === "google" ? "Google" : "Facebook"}

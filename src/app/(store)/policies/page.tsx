@@ -20,11 +20,13 @@ export default function PoliciesPage() {
             {
               id: "shipping",
               label: policyCopy.shipping.label,
+              defaultOpen: true,
               content: <p>{policyCopy.shipping.body}</p>,
             },
             {
               id: "returns",
               label: policyCopy.returns.label,
+              defaultOpen: true,
               content: <p>{policyCopy.returns.body}</p>,
             },
             {

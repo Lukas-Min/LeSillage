@@ -19,7 +19,7 @@ export default async function SearchPage({
           aria-label="Search"
           className="h-11"
         />
-        <Button type="submit" className="h-11">
+        <Button type="submit" variant="gold" className="h-11 rounded-md">
           Search
         </Button>
       </form>

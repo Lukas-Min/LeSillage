@@ -4,7 +4,13 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
-- Compact storefront header (logo, Shop, How to Pay, search/cart/account icons) and structured footer in `src/components/store/`
+- Maison Ivre restyle across customer surfaces: composition canvas (live note pyramid), search overlay, cart drawer, and account preview sheet
+- Gold `Button` variant and catalog `types[]` filter so `/bottles` loads only full bottles and partials
+
+### Changed
+- PDP left column is now the composition canvas instead of a product photo; decant sizes stay 3–30 ml with no full-bottle pill
+- Shipping and returns disclosures open by default on the PDP, policies page, cart page, and cart drawer
+- Home shelves split into bottles and decants; product cards use the composition tile plus a gold Add control
 - URL-backed shop filters for All, Decants, Full bottles, and Partials, plus GET search by name, brand, and family
 - Shared catalog loader and full-link product cards with square images and 3ml–30ml decant price ranges
 - Shared decant ml pool (`product.sourceMl` / `product.remainingMl`) with a 10ml pre-order threshold

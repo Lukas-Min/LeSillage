@@ -35,7 +35,7 @@ export default async function SignUpPage({
               <Input id="password" name="password" type="password" required minLength={10} className="h-11" />
               <p className="text-xs text-muted-foreground">At least 10 characters, with a letter and a number.</p>
             </div>
-            <SubmitButton className="h-11 w-full" pendingLabel="Creating…">
+            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Creating…">
               Create account
             </SubmitButton>
           </form>

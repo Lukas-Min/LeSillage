@@ -7,6 +7,7 @@ interface Filter {
   brand?: string;
   query?: string;
   type?: ProductType;
+  types?: ProductType[];
 }
 
 interface ShopViewProps {

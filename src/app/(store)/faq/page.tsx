@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Eyebrow } from "@/components/ui/section";
 
 const FAQ = [
   {
@@ -21,13 +22,16 @@ const FAQ = [
 
 export default function FaqPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
-      <h1 className="font-serif-display text-2xl">FAQ</h1>
-      <Card>
-        <CardContent className="space-y-4 p-4 text-sm">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+      <header className="space-y-2">
+        <Eyebrow>Help</Eyebrow>
+        <h1 className="font-serif-display text-4xl">FAQ</h1>
+      </header>
+      <Card className="rounded-md">
+        <CardContent className="space-y-4 p-6 text-sm">
           {FAQ.map((item) => (
-            <div key={item.q} className="space-y-1 border-t pt-3 first:border-t-0 first:pt-0">
-              <p className="font-medium">{item.q}</p>
+            <div key={item.q} className="space-y-1 border-t border-border/60 pt-4 first:border-t-0 first:pt-0">
+              <p className="font-serif-display text-lg leading-tight">{item.q}</p>
               <p className="text-muted-foreground">{item.a}</p>
             </div>
           ))}

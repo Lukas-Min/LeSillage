@@ -18,14 +18,12 @@ export default async function DecantsPage({
   const cards = await loadCatalogCards({ type: "DECANT", sizeMl: validSize });
   return (
     <CatalogGrid
-      eyebrow="Decants · Manila"
+      eyebrow="Le Sillage · Manila"
       title="Decants"
-      subtitle="Smaller pours of the same bottle — perfect to test before committing to a full size."
+      subtitle="Smaller pours of the same bottle — try before a full size."
       cards={cards}
       emptyLabel="No decants at this size yet."
-      filters={
-        <ShopFilters mode="decants" showDecantSizes activeSize={validSize} />
-      }
+      filters={<ShopFilters mode="decants" showDecantSizes activeSize={validSize} />}
     />
   );
 }

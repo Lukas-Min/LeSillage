@@ -1,7 +1,7 @@
 import { CatalogGrid } from "@/components/store/catalog-grid";
 import { ShopFilters } from "@/components/store/shop-filters";
 import { loadCatalogCards } from "@/lib/catalog";
-import { productType, type ProductType } from "@/db/schema";
+import type { ProductType } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -16,17 +16,19 @@ export default async function BottlesPage({
     rawType === "FULL_BOTTLE" || rawType === "PARTIAL"
       ? (rawType as ProductType)
       : undefined;
-  const cards = await loadCatalogCards({ type });
+  const cards = await loadCatalogCards({
+    types: type ? [type] : ["FULL_BOTTLE", "PARTIAL"],
+  });
+  const title =
+    type === "PARTIAL" ? "Partials" : type === "FULL_BOTTLE" ? "Full bottles" : "Bottles";
   return (
     <CatalogGrid
-      eyebrow="Bottles · Manila"
-      title={type === "PARTIAL" ? "Partials" : "Full bottles"}
-      subtitle="Pre-order the full bottles you want, or pick up a partial in stock right now."
+      eyebrow="Le Sillage · Manila"
+      title={title}
+      subtitle="Pre-order a full bottle, or pick up a partial from stock."
       cards={cards}
       emptyLabel="Nothing on this shelf yet."
       filters={<ShopFilters mode="bottles" activeType={type} />}
     />
   );
 }
-
-export const _productTypeList = productType;

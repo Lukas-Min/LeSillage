@@ -31,8 +31,8 @@ export default async function CheckoutPage() {
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
         <h1 className="font-serif-display text-2xl">Checkout</h1>
         <p className="mt-4 text-muted-foreground">Your cart is empty.</p>
-        <Button asChild className="mt-4">
-          <Link href="/bottles">Browse the catalog</Link>
+        <Button asChild variant="gold" className="mt-4 rounded-md">
+          <Link href="/bottles">Browse bottles</Link>
         </Button>
       </main>
     );
