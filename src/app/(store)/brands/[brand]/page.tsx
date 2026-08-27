@@ -8,6 +8,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
       title={decoded}
       subtitle={`Every fragrance from ${decoded}.`}
       filter={{ brand: decoded }}
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Brands", href: "/brands" }, { label: decoded }]}
     />
   );
 }

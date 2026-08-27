@@ -2,8 +2,10 @@ import Link from "next/link";
 import { db } from "@/db/client";
 import { products, skus } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPHP } from "@/domain/money";
+import { concentrationLabel } from "@/domain/concentration";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +36,21 @@ export default async function ProductsAdminPage() {
                     {product.name}
                   </Link>
                 </p>
-                <span className="text-xs text-muted-foreground">{product.isActive ? "Visible" : "Hidden"}</span>
+                <div className="flex items-center gap-2">
+                  {concentrationLabel(product.concentration) ? (
+                    <Badge variant="outline">{concentrationLabel(product.concentration)}</Badge>
+                  ) : (
+                    <Link href={`/admin/products/${product.id}`}>
+                      <Badge variant="destructive" className="cursor-pointer">
+                        No concentration
+                      </Badge>
+                    </Link>
+                  )}
+                  <span className="text-xs text-muted-foreground">{product.isActive ? "Visible" : "Hidden"}</span>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {product.brand} · {product.family ?? "—"} · {product.type}
+                {product.brand} · {product.family ?? "—"} · {product.type} · {product.fragranceCategory}
                 {product.type === "DECANT" ? ` · ${product.remainingMl ?? 0}ml left` : ""}
               </p>
               <ul className="mt-2 space-y-1">

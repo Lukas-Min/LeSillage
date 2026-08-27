@@ -96,7 +96,7 @@ export default async function WishlistPage() {
                 className="flex h-full flex-col gap-3"
                 contentClassName="flex flex-col gap-3"
               >
-                <Link href={sku ? `/shop/${sku.id}` : `/search?q=${encodeURIComponent(row.brand)}`} className="flex items-center gap-3">
+                <Link href={sku ? `/shop/${sku.id}` : `/brands/${encodeURIComponent(row.brand)}`} className="flex items-center gap-3">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-secondary">
                     {image ? (
                       <img

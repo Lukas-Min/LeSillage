@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { User } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { SignOutButton } from "@/components/store/sign-out-overlay";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -71,9 +71,7 @@ export function AccountPreview({
                 <Link href="/shop">Continue shopping</Link>
               </Button>
             </SheetClose>
-            <Button variant="outline" className="rounded-md" onClick={() => signOut({ callbackUrl: "/" })}>
-              Sign out
-            </Button>
+            <SignOutButton variant="outline" className="rounded-md" />
           </div>
         ) : (
           <div className="flex flex-col gap-3 px-4 pb-6">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 import { ProductCard } from "@/components/store/product-card";
 import type { CatalogCardModel } from "@/lib/catalog";
@@ -7,16 +8,20 @@ import type { CatalogCardModel } from "@/lib/catalog";
 export function CatalogResults({
   cards,
   emptyLabel = "No items match this filter yet.",
+  showCount = true,
 }: {
   cards: CatalogCardModel[];
   emptyLabel?: string;
+  showCount?: boolean;
 }) {
   const countLabel = `${cards.length} fragrance${cards.length === 1 ? "" : "s"}`;
   return (
     <>
-      <p className="mb-6 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-        {countLabel}
-      </p>
+      {showCount ? (
+        <p className="mb-6 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          {countLabel}
+        </p>
+      ) : null}
       {cards.length === 0 ? (
         <div className="rounded-md border border-dashed border-border/80 p-10 text-center">
           <p className="text-sm text-muted-foreground">{emptyLabel}</p>
@@ -42,6 +47,7 @@ export function CatalogGrid({
   emptyLabel,
   filters,
   eyebrow,
+  breadcrumbs,
 }: {
   title: string;
   subtitle?: string;
@@ -49,9 +55,11 @@ export function CatalogGrid({
   emptyLabel?: string;
   filters?: ReactNode;
   eyebrow?: ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
 }) {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+      {breadcrumbs ? <Breadcrumbs items={breadcrumbs} className="mb-6" /> : null}
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
         {eyebrow ? eyebrow : <Eyebrow>Le Sillage · Manila</Eyebrow>}
         <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">{title}</h1>

@@ -1,4 +1,5 @@
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { policyCopy } from "@/lib/policy-copy";
 
@@ -9,6 +10,7 @@ export const metadata = {
 export default function PoliciesPage() {
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:py-12">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Policies" }]} />
       <PageHeader
         eyebrow="Policies"
         title="Shipping, returns, authenticity"

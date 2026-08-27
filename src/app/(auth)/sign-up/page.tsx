@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { registerWithEmail } from "@/actions/auth-credentials-actions";
+import { OAuthButton } from "@/components/store/oauth-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,10 @@ export default async function SignUpPage({
               Create account
             </SubmitButton>
           </form>
+          <div className="mt-4 space-y-2">
+            <OAuthButton provider="google" returnTo={returnTo} />
+            <OAuthButton provider="facebook" returnTo={returnTo} />
+          </div>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} className="underline-offset-4 hover:underline">

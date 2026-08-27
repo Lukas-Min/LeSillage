@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { SignOutButton } from "@/components/store/sign-out-overlay";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumbs";
 import {
-  LogOut,
   User,
   ShoppingBag,
   Heart,
@@ -20,7 +20,6 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 export type AccountNavItem = {
   href: string;
@@ -101,17 +100,34 @@ export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         </div>
       ) : null}
       <div className="pt-2">
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={() => signOut({ callbackUrl: "/" })}
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </Button>
+        <SignOutButton variant="outline" className="w-full justify-start" />
       </div>
     </nav>
   );
+}
+
+export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
+  const pathname = usePathname() ?? "";
+  const rootHref = isAdmin ? "/admin" : "/account";
+  const rootLabel = isAdmin ? "Admin" : "Account";
+  const items: BreadcrumbItem[] = [{ label: "Home", href: "/" }, { label: rootLabel, href: rootHref }];
+
+  if (pathname === rootHref) {
+    return <Breadcrumbs items={items} />;
+  }
+
+  const candidates = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
+  const match = candidates
+    .filter((item) => item.href !== rootHref && (pathname === item.href || pathname.startsWith(item.href + "/")))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
+  if (match) {
+    const trailing = pathname.slice(match.href.length).replace(/^\//, "");
+    items.push(trailing ? { label: match.label, href: match.href } : { label: match.label });
+    if (trailing) items.push({ label: decodeURIComponent(trailing) });
+  }
+
+  return <Breadcrumbs items={items} />;
 }
 
 export function AccountBottomNav() {
@@ -148,24 +164,5 @@ export function AccountBottomNav() {
         })}
       </ul>
     </nav>
-  );
-}
-
-export function AccountSignOutButton({
-  variant = "outline",
-  className,
-}: {
-  variant?: "default" | "outline" | "ghost" | "destructive";
-  className?: string;
-}) {
-  return (
-    <Button
-      variant={variant}
-      className={className}
-      onClick={() => signOut({ callbackUrl: "/" })}
-    >
-      <LogOut className="h-4 w-4" />
-      Sign out
-    </Button>
   );
 }

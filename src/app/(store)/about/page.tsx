@@ -1,9 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 
 export default function AboutPage() {
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "About" }]} />
       <header className="space-y-2">
         <Eyebrow>Maison</Eyebrow>
         <h1 className="font-serif-display text-4xl">About Le Sillage</h1>

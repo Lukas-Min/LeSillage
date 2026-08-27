@@ -3,6 +3,30 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Ported the repo's Cursor rules/skills/agents to Claude Code-native config: `.claude/skills/le-sillage-store/SKILL.md`, `.claude/agents/domain-reviewer.md` and `storefront-reviewer.md`, and the document-changes/mobile-first/loading-state rules folded into `CLAUDE.md`
+- `products.concentration` column (`EAU_DE_COLOGNE`/`EAU_DE_TOILETTE`/`EAU_DE_PARFUM`/`PARFUM`/`EXTRAIT_DE_PARFUM`) with a full-name label map and legacy-label guesser in `src/domain/concentration.ts`; admin product forms and `/admin/products` listing expose it, and the PDP shows it as its own row separate from size
+- `/shop` sort (Featured/Most rated/Price asc/desc) and filter (shelf, concentration) toolbar (`src/components/store/shop-toolbar.tsx`), results re-fetch via a `<Suspense key={...}>` boundary so every change shows the real card-grid skeleton, not a spinner
+- Breadcrumbs (`src/components/ui/breadcrumbs.tsx`) on every storefront, account, and admin page — static per-page trails on (store) pages, a pathname-derived `SectionBreadcrumbs` in `src/components/store/account-nav.tsx` for /account and /admin (shared with their layouts)
+- Full-screen blocking sign-out overlay (`src/components/store/sign-out-overlay.tsx`) replacing the bare `signOut()` calls in the sidebar and account sheet
+- Google/Facebook OAuth buttons on `/sign-up`, matching `/sign-in`
+
+### Changed
+- Root layout no longer awaits `auth()`/cart data before rendering (`src/app/layout.tsx`): the header is a client component reading `useSession()`, and the cart hydrates client-side via the existing `getCart()` action instead of a server-fetched `initialCart`. Static pages (`/about`, `/faq`, `/contact`, `/how-to-pay`, `/policies`) are no longer blocked by unrelated DB calls, and every route's `loading.tsx` actually fires now
+- Home page hero flagship product wrapped in its own `<Suspense>` so the static title/shelves/how-it-works sections stream instantly; reduced from 3 catalog queries to 1
+- Navbar: centered Shop/FAQs/Contact nav, signed-out state shows a "Sign in" link instead of an account icon (`src/components/store/store-header.tsx`)
+- Search is modal-only: removed the "Open full search" link and deleted the `/search` page entirely (`src/components/store/search-overlay.tsx`)
+- Sign-in no longer offers "Continue browsing as guest"
+- PDP (`src/app/(store)/shop/[skuId]/page.tsx`) restructured into a two-column `md:divide-x` split: image + composition + accords + shipping/returns on the left, brand/name/badges/concentration/size/price/add-to-bag on the right; size pills now show size only, concentration shows separately as its own full-name row
+- `scrollbar-gutter: stable` on `html` so pages don't shift width with/without a scrollbar
+- Product cards show family + concentration, a divider before price, and a subtle bottle-glyph scale on hover
+
+### Fixed
+- Admin products list didn't surface `concentration` at all, making it impossible to see or fix from the list — added a badge per product (and a "No concentration" prompt linking to the edit form)
+- Wishlist card fallback link pointed at the now-deleted `/search` route when a product had no active SKU; now links to the product's brand page
+- Breadcrumb links were missing `inline-flex`, so their `min-h-11` touch target never applied
+- Shop toolbar's Filter/Sort buttons were `h-9` (36px), under the 44px touch-target minimum used everywhere else
+
 ### Changed
 - `/shop` filter tabs (`src/components/store/shop-filters.tsx`) restyled to match the reference exactly: plain uppercase text tabs with a thin underline on the active one, no bordered pills; removed the 3/5/10/30ml decant-size sub-filter row
 - `/shop`'s results now render in a nested async component wrapped in `<Suspense key={type}>` (`CatalogResults` in `src/components/store/catalog-grid.tsx`, skeleton in `src/components/store/loading.tsx`), so switching filter tabs shows a real card-grid skeleton while the DB query runs instead of the page looking frozen or a plain spinner — `loading.tsx` alone does not retrigger for query-string-only navigation on the same route

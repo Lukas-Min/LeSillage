@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { signInWithPassword } from "@/actions/auth-credentials-actions";
 import { OAuthButton } from "@/components/store/oauth-button";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,9 +55,6 @@ export function SignInForm({
           </Link>
           .
         </p>
-        <Button asChild variant="ghost" className="w-full">
-          <Link href="/shop">Continue browsing as guest</Link>
-        </Button>
       </CardContent>
     </Card>
   );

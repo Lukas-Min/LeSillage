@@ -503,6 +503,25 @@ async function main() {
     `CREATE INDEX IF NOT EXISTS "fragella_mirror_updated_idx" ON "fragella_mirror" ("lastFetchedAt")`,
   );
 
+  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "concentration" text`);
+  await db.execute(`
+    UPDATE "product" SET "concentration" = sub.guessed
+    FROM (
+      SELECT s."productId" AS id,
+        CASE
+          WHEN bool_or(s."label" ILIKE '%extrait%') THEN 'EXTRAIT_DE_PARFUM'
+          WHEN bool_or(s."label" ILIKE '%eau de parfum%' OR s."label" ILIKE '%edp%') THEN 'EAU_DE_PARFUM'
+          WHEN bool_or(s."label" ILIKE '%eau de toilette%' OR s."label" ILIKE '%edt%') THEN 'EAU_DE_TOILETTE'
+          WHEN bool_or(s."label" ILIKE '%eau de cologne%' OR s."label" ILIKE '%edc%') THEN 'EAU_DE_COLOGNE'
+          WHEN bool_or(s."label" ILIKE '%parfum%') THEN 'PARFUM'
+          ELSE NULL
+        END AS guessed
+      FROM "sku" s
+      GROUP BY s."productId"
+    ) sub
+    WHERE "product"."id" = sub.id AND "product"."concentration" IS NULL AND sub.guessed IS NOT NULL
+  `);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }

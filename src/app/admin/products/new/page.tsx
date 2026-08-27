@@ -34,6 +34,14 @@ export default function NewProductPage() {
               <option value="DESIGNER">Designer</option>
               <option value="MIDDLE_EASTERN">Middle Eastern</option>
             </select>
+            <select name="concentration" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="">
+              <option value="">No concentration set</option>
+              <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
+              <option value="EAU_DE_TOILETTE">Eau de Toilette</option>
+              <option value="EAU_DE_PARFUM">Eau de Parfum</option>
+              <option value="PARFUM">Parfum</option>
+              <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
+            </select>
             <Input name="sourceMl" type="number" placeholder="Source ml (decants)" />
             <Input name="remainingMl" type="number" placeholder="Remaining ml (decants)" />
             <Textarea name="description" placeholder="Description" className="sm:col-span-2" />

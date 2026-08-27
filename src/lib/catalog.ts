@@ -6,6 +6,7 @@ import {
   products,
   promoSettings,
   skus,
+  type Concentration,
   type FragranceCategory,
   type Fulfillment,
   type ProductDiscount,
@@ -15,13 +16,18 @@ import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 
+export const CATALOG_SORTS = ["featured", "rating", "price_asc", "price_desc"] as const;
+export type CatalogSort = (typeof CATALOG_SORTS)[number];
+
 export interface CatalogFilter {
   type?: ProductType;
   types?: ProductType[];
   fragranceCategory?: FragranceCategory;
+  concentration?: Concentration;
   brand?: string;
   query?: string;
   sizeMl?: number;
+  sort?: CatalogSort;
 }
 
 export interface CatalogCardModel {
@@ -32,6 +38,9 @@ export interface CatalogCardModel {
   family: string | null;
   description: string | null;
   type: ProductType;
+  fragranceCategory: FragranceCategory;
+  concentration: Concentration | null;
+  ratingValue: number | null;
   href: string;
   imageUrl: string | null;
   imageAlt: string | null;
@@ -69,6 +78,9 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
   if (filter.fragranceCategory) {
     conditions.push(eq(products.fragranceCategory, filter.fragranceCategory));
   }
+  if (filter.concentration) {
+    conditions.push(eq(products.concentration, filter.concentration));
+  }
   if (filter.brand) conditions.push(eq(products.brand, filter.brand));
   if (filter.query && filter.query.trim().length > 0) {
     const term = `%${filter.query.trim()}%`;
@@ -88,6 +100,9 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       family: products.family,
       description: products.description,
       type: products.type,
+      fragranceCategory: products.fragranceCategory,
+      concentration: products.concentration,
+      ratingValue: products.ratingValue,
       remainingMl: products.remainingMl,
       notes: products.notes,
       notePyramid: products.notePyramid,
@@ -176,6 +191,9 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       family: product.family,
       description: product.description,
       type: product.type,
+      fragranceCategory: product.fragranceCategory,
+      concentration: product.concentration,
+      ratingValue: product.ratingValue !== null ? Number(product.ratingValue) : null,
       href: `/shop/${destination.skuId}`,
       imageUrl: image?.url ?? null,
       imageAlt: image?.alt ?? product.name,
@@ -191,7 +209,28 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       savePercent,
     });
   }
-  return cards;
+  return sortCards(cards, filter.sort ?? "featured");
+}
+
+function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {
+  const sorted = [...cards];
+  switch (sort) {
+    case "price_asc":
+      sorted.sort((a, b) => a.minDiscountedCentavos - b.minDiscountedCentavos);
+      return sorted;
+    case "price_desc":
+      sorted.sort((a, b) => b.minDiscountedCentavos - a.minDiscountedCentavos);
+      return sorted;
+    case "rating":
+      sorted.sort((a, b) => (b.ratingValue ?? -1) - (a.ratingValue ?? -1));
+      return sorted;
+    case "featured":
+      return sorted;
+    default: {
+      const exhaustive: never = sort;
+      return exhaustive;
+    }
+  }
 }
 
 function pickDestinationSku(

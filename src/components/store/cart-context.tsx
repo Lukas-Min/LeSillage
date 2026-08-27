@@ -41,25 +41,26 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "le-sillage-cart";
 
-export function CartProvider({
-  children,
-  initialCart,
-}: {
-  children: React.ReactNode;
-  initialCart?: CartView;
-}) {
-  const [view, setView] = useState<CartView>(initialCart ?? EMPTY);
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [view, setView] = useState<CartView>(EMPTY);
   const { data: session, status } = useSession();
   const mergeFlagKey = "lesillage.guestCartMerged";
 
   useEffect(() => {
-    if (status !== "authenticated") return;
-    if (typeof window === "undefined") return;
-    if (window.sessionStorage.getItem(mergeFlagKey) === "1") return;
-    window.sessionStorage.setItem(mergeFlagKey, "1");
-    void mergeGuestCartIntoUser().then(() => {
-      void getCart().then(setView);
-    });
+    if (status === "loading") return;
+    if (status === "authenticated") {
+      if (typeof window === "undefined") return;
+      if (window.sessionStorage.getItem(mergeFlagKey) === "1") {
+        void getCart().then(setView);
+        return;
+      }
+      window.sessionStorage.setItem(mergeFlagKey, "1");
+      void mergeGuestCartIntoUser().then(() => {
+        void getCart().then(setView);
+      });
+      return;
+    }
+    void getCart().then(setView);
   }, [status]);
 
   useEffect(() => {

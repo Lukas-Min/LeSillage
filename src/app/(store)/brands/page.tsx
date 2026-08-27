@@ -2,6 +2,7 @@ import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { products } from "@/db/schema";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export default async function BrandsPage() {
     .orderBy(asc(products.brand));
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Brands" }]} />
       <header className="space-y-2 text-center">
         <Eyebrow>Le Sillage · Manila</Eyebrow>
         <h1 className="font-serif-display text-4xl">Brands</h1>

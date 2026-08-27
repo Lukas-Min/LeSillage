@@ -85,11 +85,6 @@ export function SearchOverlay() {
             ))
           )}
         </div>
-        <Button asChild variant="outline" className="rounded-md" onClick={() => setOpen(false)}>
-          <Link href={query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : "/search"}>
-            Open full search
-          </Link>
-        </Button>
       </DialogContent>
     </Dialog>
   );

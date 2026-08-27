@@ -74,6 +74,14 @@ export default async function AdminProductDetailPage({
               <option value="DESIGNER">Designer</option>
               <option value="MIDDLE_EASTERN">Middle Eastern</option>
             </select>
+            <select name="concentration" defaultValue={product.concentration ?? ""} className="h-11 rounded-lg border bg-background px-3 text-sm">
+              <option value="">No concentration set</option>
+              <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
+              <option value="EAU_DE_TOILETTE">Eau de Toilette</option>
+              <option value="EAU_DE_PARFUM">Eau de Parfum</option>
+              <option value="PARFUM">Parfum</option>
+              <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
+            </select>
             <Input name="sourceMl" type="number" defaultValue={product.sourceMl ?? ""} placeholder="Source ml" />
             <Input name="remainingMl" type="number" defaultValue={product.remainingMl ?? ""} placeholder="Remaining ml" />
             <Textarea name="description" defaultValue={product.description ?? ""} className="sm:col-span-2" />

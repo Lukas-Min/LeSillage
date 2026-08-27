@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import { Geist, Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
-import { auth } from "@/auth";
 import { StoreHeader } from "@/components/store/store-header";
 import { StoreFooter } from "@/components/store/store-footer";
 import "./globals.css";
-import { loadCartView, resolveActiveCart } from "@/lib/cart";
 
 const geistSans = Geist({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const playfair = Playfair_Display({
   variable: "--font-serif",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -36,29 +36,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN";
-  let initialCart;
-  try {
-    const { cart } = await resolveActiveCart();
-    initialCart = await loadCartView(cart.id);
-  } catch {
-    initialCart = undefined;
-  }
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Providers initialCart={initialCart}>
-          <StoreHeader
-            signedIn={Boolean(session?.user)}
-            isAdmin={isAdmin}
-            name={session?.user?.name}
-            email={session?.user?.email}
-          />
+        <Providers>
+          <StoreHeader />
           <div className="flex-1">{children}</div>
           <StoreFooter />
           <Toaster richColors position="top-center" />

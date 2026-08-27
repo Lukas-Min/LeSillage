@@ -29,6 +29,15 @@ export type Packaging = (typeof packaging)[number];
 export const fulfillment = ["PRE_ORDER", "ON_HAND"] as const;
 export type Fulfillment = (typeof fulfillment)[number];
 
+export const concentration = [
+  "EAU_DE_COLOGNE",
+  "EAU_DE_TOILETTE",
+  "EAU_DE_PARFUM",
+  "PARFUM",
+  "EXTRAIT_DE_PARFUM",
+] as const;
+export type Concentration = (typeof concentration)[number];
+
 export const orderStatus = [
   "AWAITING_PAYMENT",
   "RECEIPT_SUBMITTED",
@@ -301,6 +310,7 @@ export const products = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     type: text("type").$type<ProductType>().notNull(),
     fragranceCategory: text("fragranceCategory").$type<FragranceCategory>().notNull().default("NICHE"),
+    concentration: text("concentration").$type<Concentration>(),
     name: text("name").notNull(),
     brand: text("brand").notNull(),
     family: text("family"),

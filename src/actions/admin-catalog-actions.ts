@@ -14,6 +14,7 @@ import {
   skus,
   stockMovements,
   wishlists,
+  type Concentration,
   type Condition,
   type FragranceCategory,
   type Fulfillment,
@@ -42,6 +43,9 @@ const productSchema = z.object({
   productId: z.string().optional(),
   type: z.enum(["FULL_BOTTLE", "PARTIAL", "DECANT"]),
   fragranceCategory: z.enum(["NICHE", "DESIGNER", "MIDDLE_EASTERN"]),
+  concentration: z
+    .enum(["EAU_DE_COLOGNE", "EAU_DE_TOILETTE", "EAU_DE_PARFUM", "PARFUM", "EXTRAIT_DE_PARFUM"])
+    .optional(),
   name: z.string().min(2).max(160),
   brand: z.string().min(1).max(120),
   family: z.string().max(80).optional(),
@@ -59,6 +63,7 @@ export async function upsertProduct(formData: FormData) {
     productId: formData.get("productId") || undefined,
     type: formData.get("type"),
     fragranceCategory: formData.get("fragranceCategory"),
+    concentration: formData.get("concentration") || undefined,
     name: formData.get("name"),
     brand: formData.get("brand"),
     family: formData.get("family") || undefined,
@@ -71,6 +76,7 @@ export async function upsertProduct(formData: FormData) {
   const values = {
     type: parsed.type as ProductType,
     fragranceCategory: parsed.fragranceCategory as FragranceCategory,
+    concentration: (parsed.concentration as Concentration | undefined) ?? null,
     name: parsed.name,
     brand: parsed.brand,
     family: parsed.family ?? null,

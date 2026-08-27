@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRight, Droplet, PackageOpen, SprayCan } from "lucide-react";
-import { loadCatalogCards } from "@/lib/catalog";
+import { loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
 import { formatPHP } from "@/domain/money";
 import { Button } from "@/components/ui/button";
 import { Eyebrow, SectionCard } from "@/components/ui/section";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +31,7 @@ const SHELVES = [
   },
 ] as const;
 
-export default async function Home() {
-  const [decants, fullBottles, partials] = await Promise.all([
-    loadCatalogCards({ type: "DECANT" }),
-    loadCatalogCards({ type: "FULL_BOTTLE" }),
-    loadCatalogCards({ type: "PARTIAL" }),
-  ]);
-  const flagship = fullBottles[0] ?? decants[0] ?? partials[0] ?? null;
-
+export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
       <section className="surface-grid border-b border-border/60">
@@ -45,34 +40,9 @@ export default async function Home() {
             <Eyebrow>Est. 2026 · Manila</Eyebrow>
             <h1 className="font-serif-display text-5xl leading-tight sm:text-6xl">Le Sillage</h1>
           </div>
-          {flagship ? (
-            <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
-              <CompositionCanvas
-                brand={flagship.brand}
-                name={flagship.name}
-                pyramid={flagship.notePyramid}
-                className="mx-auto w-full max-w-xs transition-transform duration-300 hover:-translate-y-1"
-              />
-              <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{flagship.brand}</p>
-                <h2 className="font-serif-display text-3xl leading-tight sm:text-4xl">{flagship.name}</h2>
-                {flagship.description ? (
-                  <p className="text-sm text-muted-foreground sm:text-base">{flagship.description}</p>
-                ) : null}
-                <p className="font-serif-display pt-1 text-xl">
-                  From {formatPHP(flagship.minDiscountedCentavos)}
-                </p>
-                <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
-                  <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
-                    <Link href="/shop">Shop the catalog</Link>
-                  </Button>
-                  <Button asChild variant="outline" size="lg" className="h-11 rounded-md">
-                    <Link href="/how-to-pay">How to pay</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <Suspense fallback={<FlagshipSkeleton />}>
+            <FlagshipPanel />
+          </Suspense>
           <p className="mx-auto max-w-xl text-center font-serif-display text-lg italic text-muted-foreground">
             &ldquo;A curated trail of scent, in bottles and decants.&rdquo;
           </p>
@@ -106,6 +76,62 @@ export default async function Home() {
         </SectionCard>
       </section>
     </main>
+  );
+}
+
+async function FlagshipPanel() {
+  const cards = await loadCatalogCards({});
+  const flagship = pickFlagship(cards);
+  if (!flagship) return null;
+  return (
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
+      <CompositionCanvas
+        brand={flagship.brand}
+        name={flagship.name}
+        pyramid={flagship.notePyramid}
+        className="mx-auto w-full max-w-xs transition-transform duration-300 hover:-translate-y-1"
+      />
+      <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+        <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{flagship.brand}</p>
+        <h2 className="font-serif-display text-3xl leading-tight sm:text-4xl">{flagship.name}</h2>
+        {flagship.description ? (
+          <p className="text-sm text-muted-foreground sm:text-base">{flagship.description}</p>
+        ) : null}
+        <p className="font-serif-display pt-1 text-xl">
+          From {formatPHP(flagship.minDiscountedCentavos)}
+        </p>
+        <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
+          <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
+            <Link href="/shop">Shop the catalog</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-11 rounded-md">
+            <Link href="/how-to-pay">How to pay</Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function pickFlagship(cards: CatalogCardModel[]): CatalogCardModel | null {
+  return cards.find((c) => c.type === "FULL_BOTTLE") ?? cards[0] ?? null;
+}
+
+function FlagshipSkeleton() {
+  return (
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
+      <Skeleton className="mx-auto aspect-square w-full max-w-xs rounded-md" />
+      <div className="flex flex-col items-center gap-3 sm:items-start">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-9 w-48" />
+        <Skeleton className="h-4 w-64" />
+        <Skeleton className="h-6 w-32" />
+        <div className="flex w-full gap-3 pt-2 sm:w-auto">
+          <Skeleton className="h-11 w-40" />
+          <Skeleton className="h-11 w-32" />
+        </div>
+      </div>
+    </div>
   );
 }
 

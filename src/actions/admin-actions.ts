@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { signIn, signOut } from "@/auth";
+import { signIn } from "@/auth";
 import { db } from "@/db/client";
 import { promoSettings, orders } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -28,10 +28,6 @@ export async function adminOAuthSignIn(provider: "google" | "facebook", returnTo
   });
   if (!decision.allowed) throw new Error("Too many sign-in attempts. Please slow down.");
   await signIn(provider, { redirectTo: returnTo ?? "/account" });
-}
-
-export async function adminSignOut() {
-  await signOut({ redirectTo: "/sign-in" });
 }
 
 export async function updatePromoSettings(formData: FormData) {

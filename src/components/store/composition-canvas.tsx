@@ -51,7 +51,7 @@ function BottleGlyph() {
   return (
     <svg
       viewBox="0 0 64 96"
-      className="h-24 w-auto text-gold/50"
+      className="h-24 w-auto text-gold/50 transition-transform duration-500 ease-out group-hover:scale-[1.06] group-hover:text-gold/70"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"

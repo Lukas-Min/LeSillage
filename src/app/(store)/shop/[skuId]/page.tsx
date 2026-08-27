@@ -5,13 +5,14 @@ import { db } from "@/db/client";
 import { products, skus, productDiscounts, promoSettings } from "@/db/schema";
 import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { concentrationLabel, guessConcentration, sizeOnlyLabel } from "@/domain/concentration";
 import { Badge } from "@/components/ui/badge";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { Price } from "@/components/store/price";
 import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
-import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { labelForCondition } from "@/lib/catalog";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
@@ -31,6 +32,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         brand: products.brand,
         family: products.family,
         fragranceCategory: products.fragranceCategory,
+        concentration: products.concentration,
         type: products.type,
         description: products.description,
         notes: products.notes,
@@ -84,22 +86,45 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, row.notes);
   const familyLabel = (row.family ?? "").trim();
-  const backHref = "/shop";
   const isDecant = row.type === "DECANT";
+  const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
-      <Link
-        href={backHref}
-        className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground"
-      >
-        <span aria-hidden="true">←</span> Back to catalog
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Shop", href: "/shop" },
+          { label: row.name },
+        ]}
+      />
 
-      <div className="mt-6 grid grid-cols-1 gap-10 sm:grid-cols-[1.05fr_1fr] sm:gap-12">
-        <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
+      <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
+        <div className="flex flex-col gap-6 md:pr-12">
+          <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
 
-        <div className="flex flex-col gap-6">
+          <div className="rounded-md border border-border p-4">
+            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+              {shelfEyebrow(row.fragranceCategory, familyLabel)}
+            </p>
+            {familyLabel || row.description ? (
+              <p className="mt-2 font-serif-display italic text-base text-foreground/80">
+                {row.description?.trim() || describeFamily(row.type, familyLabel)}
+              </p>
+            ) : null}
+          </div>
+
+          <AccordStrip accords={accords} />
+
+          <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} />
+
+          <section className="space-y-4 border-t border-border/60 pt-4">
+            <PolicySection label={policyCopy.shipping.label} body={policyCopy.shipping.body} />
+            <PolicySection label={policyCopy.returns.label} body={policyCopy.returns.body} />
+          </section>
+        </div>
+
+        <div className="flex flex-col gap-6 md:pl-12">
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
             <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{row.name}</h1>
@@ -112,16 +137,12 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             </div>
           </div>
 
-          <div className="rounded-md border border-border p-4">
-            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
-              {shelfEyebrow(row.fragranceCategory, familyLabel)}
-            </p>
-            {familyLabel || row.description ? (
-              <p className="mt-2 font-serif-display italic text-base text-foreground/80">
-                {row.description?.trim() || describeFamily(row.type, familyLabel)}
-              </p>
-            ) : null}
-          </div>
+          {concentration ? (
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Concentration</p>
+              <p className="font-serif-display text-lg">{concentration}</p>
+            </div>
+          ) : null}
 
           <SizeSection
             options={
@@ -138,7 +159,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                 : siblings.map((s) => ({
                     key: s.id,
                     href: `/shop/${s.id}`,
-                    label: s.label,
+                    label: sizeOnlyLabel(s.label).toUpperCase() || s.label,
                     active: s.id === row.skuId,
                   }))
             }
@@ -158,31 +179,6 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
               <WishlistButton productId={row.productId} variant="icon" />
             </div>
           )}
-
-          <AccordStrip accords={accords} />
-
-          <section className="border-t border-border/60 pt-2">
-            <DisclosureAccordion
-              items={[
-                {
-                  id: "composition",
-                  label: "Composition",
-                  defaultOpen: true,
-                  content: (
-                    <CompositionContent
-                      pyramid={notePyramid}
-                      perfumers={row.perfumers ?? null}
-                    />
-                  ),
-                },
-              ]}
-            />
-          </section>
-
-          <section className="space-y-4 border-t border-border/60 pt-4">
-            <PolicySection label={policyCopy.shipping.label} body={policyCopy.shipping.body} />
-            <PolicySection label={policyCopy.returns.label} body={policyCopy.returns.body} />
-          </section>
         </div>
       </div>
     </main>
@@ -249,7 +245,8 @@ function CompositionContent({
   const middle = pyramid?.middle ?? [];
   const base = pyramid?.base ?? [];
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 border-t border-border/60 pt-4">
+      <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground">Composition</p>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2 border-b border-border/40 pb-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           <span className="text-center">Top</span>

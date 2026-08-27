@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
 
@@ -6,6 +7,7 @@ export default function ContactPage() {
   const env = getEnv();
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
       <header className="space-y-2">
         <Eyebrow>Help</Eyebrow>
         <h1 className="font-serif-display text-4xl">Contact</h1>

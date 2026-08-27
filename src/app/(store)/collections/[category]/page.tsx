@@ -30,6 +30,7 @@ export default async function CollectionPage({
       title={LABEL[matched]}
       subtitle={`Curated ${LABEL[matched].toLowerCase()} picks — full bottles, partials, and decants.`}
       filter={{ fragranceCategory: matched }}
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: LABEL[matched] }]}
     />
   );
 }

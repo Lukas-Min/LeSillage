@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AccountPreview } from "@/components/store/account-preview";
@@ -20,56 +21,43 @@ import { cn } from "@/lib/utils";
 
 const PRIMARY_LINKS = [
   { href: "/shop", label: "Shop" },
-  { href: "/shop?type=DECANT", label: "Decants" },
-  { href: "/brands", label: "Brands" },
-  { href: "/how-to-pay", label: "How to pay" },
+  { href: "/faq", label: "FAQs" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 const MENU_LINKS = [
   { href: "/shop", label: "Shop" },
-  { href: "/shop?type=DECANT", label: "Decants" },
+  { href: "/faq", label: "FAQs" },
+  { href: "/contact", label: "Contact" },
   { href: "/brands", label: "Brands" },
   { href: "/how-to-pay", label: "How to pay" },
-  { href: "/search", label: "Search" },
   { href: "/about", label: "About" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" },
   { href: "/policies", label: "Policies" },
 ] as const;
 
-export function StoreHeader({
-  signedIn,
-  isAdmin,
-  name,
-  email,
-}: {
-  signedIn: boolean;
-  isAdmin: boolean;
-  name?: string | null;
-  email?: string | null;
-}) {
+export function StoreHeader() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const activeType = searchParams.get("type");
+  const { data: session, status } = useSession();
+  const signedIn = status === "authenticated" && Boolean(session?.user);
+  const isAdmin = signedIn && (session?.user as { role?: string } | undefined)?.role === "ADMIN";
+
   useEffect(() => {
     Promise.resolve().then(() => setMounted(true));
   }, []);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-2">
-          <MobileMenu signedIn={signedIn} isAdmin={isAdmin} />
+          <MobileMenu signedIn={signedIn} isAdmin={Boolean(isAdmin)} />
           <Link href="/" className="font-serif-display text-lg">
             Le Sillage
           </Link>
         </div>
-        <nav className="hidden items-center gap-7 text-xs uppercase tracking-[0.22em] md:flex">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-xs uppercase tracking-[0.22em] md:flex">
           {PRIMARY_LINKS.map((link) => {
-            const [linkPath, linkQuery] = link.href.split("?");
-            const linkType = new URLSearchParams(linkQuery).get("type");
-            const active = pathname === linkPath && activeType === linkType;
+            const active = pathname === link.href || pathname?.startsWith(link.href + "/");
             return (
               <Link
                 key={link.href}
@@ -88,7 +76,20 @@ export function StoreHeader({
         <div className="flex items-center gap-1">
           <SearchOverlay />
           <CartDrawer mounted={mounted} />
-          <AccountPreview signedIn={signedIn} isAdmin={isAdmin} name={name} email={email} />
+          {!mounted || status === "loading" ? (
+            <span className="inline-block h-11 w-11" aria-hidden="true" />
+          ) : signedIn ? (
+            <AccountPreview
+              signedIn
+              isAdmin={Boolean(isAdmin)}
+              name={session?.user?.name}
+              email={session?.user?.email}
+            />
+          ) : (
+            <Button asChild variant="ghost" size="sm" className="hidden min-h-11 rounded-md md:inline-flex">
+              <Link href="/sign-in">Sign in</Link>
+            </Button>
+          )}
           {isAdmin ? (
             <Button asChild variant="outline" size="sm" className="hidden min-h-11 rounded-md md:inline-flex">
               <Link href="/admin">Admin</Link>

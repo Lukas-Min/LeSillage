@@ -26,7 +26,6 @@ const COLUMNS = [
     title: "Maison",
     links: [
       { href: "/about", label: "About" },
-      { href: "/search", label: "Search" },
       { href: "/sign-in", label: "Sign in" },
     ],
   },

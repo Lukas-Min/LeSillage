@@ -7,6 +7,7 @@ import { addresses, users } from "@/db/schema";
 import { loadCartView, resolveActiveCart } from "@/lib/cart";
 import { CheckoutForm } from "@/components/store/checkout-form";
 import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function CheckoutPage() {
   if (deliveryView.items.length === 0) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
         <h1 className="font-serif-display text-2xl">Checkout</h1>
         <p className="mt-4 text-muted-foreground">Your cart is empty.</p>
         <Button asChild variant="gold" className="mt-4 rounded-md">
@@ -40,6 +42,7 @@ export default async function CheckoutPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
       <h1 className="font-serif-display text-2xl">Checkout</h1>
       <p className="text-sm text-muted-foreground">
         All amounts in Philippine pesos (₱). Delivery default ₱120, pickup free. Free delivery unlocks at ₱2,000 of discounted decants.
