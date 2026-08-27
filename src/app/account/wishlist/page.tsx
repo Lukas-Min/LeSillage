@@ -32,7 +32,7 @@ export default async function WishlistPage() {
 
   if (rows.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-1 flex-col space-y-6">
         <PageHeader eyebrow="Wishlist" title="Saved for later" />
         <EmptyState
           eyebrow="Nothing saved yet"

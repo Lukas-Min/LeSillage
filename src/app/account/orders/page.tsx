@@ -21,7 +21,7 @@ export default async function OrdersPage() {
     .orderBy(desc(orders.createdAt));
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-1 flex-col space-y-6">
       <PageHeader
         eyebrow="Orders"
         title="Your orders"

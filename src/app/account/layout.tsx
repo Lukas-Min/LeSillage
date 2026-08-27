@@ -8,9 +8,9 @@ export default async function AccountLayout({ children }: { children: React.Reac
   const role = (session.user as { role?: string } | undefined)?.role ?? "CUSTOMER";
   const isAdmin = role === "ADMIN";
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-24 md:flex-row md:gap-8 md:py-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 pb-24 md:flex-row md:gap-8 md:py-10">
       <AccountSidebar isAdmin={isAdmin} />
-      <main className="min-w-0 flex-1">
+      <main className="flex min-w-0 flex-1 flex-col">
         <SectionBreadcrumbs />
         {children}
       </main>

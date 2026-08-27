@@ -18,7 +18,7 @@ export default async function ProductsAdminPage() {
   ]);
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-serif-display text-2xl">Products</h1>
         <div className="flex items-center gap-3">
@@ -31,8 +31,10 @@ export default async function ProductsAdminPage() {
         </div>
       </div>
       {productRows.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">No products yet.</CardContent>
+        <Card className="flex flex-1 flex-col">
+          <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
+            No products yet.
+          </CardContent>
         </Card>
       ) : null}
       {productRows.map((product) => {

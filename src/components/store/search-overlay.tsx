@@ -32,7 +32,7 @@ export function SearchOverlay() {
       startTransition(async () => {
         setResults(await searchCatalog(term));
       });
-    }, 220);
+    }, 2000);
     return () => window.clearTimeout(handle);
   }, [query]);
 

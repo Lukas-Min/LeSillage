@@ -18,11 +18,11 @@ export default async function AdminCustomersPage() {
     .from(users)
     .orderBy(desc(users.createdAt));
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col space-y-4">
       <h1 className="font-serif-display text-2xl">Customers</h1>
       {rows.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
+        <Card className="flex flex-1 flex-col">
+          <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
             No customers yet.
           </CardContent>
         </Card>

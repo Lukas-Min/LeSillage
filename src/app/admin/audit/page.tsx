@@ -12,13 +12,19 @@ export default async function AdminAuditPage() {
     .orderBy(desc(auditLog.createdAt))
     .limit(100);
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col space-y-4">
       <h1 className="font-serif-display text-2xl">Audit log</h1>
-      <Card>
+      <Card className={rows.length === 0 ? "flex flex-1 flex-col" : undefined}>
         <CardHeader>
           <CardTitle className="text-base">Latest 100 events</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent
+          className={
+            rows.length === 0
+              ? "flex flex-1 flex-col items-center justify-center text-center text-sm text-muted-foreground"
+              : "space-y-2 text-sm"
+          }
+        >
           {rows.length === 0 ? (
             <p className="text-muted-foreground">No events yet.</p>
           ) : (

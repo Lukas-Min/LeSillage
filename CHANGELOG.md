@@ -4,6 +4,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Every empty-list state (wishlist, orders, admin orders/customers/products, the shared `EmptyState` component) now fills the remaining page height and vertically centers its message, instead of sitting near the top with a large dead gap below — matches the fix already applied to `/shop`. Populated lists are unaffected, they stay top-aligned. Required propagating `flex flex-1 flex-col` through `account/layout.tsx` and `admin/layout.tsx`, which previously broke the chain (the sidebar `<div>` had no `flex-1`, `<main>` had `flex-1` but no `flex-col`)
+- Homepage flagship panel now shows "View" instead of "View the perfume", and the two hero buttons are now equal width (`sm:w-44`) instead of sizing to their own text
+- The storefront search modal's debounce went from 220ms to 2 seconds — searching now waits until the user actually stops typing instead of firing on nearly every keystroke
 - Homepage flagship panel now only picks from `FULL_BOTTLE` products (was any in-stock type). Shows the actual price with a discounted/save-badge treatment via the shared `Price` component instead of a "From ₱X" range wording that didn't make sense for a single-SKU product. Added rating and shelf-category badges on the image (matching `ProductCard`'s treatment) and a "Concentration · Gender" line under the name
 
 ### Added

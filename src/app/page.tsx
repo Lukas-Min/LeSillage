@@ -123,10 +123,10 @@ async function FlagshipPanel() {
           discountedCentavos={flagship.minDiscountedCentavos}
         />
         <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
-          <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
-            <Link href={flagship.href}>View the perfume</Link>
+          <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md sm:w-44">
+            <Link href={flagship.href}>View</Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="h-11 rounded-md">
+          <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md sm:w-44">
             <Link href="/shop">Shop the catalog</Link>
           </Button>
         </div>

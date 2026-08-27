@@ -12,8 +12,15 @@ export const dynamic = "force-dynamic";
 export default async function AdminOrdersPage() {
   const rows = await db().select().from(orders).orderBy(desc(orders.createdAt));
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 flex-col space-y-4">
       <h1 className="font-serif-display text-2xl">Orders</h1>
+      {rows.length === 0 ? (
+        <Card className="flex flex-1 flex-col">
+          <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
+            No orders yet.
+          </CardContent>
+        </Card>
+      ) : null}
       {rows.map((order) => (
         <Card key={order.id}>
           <CardHeader className="flex flex-row items-center justify-between">
