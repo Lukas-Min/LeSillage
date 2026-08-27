@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- `OAuthButton` (`src/components/store/oauth-button.tsx`) now renders the actual Google and Facebook brand marks before the "Continue with…" label on sign-in/sign-up — was plain text with no logo before
+
 ### Fixed
 - Opening a Dialog/Sheet (search, filters, etc.) shifted the page width — Radix's own scroll-lock compensation (`margin-right` on `body[data-scroll-locked]`) was stacking on top of the permanent scrollbar gutter already reserved by `scrollbar-gutter: stable`. Zeroed out Radix's compensation in `globals.css` since the gutter fix already handles it
 - The Fragrantica/Fragella import (`saveFragranticaImport`, `saveFragranticaFromMirror`, `refreshStaleFragellaRecords`) fetched an `imageUrl` all along but never inserted it into `productImages` — every imported product silently had no real photo regardless of what the API returned. Both save paths now insert the image row, and the refresh job now keeps it in sync too
