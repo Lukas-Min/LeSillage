@@ -4,32 +4,16 @@ import { Eyebrow } from "@/components/ui/section";
 import { ProductCard } from "@/components/store/product-card";
 import type { CatalogCardModel } from "@/lib/catalog";
 
-export function CatalogGrid({
-  title,
-  subtitle,
+export function CatalogResults({
   cards,
   emptyLabel = "No items match this filter yet.",
-  filters,
-  eyebrow,
 }: {
-  title: string;
-  subtitle?: string;
   cards: CatalogCardModel[];
   emptyLabel?: string;
-  filters?: ReactNode;
-  eyebrow?: ReactNode;
 }) {
   const countLabel = `${cards.length} fragrance${cards.length === 1 ? "" : "s"}`;
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
-      <header className="mb-8 flex flex-col items-center gap-3 text-center">
-        {eyebrow ? eyebrow : <Eyebrow>Le Sillage · Manila</Eyebrow>}
-        <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">{title}</h1>
-        {subtitle ? (
-          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>
-        ) : null}
-      </header>
-      {filters ? <div className="mb-4 flex justify-center">{filters}</div> : null}
+    <>
       <p className="mb-6 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         {countLabel}
       </p>
@@ -47,6 +31,36 @@ export function CatalogGrid({
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+export function CatalogGrid({
+  title,
+  subtitle,
+  cards,
+  emptyLabel,
+  filters,
+  eyebrow,
+}: {
+  title: string;
+  subtitle?: string;
+  cards: CatalogCardModel[];
+  emptyLabel?: string;
+  filters?: ReactNode;
+  eyebrow?: ReactNode;
+}) {
+  return (
+    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:py-14">
+      <header className="mb-8 flex flex-col items-center gap-3 text-center">
+        {eyebrow ? eyebrow : <Eyebrow>Le Sillage · Manila</Eyebrow>}
+        <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">{title}</h1>
+        {subtitle ? (
+          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>
+        ) : null}
+      </header>
+      {filters ? <div className="mb-4 flex justify-center">{filters}</div> : null}
+      <CatalogResults cards={cards} emptyLabel={emptyLabel} />
     </main>
   );
 }

@@ -1,6 +1,4 @@
-"use client";
-
-import Link, { useLinkStatus } from "next/link";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { ProductType } from "@/db/schema";
 
@@ -10,19 +8,6 @@ const TYPE_FILTERS: Array<{ type?: ProductType; label: string; href: string }> =
   { type: "FULL_BOTTLE", label: "Full bottles", href: "/shop?type=FULL_BOTTLE" },
   { type: "PARTIAL", label: "Partials", href: "/shop?type=PARTIAL" },
 ];
-
-function PendingDot() {
-  const { pending } = useLinkStatus();
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "pointer-events-none absolute top-1/2 -right-3 h-1 w-1 -translate-y-1/2 rounded-full bg-current opacity-0",
-        pending && "animate-link-pending",
-      )}
-    />
-  );
-}
 
 export function ShopFilters({ activeType }: { activeType?: ProductType }) {
   return (
@@ -40,7 +25,6 @@ export function ShopFilters({ activeType }: { activeType?: ProductType }) {
           >
             {filter.label}
             {isActive ? <span className="absolute inset-x-0 -bottom-px h-[1.5px] bg-foreground" /> : null}
-            <PendingDot />
           </Link>
         );
       })}

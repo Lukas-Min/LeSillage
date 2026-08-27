@@ -5,7 +5,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ## [Unreleased]
 ### Changed
 - `/shop` filter tabs (`src/components/store/shop-filters.tsx`) restyled to match the reference exactly: plain uppercase text tabs with a thin underline on the active one, no bordered pills; removed the 3/5/10/30ml decant-size sub-filter row
-- Filter tab links now show a small pending indicator (`useLinkStatus`) while the DB-backed catalog query for the new filter is in flight, since query-string-only navigation on `/shop` does not retrigger `loading.tsx`
+- `/shop`'s results now render in a nested async component wrapped in `<Suspense key={type}>` (`CatalogResults` in `src/components/store/catalog-grid.tsx`, skeleton in `src/components/store/loading.tsx`), so switching filter tabs shows a real card-grid skeleton while the DB query runs instead of the page looking frozen or a plain spinner — `loading.tsx` alone does not retrigger for query-string-only navigation on the same route
 
 ### Added
 - `loading.tsx` for every route that was missing one (26 pages: all `(auth)` routes, `about`/`contact`/`faq`/`how-to-pay`/`policies`/`cart`/`bottles`/`decants`, `account/profile`/`notifications`/`delete`, and 10 admin pages) so every page shows a skeleton instead of a blank screen while it loads
