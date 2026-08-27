@@ -104,10 +104,10 @@ async function FlagshipPanel() {
         </p>
         <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
           <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
-            <Link href="/shop">Shop the catalog</Link>
+            <Link href={flagship.href}>View the perfume</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-11 rounded-md">
-            <Link href="/how-to-pay">How to pay</Link>
+            <Link href="/shop">Shop the catalog</Link>
           </Button>
         </div>
       </div>
@@ -116,7 +116,9 @@ async function FlagshipPanel() {
 }
 
 function pickFlagship(cards: CatalogCardModel[]): CatalogCardModel | null {
-  return cards.find((c) => c.type === "FULL_BOTTLE") ?? cards[0] ?? null;
+  const inStock = cards.filter((c) => !c.soldOut);
+  if (inStock.length === 0) return null;
+  return inStock[Math.floor(Math.random() * inStock.length)];
 }
 
 function FlagshipSkeleton() {
