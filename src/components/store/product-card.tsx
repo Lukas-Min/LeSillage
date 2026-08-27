@@ -8,16 +8,16 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   return (
     <Link
       href={card.href}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-gold/40"
     >
       <ProductImage
         src={card.imageUrl}
         alt={card.imageAlt ?? card.name}
         fallback={card.brand}
-        className="aspect-square w-full"
+        className="aspect-square w-full border-b border-gold/15"
       />
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">{card.brand}</p>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-gold-foreground">{card.brand}</p>
         <h2 className="font-serif-display line-clamp-2 text-lg leading-snug">{card.name}</h2>
         <p className="line-clamp-1 text-xs text-muted-foreground">{card.family ?? labelForType(card.type)}</p>
         <div className="mt-auto space-y-2 pt-3">

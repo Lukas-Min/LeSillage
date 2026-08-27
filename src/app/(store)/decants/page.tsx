@@ -18,6 +18,7 @@ export default async function DecantsPage({
   const cards = await loadCatalogCards({ type: "DECANT", sizeMl: validSize });
   return (
     <CatalogGrid
+      eyebrow="Decants · Manila"
       title="Decants"
       subtitle="Smaller pours of the same bottle — perfect to test before committing to a full size."
       cards={cards}

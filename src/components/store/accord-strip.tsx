@@ -4,9 +4,7 @@ export function AccordStrip({ accords }: { accords: ProductAccords | null }) {
   if (!accords || accords.length === 0) {
     return (
       <div className="space-y-2">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full w-1/3 bg-muted-foreground/30" />
-        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted" aria-hidden="true" />
         <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           No accord data yet
         </p>
@@ -16,8 +14,8 @@ export function AccordStrip({ accords }: { accords: ProductAccords | null }) {
   const visible = accords.slice(0, 5);
   const totalStrength = visible.reduce((acc, item) => acc + (item.strength ?? 1), 0) || 1;
   return (
-    <div className="space-y-2">
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+    <div className="space-y-3">
+      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
         {visible.map((item, index) => {
           const weight = ((item.strength ?? 1) / totalStrength) * 100;
           return (
@@ -28,12 +26,11 @@ export function AccordStrip({ accords }: { accords: ProductAccords | null }) {
                 width: `${weight}%`,
                 backgroundColor: item.color ?? defaultAccordColor(index),
               }}
-              aria-hidden="true"
             />
           );
         })}
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <div className="flex flex-wrap gap-x-5 gap-y-1">
         {visible.map((item, index) => (
           <span
             key={`${item.name}-${index}`}

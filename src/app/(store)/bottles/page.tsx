@@ -19,6 +19,7 @@ export default async function BottlesPage({
   const cards = await loadCatalogCards({ type });
   return (
     <CatalogGrid
+      eyebrow="Bottles · Manila"
       title={type === "PARTIAL" ? "Partials" : "Full bottles"}
       subtitle="Pre-order the full bottles you want, or pick up a partial in stock right now."
       cards={cards}

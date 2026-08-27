@@ -31,7 +31,7 @@ export default async function Home() {
             Full bottles by pre-order. Partials and decants on hand. Pay via QR, upload your receipt, and we ship.
           </p>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <Button asChild size="lg">
+            <Button asChild size="lg" className="bg-gold text-gold-foreground hover:bg-gold/90">
               <Link href="/bottles">
                 Shop the catalog
                 <ArrowRight className="h-4 w-4" />

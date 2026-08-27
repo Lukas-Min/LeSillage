@@ -13,7 +13,7 @@ export function AddToCartButton({ skuId }: { skuId: string }) {
   const decrement = () => setQty((value) => Math.max(1, value - 1));
   const increment = () => setQty((value) => Math.min(99, value + 1));
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-1 items-center gap-2">
       <div className="flex items-center rounded-md border border-border">
         <Button
           type="button"
@@ -47,7 +47,7 @@ export function AddToCartButton({ skuId }: { skuId: string }) {
       <Button
         type="button"
         size="lg"
-        className="min-w-[12rem] flex-1 sm:flex-none"
+        className="h-11 flex-1 bg-gold text-gold-foreground hover:bg-gold/90"
         disabled={isPending}
         aria-busy={isPending}
         onClick={() =>

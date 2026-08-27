@@ -27,6 +27,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ### Changed
 - Store header primary nav swapped `Shop` for `Bottles` + `Decants`; in-app links to the catalog now point to `/bottles` or `/decants`
+- Tightened storefront surfaces against the reference: editorial centred grid header, square cream-bordered product cards and image tiles, square-edged filter pills, italic family line on the PDP with a thin gold-rule card, square-edged size pills with `FULL · 100ML` option on bottle SKUs, gold-fill `Add to bag` button, and a 3-column Top / Heart / Base notes strip inside the Composition accordion
 - Shared `Section`/`PageHeader`/`EmptyState`/`StatTile`/`SurfaceCard`/`OrderStatusPill` primitives in `src/components/ui/section.tsx` and `src/components/ui/status-pill.tsx`
 - Admin Fragrantica import at `/admin/products/fragrantica` powered by Fragella with a manual HTML/JSON paste fallback; fields stored on `product` and a daily cron refreshes products older than 15 days
 - Vercel cron schedule in `vercel.json` calling `/api/cron/fragella-refresh` once per day

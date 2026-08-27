@@ -24,6 +24,14 @@ function filtersForMode(mode: Mode) {
   return [];
 }
 
+const pillClass = (active: boolean) =>
+  cn(
+    "inline-flex min-h-11 items-center rounded-md border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
+    active
+      ? "border-foreground bg-foreground text-background"
+      : "border-border bg-background hover:bg-muted",
+  );
+
 export function ShopFilters({
   mode = "all",
   activeType,
@@ -37,22 +45,13 @@ export function ShopFilters({
 }) {
   const typeFilters = filtersForMode(mode);
   return (
-    <div className="mb-6 space-y-3">
+    <div className="space-y-3">
       {typeFilters.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           {typeFilters.map((filter) => {
             const isActive = filter.type === activeType || (!filter.type && !activeType);
             return (
-              <Link
-                key={filter.href}
-                href={filter.href}
-                className={cn(
-                  "inline-flex min-h-11 items-center rounded-full border px-4 text-sm",
-                  isActive
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-background hover:bg-muted",
-                )}
-              >
+              <Link key={filter.href} href={filter.href} className={pillClass(isActive)}>
                 {filter.label}
               </Link>
             );
@@ -60,21 +59,12 @@ export function ShopFilters({
         </div>
       ) : null}
       {showDecantSizes ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           {DECANT_SIZES_ML.map((size) => {
             const href = `/decants?size=${size}`;
             const isActive = activeSize === size;
             return (
-              <Link
-                key={size}
-                href={href}
-                className={cn(
-                  "inline-flex min-h-11 items-center rounded-full border px-4 text-sm",
-                  isActive
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-background hover:bg-muted",
-                )}
-              >
+              <Link key={size} href={href} className={pillClass(isActive)}>
                 {size}ml
               </Link>
             );
