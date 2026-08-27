@@ -84,7 +84,8 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const discount = bestDiscount(discounts, row.retailPrice);
   const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
   const accords = productAccords(row.accords);
-  const notePyramid = normaliseNotePyramid(row.notePyramid, row.notes);
+  const notePyramid = normaliseNotePyramid(row.notePyramid, null);
+  const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
   const familyLabel = (row.family ?? "").trim();
   const isDecant = row.type === "DECANT";
   const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
@@ -99,7 +100,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
+      <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_2fr] md:gap-12 md:divide-x md:divide-border/60">
         <div className="flex flex-col gap-6 md:pr-12">
           <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
 
@@ -112,37 +113,31 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                 {row.description?.trim() || describeFamily(row.type, familyLabel)}
               </p>
             ) : null}
+            {looseNotes ? <p className="mt-2 text-sm text-muted-foreground">{looseNotes}</p> : null}
           </div>
 
-          <AccordStrip accords={accords} />
+          {accords && accords.length > 0 ? <AccordStrip accords={accords} /> : null}
 
-          <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} />
-
-          <section className="space-y-4 border-t border-border/60 pt-4">
-            <PolicySection label={policyCopy.shipping.label} body={policyCopy.shipping.body} />
-            <PolicySection label={policyCopy.returns.label} body={policyCopy.returns.body} />
-          </section>
+          {notePyramid ? <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} /> : null}
         </div>
 
         <div className="flex flex-col gap-6 md:pl-12">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
-            <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{row.name}</h1>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Badge variant="outline">
-                {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
-              </Badge>
-              <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
-              {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
+              <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{row.name}</h1>
+              {concentration ? <p className="text-sm text-muted-foreground">{concentration}</p> : null}
             </div>
+            <WishlistButton productId={row.productId} variant="icon" />
           </div>
 
-          {concentration ? (
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Concentration</p>
-              <p className="font-serif-display text-lg">{concentration}</p>
-            </div>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">
+              {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
+            </Badge>
+            <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
+            {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+          </div>
 
           <SizeSection
             options={
@@ -174,11 +169,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           {soldOut ? (
             <p className="text-sm text-destructive">Sold out — check back soon.</p>
           ) : (
-            <div className="flex items-stretch gap-2">
-              <AddToCartButton skuId={row.skuId} />
-              <WishlistButton productId={row.productId} variant="icon" />
-            </div>
+            <AddToCartButton skuId={row.skuId} />
           )}
+
+          <section className="space-y-4 border-t border-border/60 pt-4">
+            <PolicySection label={policyCopy.shipping.label} body={policyCopy.shipping.body} />
+            <PolicySection label={policyCopy.returns.label} body={policyCopy.returns.body} />
+          </section>
         </div>
       </div>
     </main>

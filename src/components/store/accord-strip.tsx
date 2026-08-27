@@ -1,16 +1,6 @@
 import type { ProductAccords } from "@/lib/product-accords";
 
-export function AccordStrip({ accords }: { accords: ProductAccords | null }) {
-  if (!accords || accords.length === 0) {
-    return (
-      <div className="space-y-2">
-        <div className="h-1.5 w-full rounded-full bg-muted" aria-hidden="true" />
-        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-          No accord data yet
-        </p>
-      </div>
-    );
-  }
+export function AccordStrip({ accords }: { accords: ProductAccords }) {
   const visible = accords.slice(0, 5);
   const totalStrength = visible.reduce((acc, item) => acc + (item.strength ?? 1), 0) || 1;
   return (

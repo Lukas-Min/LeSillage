@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- PDP (`src/app/(store)/shop/[skuId]/page.tsx`) columns changed from 50/50 to 1/3 (image + description + composition) / 2/3 (buy box); Shipping & delivery and Returns & authenticity moved to the bottom of the right column; wishlist heart moved next to the brand/name header instead of beside Add to bag; concentration now renders as a plain subtitle directly under the product name (no "Concentration" label)
+- Composition no longer falls back to cramming a product's freeform `notes` text into a fake "Top" note — `notePyramid` is only used when real structured data exists; the image canvas, accord strip, and the Composition table now hide themselves entirely when there's no real data instead of showing an empty/awkward placeholder, and any loose `notes` text shows as a plain line under the description instead
 - Product card (`src/components/store/product-card.tsx`) restyled per feedback: rating badge (star + value) overlaid top-left on the image, save% badge moved from inline-with-price to a top-right overlay on the image, price block right-aligned (`CatalogPrice` gained `align`/`showSaveBadge` props in `src/components/store/price.tsx`)
 
 ### Added
