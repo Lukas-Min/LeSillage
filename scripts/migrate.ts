@@ -522,6 +522,16 @@ async function main() {
     WHERE "product"."id" = sub.id AND "product"."concentration" IS NULL AND sub.guessed IS NOT NULL
   `);
 
+  await db.execute(
+    `ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountEnabled" boolean NOT NULL DEFAULT false`,
+  );
+  await db.execute(
+    `ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountType" text NOT NULL DEFAULT 'PERCENTAGE'`,
+  );
+  await db.execute(
+    `ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountAmount" integer NOT NULL DEFAULT 0`,
+  );
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -532,6 +542,9 @@ async function main() {
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "sourceMl";
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "remainingMl";
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "decantPreOrderThresholdMl";
+// ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountEnabled";
+// ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountType";
+// ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountAmount";
 // DROP TABLE IF EXISTS "email_verification_code";
 
 main().catch((error) => {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { createQrCode, deleteQrCode, updateQrCode } from "@/actions/admin-qr-actions";
 
 export const dynamic = "force-dynamic";
@@ -50,10 +51,17 @@ export default async function QrAdminPage() {
                 </div>
               </div>
             </form>
-            <form action={deleteQrCode} className="mt-3">
+            <form id={`delete-qr-form-${qr.id}`} action={deleteQrCode} className="mt-3">
               <input type="hidden" name="id" value={qr.id} />
-              <SubmitButton variant="outline">Delete</SubmitButton>
             </form>
+            <ConfirmSubmitButton
+              formId={`delete-qr-form-${qr.id}`}
+              triggerLabel="Delete"
+              triggerVariant="outline"
+              title={`Delete the ${qr.bankName} QR code?`}
+              description="This removes it from checkout immediately. This can't be undone."
+              confirmLabel="Delete"
+            />
           </CardContent>
         </Card>
       ))}

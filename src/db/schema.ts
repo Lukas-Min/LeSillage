@@ -437,6 +437,9 @@ export const promoSettings = pgTable("promo_setting", {
   freeDeliveryEnabled: boolean("freeDeliveryEnabled").notNull().default(true),
   testerBonusEnabled: boolean("testerBonusEnabled").notNull().default(true),
   decantPreOrderThresholdMl: integer("decantPreOrderThresholdMl").notNull().default(10),
+  siteWideDiscountEnabled: boolean("siteWideDiscountEnabled").notNull().default(false),
+  siteWideDiscountType: text("siteWideDiscountType").$type<DiscountType>().notNull().default("PERCENTAGE"),
+  siteWideDiscountAmount: integer("siteWideDiscountAmount").notNull().default(0),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 

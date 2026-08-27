@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/section";
@@ -11,12 +12,16 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <main className="surface-grid mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 py-20 text-center">
       <Eyebrow>Error</Eyebrow>
       <h1 className="font-serif-display text-3xl">Something went wrong</h1>
       <p className="text-sm text-muted-foreground">
-        {error.message || "The page could not be loaded. Try again."}
+        The page could not be loaded. Try again, or head back home if it keeps happening.
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <Button type="button" variant="gold" className="rounded-md" onClick={() => reset()}>

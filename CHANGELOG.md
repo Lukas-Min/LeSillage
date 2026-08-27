@@ -3,6 +3,13 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Destructive admin actions (archive/delete a product, archive/delete a SKU, delete a QR code) now confirm through a styled `AlertDialog` before submitting instead of firing immediately on click — added a reusable `ConfirmSubmitButton` (`src/components/ui/confirm-submit-button.tsx`)
+- "Account home" renamed to "Dashboard" in the account dropdown
+
+### Fixed
+- The root `error.tsx` boundary rendered the raw thrown `error.message` straight to the customer — any uncaught domain error (invalid order transition, unknown pricing mode, etc.) would leak internal wording. Now shows a generic message and logs the real error to the console instead
+
 ### Changed
 - Content pages (FAQ, Contact, About, How to pay, Policies) now center their card/prose content within the wide `max-w-6xl` shell instead of leaving it flush left, which was leaving a large lopsided empty gap on the right on anything wider than a laptop screen
 - The main content area now has `min-h-dvh` so the footer is never visible without scrolling, even on an empty/short page — previously `flex-1` alone let the footer sit flush after short content. Moved the `min-h-dvh` to wrap the navbar together with the content (not content alone), so the 100vh minimum is navbar+content combined, and made the flex chain down through `/shop`'s empty-state box propagate properly so "Nothing on this shelf yet" centers in the leftover space instead of sitting near the top with dead space below it

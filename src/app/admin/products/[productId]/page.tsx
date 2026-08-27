@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import {
   adjustDecantMl,
   archiveOrDeleteProduct,
@@ -153,10 +154,16 @@ export default async function AdminProductDetailPage({
               remaining · {pendingPreOrderMl}ml pending in open pre-orders.
             </p>
           ) : null}
-          <form action={archiveOrDeleteProduct} className="mt-4">
+          <form id="delete-product-form" action={archiveOrDeleteProduct} className="mt-4">
             <input type="hidden" name="productId" value={product.id} />
-            <SubmitButton variant="destructive">Archive or delete</SubmitButton>
           </form>
+          <ConfirmSubmitButton
+            formId="delete-product-form"
+            triggerLabel="Archive or delete"
+            title={`Archive or delete "${product.name}"?`}
+            description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records). Otherwise it's deleted permanently. This can't be undone from here."
+            confirmLabel="Archive or delete"
+          />
         </CardContent>
       </Card>
       <Card>
@@ -235,11 +242,20 @@ export default async function AdminProductDetailPage({
             </form>
           ))}
           {skuList.map((sku) => (
-            <form action={archiveOrDeleteSku} key={`${sku.id}-del`}>
-              <input type="hidden" name="skuId" value={sku.id} />
-              <input type="hidden" name="productId" value={product.id} />
-              <SubmitButton variant="outline">Archive or delete {sku.label}</SubmitButton>
-            </form>
+            <div key={`${sku.id}-del`}>
+              <form id={`delete-sku-form-${sku.id}`} action={archiveOrDeleteSku}>
+                <input type="hidden" name="skuId" value={sku.id} />
+                <input type="hidden" name="productId" value={product.id} />
+              </form>
+              <ConfirmSubmitButton
+                formId={`delete-sku-form-${sku.id}`}
+                triggerLabel={`Archive or delete ${sku.label}`}
+                triggerVariant="outline"
+                title={`Archive or delete "${sku.label}"?`}
+                description="If it has orders or cart entries, it's archived (hidden, kept for records). Otherwise it's deleted permanently."
+                confirmLabel="Archive or delete"
+              />
+            </div>
           ))}
           <div className="space-y-3 border-t pt-4">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Add a SKU</p>

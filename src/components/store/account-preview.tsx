@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 
 const SIGNED_IN_LINKS = [
-  { href: "/account", label: "Account home" },
+  { href: "/account", label: "Dashboard" },
   { href: "/account/orders", label: "Orders" },
   { href: "/account/wishlist", label: "Wishlist" },
   { href: "/account/addresses", label: "Addresses" },
