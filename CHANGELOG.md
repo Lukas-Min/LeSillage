@@ -4,9 +4,12 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Content pages (FAQ, Contact, About, How to pay, Policies) now center their card/prose content within the wide `max-w-6xl` shell instead of leaving it flush left, which was leaving a large lopsided empty gap on the right on anything wider than a laptop screen
+- The main content area now has `min-h-dvh` so the footer is never visible without scrolling, even on an empty/short page — previously `flex-1` alone let the footer sit flush after short content
 - `/shop` with no `type` filter now defaults to Decants instead of showing every type unfiltered — matches removing the "All" tab, there's no longer an unfiltered view to land on
 
 ### Fixed
+- The quantity stepper's state lived entirely inside `AddToCartButton`, so the `Price` display next to it on the PDP had no way to know the selected quantity and always showed the per-unit price — picking 5 didn't change the displayed total. `AddToCartButton` now accepts a controlled `quantity`/`onQuantityChange` pair; a new `BuyBox` (non-decant PDP) and the updated `DecantBuyBox` both lift quantity into shared state so the price actually multiplies
 - Admin product edit page (`/admin/products/[productId]`) had no `<Label>` on almost any field in the Product or SKU forms — just bare inputs and dropdowns with no indication of what each one was. Labeled every field and grouped the per-SKU forms more clearly
 - Admin product list card only made the product name text clickable while the rest of the card (badges, SKU rows) looked interactive but wasn't — now the whole card is one link to the edit page, matching the "whole surface navigates, only the specific action button is separate" pattern used on `/shop`. Also dropped the now-redundant nested link that lived inside the "No concentration" badge
 - Add-to-cart button labels were inconsistent ("Add" on compact/card buttons, "Add to bag" on the full PDP button) — both variants now say "Add to cart"

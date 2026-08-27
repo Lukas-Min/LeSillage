@@ -32,6 +32,7 @@ export function DecantBuyBox({
     options.findIndex((o) => o.skuId === initialSkuId),
   );
   const [index, setIndex] = useState(initialIndex);
+  const [quantity, setQuantity] = useState(1);
   const selected = options[index];
 
   function select(nextIndex: number, skuId: string) {
@@ -85,9 +86,14 @@ export function DecantBuyBox({
         originalCentavos={selected.originalCentavos ?? 0}
         discountedCentavos={selected.discountedCentavos ?? 0}
         savedCentavos={selected.savedCentavos ?? 0}
+        quantity={quantity}
       />
 
-      <AddToCartButton key={selected.skuId} skuId={selected.skuId ?? ""} />
+      <AddToCartButton
+        skuId={selected.skuId ?? ""}
+        quantity={quantity}
+        onQuantityChange={setQuantity}
+      />
     </>
   );
 }

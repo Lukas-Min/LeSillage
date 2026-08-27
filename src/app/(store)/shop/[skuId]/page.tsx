@@ -9,8 +9,7 @@ import { concentrationLabel, guessConcentration, sizeOnlyLabel } from "@/domain/
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
-import { AddToCartButton } from "@/components/store/add-to-cart-button";
-import { Price } from "@/components/store/price";
+import { BuyBox } from "@/components/store/buy-box";
 import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
@@ -207,17 +206,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                 }))}
               />
 
-              <Price
+              <BuyBox
+                skuId={row.skuId}
                 originalCentavos={row.retailPrice}
                 discountedCentavos={discountedUnitCentavos}
                 savedCentavos={perUnitDiscountCentavos}
+                soldOut={soldOut}
               />
-
-              {soldOut ? (
-                <p className="text-sm text-destructive">Sold out — check back soon.</p>
-              ) : (
-                <AddToCartButton skuId={row.skuId} />
-              )}
             </>
           )}
 

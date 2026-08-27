@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers>
           <StoreHeader />
-          <div className="flex-1">{children}</div>
+          <div className="min-h-dvh flex-1">{children}</div>
           <StoreFooter />
           <Toaster richColors position="top-center" />
         </Providers>

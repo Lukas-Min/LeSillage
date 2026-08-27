@@ -10,14 +10,24 @@ export function AddToCartButton({
   skuId,
   variant = "full",
   soldOut = false,
+  quantity,
+  onQuantityChange,
 }: {
   skuId: string;
   variant?: "full" | "compact";
   soldOut?: boolean;
+  quantity?: number;
+  onQuantityChange?: (quantity: number) => void;
 }) {
   const cart = useCart();
   const [isPending, startTransition] = useTransition();
-  const [qty, setQty] = useState(1);
+  const [internalQty, setInternalQty] = useState(1);
+  const qty = quantity ?? internalQty;
+  const setQty = (updater: (value: number) => number) => {
+    const next = updater(qty);
+    if (onQuantityChange) onQuantityChange(next);
+    else setInternalQty(next);
+  };
   const add = (quantity: number) =>
     startTransition(async () => {
       try {
