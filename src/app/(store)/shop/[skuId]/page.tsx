@@ -18,7 +18,7 @@ import { labelForCategory, labelForCondition, labelForType } from "@/domain/prod
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
 import { normaliseNotePyramid } from "@/lib/note-pyramid";
-import { cn } from "@/lib/utils";
+import { capitalizeFirst, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -317,10 +317,6 @@ function NoteColumn({ notes }: { notes: string[] }) {
     return <p className="text-center text-xs text-muted-foreground">—</p>;
   }
   return <p className="text-center text-sm text-foreground">{notes.join(", ")}</p>;
-}
-
-function capitalizeFirst(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 function topSeasonLabels(breakout: unknown, limit = 2): string | null {

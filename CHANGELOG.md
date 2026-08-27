@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Homepage flagship panel now only picks from `FULL_BOTTLE` products (was any in-stock type). Shows the actual price with a discounted/save-badge treatment via the shared `Price` component instead of a "From ₱X" range wording that didn't make sense for a single-SKU product. Added rating and shelf-category badges on the image (matching `ProductCard`'s treatment) and a "Concentration · Gender" line under the name
+
 ### Added
 - Destructive admin actions (archive/delete a product, archive/delete a SKU, delete a QR code) now confirm through a styled `AlertDialog` before submitting instead of firing immediately on click — added a reusable `ConfirmSubmitButton` (`src/components/ui/confirm-submit-button.tsx`)
 - "Account home" renamed to "Dashboard" in the account dropdown

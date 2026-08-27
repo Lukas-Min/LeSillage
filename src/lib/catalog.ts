@@ -42,6 +42,7 @@ export interface CatalogCardModel {
   type: ProductType;
   fragranceCategory: FragranceCategory;
   concentration: Concentration | null;
+  gender: string | null;
   ratingValue: number | null;
   href: string;
   imageUrl: string | null;
@@ -104,6 +105,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       type: products.type,
       fragranceCategory: products.fragranceCategory,
       concentration: products.concentration,
+      gender: products.gender,
       ratingValue: products.ratingValue,
       remainingMl: products.remainingMl,
       notes: products.notes,
@@ -195,6 +197,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       type: product.type,
       fragranceCategory: product.fragranceCategory,
       concentration: product.concentration,
+      gender: product.gender,
       ratingValue: product.ratingValue !== null ? Number(product.ratingValue) : null,
       href: `/shop/${destination.skuId}`,
       imageUrl: image?.url ?? null,

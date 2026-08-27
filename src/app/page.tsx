@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Droplet, PackageOpen, SprayCan } from "lucide-react";
+import { ArrowRight, Droplet, PackageOpen, SprayCan, Star } from "lucide-react";
 import { loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
-import { formatPHP } from "@/domain/money";
+import { Price } from "@/components/store/price";
 import { Button } from "@/components/ui/button";
 import { Eyebrow, SectionCard } from "@/components/ui/section";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { Skeleton } from "@/components/ui/skeleton";
+import { concentrationLabel } from "@/domain/concentration";
+import { labelForCategory } from "@/domain/product-type";
+import { capitalizeFirst } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -80,28 +83,45 @@ export default function Home() {
 }
 
 async function FlagshipPanel() {
-  const cards = await loadCatalogCards({});
+  const cards = await loadCatalogCards({ type: "FULL_BOTTLE" });
   const flagship = pickFlagship(cards);
   if (!flagship) return null;
+  const concentrationGender = [concentrationLabel(flagship.concentration), flagship.gender ? capitalizeFirst(flagship.gender) : null]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
-      <CompositionCanvas
-        brand={flagship.brand}
-        name={flagship.name}
-        pyramid={flagship.notePyramid}
-        imageUrl={flagship.imageUrl}
-        imageAlt={flagship.imageAlt}
-        className="mx-auto w-full max-w-xs transition-transform duration-300 hover:-translate-y-1"
-      />
+      <div className="relative mx-auto w-full max-w-xs">
+        {flagship.ratingValue ? (
+          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-none bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm">
+            <Star className="h-3 w-3 fill-gold text-gold" aria-hidden="true" />
+            {flagship.ratingValue.toFixed(1)}
+          </span>
+        ) : null}
+        <span className="absolute left-2 bottom-2 z-10 inline-flex items-center rounded-none bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
+          {labelForCategory(flagship.fragranceCategory)}
+        </span>
+        <CompositionCanvas
+          brand={flagship.brand}
+          name={flagship.name}
+          pyramid={flagship.notePyramid}
+          imageUrl={flagship.imageUrl}
+          imageAlt={flagship.imageAlt}
+          className="transition-transform duration-300 hover:-translate-y-1"
+        />
+      </div>
       <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
         <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{flagship.brand}</p>
         <h2 className="font-serif-display text-3xl leading-tight sm:text-4xl">{flagship.name}</h2>
+        {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
         {flagship.description ? (
           <p className="text-sm text-muted-foreground sm:text-base">{flagship.description}</p>
         ) : null}
-        <p className="font-serif-display pt-1 text-xl">
-          From {formatPHP(flagship.minDiscountedCentavos)}
-        </p>
+        <Price
+          className="pt-1"
+          originalCentavos={flagship.minOriginalCentavos}
+          discountedCentavos={flagship.minDiscountedCentavos}
+        />
         <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
           <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
             <Link href={flagship.href}>View the perfume</Link>
