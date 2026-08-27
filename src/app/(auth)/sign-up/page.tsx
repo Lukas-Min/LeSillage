@@ -40,16 +40,16 @@ export default async function SignUpPage({
               Create account
             </SubmitButton>
           </form>
-          <div className="mt-4 space-y-2">
-            <OAuthButton provider="google" returnTo={returnTo} />
-            <OAuthButton provider="facebook" returnTo={returnTo} />
-          </div>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} className="underline-offset-4 hover:underline">
               Sign in
             </Link>
           </p>
+          <div className="mt-4 space-y-2">
+            <OAuthButton provider="google" returnTo={returnTo} />
+            <OAuthButton provider="facebook" returnTo={returnTo} />
+          </div>
         </CardContent>
       </Card>
     </main>

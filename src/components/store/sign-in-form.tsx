@@ -38,16 +38,16 @@ export function SignInForm({
             Forgot password?
           </Link>
         </p>
-        <div className="space-y-2">
-          <OAuthButton provider="google" returnTo={returnTo} />
-          <OAuthButton provider="facebook" returnTo={returnTo} />
-        </div>
         <p className="text-center text-sm text-muted-foreground">
           New here?{" "}
           <Link href={`/sign-up?returnTo=${encodeURIComponent(returnTo)}`} className="underline-offset-4 hover:underline">
             Create an account
           </Link>
         </p>
+        <div className="space-y-2">
+          <OAuthButton provider="google" returnTo={returnTo} />
+          <OAuthButton provider="facebook" returnTo={returnTo} />
+        </div>
         <p className="text-xs text-muted-foreground">
           By continuing you agree to our{" "}
           <Link href="/policies" className="underline-offset-4 hover:underline">

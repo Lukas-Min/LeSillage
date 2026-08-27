@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- On sign-in, "New here? Create an account" now sits above the Google/Facebook buttons; on sign-up, "Already have an account? Sign in" now sits above them too (was below on both)
+
 ### Added
 - `OAuthButton` (`src/components/store/oauth-button.tsx`) now renders the actual Google and Facebook brand marks before the "Continue with…" label on sign-in/sign-up — was plain text with no logo before
 
