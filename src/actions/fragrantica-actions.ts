@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
-import { products, skus } from "@/db/schema";
+import { products, skus, productImages } from "@/db/schema";
 import { guessConcentration, isConcentration } from "@/domain/concentration";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
@@ -213,6 +213,15 @@ export async function saveFragranticaImport(formData: FormData) {
     fulfillment: type === "FULL_BOTTLE" ? "PRE_ORDER" : "ON_HAND",
     stock: 0,
   });
+  const finalImageUrl = merged.imageUrl ?? imageUrl;
+  if (finalImageUrl) {
+    await db().insert(productImages).values({
+      productId,
+      url: finalImageUrl,
+      alt: `${merged.brand ?? brand} — ${merged.name ?? name}`,
+      position: 0,
+    });
+  }
   await auditLogSubject({
     actor: admin.id,
     action: "PRODUCT_FRAGELLA_IMPORT",
@@ -284,6 +293,16 @@ export async function refreshStaleFragellaRecords() {
           updatedAt: new Date(),
         })
         .where(eq(products.id, candidate.id));
+      if (record.imageUrl) {
+        const existingImage = (
+          await db().select({ id: productImages.id }).from(productImages).where(eq(productImages.productId, candidate.id)).limit(1)
+        )[0];
+        if (existingImage) {
+          await db().update(productImages).set({ url: record.imageUrl }).where(eq(productImages.id, existingImage.id));
+        } else {
+          await db().insert(productImages).values({ productId: candidate.id, url: record.imageUrl, position: 0 });
+        }
+      }
       await auditLogSubject({
         actor: "fragella-refresh",
         action: "FRAGELLA_REFRESH",

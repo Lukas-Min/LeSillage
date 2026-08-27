@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
-import { products, skus } from "@/db/schema";
+import { products, skus, productImages } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import {
@@ -180,6 +180,15 @@ export async function saveFragranticaFromMirror(formData: FormData) {
     fulfillment: parseType(formData.get("type")) === "FULL_BOTTLE" ? "PRE_ORDER" : "ON_HAND",
     stock: 0,
   });
+  const finalImageUrl = parsed.imageUrl ?? entry.imageUrl;
+  if (finalImageUrl) {
+    await db().insert(productImages).values({
+      productId,
+      url: finalImageUrl,
+      alt: `${parsed.brand ?? entry.brand} — ${parsed.name ?? entry.name}`,
+      position: 0,
+    });
+  }
   await auditLogSubject({
     actor: admin.id,
     action: "PRODUCT_FRAGELLA_IMPORT",

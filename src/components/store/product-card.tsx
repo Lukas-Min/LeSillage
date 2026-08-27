@@ -27,7 +27,13 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               Save {card.savePercent}%
             </span>
           ) : null}
-          <CompositionCanvas brand={card.brand} name={card.name} pyramid={card.notePyramid} />
+          <CompositionCanvas
+            brand={card.brand}
+            name={card.name}
+            pyramid={card.notePyramid}
+            imageUrl={card.imageUrl}
+            imageAlt={card.imageAlt}
+          />
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-4">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">{card.brand}</p>

@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { products, skus, productDiscounts, promoSettings } from "@/db/schema";
+import { products, skus, productDiscounts, productImages, promoSettings } from "@/db/schema";
 import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { concentrationLabel, guessConcentration, sizeOnlyLabel } from "@/domain/concentration";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { Price } from "@/components/store/price";
 import { AccordStrip } from "@/components/store/accord-strip";
@@ -20,6 +21,12 @@ import { normaliseNotePyramid } from "@/lib/note-pyramid";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  NICHE: "Niche",
+  DESIGNER: "Designer",
+  MIDDLE_EASTERN: "Middle Eastern",
+};
 
 export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
   const { skuId } = await params;
@@ -41,6 +48,8 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         notePyramid: products.notePyramid,
         accords: products.accords,
         perfumers: products.perfumers,
+        longevity: products.longevity,
+        seasonBreakout: products.seasonBreakout,
         condition: skus.condition,
         skuId: skus.id,
         skuLabel: skus.label,
@@ -58,7 +67,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   )[0];
   if (!row || row.isTester || !row.isActive || !row.productActive) return notFound();
 
-  const [discounts, siblings, promoRow] = await Promise.all([
+  const [discounts, siblings, promoRow, image] = await Promise.all([
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, row.productId)),
     client
       .select({
@@ -69,6 +78,12 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
       .from(skus)
       .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
     client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
+    client
+      .select({ url: productImages.url, alt: productImages.alt })
+      .from(productImages)
+      .where(eq(productImages.productId, row.productId))
+      .orderBy(asc(productImages.position))
+      .limit(1),
   ]);
 
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
@@ -87,9 +102,10 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, null);
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
-  const familyLabel = (row.family ?? "").trim();
   const isDecant = row.type === "DECANT";
   const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
+  const concentrationGender = [concentration, row.gender].filter(Boolean).join(" · ") || null;
+  const topSeasons = topSeasonLabels(row.seasonBreakout);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
@@ -103,23 +119,45 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
       <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
         <div className="flex flex-col gap-6 md:pr-12">
-          <CompositionCanvas brand={row.brand} name={row.name} pyramid={notePyramid} showComposition />
+          <CompositionCanvas
+            brand={row.brand}
+            name={row.name}
+            pyramid={notePyramid}
+            showComposition
+            imageUrl={image[0]?.url}
+            imageAlt={image[0]?.alt}
+            cornerLabel={CATEGORY_LABELS[row.fragranceCategory] ?? null}
+          />
 
-          <div className="rounded-md border border-border p-4">
-            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
-              {shelfEyebrow(row.fragranceCategory, concentration)}
-            </p>
-            {familyLabel || row.description ? (
-              <p className="mt-2 font-serif-display italic text-base text-foreground/80">
-                {row.description?.trim() || describeFamily(row.type, familyLabel)}
-              </p>
-            ) : null}
-            {looseNotes ? <p className="mt-2 text-sm text-muted-foreground">{looseNotes}</p> : null}
-          </div>
+          {accords && accords.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
+              <AccordStrip accords={accords} />
+            </div>
+          ) : null}
 
-          {accords && accords.length > 0 ? <AccordStrip accords={accords} /> : null}
+          {notePyramid ? (
+            <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} />
+          ) : looseNotes ? (
+            <p className="border-t border-border/60 pt-4 text-sm text-muted-foreground">{looseNotes}</p>
+          ) : null}
 
-          {notePyramid ? <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} /> : null}
+          {row.longevity || topSeasons ? (
+            <div className="grid grid-cols-2 gap-4 border-t border-border/60 pt-4">
+              {topSeasons ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Seasons</p>
+                  <p className="text-sm text-foreground">{topSeasons}</p>
+                </div>
+              ) : null}
+              {row.longevity ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Longevity</p>
+                  <p className="text-sm text-foreground">{row.longevity}</p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-6 md:pl-12">
@@ -127,6 +165,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             <div className="space-y-1.5">
               <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
               <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{row.name}</h1>
+              {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
             </div>
             <WishlistButton productId={row.productId} variant="icon" />
           </div>
@@ -136,7 +175,6 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
               {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
             </Badge>
             <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
-            {row.gender ? <Badge variant="outline">{row.gender}</Badge> : null}
             {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
           </div>
 
@@ -173,9 +211,21 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             <AddToCartButton skuId={row.skuId} />
           )}
 
-          <section className="space-y-4 border-t border-border/60 pt-4">
-            <PolicySection label={policyCopy.shipping.label} body={policyCopy.shipping.body} />
-            <PolicySection label={policyCopy.returns.label} body={policyCopy.returns.body} />
+          <section className="border-t border-border/60 pt-2">
+            <DisclosureAccordion
+              items={[
+                {
+                  id: "shipping",
+                  label: policyCopy.shipping.label,
+                  content: <p>{policyCopy.shipping.body}</p>,
+                },
+                {
+                  id: "returns",
+                  label: policyCopy.returns.label,
+                  content: <p>{policyCopy.returns.body}</p>,
+                },
+              ]}
+            />
           </section>
         </div>
       </div>
@@ -197,7 +247,7 @@ function SizeSection({
             return (
               <span
                 key={option.key}
-                className="inline-flex h-11 min-w-[3.5rem] cursor-not-allowed items-center justify-center rounded-md border border-dashed border-border px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+                className="inline-flex h-11 min-w-[3.5rem] cursor-not-allowed items-center justify-center border border-dashed border-border px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground"
               >
                 {option.label}
               </span>
@@ -208,7 +258,7 @@ function SizeSection({
               key={option.key}
               href={option.href}
               className={cn(
-                "inline-flex h-11 min-w-[3.5rem] items-center justify-center rounded-md border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
+                "inline-flex h-11 min-w-[3.5rem] items-center justify-center border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
                 option.active
                   ? "border-foreground bg-foreground text-background"
                   : "border-border bg-background hover:bg-muted",
@@ -219,15 +269,6 @@ function SizeSection({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function PolicySection({ label, body }: { label: string; body: string }) {
-  return (
-    <div className="space-y-1.5">
-      <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground">{label}</p>
-      <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
     </div>
   );
 }
@@ -244,7 +285,7 @@ function CompositionContent({
   const base = pyramid?.base ?? [];
   return (
     <div className="space-y-4 border-t border-border/60 pt-4">
-      <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground">Composition</p>
+      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Notes</p>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2 border-b border-border/40 pb-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           <span className="text-center">Top</span>
@@ -273,24 +314,12 @@ function NoteColumn({ notes }: { notes: string[] }) {
   return <p className="text-center text-sm text-foreground">{notes.join(", ")}</p>;
 }
 
-function describeFamily(type: string, family: string): string {
-  if (!family) return "";
-  if (type === "DECANT") return `A softer pour of ${family.toLowerCase()}.`;
-  return `${family}.`;
-}
-
-function shelfEyebrow(category: string, concentration: string | null): string {
-  const concentrationPart = concentration ? concentration.toUpperCase() : "FRAGRANCE";
-  switch (category) {
-    case "DESIGNER":
-      return `${concentrationPart} · DESIGNER SHELF`;
-    case "MIDDLE_EASTERN":
-      return `${concentrationPart} · MIDDLE EASTERN SHELF`;
-    case "NICHE":
-      return `${concentrationPart} · NICHE SHELF`;
-    default: {
-      const exhaustive: never = category as never;
-      return `${concentrationPart} · ${String(exhaustive)}`;
-    }
-  }
+function topSeasonLabels(breakout: unknown, limit = 2): string | null {
+  if (!breakout || typeof breakout !== "object") return null;
+  const entries = Object.entries(breakout as Record<string, number>)
+    .filter(([, count]) => typeof count === "number" && count > 0)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, limit)
+    .map(([season]) => season.charAt(0).toUpperCase() + season.slice(1).toLowerCase());
+  return entries.length > 0 ? entries.join(", ") : null;
 }

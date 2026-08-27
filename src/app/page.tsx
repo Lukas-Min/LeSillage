@@ -89,6 +89,8 @@ async function FlagshipPanel() {
         brand={flagship.brand}
         name={flagship.name}
         pyramid={flagship.notePyramid}
+        imageUrl={flagship.imageUrl}
+        imageAlt={flagship.imageAlt}
         className="mx-auto w-full max-w-xs transition-transform duration-300 hover:-translate-y-1"
       />
       <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
