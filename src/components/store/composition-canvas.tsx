@@ -75,7 +75,7 @@ export function CompositionCanvas({
 
 function CornerLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-full bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
+    <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-none bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
       {children}
     </span>
   );
@@ -109,7 +109,7 @@ function PyramidColumn({
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-2">
-      <span className="h-1 w-full rounded-full" style={{ backgroundColor: accent }} aria-hidden="true" />
+      <span className="h-1 w-full rounded-none" style={{ backgroundColor: accent }} aria-hidden="true" />
       <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
       {notes.length === 0 ? (
         <p className="text-[10px] text-muted-foreground">—</p>

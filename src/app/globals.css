@@ -137,6 +137,13 @@
     overflow-y: scroll;
     scrollbar-gutter: stable;
   }
+  /* scrollbar-gutter already reserves the scrollbar's width permanently, so
+     Radix's own scroll-lock compensation (added when a Dialog/Sheet opens)
+     would double up and shift the page width. Zero it out. */
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
 @layer utilities {

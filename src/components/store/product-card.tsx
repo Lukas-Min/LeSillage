@@ -17,13 +17,13 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
       <Link href={card.href} className="flex flex-1 flex-col">
         <div className="relative overflow-hidden">
           {card.ratingValue ? (
-            <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm">
+            <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-none bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm">
               <Star className="h-3 w-3 fill-gold text-gold" aria-hidden="true" />
               {card.ratingValue.toFixed(1)}
             </span>
           ) : null}
           {card.savePercent && card.savePercent > 0 ? (
-            <span className="absolute right-2 top-2 z-10 rounded-full bg-gold px-2 py-1 text-[11px] font-medium text-charcoal shadow-sm">
+            <span className="absolute right-2 top-2 z-10 rounded-none bg-gold px-2 py-1 text-[11px] font-medium text-charcoal shadow-sm">
               Save {card.savePercent}%
             </span>
           ) : null}

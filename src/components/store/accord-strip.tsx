@@ -5,7 +5,7 @@ export function AccordStrip({ accords }: { accords: ProductAccords }) {
   const totalStrength = visible.reduce((acc, item) => acc + (item.strength ?? 1), 0) || 1;
   return (
     <div className="space-y-3">
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+      <div className="flex h-1.5 w-full overflow-hidden rounded-none bg-muted" aria-hidden="true">
         {visible.map((item, index) => {
           const weight = ((item.strength ?? 1) / totalStrength) * 100;
           return (

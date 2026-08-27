@@ -68,7 +68,7 @@ export default async function AccountPage() {
         actions={
           <>
             {role ? (
-              <span className="rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold-foreground">
+              <span className="rounded-none border border-gold/40 bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold-foreground">
                 {role}
               </span>
             ) : null}
