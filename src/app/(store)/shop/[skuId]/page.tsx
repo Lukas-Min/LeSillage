@@ -14,20 +14,14 @@ import { Price } from "@/components/store/price";
 import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
-import { labelForCondition } from "@/lib/catalog";
-import { labelForType } from "@/domain/product-type";
+import { DecantBuyBox, type DecantSizeOption } from "@/components/store/decant-buy-box";
+import { labelForCategory, labelForCondition, labelForType } from "@/domain/product-type";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
 import { normaliseNotePyramid } from "@/lib/note-pyramid";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  NICHE: "Niche",
-  DESIGNER: "Designer",
-  MIDDLE_EASTERN: "Middle Eastern",
-};
 
 export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
   const { skuId } = await params;
@@ -75,6 +69,8 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         id: skus.id,
         label: skus.label,
         sizeMl: skus.sizeMl,
+        retailPrice: skus.retailPrice,
+        condition: skus.condition,
       })
       .from(skus)
       .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
@@ -100,6 +96,23 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const soldOut = row.type !== "DECANT" && fulfillment === "ON_HAND" && row.stock <= 0;
   const discount = bestDiscount(discounts, row.retailPrice);
   const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
+  const decantOptions: DecantSizeOption[] = DECANT_SIZES_ML.map((size) => {
+    const match = siblings.find((s) => s.sizeMl === size);
+    if (!match) return { sizeMl: size, label: `${size}ML`, available: false };
+    const sizeDiscount = bestDiscount(discounts, match.retailPrice);
+    const applied = applyDiscount(match.retailPrice, sizeDiscount);
+    return {
+      sizeMl: size,
+      label: `${size}ML`,
+      available: true,
+      skuId: match.id,
+      fulfillment: decantFulfillment({ remainingMl, sizeMl: size, thresholdMl: threshold }),
+      condition: match.condition,
+      originalCentavos: match.retailPrice,
+      discountedCentavos: applied.discountedUnitCentavos,
+      savedCentavos: applied.perUnitDiscountCentavos,
+    };
+  });
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, null);
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
@@ -129,7 +142,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             showComposition
             imageUrl={image[0]?.url}
             imageAlt={image[0]?.alt}
-            cornerLabel={CATEGORY_LABELS[row.fragranceCategory] ?? null}
+            cornerLabel={labelForCategory(row.fragranceCategory)}
           />
 
           {accords && accords.length > 0 ? (
@@ -173,45 +186,39 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             <WishlistButton productId={row.productId} variant="icon" />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">
-              {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
-            </Badge>
-            <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
-            {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
-          </div>
-
-          <SizeSection
-            options={
-              isDecant
-                ? DECANT_SIZES_ML.map((size) => {
-                    const match = siblings.find((s) => s.sizeMl === size);
-                    return {
-                      key: String(size),
-                      href: match ? `/shop/${match.id}` : null,
-                      label: `${size}ML`,
-                      active: match?.id === row.skuId,
-                    };
-                  })
-                : siblings.map((s) => ({
-                    key: s.id,
-                    href: `/shop/${s.id}`,
-                    label: sizeOnlyLabel(s.label).toUpperCase() || s.label,
-                    active: s.id === row.skuId,
-                  }))
-            }
-          />
-
-          <Price
-            originalCentavos={row.retailPrice}
-            discountedCentavos={discountedUnitCentavos}
-            savedCentavos={perUnitDiscountCentavos}
-          />
-
-          {soldOut ? (
-            <p className="text-sm text-destructive">Sold out — check back soon.</p>
+          {isDecant ? (
+            <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
           ) : (
-            <AddToCartButton skuId={row.skuId} />
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">
+                  {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
+                </Badge>
+                <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
+                {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+              </div>
+
+              <SizeSection
+                options={siblings.map((s) => ({
+                  key: s.id,
+                  href: `/shop/${s.id}`,
+                  label: sizeOnlyLabel(s.label).toUpperCase() || s.label,
+                  active: s.id === row.skuId,
+                }))}
+              />
+
+              <Price
+                originalCentavos={row.retailPrice}
+                discountedCentavos={discountedUnitCentavos}
+                savedCentavos={perUnitDiscountCentavos}
+              />
+
+              {soldOut ? (
+                <p className="text-sm text-destructive">Sold out — check back soon.</p>
+              ) : (
+                <AddToCartButton skuId={row.skuId} />
+              )}
+            </>
           )}
 
           <section className="border-t border-border/60 pt-2">

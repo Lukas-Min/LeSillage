@@ -46,6 +46,11 @@ export default async function SignUpPage({
               Sign in
             </Link>
           </p>
+          <div className="mt-4 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            Or
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          </div>
           <div className="mt-4 space-y-2">
             <OAuthButton provider="google" returnTo={returnTo} />
             <OAuthButton provider="facebook" returnTo={returnTo} />

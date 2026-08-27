@@ -38,56 +38,50 @@ export default async function ProductsAdminPage() {
       {productRows.map((product) => {
         const skusForProduct = skuRows.filter((s) => s.productId === product.id);
         return (
-          <Card key={product.id}>
-            <CardContent className="space-y-2 p-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-serif-display text-base">
-                  <Link href={`/admin/products/${product.id}`} className="hover:underline">
-                    {product.name}
-                  </Link>
-                </p>
-                <div className="flex items-center gap-2">
-                  {concentrationLabel(product.concentration) ? (
-                    <Badge variant="outline">{concentrationLabel(product.concentration)}</Badge>
-                  ) : (
-                    <Link href={`/admin/products/${product.id}`}>
-                      <Badge variant="destructive" className="cursor-pointer">
-                        No concentration
-                      </Badge>
-                    </Link>
-                  )}
-                  <span className="text-xs text-muted-foreground">{product.isActive ? "Visible" : "Hidden"}</span>
+          <Link key={product.id} href={`/admin/products/${product.id}`} className="block">
+            <Card className="transition-colors hover:border-gold/40 hover:bg-muted/30">
+              <CardContent className="space-y-2 p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-serif-display text-base">{product.name}</p>
+                  <div className="flex items-center gap-2">
+                    {concentrationLabel(product.concentration) ? (
+                      <Badge variant="outline">{concentrationLabel(product.concentration)}</Badge>
+                    ) : (
+                      <Badge variant="destructive">No concentration</Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">{product.isActive ? "Visible" : "Hidden"}</span>
+                  </div>
                 </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {product.brand} · {product.family ?? "—"} · {product.type} · {product.fragranceCategory}
-                {product.type === "DECANT" ? ` · ${product.remainingMl ?? 0}ml left` : ""}
-              </p>
-              <ul className="mt-2 space-y-1">
-                {skusForProduct.map((sku) => {
-                  const availability =
-                    product.type === "DECANT"
-                      ? decantFulfillment({
-                          remainingMl: product.remainingMl ?? 0,
-                          sizeMl: sku.sizeMl ?? 0,
-                          thresholdMl: threshold,
-                        })
-                      : `${sku.fulfillment} · stock ${sku.stock}`;
-                  return (
-                    <li key={sku.id} className="flex justify-between border-t pt-1">
-                      <span>
-                        {sku.label} · {availability}
-                        {sku.isActive ? "" : " · archived"}
-                      </span>
-                      <span>
-                        {formatPHP(sku.retailPrice)} (cost {formatPHP(sku.costPrice)})
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </CardContent>
-          </Card>
+                <p className="text-xs text-muted-foreground">
+                  {product.brand} · {product.family ?? "—"} · {product.type} · {product.fragranceCategory}
+                  {product.type === "DECANT" ? ` · ${product.remainingMl ?? 0}ml left` : ""}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {skusForProduct.map((sku) => {
+                    const availability =
+                      product.type === "DECANT"
+                        ? decantFulfillment({
+                            remainingMl: product.remainingMl ?? 0,
+                            sizeMl: sku.sizeMl ?? 0,
+                            thresholdMl: threshold,
+                          })
+                        : `${sku.fulfillment} · stock ${sku.stock}`;
+                    return (
+                      <li key={sku.id} className="flex justify-between border-t pt-1">
+                        <span>
+                          {sku.label} · {availability}
+                          {sku.isActive ? "" : " · archived"}
+                        </span>
+                        <span>
+                          {formatPHP(sku.retailPrice)} (cost {formatPHP(sku.costPrice)})
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
+          </Link>
         );
       })}
     </div>

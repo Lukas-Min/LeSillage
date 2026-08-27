@@ -7,7 +7,7 @@ import { CatalogPrice } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { concentrationLabel } from "@/domain/concentration";
-import { labelForType } from "@/domain/product-type";
+import { labelForCategory, labelForType } from "@/domain/product-type";
 import type { CatalogCardModel } from "@/lib/catalog";
 
 export function ProductCard({ card }: { card: CatalogCardModel }) {
@@ -28,6 +28,9 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               Save {card.savePercent}%
             </span>
           ) : null}
+          <span className="absolute left-2 bottom-2 z-10 inline-flex items-center rounded-none bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
+            {labelForCategory(card.fragranceCategory)}
+          </span>
           <CompositionCanvas
             brand={card.brand}
             name={card.name}

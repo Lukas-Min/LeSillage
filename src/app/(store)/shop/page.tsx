@@ -26,7 +26,7 @@ export default async function ShopPage({
   searchParams: Promise<ShopSearchParams>;
 }) {
   const params = await searchParams;
-  const type = parseEnum(params.type, VALID_TYPES);
+  const type = parseEnum(params.type, VALID_TYPES) ?? "DECANT";
   const category = parseEnum(params.category, [...CATEGORIES]) as FragranceCategory | undefined;
   const concentration = parseEnum(params.concentration, [...CONCENTRATIONS]) as Concentration | undefined;
   const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "featured";

@@ -198,7 +198,7 @@ function asBreakout(value: unknown): Record<string, number> | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-function normalize(raw: Record<string, unknown>): FragellaRecord {
+export function normalize(raw: Record<string, unknown>): FragellaRecord {
   const notes = (raw.notes ?? raw.Notes) as Record<string, unknown> | undefined;
   const normalizedNotes = notes
     ? {

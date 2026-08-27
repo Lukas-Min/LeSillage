@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { labelForCondition } from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 
 export const CATALOG_SORTS = ["featured", "rating", "price_asc", "price_desc"] as const;
@@ -278,19 +279,3 @@ function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
   return map;
 }
 
-export function labelForCondition(c: (typeof skus.$inferSelect)["condition"]): string {
-  switch (c) {
-    case "BNIB":
-      return "Sealed";
-    case "SEALED":
-      return "Sealed";
-    case "FEW_SPRAYS_MISSING":
-      return "A few sprays missing";
-    case "PARTIAL_ML":
-      return "Partial (ml)";
-    default: {
-      const exhaustive: never = c;
-      return String(exhaustive);
-    }
-  }
-}

@@ -44,6 +44,11 @@ export function SignInForm({
             Create an account
           </Link>
         </p>
+        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          Or
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
+        </div>
         <div className="space-y-2">
           <OAuthButton provider="google" returnTo={returnTo} />
           <OAuthButton provider="facebook" returnTo={returnTo} />

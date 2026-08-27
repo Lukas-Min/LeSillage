@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import type { ProductType } from "@/db/schema";
 
 const TYPE_FILTERS: Array<{ type?: ProductType; label: string; href: string }> = [
-  { label: "All", href: "/shop" },
   { type: "DECANT", label: "Decants", href: "/shop?type=DECANT" },
   { type: "FULL_BOTTLE", label: "Full bottles", href: "/shop?type=FULL_BOTTLE" },
   { type: "PARTIAL", label: "Partials", href: "/shop?type=PARTIAL" },

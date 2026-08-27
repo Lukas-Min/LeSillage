@@ -43,7 +43,7 @@ export function AddToCartButton({
           if (!soldOut) add(1);
         }}
       >
-        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to cart"}
       </Button>
     );
   }
@@ -51,7 +51,7 @@ export function AddToCartButton({
   const decrement = () => setQty((value) => Math.max(1, value - 1));
   const increment = () => setQty((value) => Math.min(99, value + 1));
   return (
-    <div className="flex flex-1 items-center gap-2">
+    <div className="flex items-center gap-2">
       <div className="flex items-center rounded-md border border-border">
         <Button
           type="button"
@@ -92,7 +92,7 @@ export function AddToCartButton({
         onClick={() => add(qty)}
       >
         <ShoppingBag className="h-4 w-4" />
-        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to bag"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to cart"}
       </Button>
     </div>
   );
