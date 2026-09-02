@@ -30,6 +30,11 @@ export interface CatalogFilter {
   sizeMl?: number;
   sort?: CatalogSort;
   limit?: number;
+  /** Only honored together with `limit`. When set, fetches one row past
+   *  `offset + limit` so the caller can detect a next page without a
+   *  separate count query — see shop/page.tsx. Omit for existing
+   *  non-paginated callers; behavior for them is unchanged. */
+  offset?: number;
 }
 
 export interface CatalogCardModel {
@@ -215,7 +220,9 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     });
   }
   const sorted = sortCards(cards, filter.sort ?? "featured");
-  return filter.limit ? sorted.slice(0, filter.limit) : sorted;
+  if (!filter.limit) return sorted;
+  if (filter.offset === undefined) return sorted.slice(0, filter.limit);
+  return sorted.slice(filter.offset, filter.offset + filter.limit + 1);
 }
 
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {

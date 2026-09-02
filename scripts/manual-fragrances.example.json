@@ -1,0 +1,17 @@
+[
+  {
+    "id": "prada-paradigme-manual",
+    "name": "Paradigme",
+    "brand": "Prada",
+    "year": 2025,
+    "gender": "male",
+    "notes": {
+      "top": ["Calabrian Bergamot", "Musk"],
+      "middle": ["Bourbon Geranium", "Rose Geranium"],
+      "base": ["Benzoin", "Peru Balsam", "Guaiac Wood"]
+    },
+    "accords": ["fresh spicy", "amber", "aromatic", "woody", "balsamic", "citrus", "musky", "warm spicy", "rose", "powdery"],
+    "perfumers": ["Bruno Jovanovic", "Marie Salamagne", "Nicolas Bonneville"],
+    "sourceUrl": "https://www.fragrantica.com/perfume/Prada/Paradigme-110661.html"
+  }
+]
