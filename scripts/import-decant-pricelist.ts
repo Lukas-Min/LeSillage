@@ -72,6 +72,7 @@ const CATALOG: DecantEntry[] = [
     brand: "Carolina Herrera", name: "Good Girl", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
     prices: { 3: 270, 5: 345, 10: 895, 30: 2680 },
     fullBottle: { sizeMl: 80, basePricePhp: 7150 },
+    fragellaMirrorId: "carolina-herrera-good-girl-manual",
   },
   {
     brand: "Coach", name: "Dreams", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
@@ -86,8 +87,11 @@ const CATALOG: DecantEntry[] = [
     fragellaMirrorId: "Coach::Coach Dreams Sunset",
   },
   {
-    // Spreadsheet's "Gucci Guilty Parfum" row (90ml) — Fragella has 20 same-named
-    // flankers and none was confidently identifiable as this exact one, so left unlinked.
+    // NEEDS USER CONFIRMATION: pricelist says "Gucci Guilty Parfum" but no
+    // Fragrantica title is literally "Guilty ... Parfum". Three real candidates:
+    // "Guilty Pour Homme" (2011, EDT), "Guilty Pour Homme Eau de Parfum" (2020),
+    // or "Guilty Absolu de Parfum Pour Homme" (2025). Left unlinked/unrenamed
+    // until confirmed which one this actually is.
     brand: "Gucci", name: "Guilty", concentration: "PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 120, 5: 155, 10: 405, 30: 1215 },
     fullBottle: { sizeMl: 90, basePricePhp: 3640 },
@@ -117,11 +121,13 @@ const CATALOG: DecantEntry[] = [
     fragellaMirrorId: "Gianni Versace::Versace Eros Energy",
   },
   {
-    // Spreadsheet's "YSL Y" row (100ml) — 7 same-named Fragella flankers, none
-    // confidently identifiable as this specific one, so left unlinked.
-    brand: "Yves Saint Laurent", name: "Y", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
+    // Pricelist said "YSL Y EDP" — Fragrantica's exact title for the EDP
+    // concentration is "Y Eau de Parfum" (2018), distinct from "Y" (1964,
+    // discontinued vintage) and "Y Eau de Toilette"/"Y Le Parfum" flankers.
+    brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 215, 5: 275, 10: 715, 30: 2145 },
     fullBottle: { sizeMl: 100, basePricePhp: 7150 },
+    fragellaMirrorId: "yves-saint-laurent-y-eau-de-parfum-manual",
   },
   {
     // Not in the formula spreadsheet at all — sizeMl/base price below are a
@@ -160,7 +166,10 @@ const CATALOG: DecantEntry[] = [
     fragellaMirrorId: "armaf-club-de-nuit-maleka-manual",
   },
   {
-    brand: "Armaf", name: "Club De Nuit Intense Man", concentration: "PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    // Full name per the linked mirror row (Fragrantica): "Club de Nuit Intense
+    // Man Parfum" (2022) — distinct from the base "Club de Nuit Intense Man"
+    // (2015, EDT). Pricelist's concentration column said "Parfum", matching this one.
+    brand: "Armaf", name: "Club De Nuit Intense Man Parfum", concentration: "PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 95, 5: 125, 10: 320, 30: 960 },
     fullBottle: { sizeMl: 150, basePricePhp: 4810 },
     fragellaMirrorId: "armaf-club-de-nuit-intense-man-parfum-manual",
@@ -178,7 +187,8 @@ const CATALOG: DecantEntry[] = [
     fragellaMirrorId: "french-avenue-liquid-brun-manual",
   },
   {
-    brand: "Lattafa", name: "Raed Luxe", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
+    // Fragrantica spells it "Ra'ed Luxe" (with apostrophe) — pricelist had "Raed Luxe".
+    brand: "Lattafa", name: "Ra'ed Luxe", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
     prices: { 3: 60, 5: 75, 10: 195, 30: 585 },
     fullBottle: { sizeMl: 100, basePricePhp: 1950 },
     fragellaMirrorId: "lattafa-perfumes-ra-ed-luxe-manual",
@@ -230,11 +240,15 @@ const CATALOG: DecantEntry[] = [
 ];
 
 function slug(value: string) {
+  // No length cap: `sku` is unbounded text, and a truncated slug risks two
+  // different names colliding on the same SKU code (bit us once already —
+  // "Club De Nuit Intense Man" vs "...Man Parfum" both truncated to the same
+  // 24 chars, so the renamed product's SKU upsert silently landed on the old
+  // product's rows instead of creating its own).
   return value
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 24);
+    .replace(/^-+|-+$/g, "");
 }
 
 function php(pesos: number) {
@@ -319,6 +333,10 @@ async function main() {
 
     // No unique constraint on (brand, name) — look up by hand so a re-run
     // updates the existing row instead of inserting a duplicate product.
+    // CAVEAT: this matches on the *current* name, so renaming an entry here
+    // (e.g. correcting it to Fragrantica's full title) makes this look like a
+    // new product — the old-named row is orphaned, not updated. Delete it by
+    // hand after re-running (`delete from product where brand=... and name=...`).
     const [existing] = await client
       .select({ id: products.id })
       .from(products)

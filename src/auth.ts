@@ -1,5 +1,5 @@
 import { cache } from "react";
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import type { DefaultSession } from "next-auth";
 import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
@@ -44,6 +44,24 @@ async function promoteAdmin(email: string | null | undefined, userId: string) {
   return role;
 }
 
+// Distinct authorize() failure reasons, surfaced as `error.code` in
+// signInWithPassword's catch block (see auth-credentials-actions.ts) so the
+// sign-in page can show a specific message instead of a generic crash.
+// "No such user" and "wrong password" deliberately share one code/message —
+// that's the login-side anti-enumeration protection, unchanged from before.
+class InvalidCredentialsError extends CredentialsSignin {
+  code = "invalid-credentials";
+}
+class AccountDeletedError extends CredentialsSignin {
+  code = "account-deleted";
+}
+class OAuthOnlyAccountError extends CredentialsSignin {
+  code = "oauth-only";
+}
+class UnverifiedEmailError extends CredentialsSignin {
+  code = "unverified-email";
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db(), {
     usersTable: users,
@@ -84,16 +102,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) => {
         const email = String(credentials?.email ?? "").trim().toLowerCase();
         const password = String(credentials?.password ?? "");
-        if (!email || !password) return null;
+        if (!email || !password) throw new InvalidCredentialsError();
         const user = (
           await db()
             .select()
             .from(users)
             .where(eq(users.email, email))
         )[0];
-        if (!user || user.deletedAt || !user.passwordHash || !user.emailVerified) return null;
+        if (!user) throw new InvalidCredentialsError();
+        if (user.deletedAt) throw new AccountDeletedError();
+        if (!user.passwordHash) throw new OAuthOnlyAccountError();
+        if (!user.emailVerified) throw new UnverifiedEmailError();
         const ok = await verifyPassword(password, user.passwordHash);
-        if (!ok) return null;
+        if (!ok) throw new InvalidCredentialsError();
         const role: UserRole = email === ADMIN_EMAIL ? "ADMIN" : user.role;
         return {
           id: user.id,

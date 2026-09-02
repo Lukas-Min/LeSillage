@@ -10,12 +10,17 @@ export function AddToCartButton({
   skuId,
   variant = "full",
   soldOut = false,
+  disabled = false,
+  disabledLabel = "Select a size",
   quantity,
   onQuantityChange,
 }: {
   skuId: string;
   variant?: "full" | "compact";
   soldOut?: boolean;
+  /** Blocks adding without marking it sold out — e.g. no size picked yet. */
+  disabled?: boolean;
+  disabledLabel?: string;
   quantity?: number;
   onQuantityChange?: (quantity: number) => void;
 }) {
@@ -45,15 +50,15 @@ export function AddToCartButton({
         variant="gold"
         size="lg"
         className="h-11 w-full rounded-md"
-        disabled={isPending || soldOut}
+        disabled={isPending || soldOut || disabled}
         aria-busy={isPending}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (!soldOut) add(1);
+          if (!soldOut && !disabled && skuId) add(1);
         }}
       >
-        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to cart"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : disabled ? disabledLabel : "Add to cart"}
       </Button>
     );
   }
@@ -97,12 +102,12 @@ export function AddToCartButton({
         variant="gold"
         size="lg"
         className="h-11 flex-1 rounded-md"
-        disabled={isPending || soldOut}
+        disabled={isPending || soldOut || disabled}
         aria-busy={isPending}
-        onClick={() => add(qty)}
+        onClick={() => !disabled && skuId && add(qty)}
       >
         <ShoppingBag className="h-4 w-4" />
-        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to cart"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : disabled ? disabledLabel : "Add to cart"}
       </Button>
     </div>
   );

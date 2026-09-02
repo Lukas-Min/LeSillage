@@ -16,6 +16,7 @@ import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { labelForCondition } from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
+import type { SizePickerOption } from "@/components/store/size-picker";
 
 export const CATALOG_SORTS = ["featured", "rating", "price_asc", "price_desc"] as const;
 export type CatalogSort = (typeof CATALOG_SORTS)[number];
@@ -30,10 +31,8 @@ export interface CatalogFilter {
   sizeMl?: number;
   sort?: CatalogSort;
   limit?: number;
-  /** Only honored together with `limit`. When set, fetches one row past
-   *  `offset + limit` so the caller can detect a next page without a
-   *  separate count query — see shop/page.tsx. Omit for existing
-   *  non-paginated callers; behavior for them is unchanged. */
+  /** Row to start returning from, for paging — see shop/page.tsx. Omit for
+   *  existing non-paginated callers; behavior for them is unchanged. */
   offset?: number;
 }
 
@@ -62,6 +61,8 @@ export interface CatalogCardModel {
   maxDiscountedCentavos: number;
   hasDiscount: boolean;
   savePercent: number | null;
+  /** Every real size this DECANT product offers, for the shop-grid picker. Empty for other types. */
+  sizeOptions: SizePickerOption[];
 }
 
 interface SkuRow {
@@ -192,6 +193,28 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         ? Math.round(((minOriginal - minDiscounted) / minOriginal) * 100)
         : null;
     const image = imageByProduct.get(product.id);
+    const sizeOptions: SizePickerOption[] =
+      product.type === "DECANT"
+        ? [...variants]
+            .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+            .map((variant) => {
+              const p = priced.find((x) => x.skuId === variant.skuId)!;
+              return {
+                sizeMl: variant.sizeMl ?? 0,
+                label: `${variant.sizeMl}ML`,
+                skuId: variant.skuId,
+                fulfillment: decantFulfillment({
+                  remainingMl,
+                  sizeMl: variant.sizeMl ?? DECANT_SIZES_ML[0],
+                  thresholdMl: threshold,
+                }),
+                condition: variant.condition,
+                originalCentavos: p.original,
+                discountedCentavos: p.discounted,
+                savedCentavos: Math.max(0, p.original - p.discounted),
+              };
+            })
+        : [];
     cards.push({
       productId: product.id,
       skuId: destination.skuId,
@@ -217,12 +240,19 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       maxDiscountedCentavos: maxDiscounted,
       hasDiscount,
       savePercent,
+      sizeOptions,
     });
   }
   const sorted = sortCards(cards, filter.sort ?? "featured");
   if (!filter.limit) return sorted;
-  if (filter.offset === undefined) return sorted.slice(0, filter.limit);
-  return sorted.slice(filter.offset, filter.offset + filter.limit + 1);
+  const start = filter.offset ?? 0;
+  return sorted.slice(start, start + filter.limit);
+}
+
+/** Total matching cards for `filter`, ignoring `limit`/`offset` — for pagination. */
+export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
+  const cards = await loadCatalogCards(filter);
+  return cards.length;
 }
 
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {

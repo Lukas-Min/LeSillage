@@ -1,4 +1,5 @@
 import { resendSignupCode, verifyEmailCode } from "@/actions/auth-credentials-actions";
+import { authErrorMessage } from "@/lib/auth-errors";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,11 +8,12 @@ import { SubmitButton } from "@/components/ui/submit-button";
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; returnTo?: string }>;
+  searchParams: Promise<{ email?: string; returnTo?: string; error?: string; msg?: string }>;
 }) {
   const params = await searchParams;
   const email = params.email ?? "";
   const returnTo = params.returnTo && params.returnTo.startsWith("/") ? params.returnTo : "/account";
+  const errorMessage = authErrorMessage(params.error, params.msg);
   return (
     <main className="mx-auto w-full max-w-md px-4 py-12">
       <h1 className="font-serif-display text-2xl">Check your email</h1>
@@ -31,6 +33,7 @@ export default async function VerifyEmailPage({
               <Label htmlFor="password">Password (to sign you in)</Label>
               <Input id="password" name="password" type="password" className="h-11" />
             </div>
+            {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
             <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Verifying…">
               Verify
             </SubmitButton>

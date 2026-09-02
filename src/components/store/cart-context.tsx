@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useSession } from "next-auth/react";
 import {
   addItemToCart,
+  changeCartItemSize,
   getCart,
   importLegacyCart,
   mergeGuestCartIntoUser,
@@ -35,6 +36,7 @@ interface CartContextValue {
   add: (item: Pick<CartLineView, "skuId"> & { quantity: number }) => Promise<void>;
   setQuantity: (skuId: string, quantity: number) => Promise<void>;
   remove: (skuId: string) => Promise<void>;
+  changeSize: (fromSkuId: string, toSkuId: string) => Promise<void>;
   count: number;
 }
 
@@ -91,9 +93,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setView(await removeCartItem(skuId));
   }, []);
 
+  const changeSize = useCallback(async (fromSkuId: string, toSkuId: string) => {
+    setView(await changeCartItemSize(fromSkuId, toSkuId));
+  }, []);
+
   const value = useMemo(
-    () => ({ items: view.items, totals: view.totals, add, setQuantity, remove, count: view.count }),
-    [view, add, setQuantity, remove],
+    () => ({ items: view.items, totals: view.totals, add, setQuantity, remove, changeSize, count: view.count }),
+    [view, add, setQuantity, remove, changeSize],
   );
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

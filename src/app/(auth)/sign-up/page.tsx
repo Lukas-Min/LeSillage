@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { registerWithEmail } from "@/actions/auth-credentials-actions";
+import { authErrorMessage } from "@/lib/auth-errors";
 import { OAuthButton } from "@/components/store/oauth-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string }>;
+  searchParams: Promise<{ returnTo?: string; error?: string; msg?: string }>;
 }) {
   const params = await searchParams;
   const returnTo = params.returnTo && params.returnTo.startsWith("/") ? params.returnTo : "/account";
+  const errorMessage = authErrorMessage(params.error, params.msg);
   return (
     <main className="mx-auto w-full max-w-md px-4 py-12">
       <h1 className="font-serif-display text-2xl">Create an account</h1>
@@ -36,6 +38,7 @@ export default async function SignUpPage({
               <Input id="password" name="password" type="password" required minLength={10} className="h-11" />
               <p className="text-xs text-muted-foreground">At least 10 characters, with a letter and a number.</p>
             </div>
+            {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
             <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Creating…">
               Create account
             </SubmitButton>

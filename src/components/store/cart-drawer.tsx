@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, Trash2 } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { useCart, useCartCount } from "@/components/store/cart-context";
-import { Price } from "@/components/store/price";
+import { CartLineItem } from "@/components/store/cart-line-item";
 import { Button } from "@/components/ui/button";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -53,38 +52,8 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
           <div className="flex min-h-0 flex-1 flex-col">
             <ul className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
               {cart.items.map((item) => (
-                <li key={item.skuId} className="rounded-md border border-border p-3">
-                  <p className="font-serif-display text-base leading-tight">{item.name}</p>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                    {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
-                  </p>
-                  <Price
-                    originalCentavos={item.originalUnitCentavos}
-                    discountedCentavos={item.retailPriceCentavos}
-                    className="mt-1 block"
-                  />
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={item.maxQuantity}
-                      value={item.quantity}
-                      onChange={(event) => {
-                        const next = Number(event.target.value);
-                        if (Number.isFinite(next)) void cart.setQuantity(item.skuId, next);
-                      }}
-                      className="h-11 w-16 rounded-md"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Remove ${item.name}`}
-                      className="min-h-11 min-w-11"
-                      onClick={() => void cart.remove(item.skuId)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <li key={item.skuId}>
+                  <CartLineItem item={item} layout="drawer" />
                 </li>
               ))}
             </ul>

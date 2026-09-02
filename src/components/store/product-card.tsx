@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CatalogPrice } from "@/components/store/price";
+import { CatalogPrice, Price } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
+import { SizePicker } from "@/components/store/size-picker";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
 import type { CatalogCardModel } from "@/lib/catalog";
@@ -13,6 +15,10 @@ import type { CatalogCardModel } from "@/lib/catalog";
 export function ProductCard({ card }: { card: CatalogCardModel }) {
   const concentration = concentrationLabel(card.concentration);
   const subtitle = [card.family, concentration].filter(Boolean).join(" · ") || labelForType(card.type);
+  const isDecant = card.type === "DECANT" && card.sizeOptions.length > 0;
+  const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
+  const selected = isDecant ? card.sizeOptions.find((o) => o.skuId === selectedSkuId) ?? null : null;
+  const activeSkuId = isDecant ? (selectedSkuId ?? "") : card.skuId;
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link href={card.href} className="flex flex-1 flex-col">
@@ -54,21 +60,43 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
             <div className="border-t border-border/60 pt-3">
-              <CatalogPrice
-                minOriginalCentavos={card.minOriginalCentavos}
-                maxOriginalCentavos={card.maxOriginalCentavos}
-                minDiscountedCentavos={card.minDiscountedCentavos}
-                maxDiscountedCentavos={card.maxDiscountedCentavos}
-                savePercent={card.savePercent}
-                align="right"
-                showSaveBadge={false}
-              />
+              {selected ? (
+                <Price
+                  originalCentavos={selected.originalCentavos}
+                  discountedCentavos={selected.discountedCentavos}
+                  savedCentavos={selected.savedCentavos}
+                  className="block text-right"
+                />
+              ) : (
+                <CatalogPrice
+                  minOriginalCentavos={card.minOriginalCentavos}
+                  maxOriginalCentavos={card.maxOriginalCentavos}
+                  minDiscountedCentavos={card.minDiscountedCentavos}
+                  maxDiscountedCentavos={card.maxDiscountedCentavos}
+                  savePercent={card.savePercent}
+                  align="right"
+                  showSaveBadge={false}
+                />
+              )}
             </div>
           </div>
         </div>
       </Link>
-      <div className="px-4 pb-4">
-        <AddToCartButton skuId={card.skuId} variant="compact" soldOut={card.soldOut} />
+      <div className="space-y-2 px-4 pb-4">
+        {isDecant ? (
+          <SizePicker
+            density="compact"
+            options={card.sizeOptions}
+            selectedSkuId={selectedSkuId}
+            onSelect={(option) => setSelectedSkuId(option.skuId)}
+          />
+        ) : null}
+        <AddToCartButton
+          skuId={activeSkuId}
+          variant="compact"
+          soldOut={card.soldOut}
+          disabled={isDecant && !selectedSkuId}
+        />
       </div>
     </article>
   );

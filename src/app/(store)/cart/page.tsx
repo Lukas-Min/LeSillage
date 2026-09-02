@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 import { useCart } from "@/components/store/cart-context";
+import { CartLineItem } from "@/components/store/cart-line-item";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { formatPHP } from "@/domain/money";
-import { Input } from "@/components/ui/input";
-import { Price } from "@/components/store/price";
 import { policyCopy } from "@/lib/policy-copy";
 
 export default function CartPage() {
@@ -32,43 +30,7 @@ export default function CartPage() {
       ) : (
         <div className="mt-6 space-y-4">
           {cart.items.map((item) => (
-            <Card key={item.skuId}>
-              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                <div className="flex-1">
-                  <p className="font-serif-display text-base">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
-                  </p>
-                  <Price
-                    originalCentavos={item.originalUnitCentavos}
-                    discountedCentavos={item.retailPriceCentavos}
-                    className="mt-1 block"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={item.maxQuantity}
-                    value={item.quantity}
-                    onChange={(event) => {
-                      const next = Number(event.target.value);
-                      if (Number.isFinite(next)) cart.setQuantity(item.skuId, next);
-                    }}
-                    className="h-11 w-16"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Remove"
-                    className="min-h-11 min-w-11"
-                    onClick={() => cart.remove(item.skuId)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <CartLineItem key={item.skuId} item={item} layout="page" />
           ))}
           <Separator />
           <Card>

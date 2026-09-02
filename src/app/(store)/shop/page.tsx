@@ -1,14 +1,12 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CatalogPagination } from "@/components/store/catalog-pagination";
 import { CatalogResults } from "@/components/store/catalog-grid";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
 import { ShopFilters } from "@/components/store/shop-filters";
 import { ShopToolbar } from "@/components/store/shop-toolbar";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/section";
-import { CATALOG_SORTS, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
+import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
 import { concentration as CONCENTRATIONS, fragranceCategory as CATEGORIES } from "@/db/schema";
 import type { Concentration, FragranceCategory, ProductType } from "@/db/schema";
 
@@ -73,18 +71,16 @@ async function ShopResults({
   sort: CatalogSort;
   page: number;
 }) {
-  const offset = (page - 1) * PAGE_SIZE;
-  const fetched = await loadCatalogCards({
+  const baseFilter = {
     ...(type ? { type } : {}),
     ...(category ? { fragranceCategory: category } : {}),
     ...(concentration ? { concentration } : {}),
-    sort,
-    limit: PAGE_SIZE,
-    offset,
-  });
-  const hasNextPage = fetched.length > PAGE_SIZE;
-  const cards = hasNextPage ? fetched.slice(0, PAGE_SIZE) : fetched;
-  const hasPrevPage = page > 1;
+  };
+  const [total, cards] = await Promise.all([
+    countCatalogCards(baseFilter),
+    loadCatalogCards({ ...baseFilter, sort, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function pageHref(target: number) {
     const params = new URLSearchParams();
@@ -100,43 +96,13 @@ async function ShopResults({
   return (
     <div className="flex flex-1 flex-col">
       <ShopToolbar
-        count={cards.length}
+        count={total}
         activeSort={sort}
         activeCategory={category}
         activeConcentration={concentration}
       />
       <CatalogResults cards={cards} emptyLabel="Nothing on this shelf yet." showCount={false} />
-      {hasPrevPage || hasNextPage ? (
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <Button asChild variant="outline" size="sm" disabled={!hasPrevPage} className="min-h-11 gap-1.5">
-            {hasPrevPage ? (
-              <Link href={pageHref(page - 1)} scroll={false}>
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Previous
-              </Link>
-            ) : (
-              <span>
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Previous
-              </span>
-            )}
-          </Button>
-          <span className="text-xs text-muted-foreground">Page {page}</span>
-          <Button asChild variant="outline" size="sm" disabled={!hasNextPage} className="min-h-11 gap-1.5">
-            {hasNextPage ? (
-              <Link href={pageHref(page + 1)} scroll={false}>
-                Next
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
-            ) : (
-              <span>
-                Next
-                <ChevronRight className="h-3.5 w-3.5" />
-              </span>
-            )}
-          </Button>
-        </div>
-      ) : null}
+      <CatalogPagination page={page} totalPages={totalPages} href={pageHref} />
     </div>
   );
 }

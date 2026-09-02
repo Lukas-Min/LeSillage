@@ -31,6 +31,10 @@ export interface CartLineView {
   productType: ProductType;
   quantity: number;
   maxQuantity: number;
+  /** False when this SKU was deactivated after being added — excluded from
+   *  totals/checkout, shown with a "no longer available" notice instead of
+   *  silently vanishing from the cart. */
+  available: boolean;
 }
 
 export interface CartView {
@@ -94,6 +98,35 @@ export async function getOrCreateGuestCart(): Promise<{
   return { token, cart };
 }
 
+/**
+ * The real max purchasable quantity for one cart line — replaces the old
+ * flat-99-for-any-decant-or-preorder rule, which let someone cart more ml
+ * than a decant bottle could ever contain. An ON_HAND decant is capped by
+ * what its shared `remainingMl` pool can actually yield at that size; a
+ * PRE_ORDER decant (not enough on hand right now) stays uncapped-ish at 99
+ * since that's a future restock, not bounded by today's remainingMl. A
+ * non-decant, non-preorder item is capped by its own `stock` — including
+ * `stock === 0`, which callers must treat as "cannot add" (see callers:
+ * clampQuantity floors to 1 regardless of max, so a cap of 0 must be
+ * checked and rejected *before* calling it, not passed through).
+ */
+export function resolveCartCap(args: {
+  productType: ProductType;
+  fulfillment: Fulfillment;
+  sizeMl: number | null;
+  remainingMl: number | null | undefined;
+  stock: number;
+}): number {
+  if (args.productType === "DECANT") {
+    if (args.fulfillment !== "ON_HAND") return 99;
+    const size = args.sizeMl ?? 0;
+    if (size <= 0) return 0;
+    return Math.max(0, Math.floor((args.remainingMl ?? 0) / size));
+  }
+  if (args.fulfillment === "PRE_ORDER") return 99;
+  return Math.max(0, args.stock);
+}
+
 export function effectiveFulfillment(args: {
   productType: ProductType;
   skuFulfillment: Fulfillment;
@@ -124,8 +157,9 @@ export async function addOneToCart(
     remainingMl: sku.remainingMl ?? null,
     thresholdMl,
   });
-  const cap = productType === "DECANT" || fulfillment === "PRE_ORDER" ? 99 : sku.stock;
-  const clamped = clampQuantity(quantity, Math.max(cap, 1));
+  const cap = resolveCartCap({ productType, fulfillment, sizeMl: sku.sizeMl, remainingMl: sku.remainingMl, stock: sku.stock });
+  if (cap <= 0) throw new Error("This item is currently out of stock");
+  const clamped = clampQuantity(quantity, cap);
   const existing = (
     await client
       .select()
@@ -133,7 +167,7 @@ export async function addOneToCart(
       .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, sku.id)))
   )[0];
   if (existing) {
-    const next = clampQuantity(existing.quantity + clamped, Math.max(cap, 1));
+    const next = clampQuantity(existing.quantity + clamped, cap);
     await client.update(cartItems).set({ quantity: next }).where(eq(cartItems.id, existing.id));
   } else {
     await client.insert(cartItems).values({ cartId: cart.id, skuId: sku.id, quantity: clamped });
@@ -212,10 +246,13 @@ export async function loadCartView(
   const totals = buildCartTotals(priced, promoConfig, fulfillmentMethod);
   const lines: CartLineView[] = priced.lines.map((line) => {
     const found = skuRows.find((row) => row.sku.id === line.skuId);
-    const cap =
-      line.productType === "DECANT" || line.fulfillment === "PRE_ORDER"
-        ? 99
-        : Math.max(found?.sku.stock ?? 1, 1);
+    const cap = resolveCartCap({
+      productType: line.productType,
+      fulfillment: line.fulfillment,
+      sizeMl: found?.sku.sizeMl ?? null,
+      remainingMl: found?.remainingMl,
+      stock: found?.sku.stock ?? 0,
+    });
     return {
       skuId: line.skuId,
       name: found?.productName ?? "Fragrance",
@@ -225,11 +262,34 @@ export async function loadCartView(
       fulfillment: line.fulfillment,
       productType: line.productType,
       quantity: line.quantity,
-      maxQuantity: cap,
+      maxQuantity: Math.max(cap, 0),
+      available: true,
     };
   });
+  // Items whose SKU was deactivated after being added — kept visible with a
+  // "no longer available" notice instead of vanishing with no explanation.
+  // Excluded from totals/checkout (priced.lines/buildCartTotals above never
+  // saw them, since pricedInputs filters them out).
+  const unavailableLines: CartLineView[] = items.flatMap((item) => {
+    const found = skuRows.find((row) => row.sku.id === item.skuId);
+    if (found && found.sku.isActive) return [];
+    return [
+      {
+        skuId: item.skuId,
+        name: found?.productName ?? "This item",
+        skuLabel: found?.sku.label ?? "",
+        retailPriceCentavos: 0,
+        originalUnitCentavos: 0,
+        fulfillment: found?.sku.fulfillment ?? "ON_HAND",
+        productType: found?.productType ?? "DECANT",
+        quantity: item.quantity,
+        maxQuantity: 0,
+        available: false,
+      },
+    ];
+  });
   return {
-    items: lines,
+    items: [...lines, ...unavailableLines],
     count: lines.reduce((sum, line) => sum + line.quantity, 0),
     totals,
   };

@@ -37,10 +37,10 @@ export function Price({
         </span>
         <s className="text-sm text-muted-foreground">
           <span className="sr-only">Original price</span>
-          {formatPHP(originalCentavos)}
+          {formatPHP(originalCentavos * quantity)}
         </s>
         <span className="inline-flex items-center rounded-none bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
-          {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(savedCentavos)}`}
+          {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(savedCentavos * quantity)}`}
         </span>
       </span>
       {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}

@@ -3,15 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { cartItems, products, skus } from "@/db/schema";
+import { cartItems, productDiscounts, products, skus } from "@/db/schema";
+import { applyDiscount, bestDiscount } from "@/domain/discount";
+import { clampQuantity } from "@/domain/money";
+import type { SizePickerOption } from "@/components/store/size-picker";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import {
   addOneToCart,
+  effectiveFulfillment,
   importLegacyCartLines,
   loadCartView,
   loadPromoConfig,
   mergeGuestCartIntoUser as mergeGuest,
   resolveActiveCart,
+  resolveCartCap,
   type CartView,
 } from "@/lib/cart";
 
@@ -59,16 +64,31 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
   }
   const found = (
     await db()
-      .select({ sku: skus, productType: products.type })
+      .select({ sku: skus, productType: products.type, remainingMl: products.remainingMl })
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, skuId))
   )[0];
   if (!found) throw new Error("Item not found");
-  const cap = found.productType === "DECANT" || found.sku.fulfillment === "PRE_ORDER" ? 99 : found.sku.stock;
+  const promoConfig = await loadPromoConfig();
+  const fulfillment = effectiveFulfillment({
+    productType: found.productType,
+    skuFulfillment: found.sku.fulfillment,
+    sizeMl: found.sku.sizeMl,
+    remainingMl: found.remainingMl,
+    thresholdMl: promoConfig.decantPreOrderThresholdMl,
+  });
+  const cap = resolveCartCap({
+    productType: found.productType,
+    fulfillment,
+    sizeMl: found.sku.sizeMl,
+    remainingMl: found.remainingMl,
+    stock: found.sku.stock,
+  });
+  if (cap <= 0) throw new Error("This item is currently out of stock");
   await db()
     .update(cartItems)
-    .set({ quantity: Math.max(1, Math.min(quantity, Math.max(cap, 1))) })
+    .set({ quantity: clampQuantity(quantity, cap) })
     .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, skuId)));
   revalidatePath("/", "layout");
   return loadCartView(cart.id);
@@ -97,4 +117,108 @@ export async function importLegacyCart(lines: Array<{ skuId: string; quantity: n
   const view = await importLegacyCartLines(lines);
   revalidatePath("/", "layout");
   return view;
+}
+
+/**
+ * Sibling sizes for the same product as `skuId`, for the cart drawer's
+ * "Customize" size picker. Self-contained (looks up productId itself)
+ * rather than widening CartLineView with a productId field that would
+ * ripple into checkout/order-snapshot code for a need that's local to this
+ * one feature. Mirrors the PDP's sibling-SKU query shape. DECANT only —
+ * other product types don't get a size picker anywhere in the store.
+ */
+export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOption[]> {
+  const client = db();
+  const current = (
+    await client
+      .select({ productId: skus.productId, productType: products.type })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(eq(skus.id, skuId))
+  )[0];
+  if (!current || current.productType !== "DECANT") return [];
+  const [siblings, discounts] = await Promise.all([
+    client
+      .select({ id: skus.id, sizeMl: skus.sizeMl, retailPrice: skus.retailPrice, condition: skus.condition })
+      .from(skus)
+      .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
+    client.select().from(productDiscounts).where(eq(productDiscounts.productId, current.productId)),
+  ]);
+  return siblings
+    .filter((s) => s.sizeMl != null)
+    .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+    .map((s) => {
+      const applied = applyDiscount(s.retailPrice, bestDiscount(discounts, s.retailPrice));
+      return {
+        skuId: s.id,
+        sizeMl: s.sizeMl!,
+        label: `${s.sizeMl}ML`,
+        fulfillment: "ON_HAND" as const, // display-only in the picker; real fulfillment isn't needed to pick a size
+        condition: s.condition,
+        originalCentavos: s.retailPrice,
+        discountedCentavos: applied.discountedUnitCentavos,
+        savedCentavos: applied.perUnitDiscountCentavos,
+      };
+    });
+}
+
+/**
+ * Swaps a cart line to a different size of the same product, preserving
+ * quantity (clamped to the destination size's real cap). Not composed
+ * client-side from removeCartItem + addItemToCart: quantity must carry
+ * over, and the destination size might already be a separate line — that
+ * case must merge atomically or the cart could end up with two rows for
+ * the same SKU (the (cartId, skuId) unique index forbids that) or silently
+ * lose quantity if a two-step client operation is interrupted.
+ */
+export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Promise<CartView> {
+  const { cart } = await resolveActiveCart();
+  if (fromSkuId === toSkuId) return loadCartView(cart.id);
+  const client = db();
+  const [fromItem, toFound] = await Promise.all([
+    client
+      .select()
+      .from(cartItems)
+      .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, fromSkuId)))
+      .then((r) => r[0]),
+    client
+      .select({ sku: skus, productType: products.type, remainingMl: products.remainingMl })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(eq(skus.id, toSkuId))
+      .then((r) => r[0]),
+  ]);
+  if (!fromItem) throw new Error("Item not in cart");
+  if (!toFound || !toFound.sku.isActive || toFound.sku.isTester) throw new Error("That size is unavailable");
+  const promoConfig = await loadPromoConfig();
+  const fulfillment = effectiveFulfillment({
+    productType: toFound.productType,
+    skuFulfillment: toFound.sku.fulfillment,
+    sizeMl: toFound.sku.sizeMl,
+    remainingMl: toFound.remainingMl,
+    thresholdMl: promoConfig.decantPreOrderThresholdMl,
+  });
+  const cap = resolveCartCap({
+    productType: toFound.productType,
+    fulfillment,
+    sizeMl: toFound.sku.sizeMl,
+    remainingMl: toFound.remainingMl,
+    stock: toFound.sku.stock,
+  });
+  if (cap <= 0) throw new Error("That size is currently out of stock");
+  await client.transaction(async (tx) => {
+    const existingTo = (
+      await tx.select().from(cartItems).where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, toSkuId)))
+    )[0];
+    if (existingTo) {
+      const merged = clampQuantity(existingTo.quantity + fromItem.quantity, cap);
+      await tx.update(cartItems).set({ quantity: merged }).where(eq(cartItems.id, existingTo.id));
+      await tx.delete(cartItems).where(eq(cartItems.id, fromItem.id));
+    } else {
+      const clamped = clampQuantity(fromItem.quantity, cap);
+      await tx.update(cartItems).set({ skuId: toSkuId, quantity: clamped }).where(eq(cartItems.id, fromItem.id));
+    }
+  });
+  revalidatePath("/", "layout");
+  return loadCartView(cart.id);
 }

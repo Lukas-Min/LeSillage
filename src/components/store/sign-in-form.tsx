@@ -10,10 +10,10 @@ import { SubmitButton } from "@/components/ui/submit-button";
 
 export function SignInForm({
   returnTo,
-  error,
+  errorMessage,
 }: {
   returnTo: string;
-  error?: string;
+  errorMessage?: string | null;
 }) {
   return (
     <Card className="mt-6">
@@ -28,7 +28,7 @@ export function SignInForm({
             <Label htmlFor="password">Password</Label>
             <Input id="password" name="password" type="password" required autoComplete="current-password" className="h-11" />
           </div>
-          {error ? <p className="text-sm text-destructive">Sign-in failed. Check your email and password.</p> : null}
+          {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
           <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Signing in…">
             Sign in
           </SubmitButton>

@@ -13,7 +13,8 @@ import { BuyBox } from "@/components/store/buy-box";
 import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
-import { DecantBuyBox, type DecantSizeOption } from "@/components/store/decant-buy-box";
+import { DecantBuyBox } from "@/components/store/decant-buy-box";
+import type { SizePickerOption } from "@/components/store/size-picker";
 import { labelForCategory, labelForCondition, labelForType } from "@/domain/product-type";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
@@ -95,23 +96,23 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const soldOut = row.type !== "DECANT" && fulfillment === "ON_HAND" && row.stock <= 0;
   const discount = bestDiscount(discounts, row.retailPrice);
   const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
-  const decantOptions: DecantSizeOption[] = DECANT_SIZES_ML.map((size) => {
-    const match = siblings.find((s) => s.sizeMl === size);
-    if (!match) return { sizeMl: size, label: `${size}ML`, available: false };
-    const sizeDiscount = bestDiscount(discounts, match.retailPrice);
-    const applied = applyDiscount(match.retailPrice, sizeDiscount);
-    return {
-      sizeMl: size,
-      label: `${size}ML`,
-      available: true,
-      skuId: match.id,
-      fulfillment: decantFulfillment({ remainingMl, sizeMl: size, thresholdMl: threshold }),
-      condition: match.condition,
-      originalCentavos: match.retailPrice,
-      discountedCentavos: applied.discountedUnitCentavos,
-      savedCentavos: applied.perUnitDiscountCentavos,
-    };
-  });
+  const decantOptions: SizePickerOption[] = siblings
+    .filter((s) => s.sizeMl != null)
+    .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+    .map((match) => {
+      const sizeDiscount = bestDiscount(discounts, match.retailPrice);
+      const applied = applyDiscount(match.retailPrice, sizeDiscount);
+      return {
+        sizeMl: match.sizeMl!,
+        label: `${match.sizeMl}ML`,
+        skuId: match.id,
+        fulfillment: decantFulfillment({ remainingMl, sizeMl: match.sizeMl!, thresholdMl: threshold }),
+        condition: match.condition,
+        originalCentavos: match.retailPrice,
+        discountedCentavos: applied.discountedUnitCentavos,
+        savedCentavos: applied.perUnitDiscountCentavos,
+      };
+    });
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, null);
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
