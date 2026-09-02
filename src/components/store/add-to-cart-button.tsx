@@ -11,16 +11,16 @@ export function AddToCartButton({
   variant = "full",
   soldOut = false,
   disabled = false,
-  disabledLabel = "Select a size",
+  requireSelectionMessage = "Please select a size",
   quantity,
   onQuantityChange,
 }: {
   skuId: string;
   variant?: "full" | "compact";
   soldOut?: boolean;
-  /** Blocks adding without marking it sold out — e.g. no size picked yet. */
+  /** No size picked yet — button stays clickable and labeled "Add to cart"; clicking shows an error instead of adding. */
   disabled?: boolean;
-  disabledLabel?: string;
+  requireSelectionMessage?: string;
   quantity?: number;
   onQuantityChange?: (quantity: number) => void;
 }) {
@@ -50,15 +50,20 @@ export function AddToCartButton({
         variant="gold"
         size="lg"
         className="h-11 w-full rounded-md"
-        disabled={isPending || soldOut || disabled}
+        disabled={isPending || soldOut}
         aria-busy={isPending}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (!soldOut && !disabled && skuId) add(1);
+          if (soldOut) return;
+          if (disabled || !skuId) {
+            toast.error(requireSelectionMessage);
+            return;
+          }
+          add(1);
         }}
       >
-        {soldOut ? "Sold out" : isPending ? "Adding…" : disabled ? disabledLabel : "Add to cart"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to cart"}
       </Button>
     );
   }
@@ -102,12 +107,19 @@ export function AddToCartButton({
         variant="gold"
         size="lg"
         className="h-11 flex-1 rounded-md"
-        disabled={isPending || soldOut || disabled}
+        disabled={isPending || soldOut}
         aria-busy={isPending}
-        onClick={() => !disabled && skuId && add(qty)}
+        onClick={() => {
+          if (soldOut) return;
+          if (disabled || !skuId) {
+            toast.error(requireSelectionMessage);
+            return;
+          }
+          add(qty);
+        }}
       >
         <ShoppingBag className="h-4 w-4" />
-        {soldOut ? "Sold out" : isPending ? "Adding…" : disabled ? disabledLabel : "Add to cart"}
+        {soldOut ? "Sold out" : isPending ? "Adding…" : "Add to cart"}
       </Button>
     </div>
   );

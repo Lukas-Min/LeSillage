@@ -14,9 +14,11 @@
  *   npx tsx scripts/import-fragella-manual.ts path/to/fragrances.json
  *   npx tsx scripts/import-fragella-manual.ts                # defaults to scripts/manual-fragrances.json
  *
- * Stores only structured facts (name/brand/year/gender/notes/accords/perfumers)
- * plus the source URL for traceability — never Fragrantica's marketing prose
- * or product photography (imageUrl is left null; not ours to hotlink).
+ * Stores structured facts (name/brand/year/gender/notes/accords/perfumers)
+ * plus the source URL for traceability — never Fragrantica's marketing prose.
+ * `imageUrl` is left null here; product photos are hotlinked separately once
+ * per business decision (fimgs.net is allow-listed in next.config.ts) rather
+ * than pulled automatically by this script.
  *
  * The `-manual` id suffix is intentional: if Fragella later indexes the same
  * fragrance, a future `fragella:import` run creates a *separate* row under

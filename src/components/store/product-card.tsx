@@ -59,6 +59,14 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               <Badge variant="outline">{card.conditionLabel}</Badge>
               {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
+            {isDecant ? (
+              <SizePicker
+                density="compact"
+                options={card.sizeOptions}
+                selectedSkuId={selectedSkuId}
+                onSelect={(option) => setSelectedSkuId(option.skuId)}
+              />
+            ) : null}
             <div className="border-t border-border/60 pt-3">
               {selected ? (
                 <Price
@@ -82,15 +90,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
           </div>
         </div>
       </Link>
-      <div className="space-y-2 px-4 pb-4">
-        {isDecant ? (
-          <SizePicker
-            density="compact"
-            options={card.sizeOptions}
-            selectedSkuId={selectedSkuId}
-            onSelect={(option) => setSelectedSkuId(option.skuId)}
-          />
-        ) : null}
+      <div className="px-4 pb-4">
         <AddToCartButton
           skuId={activeSkuId}
           variant="compact"
