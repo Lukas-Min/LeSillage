@@ -380,9 +380,24 @@ async function main() {
       const costForSize = entry.fullBottle
         ? Math.round((referenceCostPrice / entry.fullBottle.sizeMl) * sizeMl)
         : 0;
-      await client
-        .insert(skus)
-        .values({
+      // Matched on (productId, sizeMl) — the real identity for a decant
+      // SKU — not the mutable slug-derived `sku` string. Renaming a product
+      // (already happened for Armaf, Lattafa, YSL, Gucci — each needing a
+      // manual DB patch) would make the new slug miss the old row entirely,
+      // silently orphaning it instead of updating it. Mirrors the product
+      // upsert above, which already avoids this exact trap.
+      const [existingSku] = await client
+        .select({ id: skus.id })
+        .from(skus)
+        .where(and(eq(skus.productId, productId), eq(skus.sizeMl, sizeMl)))
+        .limit(1);
+      if (existingSku) {
+        await client
+          .update(skus)
+          .set({ retailPrice, pricingInput: retailPrice, costPrice: costForSize, updatedAt: new Date() })
+          .where(eq(skus.id, existingSku.id));
+      } else {
+        await client.insert(skus).values({
           productId,
           sku: `${brandSlug}-${nameSlug}-${sizeMl}ML`,
           label: `${sizeMl}ml Decant`,
@@ -397,11 +412,8 @@ async function main() {
           fulfillment: "ON_HAND",
           stock: 0, // decant stock is tracked via the product's shared remainingMl pool
           isTester: false,
-        })
-        .onConflictDoUpdate({
-          target: skus.sku,
-          set: { retailPrice, pricingInput: retailPrice, costPrice: costForSize, updatedAt: new Date() },
         });
+      }
       skuCount += 1;
     }
     console.log(`✓ ${entry.brand} — ${entry.name} (${entry.category}, ${entry.gender})${mirrorFields.fragellaId ? " [enriched]" : ""}`);
