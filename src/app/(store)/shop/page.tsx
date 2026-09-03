@@ -7,6 +7,7 @@ import { ShopToolbar } from "@/components/store/shop-toolbar";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
+import { labelForType } from "@/domain/product-type";
 import { concentration as CONCENTRATIONS, fragranceCategory as CATEGORIES } from "@/db/schema";
 import type { Concentration, FragranceCategory, ProductType } from "@/db/schema";
 import { GENDERS, type Gender } from "@/domain/gender";
@@ -40,7 +41,9 @@ export default async function ShopPage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop" }]} />
+      <Breadcrumbs
+        items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: labelForType(type) }]}
+      />
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
         <Eyebrow>The catalog</Eyebrow>
         <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">Shop</h1>

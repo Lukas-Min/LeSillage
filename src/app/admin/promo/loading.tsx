@@ -1,9 +1,47 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+
 export default function AdminPromoLoading() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-7 w-1/3" />
-      <Skeleton className="h-40 w-full" />
+      <h1 className="font-serif-display text-2xl">Promo & delivery</h1>
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <div className="space-y-1">
+            <Label>Free-shipping threshold (centavos)</Label>
+            <Skeleton className="h-11 w-full" />
+          </div>
+          <div className="space-y-1">
+            <Label>Delivery fee (centavos)</Label>
+            <Skeleton className="h-11 w-full" />
+          </div>
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-5 w-40" />
+          <div className="space-y-1">
+            <Label>Decant pre-order threshold (ml)</Label>
+            <Skeleton className="h-11 w-full" />
+            <p className="text-xs text-muted-foreground">
+              When remaining ml drops below this, every size on that fragrance becomes pre-order.
+            </p>
+          </div>
+          <Skeleton className="h-5 w-64" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Type</Label>
+              <Skeleton className="h-11 w-full" />
+            </div>
+            <div className="space-y-1">
+              <Label>Amount</Label>
+              <Skeleton className="h-11 w-full" />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack.
+          </p>
+          <Skeleton className="h-10 w-24" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

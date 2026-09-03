@@ -132,6 +132,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  input[type="checkbox"] {
+    accent-color: var(--primary);
+  }
   html {
     @apply font-sans;
     overflow-y: scroll;

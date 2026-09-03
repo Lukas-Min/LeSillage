@@ -1,13 +1,22 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+
 export default function CheckoutLoading() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
-      <Skeleton className="h-7 w-1/3" />
-      <Skeleton className="mt-2 h-4 w-1/2" />
-      <Skeleton className="mt-6 h-40 w-full" />
-      <Skeleton className="mt-6 h-32 w-full" />
-      <Skeleton className="mt-6 h-32 w-full" />
-      <Skeleton className="mt-6 h-20 w-full" />
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
+      <h1 className="font-serif-display text-2xl">Checkout</h1>
+      <p className="text-sm text-muted-foreground">
+        All amounts in Philippine pesos (₱). Delivery default ₱120, pickup free. Free delivery unlocks at ₱2,000 of
+        discounted decants.
+      </p>
+      <div className="mt-6 space-y-6">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
     </main>
   );
 }

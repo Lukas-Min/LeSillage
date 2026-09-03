@@ -1,14 +1,46 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+
 export default function AdminLoading() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-7 w-1/3" />
+      <h1 className="font-serif-display text-2xl">Admin dashboard</h1>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Pending receipts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-10" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Awaiting payment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-10" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Low stock SKUs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-10" />
+          </CardContent>
+        </Card>
       </div>
-      <Skeleton className="h-40 w-full" />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Low stock</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </CardContent>
+      </Card>
     </div>
   );
 }
