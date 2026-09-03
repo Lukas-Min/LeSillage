@@ -3,6 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- **Production-only crash**: clicking the wishlist heart while signed out crashed with a generic "Server Components render" error instead of showing "Please sign in", reproducible on every click. Root cause: `toggleWishlist` threw a plain `Error`, which `WishlistButton`'s own try/catch handled fine, but a *separate* internal Next.js path (the automatic post-action Router refresh) also saw the same throw and crashed on it — production-only, never reproduced in dev. Fixed by having `toggleWishlist` return a typed `{ok, ...}` result instead of throwing for expected failures (not signed in, rate-limited, product unavailable); confirmed fixed against a real local production build (`next build && next start`), not just dev
+- Also fixed, while investigating the crash above: the product page's mobile-only title duplication (added earlier this session) had accidentally duplicated `WishlistButton` itself — a stateful client component — into two live instances sharing one product. Split into a stateless `ProductTitleText` (safe to render twice) and a single `WishlistButton` instance kept in its original spot
+
 ### Added
 - Cart-line "Customize" now previews the staged size's price immediately when a pill is picked (before Save), matching the product page's buy box instead of only updating the price after committing
 - Signing in when both the guest cart and the account's existing cart have items now asks which to keep (`checkGuestCartMerge`/`resolveGuestCartConflict` in `src/lib/cart.ts`, dialog in `src/components/store/cart-context.tsx`) instead of silently combining quantities. Replacing the account cart re-parents the guest cart's rows in one `UPDATE` rather than re-adding each item — the case where the account cart was empty still auto-merges instantly, unchanged. When only one side has items, sign-in still merges automatically with no prompt

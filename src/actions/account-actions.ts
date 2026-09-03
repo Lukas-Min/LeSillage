@@ -80,11 +80,32 @@ export async function updateNotificationPreferences(formData: FormData) {
   revalidatePath("/account/notifications");
 }
 
-export async function toggleWishlist(productId: string): Promise<{ saved: boolean }> {
-  const user = await requireActiveCustomer();
-  await limitAccount(user.id, "wishlist");
+export type ToggleWishlistResult = { ok: true; saved: boolean } | { ok: false; error: string };
+
+/**
+ * Returns a typed result instead of throwing for expected failures (not
+ * signed in, rate-limited, product unavailable). This action is called from
+ * a client component's useTransition + try/catch — a thrown Error here was
+ * reaching WishlistButton's own catch fine, but Next's separate internal
+ * handling for a thrown server action (the automatic post-action Router
+ * refresh) was *also* seeing the same throw and crashing with a generic
+ * "Server Components render" error in production only (never reproduced in
+ * dev). Returning a plain value sidesteps that path entirely.
+ */
+export async function toggleWishlist(productId: string): Promise<ToggleWishlistResult> {
+  let user: Awaited<ReturnType<typeof requireActiveCustomer>>;
+  try {
+    user = await requireActiveCustomer();
+  } catch {
+    return { ok: false, error: "Please sign in to save items" };
+  }
+  try {
+    await limitAccount(user.id, "wishlist");
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Too many requests" };
+  }
   const product = (await db().select().from(products).where(eq(products.id, productId)))[0];
-  if (!product || !product.isActive) throw new Error("That fragrance is unavailable");
+  if (!product || !product.isActive) return { ok: false, error: "That fragrance is unavailable" };
   const existing = (
     await db()
       .select()
@@ -101,7 +122,7 @@ export async function toggleWishlist(productId: string): Promise<{ saved: boolea
       metadata: { saved: false },
     });
     revalidatePath("/account/wishlist");
-    return { saved: false };
+    return { ok: true, saved: false };
   }
   await db().insert(wishlists).values({ userId: user.id, productId });
   await auditLogSubject({
@@ -112,7 +133,7 @@ export async function toggleWishlist(productId: string): Promise<{ saved: boolea
     metadata: { saved: true },
   });
   revalidatePath("/account/wishlist");
-  return { saved: true };
+  return { ok: true, saved: true };
 }
 
 export async function removeFromWishlist(wishlistId: string) {

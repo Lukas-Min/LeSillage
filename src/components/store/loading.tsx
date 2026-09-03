@@ -17,10 +17,10 @@ export function CatalogCardsSkeleton({ count = 6 }: { count?: number }) {
               <Skeleton className="h-5 w-14 rounded-none" />
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
-              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
-              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
-              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
             </div>
             <Skeleton className="ml-auto h-5 w-1/2" />
           </div>

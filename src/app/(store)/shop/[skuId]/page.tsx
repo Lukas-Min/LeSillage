@@ -129,15 +129,20 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             cornerLabel={labelForCategory(row.fragranceCategory)}
           />
 
-          {/* Mobile only — same header as the desktop right column below, shown
-              here so the title sits above "Main accords" on narrow screens
-              instead of after it. */}
-          <ProductTitleHeader
+          {/* Mobile only — plain text, so the title sits above "Main accords"
+              on narrow screens instead of after it. Text-only (no
+              WishlistButton here): that's a stateful client component with
+              its own server action binding, and mounting two live instances
+              of it for the same product crashed production (both instances
+              share the same in-flight action, and Next's re-render recovery
+              for a rejected action from one instance blew up trying to
+              reconcile the other). The button itself stays single-instance,
+              in its original spot in the column below. */}
+          <ProductTitleText
             brand={row.brand}
             name={row.name}
             concentrationGender={concentrationGender}
-            productId={row.productId}
-            className="flex md:hidden"
+            className="md:hidden"
           />
 
           {accords && accords.length > 0 ? (
@@ -172,13 +177,15 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         </div>
 
         <div className="flex flex-col gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
-          <ProductTitleHeader
-            brand={row.brand}
-            name={row.name}
-            concentrationGender={concentrationGender}
-            productId={row.productId}
-            className="hidden md:flex"
-          />
+          <div className="flex items-start justify-between gap-3">
+            <ProductTitleText
+              brand={row.brand}
+              name={row.name}
+              concentrationGender={concentrationGender}
+              className="hidden md:block"
+            />
+            <WishlistButton productId={row.productId} variant="icon" />
+          </div>
 
           {isDecant ? (
             <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
@@ -233,27 +240,25 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   );
 }
 
-function ProductTitleHeader({
+/** Pure text, no interactive state — safe to render more than once (see the
+ *  mobile/desktop split above). WishlistButton is NOT part of this: it's a
+ *  stateful client component and must stay single-instance. */
+function ProductTitleText({
   brand,
   name,
   concentrationGender,
-  productId,
   className,
 }: {
   brand: string;
   name: string;
   concentrationGender: string | null;
-  productId: string;
   className?: string;
 }) {
   return (
-    <div className={cn("items-start justify-between gap-3", className)}>
-      <div className="space-y-1.5">
-        <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{brand}</p>
-        <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{name}</h1>
-        {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
-      </div>
-      <WishlistButton productId={productId} variant="icon" />
+    <div className={cn("space-y-1.5", className)}>
+      <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{brand}</p>
+      <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{name}</h1>
+      {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
     </div>
   );
 }

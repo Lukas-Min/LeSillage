@@ -18,6 +18,23 @@ export function WishlistButton({
 }) {
   const [saved, setSaved] = useState(initiallySaved);
   const [isPending, startTransition] = useTransition();
+
+  function handleToggle() {
+    startTransition(async () => {
+      try {
+        const result = await toggleWishlist(productId);
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+        setSaved(result.saved);
+        toast.success(result.saved ? "Saved to wishlist" : "Removed from wishlist");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Please sign in to save items");
+      }
+    });
+  }
+
   if (variant === "icon") {
     return (
       <Button
@@ -27,17 +44,7 @@ export function WishlistButton({
         aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
         aria-pressed={saved}
         disabled={isPending}
-        onClick={() =>
-          startTransition(async () => {
-            try {
-              const next = await toggleWishlist(productId);
-              setSaved(next.saved);
-              toast.success(next.saved ? "Saved to wishlist" : "Removed from wishlist");
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : "Please sign in to save items");
-            }
-          })
-        }
+        onClick={handleToggle}
         className="h-11 w-11 shrink-0"
       >
         {isPending ? (
@@ -56,17 +63,7 @@ export function WishlistButton({
       className="h-11 rounded-md"
       disabled={isPending}
       aria-pressed={saved}
-      onClick={() =>
-        startTransition(async () => {
-          try {
-            const next = await toggleWishlist(productId);
-            setSaved(next.saved);
-            toast.success(next.saved ? "Saved to wishlist" : "Removed from wishlist");
-          } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Please sign in to save items");
-          }
-        })
-      }
+      onClick={handleToggle}
     >
       {isPending ? <Loader2 className="animate-spin" /> : <Heart className={saved ? "fill-current" : ""} />}
       {isPending ? "Saving…" : saved ? "Saved" : "Save"}

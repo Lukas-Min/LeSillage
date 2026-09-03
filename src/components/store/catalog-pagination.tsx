@@ -39,7 +39,11 @@ export function CatalogPagination({
     <nav aria-label="Catalog pages" className="mt-8 flex items-center justify-center gap-1.5">
       {hasPrev ? (
         <>
-          <PagerButton href={href(1)} label="First page" icon={<ChevronsLeft />} className="hidden sm:inline-flex" />
+          {/* Previous already lands on page 1 when it's the very next page
+              back — showing First too would be two buttons doing the same thing. */}
+          {page - 1 > 1 ? (
+            <PagerButton href={href(1)} label="First page" icon={<ChevronsLeft />} className="hidden sm:inline-flex" />
+          ) : null}
           <PagerButton href={href(page - 1)} label="Previous page" icon={<ChevronLeft />} />
         </>
       ) : null}
@@ -74,7 +78,11 @@ export function CatalogPagination({
       {hasNext ? (
         <>
           <PagerButton href={href(page + 1)} label="Next page" icon={<ChevronRight />} />
-          <PagerButton href={href(totalPages)} label="Last page" icon={<ChevronsRight />} className="hidden sm:inline-flex" />
+          {/* Same reasoning as First/Previous above, mirrored: skip Last when
+              Next already lands on it. */}
+          {page + 1 < totalPages ? (
+            <PagerButton href={href(totalPages)} label="Last page" icon={<ChevronsRight />} className="hidden sm:inline-flex" />
+          ) : null}
         </>
       ) : null}
     </nav>

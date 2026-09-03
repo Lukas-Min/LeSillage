@@ -17,7 +17,7 @@ export interface SizePickerOption {
 
 const DENSITY = {
   default: "h-11 min-w-[3.5rem] px-4 text-xs",
-  compact: "h-11 min-w-[2.75rem] px-2.5 text-[10px]",
+  compact: "h-9 min-w-[2.75rem] px-2.5 text-[10px]",
 } as const;
 
 export function SizePicker({
