@@ -182,7 +182,7 @@ export function CartLineItem({
             {loadingSiblings || siblings === null ? (
               <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} className="h-8 min-w-[2.75rem] rounded-none" />
+                  <Skeleton key={index} className="h-11 min-w-[2.75rem] rounded-none" />
                 ))}
               </div>
             ) : (

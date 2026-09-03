@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,11 @@ export function WishlistButton({
         }
         className="h-11 w-11 shrink-0"
       >
-        <Heart className={cn("h-5 w-5", saved ? "fill-current" : "")} />
+        {isPending ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Heart className={cn("h-5 w-5", saved ? "fill-current" : "")} />
+        )}
       </Button>
     );
   }
@@ -64,8 +68,8 @@ export function WishlistButton({
         })
       }
     >
-      <Heart className={saved ? "fill-current" : ""} />
-      {saved ? "Saved" : "Save"}
+      {isPending ? <Loader2 className="animate-spin" /> : <Heart className={saved ? "fill-current" : ""} />}
+      {isPending ? "Saving…" : saved ? "Saved" : "Save"}
     </Button>
   );
 }

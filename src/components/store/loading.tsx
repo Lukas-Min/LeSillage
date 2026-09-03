@@ -6,11 +6,26 @@ export function CatalogCardsSkeleton({ count = 6 }: { count?: number }) {
       {Array.from({ length: count }).map((_, idx) => (
         <div key={idx} className="overflow-hidden rounded-md border border-border">
           <Skeleton className="aspect-square w-full rounded-none" />
-          <div className="space-y-2 p-4">
-            <Skeleton className="h-3 w-1/3" />
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-3 w-1/4" />
-            <Skeleton className="mt-4 h-8 w-1/2" />
+          <div className="space-y-3 p-4">
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-5 w-16 rounded-none" />
+              <Skeleton className="h-5 w-14 rounded-none" />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-11 min-w-[2.75rem] flex-1 rounded-none" />
+            </div>
+            <Skeleton className="ml-auto h-5 w-1/2" />
+          </div>
+          <div className="px-4 pb-4">
+            <Skeleton className="h-11 w-full rounded-md" />
           </div>
         </div>
       ))}
