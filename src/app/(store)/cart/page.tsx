@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCart } from "@/components/store/cart-context";
 import { CartLineItem } from "@/components/store/cart-line-item";
+import { ClearCartButton } from "@/components/store/clear-cart-button";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,10 @@ export default function CartPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart" }]} />
-      <h1 className="font-serif-display text-2xl">Your cart</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-serif-display text-2xl">Your cart</h1>
+        <ClearCartButton />
+      </div>
       {cart.items.length === 0 ? (
         <Card className="mt-6">
           <CardContent className="space-y-3 p-6 text-center">

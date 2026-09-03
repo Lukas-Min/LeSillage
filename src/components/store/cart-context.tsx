@@ -5,13 +5,26 @@ import { useSession } from "next-auth/react";
 import {
   addItemToCart,
   changeCartItemSize,
+  checkGuestCartMerge,
+  clearCart,
   getCart,
   importLegacyCart,
   mergeGuestCartIntoUser,
   removeCartItem,
+  resolveGuestCartConflict,
   updateCartItem,
 } from "@/actions/cart-actions";
-import type { CartLineView, CartView } from "@/lib/cart";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { CartLineView, CartView, GuestCartMergeState } from "@/lib/cart";
 
 export type CartItem = CartLineView;
 
@@ -37,6 +50,7 @@ interface CartContextValue {
   setQuantity: (skuId: string, quantity: number) => Promise<void>;
   remove: (skuId: string) => Promise<void>;
   changeSize: (fromSkuId: string, toSkuId: string) => Promise<void>;
+  clear: () => Promise<void>;
   count: number;
 }
 
@@ -50,6 +64,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // once; a slower-resolving stale one must not overwrite a newer one.
   const quantityRequestIdRef = useRef(0);
   const mergeFlagKey = "lesillage.guestCartMerged";
+  // Set only once the guest cart is actually resolved (auto-merged, or the
+  // conflict dialog below is answered) — not before, so an interrupted
+  // conflict (e.g. the tab closes mid-decision) is asked again next time.
+  const [conflict, setConflict] = useState<GuestCartMergeState | null>(null);
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -59,9 +78,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         void getCart().then(setView);
         return;
       }
-      window.sessionStorage.setItem(mergeFlagKey, "1");
-      void mergeGuestCartIntoUser().then(() => {
-        void getCart().then(setView);
+      void checkGuestCartMerge().then((state) => {
+        if (state.hasConflict) {
+          // Show the current account cart while the user decides — the
+          // guest cart stays untouched either way until they answer.
+          setConflict(state);
+          void getCart().then(setView);
+          return;
+        }
+        window.sessionStorage.setItem(mergeFlagKey, "1");
+        void mergeGuestCartIntoUser().then(() => {
+          void getCart().then(setView);
+        });
       });
       return;
     }
@@ -84,6 +112,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const resolveConflict = useCallback(async (strategy: "keep-account" | "use-guest") => {
+    setResolving(true);
+    try {
+      const next = await resolveGuestCartConflict(strategy);
+      setView(next);
+      setConflict(null);
+      if (typeof window !== "undefined") window.sessionStorage.setItem(mergeFlagKey, "1");
+    } finally {
+      setResolving(false);
+    }
+  }, []);
+
   const add = useCallback(async (item: Pick<CartLineView, "skuId"> & { quantity: number }) => {
     setView(await addItemToCart(item.skuId, item.quantity));
   }, []);
@@ -102,11 +142,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setView(await changeCartItemSize(fromSkuId, toSkuId));
   }, []);
 
+  const clear = useCallback(async () => {
+    setView(await clearCart());
+  }, []);
+
   const value = useMemo(
-    () => ({ items: view.items, totals: view.totals, add, setQuantity, remove, changeSize, count: view.count }),
-    [view, add, setQuantity, remove, changeSize],
+    () => ({ items: view.items, totals: view.totals, add, setQuantity, remove, changeSize, clear, count: view.count }),
+    [view, add, setQuantity, remove, changeSize, clear],
   );
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <AlertDialog open={conflict !== null}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Two bags, one account</AlertDialogTitle>
+            <AlertDialogDescription>
+              {conflict
+                ? `Your account already has ${conflict.userCount} item${conflict.userCount === 1 ? "" : "s"} in its bag, and you also have ${conflict.guestCount} item${conflict.guestCount === 1 ? "" : "s"} from before signing in. Which one do you want to keep?`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resolving} onClick={() => void resolveConflict("keep-account")}>
+              Keep my account bag
+            </AlertDialogCancel>
+            <AlertDialogAction disabled={resolving} onClick={() => void resolveConflict("use-guest")}>
+              Use the other bag
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartContextValue {

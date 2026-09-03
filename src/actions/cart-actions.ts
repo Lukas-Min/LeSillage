@@ -10,6 +10,7 @@ import type { SizePickerOption } from "@/components/store/size-picker";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import {
   addOneToCart,
+  checkGuestCartMerge as checkGuestCartMergeLib,
   effectiveFulfillment,
   importLegacyCartLines,
   loadCartView,
@@ -17,7 +18,9 @@ import {
   mergeGuestCartIntoUser as mergeGuest,
   resolveActiveCart,
   resolveCartCap,
+  resolveGuestCartConflict as resolveGuestCartConflictLib,
   type CartView,
+  type GuestCartMergeState,
 } from "@/lib/cart";
 
 export async function getCart(): Promise<CartView> {
@@ -115,6 +118,18 @@ export async function clearCart(): Promise<CartView> {
 export async function mergeGuestCartIntoUser() {
   await mergeGuest();
   revalidatePath("/", "layout");
+}
+
+/** Call right after sign-in to see if the guest cart and account cart both have items before merging. */
+export async function checkGuestCartMerge(): Promise<GuestCartMergeState> {
+  return checkGuestCartMergeLib();
+}
+
+/** Resolves a guest-vs-account cart conflict the user was asked to choose between. */
+export async function resolveGuestCartConflict(strategy: "keep-account" | "use-guest"): Promise<CartView> {
+  const view = await resolveGuestCartConflictLib(strategy);
+  revalidatePath("/", "layout");
+  return view;
 }
 
 export async function importLegacyCart(lines: Array<{ skuId: string; quantity: number }>): Promise<CartView> {

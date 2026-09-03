@@ -350,6 +350,75 @@ export async function mergeGuestCartIntoUser(): Promise<void> {
   store.delete(GUEST_CART_COOKIE);
 }
 
+export interface GuestCartMergeState {
+  hasConflict: boolean;
+  guestCount: number;
+  userCount: number;
+}
+
+/**
+ * Call right after sign-in, before merging. If both the guest cart and the
+ * account's existing cart already have items, the caller must ask the user
+ * which to keep (see resolveGuestCartConflict) instead of silently combining
+ * quantities — auto-merging here would surprise someone who deliberately has
+ * different items staged as a guest and on their account.
+ */
+export async function checkGuestCartMerge(): Promise<GuestCartMergeState> {
+  const empty: GuestCartMergeState = { hasConflict: false, guestCount: 0, userCount: 0 };
+  const session = await auth();
+  if (!session?.user?.id) return empty;
+  const store = await cookies();
+  const token = store.get(GUEST_CART_COOKIE)?.value;
+  if (!token) return empty;
+  const client = db();
+  const [guestCart, userCart] = await Promise.all([
+    client.select().from(carts).where(eq(carts.guestToken, token)).then((r) => r[0]),
+    getOrCreateCartForUser(session.user.id),
+  ]);
+  if (!guestCart) return empty;
+  const [guestItems, userItems] = await Promise.all([
+    client.select({ quantity: cartItems.quantity }).from(cartItems).where(eq(cartItems.cartId, guestCart.id)),
+    client.select({ quantity: cartItems.quantity }).from(cartItems).where(eq(cartItems.cartId, userCart.id)),
+  ]);
+  const guestCount = guestItems.reduce((sum, item) => sum + item.quantity, 0);
+  const userCount = userItems.reduce((sum, item) => sum + item.quantity, 0);
+  return { hasConflict: guestItems.length > 0 && userItems.length > 0, guestCount, userCount };
+}
+
+/**
+ * Resolves a guest-vs-account cart conflict the user was asked about:
+ * "keep-account" discards the guest cart untouched; "use-guest" replaces the
+ * account cart's contents with the guest cart's. Replacing re-parents the
+ * guest cart's rows onto the account cart in one UPDATE (the account cart is
+ * emptied first in the same transaction, so the (cartId, skuId) unique index
+ * can't collide) rather than re-adding each item one at a time — faster, and
+ * this runs on the sign-in critical path.
+ */
+export async function resolveGuestCartConflict(strategy: "keep-account" | "use-guest"): Promise<CartView> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Please sign in");
+  const store = await cookies();
+  const token = store.get(GUEST_CART_COOKIE)?.value;
+  const userCart = await getOrCreateCartForUser(session.user.id);
+  if (token) {
+    const client = db();
+    const guestCart = (await client.select().from(carts).where(eq(carts.guestToken, token)))[0];
+    if (guestCart) {
+      if (strategy === "use-guest") {
+        await client.transaction(async (tx) => {
+          await tx.delete(cartItems).where(eq(cartItems.cartId, userCart.id));
+          await tx.update(cartItems).set({ cartId: userCart.id }).where(eq(cartItems.cartId, guestCart.id));
+        });
+      } else {
+        await client.delete(cartItems).where(eq(cartItems.cartId, guestCart.id));
+      }
+      await client.delete(carts).where(eq(carts.id, guestCart.id));
+    }
+    store.delete(GUEST_CART_COOKIE);
+  }
+  return loadCartView(userCart.id);
+}
+
 export async function importLegacyCartLines(lines: Array<{ skuId: string; quantity: number }>) {
   const { cart } = await resolveActiveCart();
   const promoConfig = await loadPromoConfig();

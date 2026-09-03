@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { useCart, useCartCount } from "@/components/store/cart-context";
 import { CartLineItem } from "@/components/store/cart-line-item";
+import { ClearCartButton } from "@/components/store/clear-cart-button";
 import { Button } from "@/components/ui/button";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import {
@@ -50,6 +51,12 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center justify-between px-4 pt-3">
+              <p className="text-xs text-muted-foreground">
+                {count} item{count === 1 ? "" : "s"}
+              </p>
+              <ClearCartButton />
+            </div>
             <ul className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
               {cart.items.map((item) => (
                 <li key={item.skuId}>

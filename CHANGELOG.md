@@ -5,6 +5,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ## [Unreleased]
 ### Added
 - Cart-line "Customize" now previews the staged size's price immediately when a pill is picked (before Save), matching the product page's buy box instead of only updating the price after committing
+- Signing in when both the guest cart and the account's existing cart have items now asks which to keep (`checkGuestCartMerge`/`resolveGuestCartConflict` in `src/lib/cart.ts`, dialog in `src/components/store/cart-context.tsx`) instead of silently combining quantities. Replacing the account cart re-parents the guest cart's rows in one `UPDATE` rather than re-adding each item — the case where the account cart was empty still auto-merges instantly, unchanged. When only one side has items, sign-in still merges automatically with no prompt
+- New "Clear bag" button (`src/components/store/clear-cart-button.tsx`) in both the cart drawer and the full cart page, behind a confirmation dialog, wired to the `clearCart` action that already existed but had no UI
 - Shop's Filter dropdown now has a Gender section (Male/Female/Unisex), backed by a new `gender` filter on `loadCatalogCards`/`countCatalogCards` (`src/lib/catalog.ts`) and a shared `src/domain/gender.ts`
 
 ### Fixed
