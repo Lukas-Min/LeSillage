@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Checkout's item list moved from its own card at the top to inside the pricing card at the bottom, forming one "Order summary" (items + merchandise subtotal + delivery + total) right before the Place order button, instead of separating the line items from their own math
+- PH address dropdown's Postal code / Street inputs were the default `Input` height (32px) while the Province/City/Barangay selects next to them were 44px, so the row looked uneven — matched all five fields to `h-11`
 - PDP no longer shows the "Perfumer" credit line below the note pyramid — not needed for now. `CompositionContent` dropped its `perfumers` prop; the underlying `products.perfumers` data is untouched, just not rendered
 - PDP's Notes section listed each Top/Heart/Base column's notes as one comma-joined line; now one note per row, still centered under its column, easier to scan for a long note list
 

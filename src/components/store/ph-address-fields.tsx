@@ -262,6 +262,7 @@ export function PhAddressFields({
           onChange={(event) => setPostalCode(event.target.value)}
           minLength={4}
           required
+          className="h-11"
         />
       </div>
       <div className="space-y-1 sm:col-span-2">
@@ -272,6 +273,7 @@ export function PhAddressFields({
           value={street}
           onChange={(event) => setStreet(event.target.value)}
           required
+          className="h-11"
         />
       </div>
     </>

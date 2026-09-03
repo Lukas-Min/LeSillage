@@ -191,29 +191,6 @@ export function CheckoutForm({
     <form onSubmit={onSubmit} className="mt-6 space-y-6">
       <Card>
         <CardContent className="space-y-3 p-4">
-          <h2 className="font-serif-display text-lg">Items</h2>
-          <ul className="space-y-3 text-sm">
-            {lineItems.map((item) => (
-              <li key={item.skuId} className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.skuLabel} · ×{item.quantity} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
-                  </p>
-                </div>
-                <Price
-                  originalCentavos={item.originalUnitCentavos}
-                  discountedCentavos={item.retailPriceCentavos}
-                  quantity={item.quantity}
-                  className="text-right"
-                />
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="space-y-3 p-4">
           <h2 className="font-serif-display text-lg">Fulfillment</h2>
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -369,6 +346,26 @@ export function CheckoutForm({
       </Card>
       <Card>
         <CardContent className="space-y-2 p-4 text-sm">
+          <h2 className="font-serif-display text-lg">Order summary</h2>
+          <ul className="space-y-3">
+            {lineItems.map((item) => (
+              <li key={item.skuId} className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.skuLabel} · ×{item.quantity} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
+                  </p>
+                </div>
+                <Price
+                  originalCentavos={item.originalUnitCentavos}
+                  discountedCentavos={item.retailPriceCentavos}
+                  quantity={item.quantity}
+                  className="text-right"
+                />
+              </li>
+            ))}
+          </ul>
+          <Separator />
           {/* merchandiseSubtotalCentavos is already post-item-discount (see
               priceCart) — discountCentavos below is shown as an
               informational note, not subtracted again; only the promo-code
