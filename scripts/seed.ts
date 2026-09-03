@@ -130,11 +130,13 @@ function randomInt(min: number, max: number): number {
 }
 
 function slugify(value: string): string {
+  // No length cap: a truncated slug risks two different names colliding on
+  // the same SKU code (see scripts/import-decant-pricelist.ts's slug(),
+  // which had this exact bug at 24 chars and fixed it).
   return value
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 24);
+    .replace(/^-+|-+$/g, "");
 }
 
 async function pickRandomFragrances(min: number): Promise<Array<{ record: FragellaRecord; category: FragranceCategory }>> {

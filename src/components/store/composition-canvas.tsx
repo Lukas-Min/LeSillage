@@ -29,7 +29,7 @@ export function CompositionCanvas({
     return (
       <div
         className={cn(
-          "relative aspect-square w-full overflow-hidden border border-border bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] p-4",
+          "relative aspect-square w-full overflow-hidden border border-border bg-white p-4",
           className,
         )}
       >

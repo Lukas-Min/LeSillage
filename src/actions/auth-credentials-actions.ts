@@ -70,10 +70,10 @@ export async function registerWithEmail(formData: FormData) {
     if (passwordError) throw new Error(passwordError);
     const client = db();
     const existing = (await client.select().from(users).where(eq(users.email, email)))[0];
-    if (existing?.deletedAt) throw new Error("This email cannot be used");
-    if (existing?.emailVerified) {
-      // Intentionally silent — do not add an ?error= here. Confirming "this
-      // email is already registered" would let an attacker enumerate accounts.
+    if (existing?.deletedAt || existing?.emailVerified) {
+      // Intentionally silent — do not add an ?error= here for either case.
+      // Confirming "this email is already registered" (verified or deleted)
+      // would let an attacker enumerate accounts.
       redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
     }
     const passwordHash = await hashPassword(password);

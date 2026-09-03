@@ -313,7 +313,6 @@ async function main() {
       brand: entry.brand,
       gender: entry.gender,
       sourceMl,
-      remainingMl: sourceMl, // 100% of bottle size, per instruction — update as stock depletes
       costPrice: referenceCostPrice,
       pricingMode: "DIRECT" as const,
       pricingInput: referenceCostPrice,
@@ -342,10 +341,17 @@ async function main() {
 
     let productId: string;
     if (existing) {
+      // remainingMl is deliberately NOT in this update — it tracks live stock
+      // as orders deplete it, and a re-run of this script (e.g. to pick up a
+      // price change) must not reset that back to full sourceMl.
       productId = existing.id;
       await client.update(products).set({ ...productValues, updatedAt: new Date() }).where(eq(products.id, productId));
     } else {
-      const [inserted] = await client.insert(products).values(productValues).returning({ id: products.id });
+      // 100% of bottle size on first insert only — nothing to preserve yet.
+      const [inserted] = await client
+        .insert(products)
+        .values({ ...productValues, remainingMl: sourceMl })
+        .returning({ id: products.id });
       productId = inserted.id;
     }
     productCount += 1;

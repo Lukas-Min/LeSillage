@@ -249,10 +249,58 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
   return sorted.slice(start, start + filter.limit);
 }
 
-/** Total matching cards for `filter`, ignoring `limit`/`offset` — for pagination. */
+/**
+ * Total matching cards for `filter`, ignoring `limit`/`offset` — for
+ * pagination. Mirrors loadCatalogCards's product/SKU matching (including the
+ * per-product "at least one active, non-tester SKU" requirement) without its
+ * image, discount, and pricing queries/computation, which a count doesn't need.
+ */
 export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
-  const cards = await loadCatalogCards(filter);
-  return cards.length;
+  const client = db();
+  const conditions: SQL[] = [eq(products.isActive, true)];
+  if (filter.types && filter.types.length > 0) {
+    conditions.push(inArray(products.type, filter.types));
+  } else if (filter.type) {
+    conditions.push(eq(products.type, filter.type));
+  }
+  if (filter.fragranceCategory) {
+    conditions.push(eq(products.fragranceCategory, filter.fragranceCategory));
+  }
+  if (filter.concentration) {
+    conditions.push(eq(products.concentration, filter.concentration));
+  }
+  if (filter.brand) conditions.push(eq(products.brand, filter.brand));
+  if (filter.query && filter.query.trim().length > 0) {
+    const term = `%${filter.query.trim()}%`;
+    const search = or(
+      ilike(products.name, term),
+      ilike(products.brand, term),
+      ilike(products.family, term),
+    );
+    if (search) conditions.push(search);
+  }
+
+  const productRows = await client
+    .select({ id: products.id, type: products.type })
+    .from(products)
+    .where(and(...conditions));
+  if (productRows.length === 0) return 0;
+
+  const productIds = productRows.map((p) => p.id);
+  const skuRows = await client
+    .select({ productId: skus.productId, sizeMl: skus.sizeMl })
+    .from(skus)
+    .where(and(eq(skus.isActive, true), eq(skus.isTester, false), inArray(skus.productId, productIds)));
+  const skusByProduct = groupBy(skuRows, (row) => row.productId);
+
+  let count = 0;
+  for (const product of productRows) {
+    const variants = skusByProduct.get(product.id) ?? [];
+    const matching =
+      filter.sizeMl && product.type === "DECANT" ? variants.filter((v) => v.sizeMl === filter.sizeMl) : variants;
+    if (matching.length > 0) count += 1;
+  }
+  return count;
 }
 
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {
@@ -319,6 +367,11 @@ export interface SearchResultCard {
 }
 
 const SEARCH_RESULT_LIMIT = 20;
+// Raw SQL rows to fetch before the active-SKU filter below runs. Higher than
+// SEARCH_RESULT_LIMIT so products with no active SKUs (which get filtered
+// out after this query) don't crowd genuinely available matches out of the
+// final, capped result list.
+const SEARCH_QUERY_LIMIT = 100;
 
 /**
  * Lightweight search for the header search-as-you-type dropdown. Deliberately
@@ -344,7 +397,7 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
       ),
     )
     .orderBy(desc(products.createdAt))
-    .limit(SEARCH_RESULT_LIMIT);
+    .limit(SEARCH_QUERY_LIMIT);
   if (matches.length === 0) return [];
 
   const productIds = matches.map((m) => m.id);
@@ -360,6 +413,7 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
 
   const results: SearchResultCard[] = [];
   for (const product of matches) {
+    if (results.length >= SEARCH_RESULT_LIMIT) break;
     const variants = skusByProduct.get(product.id) ?? [];
     if (variants.length === 0) continue;
     const discounts = discountsByProduct.get(product.id) ?? [];

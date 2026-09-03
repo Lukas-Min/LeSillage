@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   addItemToCart,
@@ -46,6 +46,9 @@ const STORAGE_KEY = "le-sillage-cart";
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<CartView>(EMPTY);
   const { data: session, status } = useSession();
+  // Debounced quantity edits can have two updateCartItem calls in flight at
+  // once; a slower-resolving stale one must not overwrite a newer one.
+  const quantityRequestIdRef = useRef(0);
   const mergeFlagKey = "lesillage.guestCartMerged";
 
   useEffect(() => {
@@ -86,7 +89,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setQuantity = useCallback(async (skuId: string, quantity: number) => {
-    setView(await updateCartItem(skuId, quantity));
+    const requestId = ++quantityRequestIdRef.current;
+    const next = await updateCartItem(skuId, quantity);
+    if (requestId === quantityRequestIdRef.current) setView(next);
   }, []);
 
   const remove = useCallback(async (skuId: string) => {

@@ -44,22 +44,17 @@ async function promoteAdmin(email: string | null | undefined, userId: string) {
   return role;
 }
 
-// Distinct authorize() failure reasons, surfaced as `error.code` in
+// Single authorize() failure reason, surfaced as `error.code` in
 // signInWithPassword's catch block (see auth-credentials-actions.ts) so the
-// sign-in page can show a specific message instead of a generic crash.
-// "No such user" and "wrong password" deliberately share one code/message —
-// that's the login-side anti-enumeration protection, unchanged from before.
+// sign-in page can show a message instead of a generic crash. Every failure
+// case — no such user, wrong password, deleted account, OAuth-only account,
+// unverified email — shares this one code/message. Distinguishing them would
+// let anyone probing the sign-in form with a real email confirm the account
+// exists and learn its state, even though "no such user" vs "wrong password"
+// alone were already merged; all failure branches must stay merged, not just
+// those two.
 class InvalidCredentialsError extends CredentialsSignin {
   code = "invalid-credentials";
-}
-class AccountDeletedError extends CredentialsSignin {
-  code = "account-deleted";
-}
-class OAuthOnlyAccountError extends CredentialsSignin {
-  code = "oauth-only";
-}
-class UnverifiedEmailError extends CredentialsSignin {
-  code = "unverified-email";
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -110,9 +105,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .where(eq(users.email, email))
         )[0];
         if (!user) throw new InvalidCredentialsError();
-        if (user.deletedAt) throw new AccountDeletedError();
-        if (!user.passwordHash) throw new OAuthOnlyAccountError();
-        if (!user.emailVerified) throw new UnverifiedEmailError();
+        if (user.deletedAt) throw new InvalidCredentialsError();
+        if (!user.passwordHash) throw new InvalidCredentialsError();
+        if (!user.emailVerified) throw new InvalidCredentialsError();
         const ok = await verifyPassword(password, user.passwordHash);
         if (!ok) throw new InvalidCredentialsError();
         const role: UserRole = email === ADMIN_EMAIL ? "ADMIN" : user.role;

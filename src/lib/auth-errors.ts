@@ -1,8 +1,5 @@
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   "invalid-credentials": "Incorrect email or password.",
-  "account-deleted": "This account has been closed. Contact support if this is a mistake.",
-  "oauth-only": "This email uses Google or Facebook sign-in. Continue with one of those instead.",
-  "unverified-email": "Please verify your email first.",
   // NextAuth's own OAuth error codes, reachable via a real signIn() redirect today.
   OAuthAccountNotLinked: "That email is already used by another sign-in method.",
   AccessDenied: "Access denied. Please try again.",

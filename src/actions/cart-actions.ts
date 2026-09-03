@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { cartItems, productDiscounts, products, skus } from "@/db/schema";
+import { cartItems, carts, productDiscounts, products, skus } from "@/db/schema";
 import { applyDiscount, bestDiscount } from "@/domain/discount";
 import { clampQuantity } from "@/domain/money";
 import type { SizePickerOption } from "@/components/store/size-picker";
@@ -207,6 +207,13 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
   });
   if (cap <= 0) throw new Error("That size is currently out of stock");
   await client.transaction(async (tx) => {
+    // Locks the cart row for the rest of this transaction, serializing
+    // concurrent size swaps on the same cart. Without this, two swaps to the
+    // same destination size can both read "no existing line" under READ
+    // COMMITTED and race into a unique-constraint violation on
+    // (cartId, skuId) — a plain row lock on the destination lookup below
+    // wouldn't help when neither transaction's destination row exists yet.
+    await tx.select().from(carts).where(eq(carts.id, cart.id)).for("update");
     const existingTo = (
       await tx.select().from(cartItems).where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, toSkuId)))
     )[0];

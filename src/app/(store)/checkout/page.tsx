@@ -27,7 +27,11 @@ export default async function CheckoutPage() {
     db().select().from(addresses).where(eq(addresses.userId, session.user.id)),
   ]);
   const userRow = userRows[0];
-  if (deliveryView.items.length === 0) {
+  // Deactivated-SKU lines ride along in `items` (see loadCartView) so the
+  // drawer/cart page can show a "no longer available" notice — but they must
+  // not count as real, purchasable items here or reach the order form.
+  const purchasableItems = deliveryView.items.filter((item) => item.available);
+  if (purchasableItems.length === 0) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
@@ -51,7 +55,7 @@ export default async function CheckoutPage() {
         defaultName={userRow?.name ?? session.user.name ?? ""}
         defaultEmail={session.user.email ?? ""}
         preloadedPhone={userRow?.phone ?? ""}
-        lineItems={deliveryView.items}
+        lineItems={purchasableItems}
         deliveryTotals={deliveryView.totals}
         pickupTotals={pickupView.totals}
         addresses={savedAddresses}

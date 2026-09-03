@@ -119,7 +119,9 @@ export function resolveCartCap(args: {
 }): number {
   if (args.productType === "DECANT") {
     if (args.fulfillment !== "ON_HAND") return 99;
-    const size = args.sizeMl ?? 0;
+    // Same null-sizeMl fallback as effectiveFulfillment below, so the two
+    // never disagree on whether a SKU with no sizeMl is available.
+    const size = args.sizeMl ?? DECANT_SIZES_ML[0];
     if (size <= 0) return 0;
     return Math.max(0, Math.floor((args.remainingMl ?? 0) / size));
   }
@@ -316,17 +318,25 @@ export async function mergeGuestCartIntoUser(): Promise<void> {
     // Each item targets a distinct skuId (unique per cart), so these don't
     // contend with each other — safe to run concurrently instead of one
     // sequential round trip per item (this runs on every sign-in that has a
-    // guest cart to merge).
+    // guest cart to merge). Each write is caught individually so one item
+    // failing (e.g. it just went out of stock) can't abort the others that
+    // already succeeded, and can't skip the guest-cart cleanup below —
+    // leaving already-merged items duplicated in the guest cart for a retry
+    // to re-add.
     await Promise.all(
-      guestItems.map((item) => {
+      guestItems.map(async (item) => {
         const found = skuRows.find((row) => row.sku.id === item.skuId);
-        if (!found || !found.sku.isActive) return null;
-        return addOneToCart(
-          userCart,
-          { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
-          item.quantity,
-          promoConfig.decantPreOrderThresholdMl,
-        );
+        if (!found || !found.sku.isActive) return;
+        try {
+          await addOneToCart(
+            userCart,
+            { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
+            item.quantity,
+            promoConfig.decantPreOrderThresholdMl,
+          );
+        } catch {
+          // Best-effort merge — leave this item behind rather than fail the batch.
+        }
       }),
     );
   }
@@ -346,17 +356,22 @@ export async function importLegacyCartLines(lines: Array<{ skuId: string; quanti
     .innerJoin(products, eq(products.id, skus.productId))
     .where(inArray(skus.id, lines.map((line) => line.skuId)));
   // Same reasoning as mergeGuestCartIntoUser above — distinct skuIds, safe
-  // to run concurrently rather than one sequential round trip per line.
+  // to run concurrently rather than one sequential round trip per line, each
+  // write caught individually so one failing item can't abort the rest.
   await Promise.all(
-    lines.map((line) => {
+    lines.map(async (line) => {
       const found = skuRows.find((row) => row.sku.id === line.skuId);
-      if (!found || !found.sku.isActive) return null;
-      return addOneToCart(
-        cart,
-        { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
-        line.quantity,
-        promoConfig.decantPreOrderThresholdMl,
-      );
+      if (!found || !found.sku.isActive) return;
+      try {
+        await addOneToCart(
+          cart,
+          { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
+          line.quantity,
+          promoConfig.decantPreOrderThresholdMl,
+        );
+      } catch {
+        // Best-effort import — leave this line behind rather than fail the batch.
+      }
     }),
   );
   return loadCartView(cart.id);
