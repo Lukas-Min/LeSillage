@@ -90,13 +90,15 @@ export default async function OrderDetailPage({
             ))}
           </ul>
           <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
+            {/* subtotalCentavos and deliveryFeeCentavos already have every
+                discount (item, promo-code order, promo-code delivery) baked
+                in — totalCentavos is exactly their sum, nothing further to
+                subtract here. discountCentavos below is shown separately as
+                an informational "amount saved" figure, not as a deduction,
+                so this can't misread as double-discounting. */}
             <p className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
               <span>{formatPHP(order.subtotalCentavos)}</span>
-            </p>
-            <p className="flex justify-between">
-              <span className="text-muted-foreground">Discount</span>
-              <span>-{formatPHP(order.discountCentavos)}</span>
             </p>
             <p className="flex justify-between">
               <span className="text-muted-foreground">Delivery</span>
@@ -111,6 +113,12 @@ export default async function OrderDetailPage({
               <span>Total</span>
               <span>{formatPHP(order.totalCentavos)}</span>
             </p>
+            {order.discountCentavos > 0 ? (
+              <p className="flex justify-between text-xs text-muted-foreground">
+                <span>You saved</span>
+                <span>{formatPHP(order.discountCentavos)}</span>
+              </p>
+            ) : null}
           </div>
         </SectionCard>
 

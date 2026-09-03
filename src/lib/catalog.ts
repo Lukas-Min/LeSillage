@@ -12,7 +12,8 @@ import {
   type ProductDiscount,
   type ProductType,
 } from "@/db/schema";
-import { applyDiscount, bestDiscount } from "@/domain/discount";
+import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
+import type { SiteWideDiscountConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { labelForCondition } from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
@@ -154,6 +155,11 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
 
   const threshold =
     promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
+  const siteWideDiscount: SiteWideDiscountConfig = {
+    enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
+    type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
+    amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
+  };
   const skusByProduct = groupBy(skuRows, (row) => row.productId);
   const imageByProduct = new Map<string, { url: string; alt: string | null }>();
   for (const img of imageRows.sort((a, b) => a.position - b.position)) {
@@ -170,7 +176,11 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       return true;
     });
     if (variants.length === 0) continue;
-    const discounts = discountsByProduct.get(product.id) ?? [];
+    const discounts = withSiteWideDiscount(
+      discountsByProduct.get(product.id) ?? [],
+      product.id,
+      siteWideDiscount,
+    );
     const remainingMl = product.remainingMl ?? 0;
     const destination = pickDestinationSku(product.type, variants, filter.sizeMl);
     if (!destination) continue;
@@ -441,13 +451,19 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
   if (matches.length === 0) return [];
 
   const productIds = matches.map((m) => m.id);
-  const [skuRows, discountRows] = await Promise.all([
+  const [skuRows, discountRows, promoRow] = await Promise.all([
     client
       .select({ id: skus.id, productId: skus.productId, retailPrice: skus.retailPrice })
       .from(skus)
       .where(and(eq(skus.isActive, true), eq(skus.isTester, false), inArray(skus.productId, productIds))),
     client.select().from(productDiscounts).where(inArray(productDiscounts.productId, productIds)),
+    client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
   ]);
+  const siteWideDiscount: SiteWideDiscountConfig = {
+    enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
+    type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
+    amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
+  };
   const skusByProduct = groupBy(skuRows, (row) => row.productId);
   const discountsByProduct = groupBy(discountRows, (row) => row.productId);
 
@@ -456,7 +472,7 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
     if (results.length >= SEARCH_RESULT_LIMIT) break;
     const variants = skusByProduct.get(product.id) ?? [];
     if (variants.length === 0) continue;
-    const discounts = discountsByProduct.get(product.id) ?? [];
+    const discounts = withSiteWideDiscount(discountsByProduct.get(product.id) ?? [], product.id, siteWideDiscount);
     const discounted = variants.map((v) => applyDiscount(v.retailPrice, bestDiscount(discounts, v.retailPrice)).discountedUnitCentavos);
     results.push({
       productId: product.id,

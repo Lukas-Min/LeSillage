@@ -8,17 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Badge } from "@/components/ui/badge";
+import { PhAddressFields } from "@/components/store/ph-address-fields";
+import { fetchProvinceOptions } from "@/lib/ph-locations";
 import { createAddress, deleteAddress, setDefaultAddressForm, updateAddress } from "@/actions/account-actions";
 
 export const dynamic = "force-dynamic";
 
+const ADDRESS_FIELD_NAMES = {
+  region: "region",
+  province: "province",
+  city: "city",
+  barangay: "barangay",
+  postalCode: "postalCode",
+  street: "street",
+} as const;
+
 export default async function AddressesPage() {
   const user = await requireActiveCustomer();
-  const rows = await db()
-    .select()
-    .from(addresses)
-    .where(eq(addresses.userId, user.id))
-    .orderBy(desc(addresses.createdAt));
+  const [rows, provinces] = await Promise.all([
+    db().select().from(addresses).where(eq(addresses.userId, user.id)).orderBy(desc(addresses.createdAt)),
+    fetchProvinceOptions(),
+  ]);
   return (
     <div className="space-y-6">
       <PageHeader
@@ -75,60 +85,16 @@ export default async function AddressesPage() {
                       required
                     />
                   </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <Label htmlFor={`street-${address.id}`}>Street</Label>
-                    <Input
-                      id={`street-${address.id}`}
-                      name="street"
-                      defaultValue={address.street}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`barangay-${address.id}`}>Barangay</Label>
-                    <Input
-                      id={`barangay-${address.id}`}
-                      name="barangay"
-                      defaultValue={address.barangay}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`city-${address.id}`}>City</Label>
-                    <Input
-                      id={`city-${address.id}`}
-                      name="city"
-                      defaultValue={address.city}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`province-${address.id}`}>Province</Label>
-                    <Input
-                      id={`province-${address.id}`}
-                      name="province"
-                      defaultValue={address.province}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`region-${address.id}`}>Region</Label>
-                    <Input
-                      id={`region-${address.id}`}
-                      name="region"
-                      defaultValue={address.region}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`postal-${address.id}`}>Postal code</Label>
-                    <Input
-                      id={`postal-${address.id}`}
-                      name="postalCode"
-                      defaultValue={address.postalCode}
-                      required
-                    />
-                  </div>
+                  <PhAddressFields
+                    idPrefix={`address-${address.id}`}
+                    provinces={provinces}
+                    fieldNames={ADDRESS_FIELD_NAMES}
+                    defaultProvinceName={address.province}
+                    defaultCityName={address.city}
+                    defaultBarangayName={address.barangay}
+                    defaultPostalCode={address.postalCode}
+                    defaultStreet={address.street}
+                  />
                   <label className="flex items-center gap-2 text-xs sm:col-span-2">
                     <input type="checkbox" name="isDefault" defaultChecked={address.isDefault} />
                     Set as default
@@ -172,30 +138,7 @@ export default async function AddressesPage() {
             <Label htmlFor="new-phone">Mobile (PH)</Label>
             <Input id="new-phone" name="phone" placeholder="9171234567" required />
           </div>
-          <div className="space-y-1 sm:col-span-2">
-            <Label htmlFor="new-street">Street</Label>
-            <Input id="new-street" name="street" required />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="new-barangay">Barangay</Label>
-            <Input id="new-barangay" name="barangay" required />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="new-city">City</Label>
-            <Input id="new-city" name="city" required />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="new-province">Province</Label>
-            <Input id="new-province" name="province" defaultValue="Metro Manila" required />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="new-region">Region</Label>
-            <Input id="new-region" name="region" defaultValue="NCR" required />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="new-postal">Postal code</Label>
-            <Input id="new-postal" name="postalCode" required />
-          </div>
+          <PhAddressFields idPrefix="new-address" provinces={provinces} fieldNames={ADDRESS_FIELD_NAMES} />
           <div className="space-y-1">
             <Label htmlFor="new-label">Label</Label>
             <Input id="new-label" name="label" placeholder="Home, Office…" />

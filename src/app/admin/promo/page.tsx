@@ -63,6 +63,41 @@ export default async function PromoSettingsPage() {
                 When remaining ml drops below this, every size on that fragrance becomes pre-order.
               </p>
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="siteWideDiscountEnabled"
+                defaultChecked={row?.siteWideDiscountEnabled ?? false}
+              />
+              Site-wide discount enabled (applies to every fragrance)
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="siteWideDiscountType">Type</Label>
+                <select
+                  id="siteWideDiscountType"
+                  name="siteWideDiscountType"
+                  defaultValue={row?.siteWideDiscountType ?? "PERCENTAGE"}
+                  className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
+                >
+                  <option value="PERCENTAGE">Percentage</option>
+                  <option value="FIXED">Fixed centavos</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="siteWideDiscountAmount">Amount</Label>
+                <Input
+                  id="siteWideDiscountAmount"
+                  name="siteWideDiscountAmount"
+                  type="number"
+                  min={0}
+                  defaultValue={row?.siteWideDiscountAmount ?? 0}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Competes with each product's own discount — whichever saves the customer more wins, they never stack.
+            </p>
             <Button type="submit">Save</Button>
           </form>
         </CardContent>

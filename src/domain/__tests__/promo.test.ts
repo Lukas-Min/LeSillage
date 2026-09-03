@@ -31,6 +31,7 @@ describe("promo thresholds", () => {
           deliveryFeeCentavos: 12000,
           freeDeliveryEnabled: false,
           testerBonusEnabled: true,
+          siteWideDiscount: { enabled: false, type: "PERCENTAGE", amount: 0 },
         },
       ),
     ).toBe(false);

@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { addresses, users } from "@/db/schema";
 import { loadCartViewForBothMethods, resolveActiveCart } from "@/lib/cart";
+import { fetchProvinceOptions } from "@/lib/ph-locations";
 import { CheckoutForm } from "@/components/store/checkout-form";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
@@ -21,9 +22,10 @@ export default async function CheckoutPage() {
     .select({ phone: users.phone, defaultAddressId: users.defaultAddressId, name: users.name })
     .from(users)
     .where(eq(users.id, session.user.id));
-  const [cartView, savedAddresses] = await Promise.all([
+  const [cartView, savedAddresses, provinces] = await Promise.all([
     loadCartViewForBothMethods(cart.id),
     db().select().from(addresses).where(eq(addresses.userId, session.user.id)),
+    fetchProvinceOptions(),
   ]);
   const userRow = userRows[0];
   // Deactivated-SKU lines ride along in `items` (see loadCartView) so the
@@ -59,6 +61,7 @@ export default async function CheckoutPage() {
         pickupTotals={cartView.pickupTotals}
         addresses={savedAddresses}
         defaultAddressId={userRow?.defaultAddressId ?? savedAddresses.find((a) => a.isDefault)?.id ?? null}
+        provinces={provinces}
       />
     </main>
   );

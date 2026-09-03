@@ -72,9 +72,8 @@ Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
 Subtotal: ${formatPHP(input.subtotalCentavos)}
-Discount: ${formatPHP(input.discountCentavos)}
 Delivery: ${deliveryLine(input)}
-Total paid: ${formatPHP(input.totalCentavos)}
+Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
 
 Estimated arrival: ${eta}
 ${tester}

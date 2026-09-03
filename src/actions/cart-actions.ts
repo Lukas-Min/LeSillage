@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { cartItems, carts, productDiscounts, products, promoSettings, skus } from "@/db/schema";
+import { cartItems, carts, productDiscounts, products, skus } from "@/db/schema";
 import { clampQuantity } from "@/domain/money";
-import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { withSiteWideDiscount } from "@/domain/discount";
 import type { SizePickerOption } from "@/components/store/size-picker";
 import { buildDecantSizeOptions } from "@/lib/catalog";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
@@ -167,20 +167,18 @@ export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOpt
       .where(eq(skus.id, skuId))
   )[0];
   if (!current || current.productType !== "DECANT") return [];
-  const [siblings, discounts, promoRow] = await Promise.all([
+  const [siblings, discounts, promoConfig] = await Promise.all([
     client
       .select({ id: skus.id, sizeMl: skus.sizeMl, retailPrice: skus.retailPrice, condition: skus.condition })
       .from(skus)
       .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, current.productId)),
-    client
-      .select({ decantPreOrderThresholdMl: promoSettings.decantPreOrderThresholdMl })
-      .from(promoSettings)
-      .where(eq(promoSettings.id, "singleton")),
+    loadPromoConfig(),
   ]);
-  return buildDecantSizeOptions(siblings, discounts, {
+  const discountsWithSiteWide = withSiteWideDiscount(discounts, current.productId, promoConfig.siteWideDiscount);
+  return buildDecantSizeOptions(siblings, discountsWithSiteWide, {
     remainingMl: current.remainingMl ?? 0,
-    thresholdMl: promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML,
+    thresholdMl: promoConfig.decantPreOrderThresholdMl,
   });
 }
 

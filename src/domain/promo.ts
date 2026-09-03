@@ -2,13 +2,20 @@ import {
   DECANT_PROMO_THRESHOLD_CENTAVOS,
   DEFAULT_DELIVERY_FEE_CENTAVOS,
 } from "./money";
-import type { ProductType, TesterResult } from "@/db/schema";
+import type { DiscountType, ProductType, TesterResult } from "@/db/schema";
+
+export interface SiteWideDiscountConfig {
+  enabled: boolean;
+  type: DiscountType;
+  amount: number;
+}
 
 export interface PromoConfig {
   decantThresholdCentavos: number;
   deliveryFeeCentavos: number;
   freeDeliveryEnabled: boolean;
   testerBonusEnabled: boolean;
+  siteWideDiscount: SiteWideDiscountConfig;
 }
 
 export const DEFAULT_PROMO_CONFIG: PromoConfig = {
@@ -16,6 +23,7 @@ export const DEFAULT_PROMO_CONFIG: PromoConfig = {
   deliveryFeeCentavos: DEFAULT_DELIVERY_FEE_CENTAVOS,
   freeDeliveryEnabled: true,
   testerBonusEnabled: true,
+  siteWideDiscount: { enabled: false, type: "PERCENTAGE", amount: 0 },
 };
 
 export interface CartLineForPromo {

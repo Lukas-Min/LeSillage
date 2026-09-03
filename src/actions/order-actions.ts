@@ -28,6 +28,7 @@ const checkoutSchema = z.object({
   acceptedTerms: z.literal(true),
   savedAddressId: z.string().min(1).nullable().optional(),
   saveAddress: z.boolean().optional(),
+  promoCode: z.string().max(40).nullable().optional(),
 });
 
 export async function createCheckoutOrder(input: unknown) {
@@ -60,6 +61,7 @@ export async function createCheckoutOrder(input: unknown) {
     notes: parsed.notes ?? null,
     savedAddressId: parsed.savedAddressId ?? null,
     saveAddress: parsed.saveAddress ?? false,
+    promoCode: parsed.promoCode ?? null,
   });
   revalidatePath("/", "layout");
   return { orderId: result.order.id, orderNumber: result.order.orderNumber };

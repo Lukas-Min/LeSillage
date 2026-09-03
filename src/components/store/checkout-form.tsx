@@ -12,9 +12,12 @@ import { Separator } from "@/components/ui/separator";
 import { formatPHP } from "@/domain/money";
 import { PHONE_COUNTRY, PHONE_PLACEHOLDER } from "@/domain/phone";
 import { createCheckoutOrder } from "@/actions/order-actions";
+import { previewPromoCode, type PromoCodePreview } from "@/actions/promo-code-actions";
 import { Price } from "@/components/store/price";
+import { PhAddressFields, type PhAddressValues } from "@/components/store/ph-address-fields";
 import type { CartLineView } from "@/lib/cart";
 import type { CheckoutTotals } from "@/domain/checkout-totals";
+import type { PhProvinceOption } from "@/lib/ph-locations";
 
 interface SavedAddress {
   id: string;
@@ -39,6 +42,7 @@ export function CheckoutForm({
   pickupTotals,
   addresses,
   defaultAddressId,
+  provinces,
 }: {
   defaultName: string;
   defaultEmail: string;
@@ -48,6 +52,7 @@ export function CheckoutForm({
   pickupTotals: CheckoutTotals;
   addresses: SavedAddress[];
   defaultAddressId: string | null;
+  provinces: PhProvinceOption[];
 }) {
   const router = useRouter();
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
@@ -58,18 +63,61 @@ export function CheckoutForm({
   const [phone, setPhone] = useState(
     (selected?.phone ?? preloadedPhone).replace(/^\+?63/, "").replace(/^0/, "").replace(/\D/g, ""),
   );
-  const [region, setRegion] = useState(selected?.region ?? "NCR");
-  const [province, setProvince] = useState(selected?.province ?? "Metro Manila");
-  const [city, setCity] = useState(selected?.city ?? "");
-  const [barangay, setBarangay] = useState(selected?.barangay ?? "");
-  const [postalCode, setPostalCode] = useState(selected?.postalCode ?? "");
-  const [street, setStreet] = useState(selected?.street ?? "");
+  const [addressValues, setAddressValues] = useState<PhAddressValues>({
+    region: selected?.region ?? "",
+    province: selected?.province ?? "",
+    city: selected?.city ?? "",
+    barangay: selected?.barangay ?? "",
+    postalCode: selected?.postalCode ?? "",
+    street: selected?.street ?? "",
+  });
   const [pickupNotes, setPickupNotes] = useState("");
   const [notes, setNotes] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCodePreview | null>(null);
+  const [promoCodeError, setPromoCodeError] = useState<string | null>(null);
+  const [promoCodePending, startPromoCodeTransition] = useTransition();
   const totals = fulfillmentMethod === "PICKUP" ? pickupTotals : deliveryTotals;
+  const promoDiscountCentavos = appliedPromoCode
+    ? appliedPromoCode.orderDiscountCentavos + appliedPromoCode.deliveryDiscountCentavos
+    : 0;
+  const displayedTotalCentavos = Math.max(0, totals.totalCentavos - promoDiscountCentavos);
+
+  function applyPromoCode() {
+    const code = promoCodeInput.trim();
+    if (!code) return;
+    setPromoCodeError(null);
+    startPromoCodeTransition(async () => {
+      try {
+        const result = await previewPromoCode(code, fulfillmentMethod);
+        setAppliedPromoCode(result);
+      } catch (error) {
+        setAppliedPromoCode(null);
+        setPromoCodeError(error instanceof Error ? error.message : "Invalid promo code");
+      }
+    });
+  }
+
+  function removePromoCode() {
+    setAppliedPromoCode(null);
+    setPromoCodeInput("");
+    setPromoCodeError(null);
+  }
+
+  function changeFulfillmentMethod(next: "DELIVERY" | "PICKUP") {
+    setFulfillmentMethod(next);
+    // A DELIVERY-scope code's discount depends on the delivery fee, which
+    // goes to zero on pickup (and back on delivery) — clear it so a stale
+    // preview isn't shown; an ORDER-scope code doesn't depend on
+    // fulfillment method, so it's left applied.
+    if (appliedPromoCode?.scope === "DELIVERY") {
+      setAppliedPromoCode(null);
+      setPromoCodeError(null);
+    }
+  }
 
   const deliveryHint = useMemo(() => {
     if (fulfillmentMethod === "PICKUP") return "Pickup is always free and does not unlock delivery promos.";
@@ -83,12 +131,32 @@ export function CheckoutForm({
     if (!next) return;
     setName(next.recipientName);
     setPhone(next.phone.replace(/^\+?63/, "").replace(/^0/, "").replace(/\D/g, ""));
-    setRegion(next.region);
-    setProvince(next.province);
-    setCity(next.city);
-    setBarangay(next.barangay);
-    setPostalCode(next.postalCode);
-    setStreet(next.street);
+    // Province/city/barangay/postal/street: PhAddressFields is keyed by
+    // savedAddressId below, so setting it here remounts that component
+    // fresh with this address's values as its new defaults — it reports
+    // them back via handleAddressChange once resolved against the live
+    // PSGC option lists.
+  }
+
+  function handleAddressChange(values: PhAddressValues) {
+    setAddressValues(values);
+    // Editing a field away from the currently-selected saved address's own
+    // values means the customer wants something other than that exact
+    // saved address — stop submitting it as savedAddressId (which would
+    // otherwise silently override these edits with the saved record's
+    // original fields server-side) and fall through to the addressSnapshot
+    // path instead. A remount from picking a *different* saved address (or
+    // "New address") always matches on the first render, so this never
+    // fires spuriously right after a selection.
+    if (savedAddressId && selected) {
+      const matchesSelected =
+        values.province === selected.province &&
+        values.city === selected.city &&
+        values.barangay === selected.barangay &&
+        values.postalCode === selected.postalCode &&
+        values.street === selected.street;
+      if (!matchesSelected) setSavedAddressId("");
+    }
   }
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -105,14 +173,12 @@ export function CheckoutForm({
           email,
           phone,
           savedAddressId: fulfillmentMethod === "DELIVERY" && savedAddressId ? savedAddressId : null,
-          addressSnapshot:
-            fulfillmentMethod === "DELIVERY" && !savedAddressId
-              ? { region, province, city, barangay, postalCode, street }
-              : null,
+          addressSnapshot: fulfillmentMethod === "DELIVERY" && !savedAddressId ? addressValues : null,
           saveAddress: fulfillmentMethod === "DELIVERY" && !savedAddressId && saveAddress,
           pickupNotes: fulfillmentMethod === "PICKUP" ? pickupNotes : null,
           notes: notes || null,
           acceptedTerms: true,
+          promoCode: appliedPromoCode?.code ?? null,
         });
         router.push(`/checkout/payment?orderNumber=${encodeURIComponent(result.orderNumber)}`);
       } catch (error) {
@@ -153,14 +219,14 @@ export function CheckoutForm({
             <Button
               type="button"
               variant={fulfillmentMethod === "DELIVERY" ? "default" : "outline"}
-              onClick={() => setFulfillmentMethod("DELIVERY")}
+              onClick={() => changeFulfillmentMethod("DELIVERY")}
             >
               Delivery · {deliveryTotals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(deliveryTotals.deliveryFeeCentavos)}
             </Button>
             <Button
               type="button"
               variant={fulfillmentMethod === "PICKUP" ? "default" : "outline"}
-              onClick={() => setFulfillmentMethod("PICKUP")}
+              onClick={() => changeFulfillmentMethod("PICKUP")}
             >
               Pickup · Free
             </Button>
@@ -229,38 +295,16 @@ export function CheckoutForm({
                 </select>
               </div>
             ) : null}
-            <div className="space-y-1 sm:col-span-2">
-              <Label htmlFor="street">Street address</Label>
-              <Input
-                id="street"
-                value={street}
-                onChange={(event) => {
-                  setStreet(event.target.value);
-                  setSavedAddressId("");
-                }}
-                required={!savedAddressId}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="region">Region</Label>
-              <Input id="region" value={region} onChange={(event) => { setRegion(event.target.value); setSavedAddressId(""); }} required={!savedAddressId} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="province">Province</Label>
-              <Input id="province" value={province} onChange={(event) => { setProvince(event.target.value); setSavedAddressId(""); }} required={!savedAddressId} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="city">City / Municipality</Label>
-              <Input id="city" value={city} onChange={(event) => { setCity(event.target.value); setSavedAddressId(""); }} required={!savedAddressId} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="barangay">Barangay</Label>
-              <Input id="barangay" value={barangay} onChange={(event) => { setBarangay(event.target.value); setSavedAddressId(""); }} required={!savedAddressId} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="postalCode">Postal code</Label>
-              <Input id="postalCode" value={postalCode} onChange={(event) => { setPostalCode(event.target.value); setSavedAddressId(""); }} required={!savedAddressId} minLength={4} />
-            </div>
+            <PhAddressFields
+              key={savedAddressId || "new"}
+              provinces={provinces}
+              defaultProvinceName={selected?.province}
+              defaultCityName={selected?.city}
+              defaultBarangayName={selected?.barangay}
+              defaultPostalCode={selected?.postalCode}
+              defaultStreet={selected?.street}
+              onChange={handleAddressChange}
+            />
             {!savedAddressId ? (
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" checked={saveAddress} onChange={(event) => setSaveAddress(event.target.checked)} />
@@ -297,26 +341,69 @@ export function CheckoutForm({
         </CardContent>
       </Card>
       <Card>
+        <CardContent className="space-y-3 p-4">
+          <Label htmlFor="promoCode">Promo code</Label>
+          {appliedPromoCode ? (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-gold/40 bg-gold/5 px-3 py-2 text-sm">
+              <span className="font-mono font-medium">{appliedPromoCode.code}</span>
+              <button type="button" onClick={removePromoCode} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                id="promoCode"
+                value={promoCodeInput}
+                onChange={(event) => setPromoCodeInput(event.target.value.toUpperCase())}
+                placeholder="e.g. WELCOME10"
+                className="uppercase"
+              />
+              <Button type="button" variant="outline" onClick={applyPromoCode} disabled={promoCodePending || !promoCodeInput.trim()}>
+                {promoCodePending ? "Checking…" : "Apply"}
+              </Button>
+            </div>
+          )}
+          {promoCodeError ? <p className="text-xs text-destructive">{promoCodeError}</p> : null}
+        </CardContent>
+      </Card>
+      <Card>
         <CardContent className="space-y-2 p-4 text-sm">
+          {/* merchandiseSubtotalCentavos is already post-item-discount (see
+              priceCart) — discountCentavos below is shown as an
+              informational note, not subtracted again; only the promo-code
+              lines below are real subtractions (see displayedTotalCentavos). */}
           <p className="flex justify-between">
             <span>Merchandise subtotal</span>
             <span>{formatPHP(totals.merchandiseSubtotalCentavos)}</span>
           </p>
-          {totals.discountCentavos > 0 ? (
+          {appliedPromoCode && appliedPromoCode.orderDiscountCentavos > 0 ? (
             <p className="flex justify-between">
-              <span>Discount</span>
-              <span>-{formatPHP(totals.discountCentavos)}</span>
+              <span>Promo code ({appliedPromoCode.code})</span>
+              <span>-{formatPHP(appliedPromoCode.orderDiscountCentavos)}</span>
             </p>
           ) : null}
           <p className="flex justify-between">
             <span>Delivery</span>
             <span>{totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(totals.deliveryFeeCentavos)}</span>
           </p>
+          {appliedPromoCode && appliedPromoCode.deliveryDiscountCentavos > 0 ? (
+            <p className="flex justify-between">
+              <span>Delivery discount ({appliedPromoCode.code})</span>
+              <span>-{formatPHP(appliedPromoCode.deliveryDiscountCentavos)}</span>
+            </p>
+          ) : null}
           <Separator />
           <p className="flex justify-between font-medium">
             <span>Total to pay</span>
-            <span>{formatPHP(totals.totalCentavos)}</span>
+            <span>{formatPHP(displayedTotalCentavos)}</span>
           </p>
+          {totals.discountCentavos > 0 ? (
+            <p className="flex justify-between text-xs text-muted-foreground">
+              <span>You saved</span>
+              <span>{formatPHP(totals.discountCentavos)}</span>
+            </p>
+          ) : null}
           <label className="flex items-start gap-2 pt-3 text-xs">
             <input
               type="checkbox"

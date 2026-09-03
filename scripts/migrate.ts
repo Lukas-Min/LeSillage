@@ -533,6 +533,44 @@ async function main() {
     WHERE p.id = s."productId" AND p."costPrice" IS NULL
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "promo_code" (
+      "id" text PRIMARY KEY,
+      "code" text NOT NULL,
+      "type" text NOT NULL,
+      "amount" integer NOT NULL,
+      "scope" text NOT NULL,
+      "minSpendCentavos" integer,
+      "firstOrderOnly" boolean NOT NULL DEFAULT false,
+      "maxRedemptions" integer,
+      "redemptionCount" integer NOT NULL DEFAULT 0,
+      "onePerCustomer" boolean NOT NULL DEFAULT false,
+      "startsAt" timestamp,
+      "endsAt" timestamp,
+      "isActive" boolean NOT NULL DEFAULT true,
+      "createdAt" timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "promo_code_code_idx" ON "promo_code" ("code")`,
+  );
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "promo_code_redemption" (
+      "id" text PRIMARY KEY,
+      "promoCodeId" text NOT NULL REFERENCES "promo_code"("id") ON DELETE CASCADE,
+      "userId" text NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+      "orderId" text NOT NULL REFERENCES "order"("id") ON DELETE CASCADE,
+      "createdAt" timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "promo_code_redemption_code_user_idx" ON "promo_code_redemption" ("promoCodeId", "userId")`,
+  );
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "promo_code_redemption_order_idx" ON "promo_code_redemption" ("orderId")`,
+  );
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -550,6 +588,8 @@ async function main() {
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "pricingMode";
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "pricingInput";
 // DROP TABLE IF EXISTS "email_verification_code";
+// DROP TABLE IF EXISTS "promo_code_redemption";
+// DROP TABLE IF EXISTS "promo_code";
 
 main().catch((error) => {
   console.error(error);

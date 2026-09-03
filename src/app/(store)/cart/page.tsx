@@ -46,12 +46,6 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <span>{formatPHP(cart.totals.merchandiseSubtotalCentavos)}</span>
               </p>
-              {cart.totals.discountCentavos > 0 ? (
-                <p className="flex justify-between">
-                  <span>Discount</span>
-                  <span>-{formatPHP(cart.totals.discountCentavos)}</span>
-                </p>
-              ) : null}
               <p className="flex justify-between">
                 <span>Delivery fee</span>
                 <span>{cart.totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(cart.totals.deliveryFeeCentavos)}</span>
@@ -60,6 +54,12 @@ export default function CartPage() {
                 <span>Total</span>
                 <span>{formatPHP(cart.totals.totalCentavos)}</span>
               </p>
+              {cart.totals.discountCentavos > 0 ? (
+                <p className="flex justify-between text-xs text-muted-foreground">
+                  <span>You saved</span>
+                  <span>{formatPHP(cart.totals.discountCentavos)}</span>
+                </p>
+              ) : null}
               <p className="text-xs text-muted-foreground">
                 {cart.totals.freeShipping
                   ? `Free delivery unlocked${cart.totals.testerBonusEligible ? ", plus a free tester" : ""} from your decants.`

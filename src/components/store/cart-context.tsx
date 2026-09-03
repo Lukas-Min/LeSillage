@@ -34,6 +34,8 @@ const EMPTY: CartView = {
   totals: {
     merchandiseSubtotalCentavos: 0,
     discountCentavos: 0,
+    orderDiscountCentavos: 0,
+    deliveryDiscountCentavos: 0,
     decantSubtotalCentavos: 0,
     deliveryFeeCentavos: 0,
     totalCentavos: 0,

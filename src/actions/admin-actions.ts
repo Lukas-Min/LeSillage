@@ -17,6 +17,9 @@ const promoSchema = z.object({
   freeDeliveryEnabled: z.coerce.boolean(),
   testerBonusEnabled: z.coerce.boolean(),
   decantPreOrderThresholdMl: z.coerce.number().int().min(0).max(1000),
+  siteWideDiscountEnabled: z.coerce.boolean(),
+  siteWideDiscountType: z.enum(["PERCENTAGE", "FIXED"]),
+  siteWideDiscountAmount: z.coerce.number().int().min(0),
 });
 
 export async function adminOAuthSignIn(provider: "google" | "facebook", returnTo?: string) {
@@ -45,7 +48,13 @@ export async function updatePromoSettings(formData: FormData) {
     freeDeliveryEnabled: formData.get("freeDeliveryEnabled") === "on",
     testerBonusEnabled: formData.get("testerBonusEnabled") === "on",
     decantPreOrderThresholdMl: formData.get("decantPreOrderThresholdMl"),
+    siteWideDiscountEnabled: formData.get("siteWideDiscountEnabled") === "on",
+    siteWideDiscountType: formData.get("siteWideDiscountType"),
+    siteWideDiscountAmount: formData.get("siteWideDiscountAmount") || 0,
   });
+  if (parsed.siteWideDiscountType === "PERCENTAGE" && parsed.siteWideDiscountAmount > 100) {
+    throw new Error("Percentage discounts can't exceed 100%");
+  }
   await db()
     .update(promoSettings)
     .set({ ...parsed, updatedAt: new Date() })

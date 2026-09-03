@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { products, skus, productDiscounts, productImages, promoSettings } from "@/db/schema";
-import { applyDiscount, bestDiscount } from "@/domain/discount";
+import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { concentrationLabel, guessConcentration, sizeOnlyLabel } from "@/domain/concentration";
 import { Badge } from "@/components/ui/badge";
@@ -94,9 +94,14 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         })
       : row.fulfillment;
   const soldOut = row.type !== "DECANT" && fulfillment === "ON_HAND" && row.stock <= 0;
-  const discount = bestDiscount(discounts, row.retailPrice);
+  const discountsWithSiteWide = withSiteWideDiscount(discounts, row.productId, {
+    enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
+    type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
+    amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
+  });
+  const discount = bestDiscount(discountsWithSiteWide, row.retailPrice);
   const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
-  const decantOptions = buildDecantSizeOptions(siblings, discounts, { remainingMl, thresholdMl: threshold });
+  const decantOptions = buildDecantSizeOptions(siblings, discountsWithSiteWide, { remainingMl, thresholdMl: threshold });
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, null);
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;

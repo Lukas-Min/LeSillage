@@ -10,6 +10,8 @@ import {
   products,
   productDiscounts,
   promoSettings,
+  promoCodes,
+  promoCodeRedemptions,
   qrCodes,
   stockMovements,
   notificationLog,
@@ -17,13 +19,16 @@ import {
   addresses,
   type FulfillmentMethod,
   type OrderStatus,
+  type PromoCode,
 } from "@/db/schema";
 import { priceCart } from "@/domain/cart";
 import { generateOrderNumber } from "@/domain/order-number";
 import { isTesterBonusEligible } from "@/domain/promo";
-import { buildCartTotals } from "@/domain/checkout-totals";
+import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
+import { checkPromoCodeEligibility } from "@/domain/promo-code";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment } from "@/lib/cart";
+import { withSiteWideDiscount } from "@/domain/discount";
 import { uploadPrivateImage } from "@/lib/blob";
 import { sendEmail } from "@/lib/email";
 import { getEnv } from "@/lib/env";
@@ -54,6 +59,9 @@ export interface CreateOrderInput {
   notes?: string | null;
   savedAddressId?: string | null;
   saveAddress?: boolean;
+  /** Raw customer input, normalized (trim + uppercase) before lookup — never
+   *  trust a client-supplied discount amount, only the code string. */
+  promoCode?: string | null;
 }
 
 export async function loadActiveCartForUser(userId: string) {
@@ -146,7 +154,11 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         productType: found.productType,
         productBrand: found.productBrand,
         productFamily: found.productFamily,
-        discounts: discounts.filter((d) => d.productId === found.sku.productId),
+        discounts: withSiteWideDiscount(
+          discounts.filter((d) => d.productId === found.sku.productId),
+          found.sku.productId,
+          promoConfig.siteWideDiscount,
+        ),
       };
     }),
     {
@@ -154,8 +166,6 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       freeShipping: false,
     },
   );
-  const totals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod);
-
   const testerEligible =
     !isPickup &&
     promoConfig.testerBonusEnabled &&
@@ -169,27 +179,104 @@ export async function createOrderFromCart(input: CreateOrderInput) {
 
   const orderNumber = generateOrderNumber();
   const e164Phone = `+63${phone.replace(/\D/g, "").slice(-10)}`;
-  const created = await client
-    .insert(orders)
-    .values({
-      orderNumber,
-      userId: input.user.userId,
-      status: "AWAITING_PAYMENT",
-      fulfillmentMethod: input.fulfillmentMethod,
-      recipientName,
-      email: input.email,
-      phone: e164Phone,
-      addressSnapshot,
-      pickupNotes: input.pickupNotes ?? null,
-      notes: input.notes ?? null,
-      subtotalCentavos: totals.merchandiseSubtotalCentavos,
-      discountCentavos: totals.discountCentavos,
-      deliveryFeeCentavos: totals.deliveryFeeCentavos,
-      totalCentavos: totals.totalCentavos,
-      promoTesterResult: testerEligible ? "PENDING" : "SKIPPED",
-    })
-    .returning();
-  const order = created[0];
+
+  // Promo code validation, redemption recording, and the order insert all
+  // happen in one transaction: the code row is locked with `.for("update")`
+  // for its whole duration, so two concurrent checkouts racing the same
+  // near-exhausted maxRedemptions (or the same onePerCustomer code) can't
+  // both pass the eligibility check before either commits — the second
+  // waits for the lock, then re-checks against the first's already-applied
+  // redemptionCount. Never trust a client-supplied discount amount: only
+  // the code string comes from the client, everything else is re-derived
+  // here from freshly-loaded state.
+  const { order, totals } = await client.transaction(async (tx) => {
+    let activePromoCode: ActivePromoCode | null = null;
+    let lockedCode: PromoCode | null = null;
+    const rawCode = input.promoCode?.trim();
+    if (rawCode) {
+      const normalizedCode = rawCode.toUpperCase();
+      const [codeRow] = await tx
+        .select()
+        .from(promoCodes)
+        .where(eq(promoCodes.code, normalizedCode))
+        .for("update");
+      if (!codeRow) throw new Error("Invalid promo code");
+      const [priorOrderCount, priorRedemption] = await Promise.all([
+        tx.select({ value: count() }).from(orders).where(eq(orders.userId, input.user.userId)),
+        tx
+          .select({ id: promoCodeRedemptions.id })
+          .from(promoCodeRedemptions)
+          .where(
+            and(
+              eq(promoCodeRedemptions.promoCodeId, codeRow.id),
+              eq(promoCodeRedemptions.userId, input.user.userId),
+            ),
+          )
+          .limit(1),
+      ]);
+      // Pre-code totals give the delivery fee a DELIVERY-scope code would
+      // actually be discounting (e.g. 0 already, if free shipping kicked
+      // in) — used only to reject a code that would apply zero discount,
+      // so it doesn't burn a maxRedemptions/onePerCustomer slot for
+      // nothing (see checkPromoCodeEligibility's zero-benefit guard).
+      const preCodeTotals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, null);
+      const eligibility = checkPromoCodeEligibility(codeRow, {
+        merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
+        deliveryFeeCentavos: preCodeTotals.deliveryFeeCentavos,
+        isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
+        hasPriorRedemption: priorRedemption.length > 0,
+      });
+      if (!eligibility.ok) throw new Error(eligibility.error);
+      lockedCode = codeRow;
+      activePromoCode = { scope: codeRow.scope, type: codeRow.type, amount: codeRow.amount };
+    }
+
+    const totals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, activePromoCode);
+
+    const [insertedOrder] = await tx
+      .insert(orders)
+      .values({
+        orderNumber,
+        userId: input.user.userId,
+        status: "AWAITING_PAYMENT",
+        fulfillmentMethod: input.fulfillmentMethod,
+        recipientName,
+        email: input.email,
+        phone: e164Phone,
+        addressSnapshot,
+        pickupNotes: input.pickupNotes ?? null,
+        notes: input.notes ?? null,
+        // Item discounts are already baked into merchandiseSubtotalCentavos
+        // (existing convention); the promo-code order-discount isn't, so it
+        // comes out of subtotalCentavos here too, keeping the stored
+        // invariant subtotalCentavos + deliveryFeeCentavos === totalCentavos
+        // true for every order regardless of whether a code was used.
+        // discountCentavos becomes the informational combined total saved
+        // (item + order + delivery) — the itemized breakdown (which code,
+        // how much) stays queryable via the promoCodeRedemptions row this
+        // order gets below.
+        subtotalCentavos: totals.merchandiseSubtotalCentavos - totals.orderDiscountCentavos,
+        discountCentavos: totals.discountCentavos + totals.orderDiscountCentavos + totals.deliveryDiscountCentavos,
+        deliveryFeeCentavos: totals.deliveryFeeCentavos,
+        totalCentavos: totals.totalCentavos,
+        promoTesterResult: testerEligible ? "PENDING" : "SKIPPED",
+      })
+      .returning();
+
+    if (lockedCode) {
+      await tx.insert(promoCodeRedemptions).values({
+        promoCodeId: lockedCode.id,
+        userId: input.user.userId,
+        orderId: insertedOrder.id,
+      });
+      await tx
+        .update(promoCodes)
+        .set({ redemptionCount: sql`${promoCodes.redemptionCount} + 1` })
+        .where(eq(promoCodes.id, lockedCode.id));
+    }
+
+    return { order: insertedOrder, totals };
+  });
 
   await client.insert(orderItems).values(
     priced.lines.map((line) => {
@@ -273,8 +360,11 @@ export async function createOrderFromCart(input: CreateOrderInput) {
             fulfillment: line.fulfillment,
           };
         }),
-        subtotalCentavos: totals.merchandiseSubtotalCentavos,
-        discountCentavos: totals.discountCentavos,
+        // Same convention as the stored order row (see the transaction
+        // above): subtotal already has the promo-code order-discount baked
+        // in, discountCentavos is the informational combined total.
+        subtotalCentavos: totals.merchandiseSubtotalCentavos - totals.orderDiscountCentavos,
+        discountCentavos: totals.discountCentavos + totals.orderDiscountCentavos + totals.deliveryDiscountCentavos,
         deliveryFeeCentavos: totals.deliveryFeeCentavos,
         totalCentavos: totals.totalCentavos,
         defaultDeliveryFeeCentavos: totals.defaultDeliveryFeeCentavos,
@@ -698,7 +788,10 @@ export async function transitionOrderStatus(args: {
     })
     .where(eq(orders.id, args.orderId));
 
-  if (args.next === "REJECTED") {
+  if (args.next === "REJECTED" || args.next === "CANCELLED") {
+    // releaseStockForOrder is a no-op when the order never had stock
+    // reserved (e.g. cancelling from AWAITING_PAYMENT, before any receipt),
+    // since it only acts on existing ORDER_RESERVED/ML_RESERVED movements.
     await releaseStockForOrder(args.orderId);
   }
 

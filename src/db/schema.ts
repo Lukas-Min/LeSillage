@@ -58,6 +58,14 @@ export type PricingMode = (typeof pricingMode)[number];
 export const discountType = ["PERCENTAGE", "FIXED"] as const;
 export type DiscountType = (typeof discountType)[number];
 
+// A promo code discounts either the merchandise subtotal (ORDER, excluding
+// delivery) or the delivery fee (DELIVERY) — never both at once. Combined
+// with per-item discounts (product-specific or site-wide), this gives the
+// three independent discount "types" the store owner asked for, each capped
+// at one active discount of its own type per order.
+export const promoCodeScope = ["ORDER", "DELIVERY"] as const;
+export type PromoCodeScope = (typeof promoCodeScope)[number];
+
 export const stockMovementReason = [
   "INITIAL",
   "ADJUSTMENT",
@@ -88,6 +96,9 @@ export const auditAction = [
   "DISCOUNT_UPDATE",
   "IMAGE_UPDATE",
   "PROMO_UPDATE",
+  "PROMO_CODE_CREATE",
+  "PROMO_CODE_UPDATE",
+  "PROMO_CODE_DELETE",
   "QR_CREATE",
   "QR_UPDATE",
   "QR_DELETE",
@@ -441,6 +452,67 @@ export const promoSettings = pgTable("promo_setting", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 
+export const promoCodes = pgTable(
+  "promo_code",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // Stored uppercase (normalized on write) so lookups are a plain
+    // case-insensitive-by-construction equality check, not an ILIKE.
+    code: text("code").notNull(),
+    type: text("type").$type<DiscountType>().notNull(),
+    amount: integer("amount").notNull(),
+    scope: text("scope").$type<PromoCodeScope>().notNull(),
+    // Evaluated against the merchandise subtotal *after* per-item discounts
+    // (site-wide/product) for an ORDER-scope code, or against that same
+    // post-item-discount, post-order-discount amount for a DELIVERY-scope
+    // code — never the original pre-discount price. See applyPromoCode in
+    // src/domain/promo-code.ts.
+    minSpendCentavos: integer("minSpendCentavos"),
+    firstOrderOnly: boolean("firstOrderOnly").notNull().default(false),
+    maxRedemptions: integer("maxRedemptions"),
+    redemptionCount: integer("redemptionCount").notNull().default(0),
+    onePerCustomer: boolean("onePerCustomer").notNull().default(false),
+    startsAt: timestamp("startsAt", { mode: "date" }),
+    endsAt: timestamp("endsAt", { mode: "date" }),
+    isActive: boolean("isActive").notNull().default(true),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    codeIdx: uniqueIndex("promo_code_code_idx").on(t.code),
+  }),
+);
+
+export const promoCodeRedemptions = pgTable(
+  "promo_code_redemption",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    promoCodeId: text("promoCodeId")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: text("orderId")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // Not unique on (promoCodeId, userId): "one redemption per customer" is
+    // an opt-in per-code setting (onePerCustomer), not always true, so it's
+    // enforced in src/lib/orders.ts instead — inside the same
+    // row-locked transaction as the order insert (locks the promoCodes row
+    // via `.for("update")` before checking prior redemptions), which closes
+    // the race a plain unconditional DB constraint here couldn't express.
+    codeUserIdx: index("promo_code_redemption_code_user_idx").on(t.promoCodeId, t.userId),
+    orderIdx: index("promo_code_redemption_order_idx").on(t.orderId),
+  }),
+);
+
 export const qrCodes = pgTable("qr_code", {
   id: text("id")
     .primaryKey()
@@ -675,6 +747,8 @@ export type User = typeof users.$inferSelect;
 export type PromoSetting = typeof promoSettings.$inferSelect;
 export type StockMovement = typeof stockMovements.$inferSelect;
 export type ProductDiscount = typeof productDiscounts.$inferSelect;
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type PromoCodeRedemption = typeof promoCodeRedemptions.$inferSelect;
 export type QrCode = typeof qrCodes.$inferSelect;
 export type OptionList = typeof optionLists.$inferSelect;
 export type OptionValue = typeof optionValues.$inferSelect;
