@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Every full-bottle SKU just said "Full bottle" with no size — set each to its real, regular retail bottle size instead (90ml for the YSL Libre family and Prada Paradoxe Intense, 100ml for the rest), researched per product against brand sites/major retailers rather than guessed; SKU label now reads e.g. "100ml Full bottle". Doesn't touch pricing — `sourceMl` stays unset on the product row, so `computeSkuRetailPrice` still returns the reference price as-is
 ### Added
 - Contact page and footer: added Facebook and Messenger as real, clickable contact methods; Contact page's email/phone rows are now also real `mailto:`/`tel:` links instead of plain text
 ### Changed

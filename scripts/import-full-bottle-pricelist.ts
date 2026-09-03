@@ -15,13 +15,18 @@
  * (`fimgs.net/mdimg/perfume-thumbs/375x500.<id>.jpg`), not the "social card"
  * graphic (Fragrantica logo + accord bars + QR code) og:image points at.
  *
+ * `sizeMl` is each fragrance's real, regular retail full-bottle size (90ml
+ * or 100ml throughout this catalog — verified per product against brand
+ * sites/major retailers, not guessed), set only on the SKU for a correct
+ * "XXml Full bottle" label. `sourceMl` is deliberately left unset on the
+ * product row: with only one full-bottle SKU per product and no decant/
+ * partial SKUs scaled off it, computeSkuRetailPrice never uses it (it
+ * returns the reference price as-is whenever a product has no sourceMl),
+ * so setting sizeMl alone cannot accidentally rescale the price.
+ *
  * Every SKU here defaults to condition BNIB, provenance RETAIL, packaging
  * WITH_BOX — i.e. "Retail, BNIB, sealed" — which are already this schema's
  * defaults, so nothing special is set for that beyond leaving them alone.
- * Bottle ml size wasn't given, so `sourceMl`/`sizeMl` are left unset rather
- * than guessed; the single "Full bottle" SKU's price is unaffected either
- * way (computeSkuRetailPrice returns the reference price as-is when a SKU
- * has no sizeMl).
  *
  * Usage: npx tsx scripts/import-full-bottle-pricelist.ts
  * Safe to re-run: upserts by (brand, name, type="FULL_BOTTLE"), does not
@@ -50,6 +55,8 @@ interface FullBottleEntry {
   gender: Gender;
   /** The store's discounted cost basis, PHP (not centavos). */
   costPricePhp: number;
+  /** Real, regular retail bottle size, ml (verified per product — see file header). */
+  sizeMl: number;
   releaseYear: number;
   perfumers: string[];
   notes: { top: string[]; middle: string[]; base: string[] };
@@ -63,7 +70,7 @@ interface FullBottleEntry {
 const CATALOG: FullBottleEntry[] = [
   {
     brand: "Yves Saint Laurent", name: "Libre", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5250, releaseYear: 2019, perfumers: ["Anne Flipo", "Carlos Benaïm"],
+    costPricePhp: 5250, sizeMl: 90, releaseYear: 2019, perfumers: ["Anne Flipo", "Carlos Benaïm"],
     notes: { top: ["Lavender", "Mandarin Orange", "Black Currant", "Petitgrain"], middle: ["Lavender", "Orange Blossom", "Jasmine"], base: ["Madagascar Vanilla", "Musk", "Cedar", "Ambergris"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "citrus", strength: 73 }, { name: "lavender", strength: 65 }, { name: "vanilla", strength: 49 }, { name: "aromatic", strength: 39 }, { name: "sweet", strength: 36 }, { name: "powdery", strength: 33 }, { name: "animalic", strength: 32 }],
     ratingValue: 3.92, ratingCount: 22371, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.56077.jpg",
@@ -71,7 +78,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "Libre Intense", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5750, releaseYear: 2020, perfumers: ["Anne Flipo", "Carlos Benaïm"],
+    costPricePhp: 5750, sizeMl: 90, releaseYear: 2020, perfumers: ["Anne Flipo", "Carlos Benaïm"],
     notes: { top: ["Lavender", "Mandarin Orange", "Bergamot"], middle: ["Lavender", "Tunisian Orange Blossom", "Jasmine Sambac", "Orchid"], base: ["Madagascar Vanilla", "Tonka Bean", "Ambergris", "Vetiver"] },
     accords: [{ name: "vanilla", strength: 100 }, { name: "white floral", strength: 74 }, { name: "citrus", strength: 62 }, { name: "lavender", strength: 59 }, { name: "sweet", strength: 57 }, { name: "aromatic", strength: 53 }, { name: "amber", strength: 44 }, { name: "powdery", strength: 28 }],
     ratingValue: 4.27, ratingCount: 11466, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.62318.jpg",
@@ -79,7 +86,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "Libre Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5750, releaseYear: 2022, perfumers: ["Anne Flipo", "Carlos Benaïm"],
+    costPricePhp: 5750, sizeMl: 90, releaseYear: 2022, perfumers: ["Anne Flipo", "Carlos Benaïm"],
     notes: { top: ["Ginger", "Saffron", "Mandarin Orange", "Bergamot"], middle: ["Orange Blossom", "Lavender"], base: ["Bourbon Vanilla", "Honey", "Tonka Bean", "Vetiver"] },
     accords: [{ name: "vanilla", strength: 100 }, { name: "sweet", strength: 87 }, { name: "citrus", strength: 82 }, { name: "honey", strength: 67 }, { name: "white floral", strength: 57 }, { name: "lavender", strength: 56 }, { name: "fresh spicy", strength: 54 }, { name: "aromatic", strength: 52 }],
     ratingValue: 4.28, ratingCount: 5054, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.75676.jpg",
@@ -87,7 +94,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "Mon Paris", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5550, releaseYear: 2016, perfumers: ["Olivier Cresp", "Harry Fremont", "Dora Baghriche"],
+    costPricePhp: 5550, sizeMl: 90, releaseYear: 2016, perfumers: ["Olivier Cresp", "Harry Fremont", "Dora Baghriche"],
     notes: { top: ["Strawberry", "Raspberry", "Pear", "Orange", "Calabrian bergamot", "Tangerine", "Calone"], middle: ["Peony", "Jasmine Sambac", "Chinese Jasmine", "Datura", "Orange Blossom"], base: ["Indonesian Patchouli Leaf", "Patchouli", "White Musk", "Vanila", "Ambroxan", "Moss", "Cedar"] },
     accords: [{ name: "fruity", strength: 100 }, { name: "sweet", strength: 79 }, { name: "fresh", strength: 32 }, { name: "white floral", strength: 31 }, { name: "patchouli", strength: 30 }, { name: "citrus", strength: 30 }, { name: "woody", strength: 27 }, { name: "floral", strength: 27 }],
     ratingValue: 3.8, ratingCount: 10485, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.38914.jpg",
@@ -95,7 +102,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "Libre Flowers & Flames", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5750, releaseYear: 2024, perfumers: [],
+    costPricePhp: 5750, sizeMl: 90, releaseYear: 2024, perfumers: [],
     notes: { top: ["Lavender", "Bergamot"], middle: ["Orange Blossom", "Lavender", "Coconut", "Lily", "Palm Tree"], base: ["Vanilla"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "vanilla", strength: 68 }, { name: "citrus", strength: 57 }, { name: "lavender", strength: 56 }, { name: "sweet", strength: 50 }, { name: "coconut", strength: 44 }, { name: "aromatic", strength: 30 }, { name: "fresh spicy", strength: 30 }],
     ratingValue: 4.15, ratingCount: 1955, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.95623.jpg",
@@ -103,7 +110,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
-    costPricePhp: 5250, releaseYear: 2018, perfumers: ["Dominique Ropion", "Claire Liégent"],
+    costPricePhp: 5250, sizeMl: 100, releaseYear: 2018, perfumers: ["Dominique Ropion", "Claire Liégent"],
     notes: { top: ["Apple", "Ginger", "Bergamot"], middle: ["Sage", "Juniper Berries", "Geranium"], base: ["Amberwood", "Tonka Bean", "Cedar", "Vetiver", "Olibanum"] },
     accords: [{ name: "aromatic", strength: 100 }, { name: "fresh spicy", strength: 98 }, { name: "woody", strength: 73 }, { name: "fruity", strength: 59 }, { name: "fresh", strength: 52 }, { name: "amber", strength: 52 }, { name: "citrus", strength: 46 }, { name: "herbal", strength: 39 }],
     ratingValue: 4.41, ratingCount: 28455, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.50757.jpg",
@@ -111,7 +118,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "MYSLF Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
-    costPricePhp: 5350, releaseYear: 2023, perfumers: ["Christophe Raynaud", "Antoine Maisondieu", "Daniela Andrier"],
+    costPricePhp: 5350, sizeMl: 100, releaseYear: 2023, perfumers: ["Christophe Raynaud", "Antoine Maisondieu", "Daniela Andrier"],
     notes: { top: ["Calabrian bergamot", "Bergamot"], middle: ["Tunisian Orange Blossom"], base: ["Ambrofix™", "Patchouli"] },
     accords: [{ name: "citrus", strength: 100 }, { name: "white floral", strength: 76 }, { name: "patchouli", strength: 33 }, { name: "fresh spicy", strength: 31 }, { name: "woody", strength: 26 }, { name: "sweet", strength: 23 }, { name: "soapy", strength: 19 }, { name: "aromatic", strength: 19 }],
     ratingValue: 4.33, ratingCount: 14077, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.84094.jpg",
@@ -119,7 +126,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Yves Saint Laurent", name: "MYSLF Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
-    costPricePhp: 5750, releaseYear: 2024, perfumers: ["Daniela Andrier", "Antoine Maisondieu", "Christophe Raynaud"],
+    costPricePhp: 5750, sizeMl: 100, releaseYear: 2024, perfumers: ["Daniela Andrier", "Antoine Maisondieu", "Christophe Raynaud"],
     notes: { top: ["Black Pepper"], middle: ["Orange Blossom"], base: ["Bourbon Vanilla", "Amber", "Woody Notes", "Patchouli"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "vanilla", strength: 75 }, { name: "woody", strength: 63 }, { name: "citrus", strength: 50 }, { name: "amber", strength: 46 }, { name: "sweet", strength: 45 }, { name: "fresh spicy", strength: 43 }, { name: "warm spicy", strength: 34 }],
     ratingValue: 4.31, ratingCount: 5139, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.94983.jpg",
@@ -127,7 +134,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Prada", name: "Paradigme Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
-    costPricePhp: 5650, releaseYear: 2026, perfumers: [],
+    costPricePhp: 5650, sizeMl: 100, releaseYear: 2026, perfumers: [],
     notes: { top: ["Bergamot"], middle: ["Vanilla", "Geranium"], base: ["Peru Balsam", "Benzoin", "Guaiac Wood", "Amberever"] },
     accords: [{ name: "amber", strength: 100 }, { name: "balsamic", strength: 81 }, { name: "vanilla", strength: 78 }, { name: "woody", strength: 70 }, { name: "fresh spicy", strength: 51 }, { name: "aromatic", strength: 38 }, { name: "warm spicy", strength: 34 }, { name: "citrus", strength: 33 }],
     ratingValue: 4.22, ratingCount: 583, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.132417.jpg",
@@ -135,7 +142,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Sospiro Perfumes", name: "Vibrato", concentration: "EAU_DE_PARFUM", category: "NICHE", gender: "unisex",
-    costPricePhp: 9500, releaseYear: 2022, perfumers: ["Christian Provenzano"],
+    costPricePhp: 9500, sizeMl: 100, releaseYear: 2022, perfumers: ["Christian Provenzano"],
     notes: { top: ["Grapefruit", "Bergamot", "Jasmine", "Magnolia"], middle: ["Ginger", "Herbal Notes", "Powdery Notes"], base: ["Musk", "Cedar", "Amber", "Patchouli", "Orris Root"] },
     accords: [{ name: "citrus", strength: 100 }, { name: "fresh spicy", strength: 66 }, { name: "powdery", strength: 52 }, { name: "green", strength: 30 }, { name: "woody", strength: 29 }, { name: "musky", strength: 29 }, { name: "aromatic", strength: 23 }, { name: "fresh", strength: 21 }],
     ratingValue: 4.53, ratingCount: 6216, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.75930.jpg",
@@ -143,7 +150,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Nishane", name: "Wulóng Chá", concentration: "EXTRAIT_DE_PARFUM", category: "NICHE", gender: "unisex",
-    costPricePhp: 9500, releaseYear: 2015, perfumers: ["Jorge Lee"],
+    costPricePhp: 9500, sizeMl: 100, releaseYear: 2015, perfumers: ["Jorge Lee"],
     notes: { top: ["Bergamot", "Orange", "Mandarin Orange", "Litsea Cubeba"], middle: ["Oolong tea", "Nutmeg"], base: ["Fig", "Musk"] },
     accords: [{ name: "citrus", strength: 100 }, { name: "fresh spicy", strength: 36 }, { name: "aromatic", strength: 34 }, { name: "sweet", strength: 24 }, { name: "fruity", strength: 20 }, { name: "musky", strength: 18 }, { name: "powdery", strength: 14 }, { name: "woody", strength: 12 }],
     ratingValue: 4.25, ratingCount: 6852, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.30567.jpg",
@@ -151,7 +158,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Miu Miu", name: "Miutine", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 3990, releaseYear: 2025, perfumers: ["Dominique Ropion"],
+    costPricePhp: 3990, sizeMl: 100, releaseYear: 2025, perfumers: ["Dominique Ropion"],
     notes: { top: ["Strawberry", "Citruses"], middle: ["Rose", "Gardenia", "Jasmine"], base: ["Brown sugar", "Patchouli", "Bourbon Vanilla", "Oakmoss", "Amber"] },
     accords: [{ name: "sweet", strength: 100 }, { name: "fruity", strength: 76 }, { name: "rose", strength: 45 }, { name: "patchouli", strength: 40 }, { name: "earthy", strength: 30 }, { name: "woody", strength: 30 }, { name: "vanilla", strength: 29 }, { name: "mossy", strength: 20 }],
     ratingValue: 3.72, ratingCount: 1595, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.113885.jpg",
@@ -159,7 +166,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Miu Miu", name: "Miu Miu Fleur de Lait", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 3990, releaseYear: 2023, perfumers: [],
+    costPricePhp: 3990, sizeMl: 100, releaseYear: 2023, perfumers: [],
     notes: { top: ["Mango"], middle: ["Osmanthus"], base: ["Coconut Milk"] },
     accords: [{ name: "fruity", strength: 100 }, { name: "tropical", strength: 95 }, { name: "sweet", strength: 73 }, { name: "coconut", strength: 72 }, { name: "floral", strength: 47 }, { name: "lactonic", strength: 41 }, { name: "terpenic", strength: 22 }, { name: "vanilla", strength: 22 }],
     ratingValue: 3.93, ratingCount: 1199, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.78755.jpg",
@@ -167,23 +174,25 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     brand: "Prada", name: "Prada Paradoxe Intense", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5450, releaseYear: 2023, perfumers: ["Nadège Le Garlantezec", "Shyamala Maisondieu", "Antoine Maisondieu"],
+    costPricePhp: 5450, sizeMl: 90, releaseYear: 2023, perfumers: ["Nadège Le Garlantezec", "Shyamala Maisondieu", "Antoine Maisondieu"],
     notes: { top: ["Neroli", "Pear", "Bergamot"], middle: ["Jasmine", "Neroli Essence", "Moss"], base: ["Bourbon Vanilla", "Vanilla", "Amber", "Ambrofix™", "Serenolide"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "vanilla", strength: 72 }, { name: "citrus", strength: 70 }, { name: "mossy", strength: 61 }, { name: "amber", strength: 54 }, { name: "fruity", strength: 48 }, { name: "sweet", strength: 46 }, { name: "fresh", strength: 45 }],
     ratingValue: 4.12, ratingCount: 4381, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.83988.jpg",
     fragranticaUrl: "https://www.fragrantica.com/perfume/Prada/Prada-Paradoxe-Intense-83988.html",
   },
   {
+    // Store owner confirmed: Lancôme Idôle bottles here are 100ml.
     brand: "Lancôme", name: "Idôle", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5450, releaseYear: 2019, perfumers: ["Shyamala Maisondieu", "Adriana Medina-Baez", "Nadege le Garlantezec", "Sonia Constant"],
+    costPricePhp: 5450, sizeMl: 100, releaseYear: 2019, perfumers: ["Shyamala Maisondieu", "Adriana Medina-Baez", "Nadege le Garlantezec", "Sonia Constant"],
     notes: { top: ["Pear", "Bergamot", "Pink Pepper"], middle: ["Rose", "Jasmine"], base: ["White Musk", "Vanilla", "Patchouli", "Cedar"] },
     accords: [{ name: "rose", strength: 100 }, { name: "musky", strength: 71 }, { name: "fruity", strength: 56 }, { name: "sweet", strength: 53 }, { name: "white floral", strength: 51 }, { name: "powdery", strength: 47 }, { name: "floral", strength: 45 }, { name: "citrus", strength: 40 }],
     ratingValue: 3.88, ratingCount: 13589, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.55795.jpg",
     fragranticaUrl: "https://www.fragrantica.com/perfume/Lancome/Idole-55795.html",
   },
   {
+    // Store owner confirmed: Lancôme Idôle Power bottles here are 100ml.
     brand: "Lancôme", name: "Idôle Power", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
-    costPricePhp: 5350, releaseYear: 2024, perfumers: [],
+    costPricePhp: 5350, sizeMl: 100, releaseYear: 2024, perfumers: [],
     notes: { top: ["Apple"], middle: ["May Rose"], base: ["Sandalwood"] },
     accords: [{ name: "rose", strength: 100 }, { name: "woody", strength: 83 }, { name: "powdery", strength: 41 }, { name: "fruity", strength: 34 }, { name: "warm spicy", strength: 33 }, { name: "floral", strength: 29 }, { name: "fresh", strength: 21 }, { name: "green", strength: 17 }],
     ratingValue: 3.71, ratingCount: 935, imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.101224.jpg",
@@ -256,6 +265,8 @@ async function main() {
     productCount += 1;
 
     const retailPrice = Math.round(costPrice * 1.2);
+    const label = `${entry.sizeMl}ml Full bottle`;
+    const skuCode = `${brandSlug}-${nameSlug}-${entry.sizeMl}ML`;
     const [existingSku] = await client
       .select({ id: skus.id })
       .from(skus)
@@ -264,15 +275,14 @@ async function main() {
     if (existingSku) {
       await client
         .update(skus)
-        .set({ retailPrice, pricingInput: retailPrice, updatedAt: new Date() })
+        .set({ sku: skuCode, sizeMl: entry.sizeMl, label, retailPrice, pricingInput: retailPrice, updatedAt: new Date() })
         .where(eq(skus.id, existingSku.id));
     } else {
       await client.insert(skus).values({
         productId,
-        sku: `${brandSlug}-${nameSlug}-FB`,
-        label: "Full bottle",
-        // sizeMl left unset — no bottle size was given, and this single
-        // full-bottle SKU's price doesn't depend on it either way.
+        sku: skuCode,
+        label,
+        sizeMl: entry.sizeMl,
         condition: "BNIB",
         provenance: "RETAIL",
         packaging: "WITH_BOX",
@@ -304,7 +314,7 @@ async function main() {
       });
     }
 
-    console.log(`✓ ${entry.brand} — ${entry.name} (cost ₱${entry.costPricePhp} -> retail ₱${(retailPrice / 100).toFixed(2)})`);
+    console.log(`✓ ${entry.brand} — ${entry.name} (${entry.sizeMl}ml, cost ₱${entry.costPricePhp} -> retail ₱${(retailPrice / 100).toFixed(2)})`);
   }
 
   console.log(`\nInserted/updated ${productCount} full-bottle products.`);
