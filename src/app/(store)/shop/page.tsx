@@ -9,6 +9,7 @@ import { Eyebrow } from "@/components/ui/section";
 import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
 import { concentration as CONCENTRATIONS, fragranceCategory as CATEGORIES } from "@/db/schema";
 import type { Concentration, FragranceCategory, ProductType } from "@/db/schema";
+import { GENDERS, type Gender } from "@/domain/gender";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ interface ShopSearchParams {
   type?: string;
   category?: string;
   concentration?: string;
+  gender?: string;
   sort?: string;
   page?: string;
 }
@@ -32,6 +34,7 @@ export default async function ShopPage({
   const type = parseEnum(params.type, VALID_TYPES) ?? "DECANT";
   const category = parseEnum(params.category, [...CATEGORIES]) as FragranceCategory | undefined;
   const concentration = parseEnum(params.concentration, [...CONCENTRATIONS]) as Concentration | undefined;
+  const gender = parseEnum(params.gender, GENDERS) as Gender | undefined;
   const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "featured";
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
@@ -49,10 +52,10 @@ export default async function ShopPage({
         <ShopFilters activeType={type} />
       </div>
       <Suspense
-        key={[type, category, concentration, sort, page].join("|")}
+        key={[type, category, concentration, gender, sort, page].join("|")}
         fallback={<CatalogResultsSkeleton />}
       >
-        <ShopResults type={type} category={category} concentration={concentration} sort={sort} page={page} />
+        <ShopResults type={type} category={category} concentration={concentration} gender={gender} sort={sort} page={page} />
       </Suspense>
     </main>
   );
@@ -62,12 +65,14 @@ async function ShopResults({
   type,
   category,
   concentration,
+  gender,
   sort,
   page,
 }: {
   type?: ProductType;
   category?: FragranceCategory;
   concentration?: Concentration;
+  gender?: Gender;
   sort: CatalogSort;
   page: number;
 }) {
@@ -75,6 +80,7 @@ async function ShopResults({
     ...(type ? { type } : {}),
     ...(category ? { fragranceCategory: category } : {}),
     ...(concentration ? { concentration } : {}),
+    ...(gender ? { gender } : {}),
   };
   const [total, cards] = await Promise.all([
     countCatalogCards(baseFilter),
@@ -87,6 +93,7 @@ async function ShopResults({
     if (type && type !== "DECANT") params.set("type", type);
     if (category) params.set("category", category);
     if (concentration) params.set("concentration", concentration);
+    if (gender) params.set("gender", gender);
     if (sort !== "featured") params.set("sort", sort);
     if (target > 1) params.set("page", String(target));
     const query = params.toString();
@@ -100,6 +107,7 @@ async function ShopResults({
         activeSort={sort}
         activeCategory={category}
         activeConcentration={concentration}
+        activeGender={gender}
       />
       <CatalogResults cards={cards} emptyLabel="Nothing on this shelf yet." showCount={false} />
       <CatalogPagination page={page} totalPages={totalPages} href={pageHref} />

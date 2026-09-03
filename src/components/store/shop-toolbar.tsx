@@ -15,6 +15,7 @@ import {
 import type { CatalogSort } from "@/lib/catalog";
 import type { Concentration, FragranceCategory } from "@/db/schema";
 import { CONCENTRATION_LABELS } from "@/domain/concentration";
+import { GENDERS, GENDER_LABELS, type Gender } from "@/domain/gender";
 
 const SORT_LABELS: Record<CatalogSort, string> = {
   featured: "Featured",
@@ -34,11 +35,13 @@ export function ShopToolbar({
   activeSort,
   activeCategory,
   activeConcentration,
+  activeGender,
 }: {
   count: number;
   activeSort: CatalogSort;
   activeCategory?: FragranceCategory;
   activeConcentration?: Concentration;
+  activeGender?: Gender;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,7 +55,7 @@ export function ShopToolbar({
     router.push(`/shop?${params.toString()}`, { scroll: false });
   }
 
-  const filterActive = Boolean(activeCategory || activeConcentration);
+  const filterActive = Boolean(activeCategory || activeConcentration || activeGender);
 
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -95,6 +98,19 @@ export function ShopToolbar({
               {(Object.keys(CONCENTRATION_LABELS) as Concentration[]).map((key) => (
                 <DropdownMenuRadioItem key={key} value={key}>
                   {CONCENTRATION_LABELS[key]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Gender</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={activeGender ?? ""}
+              onValueChange={(value) => navigate({ gender: value || null })}
+            >
+              <DropdownMenuRadioItem value="">Any gender</DropdownMenuRadioItem>
+              {GENDERS.map((key) => (
+                <DropdownMenuRadioItem key={key} value={key}>
+                  {GENDER_LABELS[key]}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>

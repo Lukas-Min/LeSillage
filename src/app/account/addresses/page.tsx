@@ -6,7 +6,7 @@ import { addresses } from "@/db/schema";
 import { PageHeader, SectionCard, EmptyState, Eyebrow } from "@/components/ui/section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { createAddress, deleteAddress, setDefaultAddressForm, updateAddress } from "@/actions/account-actions";
 
@@ -134,20 +134,20 @@ export default async function AddressesPage() {
                     Set as default
                   </label>
                   <div className="flex flex-wrap gap-2 sm:col-span-2">
-                    <Button type="submit" size="sm">Save changes</Button>
+                    <SubmitButton size="sm" pendingLabel="Saving…">Save changes</SubmitButton>
                     <form action={setDefaultAddressForm} className="contents">
                       <input type="hidden" name="addressId" value={address.id} />
                       {!address.isDefault ? (
-                        <Button type="submit" size="sm" variant="outline">
+                        <SubmitButton size="sm" variant="outline" pendingLabel="Setting…">
                           Make default
-                        </Button>
+                        </SubmitButton>
                       ) : null}
                     </form>
                     <form action={deleteAddress} className="contents">
                       <input type="hidden" name="addressId" value={address.id} />
-                      <Button type="submit" size="sm" variant="destructive">
+                      <SubmitButton size="sm" variant="destructive" pendingLabel="Deleting…">
                         Delete
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </form>
@@ -205,7 +205,7 @@ export default async function AddressesPage() {
             Set as default
           </label>
           <div className="sm:col-span-2">
-            <Button type="submit">Save address</Button>
+            <SubmitButton pendingLabel="Saving…">Save address</SubmitButton>
           </div>
         </form>
       </SectionCard>

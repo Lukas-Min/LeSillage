@@ -145,6 +145,17 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             cornerLabel={labelForCategory(row.fragranceCategory)}
           />
 
+          {/* Mobile only — same header as the desktop right column below, shown
+              here so the title sits above "Main accords" on narrow screens
+              instead of after it. */}
+          <ProductTitleHeader
+            brand={row.brand}
+            name={row.name}
+            concentrationGender={concentrationGender}
+            productId={row.productId}
+            className="flex md:hidden"
+          />
+
           {accords && accords.length > 0 ? (
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
@@ -177,14 +188,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         </div>
 
         <div className="flex flex-col gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1.5">
-              <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{row.brand}</p>
-              <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{row.name}</h1>
-              {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
-            </div>
-            <WishlistButton productId={row.productId} variant="icon" />
-          </div>
+          <ProductTitleHeader
+            brand={row.brand}
+            name={row.name}
+            concentrationGender={concentrationGender}
+            productId={row.productId}
+            className="hidden md:flex"
+          />
 
           {isDecant ? (
             <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
@@ -236,6 +246,31 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         </div>
       </div>
     </main>
+  );
+}
+
+function ProductTitleHeader({
+  brand,
+  name,
+  concentrationGender,
+  productId,
+  className,
+}: {
+  brand: string;
+  name: string;
+  concentrationGender: string | null;
+  productId: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("items-start justify-between gap-3", className)}>
+      <div className="space-y-1.5">
+        <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{brand}</p>
+        <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{name}</h1>
+        {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
+      </div>
+      <WishlistButton productId={productId} variant="icon" />
+    </div>
   );
 }
 

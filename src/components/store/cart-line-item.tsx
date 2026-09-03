@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiblingSkuOptions } from "@/actions/cart-actions";
 import { useCart } from "@/components/store/cart-context";
@@ -9,6 +9,7 @@ import { Price } from "@/components/store/price";
 import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPHP } from "@/domain/money";
 import type { CartLineView } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,19 @@ export function CartLineItem({
   const [stagedSkuId, setStagedSkuId] = useState(item.skuId);
   const [loadingSiblings, startLoadSiblings] = useTransition();
   const [saving, startSave] = useTransition();
+  const [removing, startRemove] = useTransition();
+
+  function handleRemove() {
+    startRemove(async () => {
+      try {
+        await cart.remove(item.skuId);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not remove item", {
+          id: `cart-remove-${item.skuId}`,
+        });
+      }
+    });
+  }
 
   function openCustomize() {
     if (customizing) return;
@@ -104,9 +118,10 @@ export function CartLineItem({
           variant="ghost"
           size="sm"
           className="mt-1 h-8 px-2 text-xs"
-          onClick={() => void cart.remove(item.skuId)}
+          disabled={removing}
+          onClick={handleRemove}
         >
-          Remove
+          {removing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Remove"}
         </Button>
       </div>
     );
@@ -165,7 +180,11 @@ export function CartLineItem({
         {customizing ? (
           <div className="border-t border-border/60 pt-3">
             {loadingSiblings || siblings === null ? (
-              <p className="text-xs text-muted-foreground">Loading sizes…</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-8 min-w-[2.75rem] rounded-none" />
+                ))}
+              </div>
             ) : (
               <SizePicker
                 density="compact"
@@ -199,9 +218,10 @@ export function CartLineItem({
               size="icon"
               aria-label={`Remove ${item.name}`}
               className="min-h-11 min-w-11"
-              onClick={() => void cart.remove(item.skuId)}
+              disabled={removing}
+              onClick={handleRemove}
             >
-              <Trash2 className="h-4 w-4" />
+              {removing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </Button>
           </div>
           {customizing ? (

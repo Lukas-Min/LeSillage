@@ -27,6 +27,7 @@ export interface CatalogFilter {
   fragranceCategory?: FragranceCategory;
   concentration?: Concentration;
   brand?: string;
+  gender?: string;
   query?: string;
   sizeMl?: number;
   sort?: CatalogSort;
@@ -91,6 +92,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     conditions.push(eq(products.concentration, filter.concentration));
   }
   if (filter.brand) conditions.push(eq(products.brand, filter.brand));
+  if (filter.gender) conditions.push(ilike(products.gender, filter.gender));
   if (filter.query && filter.query.trim().length > 0) {
     const term = `%${filter.query.trim()}%`;
     const search = or(
@@ -270,6 +272,7 @@ export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "o
     conditions.push(eq(products.concentration, filter.concentration));
   }
   if (filter.brand) conditions.push(eq(products.brand, filter.brand));
+  if (filter.gender) conditions.push(ilike(products.gender, filter.gender));
   if (filter.query && filter.query.trim().length > 0) {
     const term = `%${filter.query.trim()}%`;
     const search = or(

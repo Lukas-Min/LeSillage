@@ -27,21 +27,24 @@ export async function getCart(): Promise<CartView> {
 
 export async function addItemToCart(skuId: string, requestedQuantity: number): Promise<CartView> {
   const { cart, subject } = await resolveActiveCart();
-  const decision = await rateLimit({
-    bucket: "CHECKOUT",
-    key: await getRequestKey("cart-add", subject),
-    limit: 60,
-    windowMs: 60_000,
-  });
-  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
-  const promoConfig = await loadPromoConfig();
-  const found = (
-    await db()
+  // Rate limiting, promo config, and the SKU lookup are all independent of
+  // each other — run them together instead of one round trip after another.
+  const [decision, promoConfig, found] = await Promise.all([
+    rateLimit({
+      bucket: "CHECKOUT",
+      key: await getRequestKey("cart-add", subject),
+      limit: 60,
+      windowMs: 60_000,
+    }),
+    loadPromoConfig(),
+    db()
       .select({ sku: skus, productType: products.type, remainingMl: products.remainingMl })
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, skuId))
-  )[0];
+      .then((rows) => rows[0]),
+  ]);
+  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
   if (!found || !found.sku.isActive || found.sku.isTester) throw new Error("That item is unavailable");
   await addOneToCart(
     cart,
@@ -50,7 +53,7 @@ export async function addItemToCart(skuId: string, requestedQuantity: number): P
     promoConfig.decantPreOrderThresholdMl,
   );
   revalidatePath("/", "layout");
-  return loadCartView(cart.id);
+  return loadCartView(cart.id, undefined, promoConfig);
 }
 
 export async function updateCartItem(skuId: string, quantity: number): Promise<CartView> {
@@ -62,15 +65,16 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
     revalidatePath("/", "layout");
     return loadCartView(cart.id);
   }
-  const found = (
-    await db()
+  const [found, promoConfig] = await Promise.all([
+    db()
       .select({ sku: skus, productType: products.type, remainingMl: products.remainingMl })
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, skuId))
-  )[0];
+      .then((rows) => rows[0]),
+    loadPromoConfig(),
+  ]);
   if (!found) throw new Error("Item not found");
-  const promoConfig = await loadPromoConfig();
   const fulfillment = effectiveFulfillment({
     productType: found.productType,
     skuFulfillment: found.sku.fulfillment,
@@ -91,7 +95,7 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
     .set({ quantity: clampQuantity(quantity, cap) })
     .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, skuId)));
   revalidatePath("/", "layout");
-  return loadCartView(cart.id);
+  return loadCartView(cart.id, undefined, promoConfig);
 }
 
 export async function removeCartItem(skuId: string): Promise<CartView> {
@@ -175,7 +179,7 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
   const { cart } = await resolveActiveCart();
   if (fromSkuId === toSkuId) return loadCartView(cart.id);
   const client = db();
-  const [fromItem, toFound] = await Promise.all([
+  const [fromItem, toFound, promoConfig] = await Promise.all([
     client
       .select()
       .from(cartItems)
@@ -187,10 +191,10 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, toSkuId))
       .then((r) => r[0]),
+    loadPromoConfig(),
   ]);
   if (!fromItem) throw new Error("Item not in cart");
   if (!toFound || !toFound.sku.isActive || toFound.sku.isTester) throw new Error("That size is unavailable");
-  const promoConfig = await loadPromoConfig();
   const fulfillment = effectiveFulfillment({
     productType: toFound.productType,
     skuFulfillment: toFound.sku.fulfillment,
@@ -227,5 +231,5 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
     }
   });
   revalidatePath("/", "layout");
-  return loadCartView(cart.id);
+  return loadCartView(cart.id, undefined, promoConfig);
 }

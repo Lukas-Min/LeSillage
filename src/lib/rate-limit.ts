@@ -1,4 +1,4 @@
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db/client";
 import { rateLimits, type RateLimitBucket } from "@/db/schema";
@@ -24,24 +24,27 @@ export async function rateLimit({
   const client = db();
   const windowStart = new Date(Date.now() - windowMs);
 
-  await client
-    .delete(rateLimits)
-    .where(
-      and(
-        eq(rateLimits.bucket, bucket),
-        eq(rateLimits.key, key),
-        lt(rateLimits.windowStart, windowStart),
-      ),
-    );
-
+  // One lookup instead of a separate cleanup DELETE plus a windowed SELECT —
+  // a stale row (older than the window) is just reset in place below rather
+  // than deleted first, cutting this from 3 round trips to 2 on every call
+  // (this runs on every add-to-cart and checkout attempt).
   const existing = await client
     .select()
     .from(rateLimits)
-    .where(and(eq(rateLimits.bucket, bucket), eq(rateLimits.key, key), gte(rateLimits.windowStart, windowStart)));
-
+    .where(and(eq(rateLimits.bucket, bucket), eq(rateLimits.key, key)));
   const row = existing[0];
-  if (!row) {
-    await client.insert(rateLimits).values({ bucket, key, count: 1, windowStart: new Date() });
+
+  if (!row || row.windowStart < windowStart) {
+    // onConflictDoUpdate guards the race where a concurrent request for the
+    // same bucket/key inserts between the select above and this write —
+    // the original code's plain insert had no such guard.
+    await client
+      .insert(rateLimits)
+      .values({ bucket, key, count: 1, windowStart: new Date() })
+      .onConflictDoUpdate({
+        target: [rateLimits.bucket, rateLimits.key],
+        set: { count: 1, windowStart: new Date() },
+      });
     return { allowed: true, remaining: limit - 1 };
   }
   if (row.count >= limit) {

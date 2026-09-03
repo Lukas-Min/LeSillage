@@ -5,6 +5,7 @@ import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { wishlists, products, skus, productImages } from "@/db/schema";
 import { PageHeader, SectionCard, EmptyState } from "@/components/ui/section";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
@@ -120,10 +121,10 @@ export default async function WishlistPage() {
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   {sku ? <AddToCartButton skuId={sku.id} /> : null}
                   <form action={removeFromWishlist.bind(null, row.id)} className="ml-auto">
-                    <Button type="submit" variant="ghost" size="sm">
+                    <SubmitButton variant="ghost" size="sm" pendingLabel="Removing…">
                       <Trash2 className="h-4 w-4" />
                       Remove
-                    </Button>
+                    </SubmitButton>
                   </form>
                 </div>
               </SectionCard>

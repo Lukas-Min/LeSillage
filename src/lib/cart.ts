@@ -179,11 +179,17 @@ export async function addOneToCart(
 export async function loadCartView(
   cartId: string,
   fulfillmentMethod: FulfillmentMethod = "DELIVERY",
+  // Callers that already fetched promo config for their own cap/fulfillment
+  // calculations (addItemToCart, updateCartItem, changeCartItemSize) can
+  // pass it through to skip a second, identical round trip here.
+  preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
 ): Promise<CartView> {
   const client = db();
-  const items = await client.select().from(cartItems).where(eq(cartItems.cartId, cartId));
+  const [items, promoConfig] = await Promise.all([
+    client.select().from(cartItems).where(eq(cartItems.cartId, cartId)),
+    preloadedPromoConfig ?? loadPromoConfig(),
+  ]);
   if (items.length === 0) {
-    const promoConfig = await loadPromoConfig();
     return {
       items: [],
       count: 0,
@@ -219,7 +225,6 @@ export async function loadCartView(
     .select()
     .from(productDiscounts)
     .where(inArray(productDiscounts.productId, Array.from(new Set(skuRows.map((row) => row.sku.productId)))));
-  const promoConfig = await loadPromoConfig();
   const pricedInputs = items.flatMap((item) => {
     const found = skuRows.find((row) => row.sku.id === item.skuId);
     if (!found || !found.sku.isActive) return [];
