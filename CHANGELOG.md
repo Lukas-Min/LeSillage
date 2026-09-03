@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Mobile account/admin nav (`AccountBottomNav`) didn't match the desktop sidebar — it was missing Sign Out entirely (no way to sign out on mobile) and, for admin, the "My account" link. Kept a 3-item bottom bar (Home/Orders/Wishlist for customers, Dashboard/Orders/Products for admin) plus a new "More" button opening a bottom sheet with the exact same content as the desktop sidebar (`SidebarContent`, shared by both), so mobile now has full parity with desktop
+
 ### Fixed
 - Decant cards and the product page's decant buy box showed a "Sealed" condition badge (from `condition: "BNIB"`), which doesn't apply to a decant — it's poured to order from a shared bottle, not a specific sealed unit. Removed the condition badge for decants in `product-card.tsx` and `decant-buy-box.tsx`; full bottles/partials keep it, since condition is meaningful there
 - **Production-only crash**: clicking the wishlist heart while signed out crashed with a generic "Server Components render" error instead of showing "Please sign in", reproducible on every click. Root cause: `toggleWishlist` threw a plain `Error`, which `WishlistButton`'s own try/catch handled fine, but a *separate* internal Next.js path (the automatic post-action Router refresh) also saw the same throw and crashed on it — production-only, never reproduced in dev. Fixed by having `toggleWishlist` return a typed `{ok, ...}` result instead of throwing for expected failures (not signed in, rate-limited, product unavailable); confirmed fixed against a real local production build (`next build && next start`), not just dev

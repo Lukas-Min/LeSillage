@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/store/sign-out-overlay";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumbs";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   User,
   ShoppingBag,
@@ -18,6 +19,7 @@ import {
   Tag,
   QrCode,
   Settings,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,11 +87,14 @@ function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: strin
   );
 }
 
-export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+/** The full nav — every item plus sign out (and, for admin, a link back to
+ *  the customer account). Shared by the desktop sidebar and the mobile
+ *  "More" sheet below so the two never drift apart. */
+function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const items = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
   return (
-    <nav className="hidden w-56 shrink-0 md:block">
+    <>
       <NavList items={items} pathname={pathname ?? ""} />
       {isAdmin ? (
         <div className="mt-4 border-t border-border/60 pt-4">
@@ -105,7 +110,43 @@ export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
       <div className="pt-2">
         <SignOutButton variant="outline" className="w-full justify-start" />
       </div>
+    </>
+  );
+}
+
+export function AccountSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+  return (
+    <nav className="hidden w-56 shrink-0 md:block">
+      <SidebarContent isAdmin={isAdmin} />
     </nav>
+  );
+}
+
+/** Mobile-only: the bottom tab bar only has room for a few items, so
+ *  everything else desktop's sidebar shows (remaining nav items, sign out,
+ *  and for admin the "My account" link) lives behind this "More" sheet —
+ *  same content as the desktop sidebar, just reachable a different way. */
+function AccountMoreMenu({ isAdmin }: { isAdmin: boolean }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+          <span>More</span>
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto pb-6">
+        <SheetHeader>
+          <SheetTitle className="font-serif-display text-xl">{isAdmin ? "Admin menu" : "Your account"}</SheetTitle>
+        </SheetHeader>
+        <div className="px-4">
+          <SidebarContent isAdmin={isAdmin} />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -133,25 +174,24 @@ export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
   return <Breadcrumbs items={items} />;
 }
 
+// Bottom tab bar only fits a few items — these are the ones worth one tap;
+// everything else on the desktop sidebar (including sign out, which had no
+// mobile equivalent at all before) lives behind the "More" sheet instead.
+const customerPrimaryItems = [accountNavItems[0], accountNavItems[2], accountNavItems[4]]; // Home, Orders, Wishlist
+const adminPrimaryItems = [adminHomeItem, adminNavItems[0], adminNavItems[1]]; // Dashboard, Orders, Products
+
 export function AccountBottomNav() {
   const pathname = usePathname();
   const inAdmin = pathname?.startsWith("/admin") ?? false;
-  const items = inAdmin
-    ? [adminHomeItem, ...adminNavItems]
-    : accountNavItems.filter((item) => !item.destructive);
+  const items = inAdmin ? adminPrimaryItems : customerPrimaryItems;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden">
-      <ul
-        className={cn(
-          "mx-auto flex max-w-6xl items-stretch px-2 py-1",
-          inAdmin ? "gap-1 overflow-x-auto" : "justify-around",
-        )}
-      >
+      <ul className="mx-auto flex max-w-6xl items-stretch justify-around px-2 py-1">
         {items.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname ?? "", item);
           return (
-            <li key={item.href} className={inAdmin ? "shrink-0" : "flex-1"}>
+            <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
                 className={cn(
@@ -165,6 +205,9 @@ export function AccountBottomNav() {
             </li>
           );
         })}
+        <li className="flex-1">
+          <AccountMoreMenu isAdmin={inAdmin} />
+        </li>
       </ul>
     </nav>
   );
