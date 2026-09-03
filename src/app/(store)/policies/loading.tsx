@@ -1,7 +1,16 @@
+import { Truck, Wallet } from "lucide-react";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { policyCopy } from "@/lib/policy-copy";
+
+function SectionIcon({ icon: Icon }: { icon: typeof Truck }) {
+  return (
+    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-foreground">
+      <Icon className="h-4 w-4" />
+    </span>
+  );
+}
 
 // Fully static content, no DB fetch — render it for real.
 export default function PoliciesLoading() {
@@ -14,7 +23,7 @@ export default function PoliciesLoading() {
           title="Shipping, returns, authenticity"
           subtitle="Plain-language details on how we ship, what we accept back, and where our stock comes from."
         />
-        <SectionCard eyebrow="Operations" title="How we fulfil orders">
+        <SectionCard eyebrow="Operations" title="How we fulfil orders" actions={<SectionIcon icon={Truck} />}>
           <DisclosureAccordion
             items={[
               {
@@ -37,7 +46,7 @@ export default function PoliciesLoading() {
             ]}
           />
         </SectionCard>
-        <SectionCard eyebrow="Money" title="Payment & verification">
+        <SectionCard eyebrow="Money" title="Payment & verification" actions={<SectionIcon icon={Wallet} />}>
           <DisclosureAccordion
             items={[
               {
