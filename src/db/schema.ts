@@ -92,7 +92,6 @@ export const auditAction = [
   "QR_UPDATE",
   "QR_DELETE",
   "PRODUCT_FRAGELLA_IMPORT",
-  "FRAGELLA_REFRESH",
   "ORDER_STATUS",
   "ORDER_NOTE",
   "OPTION_VALUE_CHANGE",
@@ -341,10 +340,6 @@ export const products = pgTable(
     releaseYear: integer("releaseYear"),
     gender: text("gender"),
     fragranticaUrl: text("fragranticaUrl"),
-    fragellaId: text("fragellaId"),
-    fragellaQuery: text("fragellaQuery"),
-    fragellaFetchedAt: timestamp("fragellaFetchedAt", { mode: "date" }),
-    fragellaPayload: jsonb("fragellaPayload"),
     isActive: boolean("isActive").notNull().default(true),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
@@ -668,31 +663,7 @@ export const siteContent = pgTable("site_content", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 
-export const fragellaMirror = pgTable(
-  "fragella_mirror",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    brand: text("brand").notNull(),
-    year: integer("year"),
-    gender: text("gender"),
-    imageUrl: text("imageUrl"),
-    searchName: text("searchName").notNull(),
-    payload: jsonb("payload").notNull(),
-    requestCount: integer("requestCount").notNull().default(1),
-    lastFetchedAt: timestamp("lastFetchedAt", { mode: "date" }).notNull().defaultNow(),
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-  },
-  (t) => ({
-    nameIdx: index("fragella_mirror_name_idx").on(t.name),
-    brandIdx: index("fragella_mirror_brand_idx").on(t.brand),
-    updatedIdx: index("fragella_mirror_updated_idx").on(t.lastFetchedAt),
-  }),
-);
-
 export type Product = typeof products.$inferSelect;
-export type FragellaMirrorEntry = typeof fragellaMirror.$inferSelect;
 export type Sku = typeof skus.$inferSelect;
 export type Cart = typeof carts.$inferSelect;
 export type CartItem = typeof cartItems.$inferSelect;

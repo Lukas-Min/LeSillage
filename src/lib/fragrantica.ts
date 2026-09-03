@@ -1,7 +1,8 @@
-import type {
-  FragellaAccord,
-  FragellaRecord,
-} from "./fragella";
+export interface FragranticaAccord {
+  name: string;
+  strength?: number;
+  color?: string | null;
+}
 
 export interface ParsedFragranticaPage {
   name?: string;
@@ -11,7 +12,7 @@ export interface ParsedFragranticaPage {
   concentration?: string | null;
   description?: string | null;
   perfumers?: string[];
-  accords?: FragellaAccord[];
+  accords?: FragranticaAccord[];
   notes?: { top: string[]; middle: string[]; base: string[] };
   longevity?: string | null;
   sillage?: string | null;
@@ -77,10 +78,10 @@ function extractH1(html: string): string | null {
   return cleaned || null;
 }
 
-function extractAccords(html: string): FragellaAccord[] {
+function extractAccords(html: string): FragranticaAccord[] {
   const block = extractBetween(html, "main_accords", "</section>");
   if (!block) return [];
-  const items: FragellaAccord[] = [];
+  const items: FragranticaAccord[] = [];
   const re = /<div[^>]*class="[^"]*accord[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
   let match: RegExpExecArray | null;
   while ((match = re.exec(block)) !== null) {
@@ -217,7 +218,7 @@ export function parseFragranticaJson(payload: unknown): ParsedFragranticaPage {
   };
   const accords = data.accords ?? data.MainAccords ?? data.mainAccords;
   if (Array.isArray(accords)) {
-    const list: FragellaAccord[] = [];
+    const list: FragranticaAccord[] = [];
     for (const entry of accords) {
       if (!entry || typeof entry !== "object") continue;
       const record = entry as Record<string, unknown>;
@@ -246,22 +247,20 @@ export function parseFragranticaJson(payload: unknown): ParsedFragranticaPage {
 }
 
 export function mergeFragranticRecords(
-  primary: ParsedFragranticaPage | FragellaRecord | null,
+  primary: ParsedFragranticaPage | null,
   fallback: ParsedFragranticaPage,
 ): ParsedFragranticaPage {
   if (!primary) return fallback;
   const merged: ParsedFragranticaPage = { ...fallback, ...primary };
-  const primaryNotes = "notes" in primary ? primary.notes : undefined;
-  if (primaryNotes) {
+  if (primary.notes) {
     merged.notes = {
-      top: primaryNotes.top?.length ? primaryNotes.top : fallback.notes?.top ?? [],
-      middle: primaryNotes.middle?.length ? primaryNotes.middle : fallback.notes?.middle ?? [],
-      base: primaryNotes.base?.length ? primaryNotes.base : fallback.notes?.base ?? [],
+      top: primary.notes.top?.length ? primary.notes.top : fallback.notes?.top ?? [],
+      middle: primary.notes.middle?.length ? primary.notes.middle : fallback.notes?.middle ?? [],
+      base: primary.notes.base?.length ? primary.notes.base : fallback.notes?.base ?? [],
     };
   }
-  const primaryAccords = "accords" in primary ? primary.accords : undefined;
-  if (primaryAccords && primaryAccords.length > 0) {
-    merged.accords = primaryAccords;
+  if (primary.accords && primary.accords.length > 0) {
+    merged.accords = primary.accords;
   }
   return merged;
 }

@@ -33,8 +33,6 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
-scripts/.fragella-import-state.json
-scripts/manual-fragrances.json
 
 # local blob fallback (holds customer payment receipts)
 /.blob/

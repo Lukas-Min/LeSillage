@@ -34,9 +34,8 @@ config({ path: ".env.local" });
 
 import { and, eq, ilike } from "drizzle-orm";
 import { db } from "../src/db/client";
-import { products, skus, productImages, fragellaMirror } from "../src/db/schema";
+import { products, skus } from "../src/db/schema";
 import type { Concentration, FragranceCategory } from "../src/db/schema";
-import { normalize } from "../src/lib/fragella";
 
 type Gender = "male" | "female" | "unisex";
 
@@ -57,10 +56,6 @@ interface DecantEntry {
   fullBottle?: { sizeMl: number; basePricePhp: number };
   /** Set when fullBottle is a guess, not from the spreadsheet. */
   costBasisEstimated?: boolean;
-  /** id in fragella_mirror to pull notes/accords/image from, when a
-   *  confident unambiguous match exists. Left unset when the brand has many
-   *  same-named flankers and picking wrong would show the wrong fragrance. */
-  fragellaMirrorId?: string;
 }
 
 // Prices are the pricelist's own numbers (source of truth for what customers
@@ -72,50 +67,42 @@ const CATALOG: DecantEntry[] = [
     brand: "Carolina Herrera", name: "Good Girl", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
     prices: { 3: 270, 5: 345, 10: 895, 30: 2680 },
     fullBottle: { sizeMl: 80, basePricePhp: 7150 },
-    fragellaMirrorId: "carolina-herrera-good-girl-manual",
   },
   {
     brand: "Coach", name: "Dreams", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
     prices: { 3: 135, 5: 170, 10: 450, 30: 1345 },
     fullBottle: { sizeMl: 90, basePricePhp: 4030 },
-    fragellaMirrorId: "Coach::Coach Dreams",
   },
   {
     brand: "Coach", name: "Dreams Sunset", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
     prices: { 3: 135, 5: 170, 10: 450, 30: 1345 },
     fullBottle: { sizeMl: 90, basePricePhp: 4030 },
-    fragellaMirrorId: "Coach::Coach Dreams Sunset",
   },
   {
     // Confirmed by the user: "Guilty Pour Homme Parfum" (2022), fragrance id 71378.
     brand: "Gucci", name: "Guilty Pour Homme Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 120, 5: 155, 10: 405, 30: 1215 },
     fullBottle: { sizeMl: 90, basePricePhp: 3640 },
-    fragellaMirrorId: "gucci-guilty-pour-homme-parfum-manual",
   },
   {
     brand: "Moschino", name: "Toy Boy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 115, 5: 145, 10: 375, 30: 1130 },
     fullBottle: { sizeMl: 100, basePricePhp: 3770 },
-    fragellaMirrorId: "Moschino::Moschino Toy Boy",
   },
   {
     brand: "Nautica", name: "Voyage Sport", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "male",
     prices: { 3: 55, 5: 70, 10: 180, 30: 545 },
     fullBottle: { sizeMl: 100, basePricePhp: 1820 },
-    fragellaMirrorId: "Nautica::Nautica Voyage Sport",
   },
   {
     brand: "Valentino", name: "Uomo Born In Roma Coral Fantasy", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "male",
     prices: { 3: 200, 5: 255, 10: 665, 30: 1990 },
     fullBottle: { sizeMl: 100, basePricePhp: 6630 },
-    fragellaMirrorId: "Valentino::Valentino Uomo Born In Roma Coral Fantasy",
   },
   {
     brand: "Versace", name: "Eros Energy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 135, 5: 175, 10: 455, 30: 1365 },
     fullBottle: { sizeMl: 100, basePricePhp: 4550 },
-    fragellaMirrorId: "Gianni Versace::Versace Eros Energy",
   },
   {
     // Pricelist said "YSL Y EDP" — Fragrantica's exact title for the EDP
@@ -124,7 +111,6 @@ const CATALOG: DecantEntry[] = [
     brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 215, 5: 275, 10: 715, 30: 2145 },
     fullBottle: { sizeMl: 100, basePricePhp: 7150 },
-    fragellaMirrorId: "yves-saint-laurent-y-eau-de-parfum-manual",
   },
   {
     // Not in the formula spreadsheet at all — sizeMl/base price below are a
@@ -135,7 +121,6 @@ const CATALOG: DecantEntry[] = [
     prices: { 3: 240, 5: 400, 10: 800, 30: 2420 },
     fullBottle: { sizeMl: 100, basePricePhp: 10400 },
     costBasisEstimated: true,
-    fragellaMirrorId: "Yves Saint Laurent::Libre Flowers & Flames Yves Saint Laurent",
   },
   // --- Niche ---
   {
@@ -147,20 +132,17 @@ const CATALOG: DecantEntry[] = [
     brand: "Nishane", name: "Wulóng Chá", concentration: "EXTRAIT_DE_PARFUM", category: "NICHE", gender: "unisex",
     prices: { 3: 330, 5: 550, 10: 1105, 30: 3315 },
     fullBottle: { sizeMl: 100, basePricePhp: 11050 },
-    fragellaMirrorId: "nishane-wulong-cha-manual",
   },
   // --- Middle Eastern & others ---
   {
     brand: "Afnan", name: "Mystique Bouquet", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "female",
     prices: { 3: 120, 5: 155, 10: 400, 30: 1195 },
     fullBottle: { sizeMl: 80, basePricePhp: 3185 },
-    fragellaMirrorId: "afnan-mystique-bouquet-manual",
   },
   {
     brand: "Armaf", name: "Club De Nuit Maleka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "female",
     prices: { 3: 95, 5: 125, 10: 320, 30: 965 },
     fullBottle: { sizeMl: 105, basePricePhp: 3380 },
-    fragellaMirrorId: "armaf-club-de-nuit-maleka-manual",
   },
   {
     // Full name per the linked mirror row (Fragrantica): "Club de Nuit Intense
@@ -169,62 +151,52 @@ const CATALOG: DecantEntry[] = [
     brand: "Armaf", name: "Club De Nuit Intense Man Parfum", concentration: "PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 95, 5: 125, 10: 320, 30: 960 },
     fullBottle: { sizeMl: 150, basePricePhp: 4810 },
-    fragellaMirrorId: "armaf-club-de-nuit-intense-man-parfum-manual",
   },
   {
     brand: "French Avenue", name: "Vulcan Feu", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
     prices: { 3: 100, 5: 130, 10: 340, 30: 1015 },
     fullBottle: { sizeMl: 100, basePricePhp: 3380 },
-    fragellaMirrorId: "french-avenue-vulcan-feu-manual",
   },
   {
     brand: "French Avenue", name: "Liquid Brun", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 80, 5: 100, 10: 260, 30: 780 },
     fullBottle: { sizeMl: 100, basePricePhp: 2600 },
-    fragellaMirrorId: "french-avenue-liquid-brun-manual",
   },
   {
     // Fragrantica spells it "Ra'ed Luxe" (with apostrophe) — pricelist had "Raed Luxe".
     brand: "Lattafa", name: "Ra'ed Luxe", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
     prices: { 3: 60, 5: 75, 10: 195, 30: 585 },
     fullBottle: { sizeMl: 100, basePricePhp: 1950 },
-    fragellaMirrorId: "lattafa-perfumes-ra-ed-luxe-manual",
   },
   {
     brand: "Mykonos", name: "Milk Drops", concentration: "EXTRAIT_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
     prices: { 3: 125, 5: 160, 10: 415, 30: 1250 },
     fullBottle: { sizeMl: 50, basePricePhp: 2080 },
-    fragellaMirrorId: "mykonos-milk-drops-manual",
   },
   {
     brand: "Rasasi", name: "Hawas Kobra", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
     fullBottle: { sizeMl: 100, basePricePhp: 2730 },
-    fragellaMirrorId: "rasasi-hawas-kobra-manual",
   },
   {
     brand: "Rasasi", name: "Hawas Ice", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
     fullBottle: { sizeMl: 100, basePricePhp: 2730 },
-    fragellaMirrorId: "rasasi-hawas-ice-manual",
   },
   {
     brand: "Rasasi", name: "Hawas Malibu", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
     fullBottle: { sizeMl: 100, basePricePhp: 2730 },
-    fragellaMirrorId: "rasasi-hawas-malibu-manual",
   },
   {
     brand: "Rayhaan", name: "Pacific Aura", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 60, 5: 75, 10: 195, 30: 585 },
     fullBottle: { sizeMl: 100, basePricePhp: 1950 },
-    fragellaMirrorId: "rayhaan-pacific-aura-manual",
   },
   {
     brand: "Rayhaan", name: "Aquatica", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
     prices: { 3: 65, 5: 85, 10: 220, 30: 665 },
     fullBottle: { sizeMl: 100, basePricePhp: 2210 },
-    fragellaMirrorId: "rayhaan-aquatica-manual",
   },
   {
     brand: "Rayhaan", name: "Ayka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "female",
@@ -232,7 +204,6 @@ const CATALOG: DecantEntry[] = [
     fullBottle: { sizeMl: 100, basePricePhp: 1885 },
     // Linked, but this mirror row has no note pyramid yet (Fragrantica page has
     // no dedicated pyramid) — name/brand/image only, no notes/accords.
-    fragellaMirrorId: "rayhaan-ayka-manual",
   },
 ];
 
@@ -256,55 +227,17 @@ async function main() {
   const client = db();
   let productCount = 0;
   let skuCount = 0;
-  let linked = 0;
 
   for (const entry of CATALOG) {
     const brandSlug = slug(entry.brand);
     const nameSlug = slug(entry.name);
 
-    let mirrorFields: {
-      description: string | null;
-      notePyramid: { top: string[]; middle: string[]; base: string[] } | undefined;
-      accords: Array<{ name: string; strength?: number; color?: string | null }> | null;
-      perfumers: string[] | null;
-      releaseYear: number | null;
-      fragellaId: string | null;
-      fragellaPayload: unknown;
-      imageUrl: string | null;
-    } = {
-      description: null,
-      notePyramid: undefined,
-      accords: null,
-      perfumers: null,
-      releaseYear: null,
-      fragellaId: null,
-      fragellaPayload: null,
-      imageUrl: null,
-    };
-
-    if (entry.fragellaMirrorId) {
-      const [mirror] = await client.select().from(fragellaMirror).where(eq(fragellaMirror.id, entry.fragellaMirrorId)).limit(1);
-      if (mirror) {
-        const record = normalize(mirror.payload as Record<string, unknown>);
-        mirrorFields = {
-          description: record.description ?? null,
-          notePyramid: record.notes,
-          accords: record.accords ?? null,
-          perfumers: record.perfumers ?? null,
-          releaseYear: record.year ?? null,
-          fragellaId: mirror.id,
-          fragellaPayload: mirror.payload,
-          imageUrl: mirror.imageUrl,
-        };
-        linked += 1;
-      } else {
-        console.warn(`! ${entry.brand} ${entry.name}: fragellaMirrorId "${entry.fragellaMirrorId}" not found — continuing without enrichment`);
-      }
-    }
-
     const sourceMl = entry.fullBottle?.sizeMl ?? null;
     const referenceCostPrice = entry.fullBottle ? php(entry.fullBottle.basePricePhp) : 0;
 
+    // Description/notes/accords/perfumers/releaseYear are not sourced here —
+    // fill those in per product via the admin edit page or the Fragrantica
+    // manual-paste import after this script creates the base product/SKUs.
     const productValues = {
       type: "DECANT" as const,
       fragranceCategory: entry.category,
@@ -316,15 +249,6 @@ async function main() {
       costPrice: referenceCostPrice,
       pricingMode: "DIRECT" as const,
       pricingInput: referenceCostPrice,
-      description: mirrorFields.description,
-      notePyramid: mirrorFields.notePyramid,
-      accords: mirrorFields.accords,
-      perfumers: mirrorFields.perfumers,
-      releaseYear: mirrorFields.releaseYear,
-      fragellaId: mirrorFields.fragellaId,
-      fragellaQuery: `${entry.brand} ${entry.name}`,
-      fragellaFetchedAt: mirrorFields.fragellaId ? new Date() : null,
-      fragellaPayload: mirrorFields.fragellaPayload,
     };
 
     // No unique constraint on (brand, name) — look up by hand so a re-run
@@ -355,24 +279,6 @@ async function main() {
       productId = inserted.id;
     }
     productCount += 1;
-
-    if (mirrorFields.imageUrl) {
-      const [existingImage] = await client
-        .select({ id: productImages.id })
-        .from(productImages)
-        .where(eq(productImages.productId, productId))
-        .limit(1);
-      if (existingImage) {
-        await client.update(productImages).set({ url: mirrorFields.imageUrl }).where(eq(productImages.id, existingImage.id));
-      } else {
-        await client.insert(productImages).values({
-          productId,
-          url: mirrorFields.imageUrl,
-          alt: `${entry.brand} — ${entry.name}`,
-          position: 0,
-        });
-      }
-    }
 
     for (const sizeMl of [3, 5, 10, 30] as const) {
       const retailPricePhp = entry.prices[sizeMl];
@@ -416,10 +322,10 @@ async function main() {
       }
       skuCount += 1;
     }
-    console.log(`✓ ${entry.brand} — ${entry.name} (${entry.category}, ${entry.gender})${mirrorFields.fragellaId ? " [enriched]" : ""}`);
+    console.log(`✓ ${entry.brand} — ${entry.name} (${entry.category}, ${entry.gender})`);
   }
 
-  console.log(`\nInserted ${productCount} products, ${skuCount} SKUs. ${linked}/${productCount} enriched with Fragella notes/image.`);
+  console.log(`\nInserted ${productCount} products, ${skuCount} SKUs.`);
   process.exit(0);
 }
 

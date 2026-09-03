@@ -3,6 +3,11 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Removed
+- Fragella (the third-party live-lookup mirror API behind the admin Fragrantica-import page's "Live lookup" and "Local mirror" panels) removed completely per request: `src/lib/fragella.ts`, `src/lib/fragella-mirror.ts`, the daily refresh cron (`src/app/api/cron/fragella-refresh/`, `vercel.json`'s `crons` entry), the mirror picker UI, `fragella-mirror-actions.ts`, the `fragella_mirror` table, and the `fragellaId`/`fragellaQuery`/`fragellaFetchedAt`/`fragellaPayload` columns on `product` (dropped from the live DB via `scripts/migrate.ts`, confirmed gone). `/admin/products/fragrantica` now only offers the manual paste-HTML/JSON import. Also deleted three now-nonfunctional one-off scripts that only made sense with Fragella present (`import-fragella-catalog.ts`, `import-fragella-manual.ts`, `backfill-fragella-images.ts`) and trimmed the unused `FRAGELLA_*`/`CRON_SECRET` env vars and the `fragella:import*` npm scripts
+- **Bug fixed along the way**: the manual-paste import form was wired to a different action (`previewPasteFragranticaAction` in the now-deleted mirror file) that parsed the paste but never persisted it, so the review page always loaded with blank fields — `saveFragranticaImport`'s lookup silently missed every time. Rewired to the correct, previously-dead-code `previewPasteFragrantica` (which does persist), fixing manual paste; verified end-to-end (paste → review page now shows the parsed name/brand)
+- `scripts/import-decant-pricelist.ts` and `scripts/seed.ts` (both depended on the Fragella mirror for enrichment/demo data) updated to work without it — `seed.ts`'s demo-catalog picker now uses a small local pool of real fragrance names directly instead of live-looking each one up
+
 ### Changed
 - Guest/account cart-conflict dialog's buttons renamed for clarity and parallelism: "Keep my account bag" → "Use my account bag", "Use the other bag" → "Use my current bag" (the bag built up during the just-ended signed-out session)
 

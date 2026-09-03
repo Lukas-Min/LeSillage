@@ -12,9 +12,7 @@
     "test:watch": "vitest",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "db:set-admin-password": "tsx scripts/set-admin-password.ts",
-    "fragella:import": "tsx scripts/import-fragella-catalog.ts",
-    "fragella:import-manual": "tsx scripts/import-fragella-manual.ts"
+    "db:set-admin-password": "tsx scripts/set-admin-password.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

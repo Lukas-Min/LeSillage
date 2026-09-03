@@ -472,36 +472,13 @@ async function main() {
   await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "releaseYear" integer`);
   await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "gender" text`);
   await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragranticaUrl" text`);
-  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaId" text`);
-  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaQuery" text`);
-  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaFetchedAt" timestamp`);
-  await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "fragellaPayload" jsonb`);
 
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS "fragella_mirror" (
-      "id" text PRIMARY KEY,
-      "name" text NOT NULL,
-      "brand" text NOT NULL,
-      "year" integer,
-      "gender" text,
-      "imageUrl" text,
-      "searchName" text NOT NULL,
-      "payload" jsonb NOT NULL,
-      "requestCount" integer NOT NULL DEFAULT 1,
-      "lastFetchedAt" timestamp NOT NULL DEFAULT now(),
-      "createdAt" timestamp NOT NULL DEFAULT now(),
-      "updatedAt" timestamp NOT NULL DEFAULT now()
-    )
-  `);
-  await db.execute(
-    `CREATE INDEX IF NOT EXISTS "fragella_mirror_name_idx" ON "fragella_mirror" ("name")`,
-  );
-  await db.execute(
-    `CREATE INDEX IF NOT EXISTS "fragella_mirror_brand_idx" ON "fragella_mirror" ("brand")`,
-  );
-  await db.execute(
-    `CREATE INDEX IF NOT EXISTS "fragella_mirror_updated_idx" ON "fragella_mirror" ("lastFetchedAt")`,
-  );
+  // Fragella (live-lookup mirror API) removed — drop its columns/table.
+  await db.execute(`ALTER TABLE "product" DROP COLUMN IF EXISTS "fragellaId"`);
+  await db.execute(`ALTER TABLE "product" DROP COLUMN IF EXISTS "fragellaQuery"`);
+  await db.execute(`ALTER TABLE "product" DROP COLUMN IF EXISTS "fragellaFetchedAt"`);
+  await db.execute(`ALTER TABLE "product" DROP COLUMN IF EXISTS "fragellaPayload"`);
+  await db.execute(`DROP TABLE IF EXISTS "fragella_mirror"`);
 
   await db.execute(`ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "concentration" text`);
   await db.execute(`

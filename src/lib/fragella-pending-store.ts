@@ -1,8 +1,6 @@
-import type { FragellaRecord } from "@/lib/fragella";
 import type { ParsedFragranticaPage } from "@/lib/fragrantica";
 
 export interface ReviewPayload {
-  fragella: FragellaRecord | null;
   parsed: ParsedFragranticaPage | null;
   query: string;
   fragranticaUrl: string | null;
@@ -17,7 +15,7 @@ const TTL_MS = 15 * 60 * 1000;
 const pendingStore = new Map<string, StoredEntry>();
 
 const pendingKey = (adminId: string, query: string) =>
-  `fragella:${adminId}:${query.trim().toLowerCase()}`;
+  `fragrantica:${adminId}:${query.trim().toLowerCase()}`;
 
 export function persistPendingPayload(adminId: string, payload: ReviewPayload) {
   pendingStore.set(pendingKey(adminId, payload.query), { payload, storedAt: Date.now() });

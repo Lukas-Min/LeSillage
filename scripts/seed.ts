@@ -1,97 +1,59 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { eq, ilike, isNotNull, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
 import { guessConcentration } from "@/domain/concentration";
-import { normalize, searchFragella, buildFragellaQuery, type FragellaRecord } from "@/lib/fragella";
 import type { FragranceCategory } from "../src/db/schema";
 import { db } from "../src/db/client";
 import {
   products,
   skus,
-  productImages,
   productDiscounts,
   promoSettings,
   qrCodes,
   siteContent,
   optionLists,
   optionValues,
-  fragellaMirror,
 } from "../src/db/schema";
-
-// Inlined instead of imported from src/lib/fragella-mirror.ts: that module
-// starts with `import "server-only"`, which only resolves inside Next's
-// build pipeline and crashes a plain tsx script.
-async function findOrCacheFragellaRecord(query: string): Promise<FragellaRecord | null> {
-  const trimmed = query.trim();
-  if (trimmed.length === 0) return null;
-  const needle = `%${trimmed.toLowerCase().replace(/%/g, "\\%")}%`;
-  const cached = await db()
-    .select()
-    .from(fragellaMirror)
-    .where(or(ilike(fragellaMirror.name, needle), ilike(fragellaMirror.brand, needle), ilike(fragellaMirror.searchName, needle)))
-    .limit(1);
-  if (cached[0]) return normalize(cached[0].payload as Record<string, unknown>);
-
-  const records = await searchFragella(trimmed, { limit: 1 });
-  const record = records[0];
-  if (!record || !record.id || !record.name || !record.brand) return null;
-  const now = new Date();
-  await db()
-    .insert(fragellaMirror)
-    .values({
-      id: record.id,
-      name: record.name,
-      brand: record.brand,
-      year: record.year ?? null,
-      gender: record.gender ?? null,
-      imageUrl: record.imageUrl ?? null,
-      searchName: `${record.brand} ${record.name}`.toLowerCase(),
-      payload: record.raw,
-      requestCount: 1,
-      lastFetchedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoNothing();
-  return record;
-}
 
 const MIN_FRAGRANCES = 10;
 
 interface QueryPoolEntry {
-  query: string;
+  brand: string;
+  name: string;
   category: FragranceCategory;
 }
 
-// A pool of real, well-known fragrances to search for on every seed run.
+// A pool of real, well-known fragrances used to generate demo data — plain
+// names only (no live lookup), so notes/accords/images are left blank; fill
+// those in per product via the admin edit page if a richer demo is needed.
 // We only take MIN_FRAGRANCES of these (chosen at random), so the catalog
 // looks different each time `db:seed` runs.
 const QUERY_POOL: QueryPoolEntry[] = [
-  { query: "Dior Sauvage", category: "DESIGNER" },
-  { query: "Chanel Bleu de Chanel", category: "DESIGNER" },
-  { query: "Yves Saint Laurent Black Opium", category: "DESIGNER" },
-  { query: "Giorgio Armani Acqua di Gio", category: "DESIGNER" },
-  { query: "Versace Eros", category: "DESIGNER" },
-  { query: "Prada Luna Rossa", category: "DESIGNER" },
-  { query: "Gucci Bloom", category: "DESIGNER" },
-  { query: "Calvin Klein CK One", category: "DESIGNER" },
-  { query: "Burberry Her", category: "DESIGNER" },
-  { query: "Hugo Boss Bottled", category: "DESIGNER" },
-  { query: "Creed Aventus", category: "NICHE" },
-  { query: "Le Labo Santal 33", category: "NICHE" },
-  { query: "Byredo Gypsy Water", category: "NICHE" },
-  { query: "Maison Francis Kurkdjian Baccarat Rouge 540", category: "NICHE" },
-  { query: "Amouage Interlude Man", category: "NICHE" },
-  { query: "Parfums de Marly Layton", category: "NICHE" },
-  { query: "Initio Side Effect", category: "NICHE" },
-  { query: "Xerjoff Naxos", category: "NICHE" },
-  { query: "Lattafa Khamrah", category: "MIDDLE_EASTERN" },
-  { query: "Ajmal Amber Wood", category: "MIDDLE_EASTERN" },
-  { query: "Rasasi Hawas", category: "MIDDLE_EASTERN" },
-  { query: "Afnan 9pm", category: "MIDDLE_EASTERN" },
-  { query: "Swiss Arabian Shaghaf Oud", category: "MIDDLE_EASTERN" },
+  { brand: "Dior", name: "Sauvage", category: "DESIGNER" },
+  { brand: "Chanel", name: "Bleu de Chanel", category: "DESIGNER" },
+  { brand: "Yves Saint Laurent", name: "Black Opium", category: "DESIGNER" },
+  { brand: "Giorgio Armani", name: "Acqua di Gio", category: "DESIGNER" },
+  { brand: "Versace", name: "Eros", category: "DESIGNER" },
+  { brand: "Prada", name: "Luna Rossa", category: "DESIGNER" },
+  { brand: "Gucci", name: "Bloom", category: "DESIGNER" },
+  { brand: "Calvin Klein", name: "CK One", category: "DESIGNER" },
+  { brand: "Burberry", name: "Her", category: "DESIGNER" },
+  { brand: "Hugo Boss", name: "Bottled", category: "DESIGNER" },
+  { brand: "Creed", name: "Aventus", category: "NICHE" },
+  { brand: "Le Labo", name: "Santal 33", category: "NICHE" },
+  { brand: "Byredo", name: "Gypsy Water", category: "NICHE" },
+  { brand: "Maison Francis Kurkdjian", name: "Baccarat Rouge 540", category: "NICHE" },
+  { brand: "Amouage", name: "Interlude Man", category: "NICHE" },
+  { brand: "Parfums de Marly", name: "Layton", category: "NICHE" },
+  { brand: "Initio", name: "Side Effect", category: "NICHE" },
+  { brand: "Xerjoff", name: "Naxos", category: "NICHE" },
+  { brand: "Lattafa", name: "Khamrah", category: "MIDDLE_EASTERN" },
+  { brand: "Ajmal", name: "Amber Wood", category: "MIDDLE_EASTERN" },
+  { brand: "Rasasi", name: "Hawas", category: "MIDDLE_EASTERN" },
+  { brand: "Afnan", name: "9pm", category: "MIDDLE_EASTERN" },
+  { brand: "Swiss Arabian", name: "Shaghaf Oud", category: "MIDDLE_EASTERN" },
 ];
 
 interface SeedSkuInput {
@@ -139,42 +101,22 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-async function pickRandomFragrances(min: number): Promise<Array<{ record: FragellaRecord; category: FragranceCategory }>> {
+async function pickRandomFragrances(min: number): Promise<QueryPoolEntry[]> {
   const existing = await db()
-    .select({ fragellaId: products.fragellaId })
-    .from(products)
-    .where(isNotNull(products.fragellaId));
-  const existingIds = new Set(existing.map((row) => row.fragellaId));
-  const alreadySeeded = existingIds.size;
+    .select({ brand: products.brand, name: products.name })
+    .from(products);
+  const existingKeys = new Set(existing.map((row) => `${row.brand}::${row.name}`.toLowerCase()));
+  const alreadySeeded = existingKeys.size;
 
-  const picked: Array<{ record: FragellaRecord; category: FragranceCategory }> = [];
-  const pickedIds = new Set<string>();
-
+  const picked: QueryPoolEntry[] = [];
   for (const entry of shuffle(QUERY_POOL)) {
-    if (alreadySeeded + picked.length >= min) break;
-    try {
-      // Checks the local mirror first (src/lib/fragella-mirror.ts) and only
-      // hits the live API on a miss, caching the result either way — so a
-      // re-seed after purging products doesn't re-spend API quota on
-      // fragrances we've already looked up before.
-      const record = await findOrCacheFragellaRecord(entry.query);
-      if (!record) continue;
-      if (existingIds.has(record.id) || pickedIds.has(record.id)) continue;
-      pickedIds.add(record.id);
-      picked.push({ record, category: entry.category });
-    } catch (err) {
-      console.warn(`Fragella lookup failed for "${entry.query}": ${(err as Error).message}`);
-    }
+    if (picked.length >= min) break;
+    const key = `${entry.brand}::${entry.name}`.toLowerCase();
+    if (existingKeys.has(key)) continue;
+    picked.push(entry);
   }
 
-  if (alreadySeeded + picked.length < min) {
-    console.warn(
-      `Only found ${alreadySeeded + picked.length} fragrances (wanted ${min}) — the catalog already has ${alreadySeeded}, and the query pool is exhausted or Fragella lookups failed.`,
-    );
-  } else {
-    console.log(`Picked ${picked.length} new fragrances (catalog already had ${alreadySeeded}).`);
-  }
-
+  console.log(`Picked ${picked.length} new fragrances (catalog already had ${alreadySeeded}).`);
   return picked;
 }
 
@@ -184,39 +126,33 @@ async function seedFragrances() {
   const skuRows: SeedSkuInput[] = [];
   let discountTargetCount = 0;
 
-  for (const [index, { record, category }] of picks.entries()) {
-    const concentration = guessConcentration(record.concentration ?? undefined) ?? "EAU_DE_PARFUM";
-    const brandSlug = slugify(record.brand || "BRAND");
-    const nameSlug = slugify(record.name || "SCENT");
+  for (const [index, entry] of picks.entries()) {
+    const category = entry.category;
+    const concentration = guessConcentration(undefined) ?? "EAU_DE_PARFUM";
+    const brandSlug = slugify(entry.brand || "BRAND");
+    const nameSlug = slugify(entry.name || "SCENT");
     const costPerMlCentavos = randomInt(3000, 9000);
-    const family = record.accords?.[0]?.name ?? null;
+    const family: string | null = null;
 
+    // No live data source for notes/accords/description/images anymore —
+    // fill those in per product via the admin edit page if a richer demo is
+    // needed.
     const sharedFields = {
-      brand: record.brand || "Unknown house",
-      name: record.name || "Untitled",
+      brand: entry.brand || "Unknown house",
+      name: entry.name || "Untitled",
       family,
-      description: record.description ?? null,
-      notePyramid: record.notes ?? undefined,
-      accords: record.accords ?? null,
-      perfumers: record.perfumers ?? null,
-      longevity: record.longevity ?? null,
-      sillage: record.sillage ?? null,
-      priceValue: record.priceValue ?? null,
-      longevityBreakout: record.longevityBreakout ?? null,
-      sillageBreakout: record.sillageBreakout ?? null,
-      priceValueBreakout: record.priceValueBreakout ?? null,
-      seasonBreakout: record.seasonBreakout ?? null,
-      genderBreakout: record.genderBreakout ?? null,
-      relationBreakout: record.relationBreakout ?? null,
-      ratingValue: record.ratingValue != null ? String(record.ratingValue) : null,
-      ratingCount: record.ratingCount ?? null,
-      reviewsCount: record.reviewsCount ?? null,
-      releaseYear: record.year ?? null,
-      gender: record.gender ?? null,
-      fragellaId: record.id,
-      fragellaQuery: buildFragellaQuery(record),
-      fragellaFetchedAt: new Date(),
-      fragellaPayload: record.raw,
+      description: null,
+      notePyramid: undefined,
+      accords: null,
+      perfumers: null,
+      longevity: null,
+      sillage: null,
+      priceValue: null,
+      ratingValue: null,
+      ratingCount: null,
+      reviewsCount: null,
+      releaseYear: null,
+      gender: null,
     };
 
     // Product-level pricing formula: one reference retail price per product
@@ -287,7 +223,7 @@ async function seedFragrances() {
         pricingMode: "PERCENTAGE",
         pricingInput: decantMarkup,
         ...sharedFields,
-        description: `Decants of ${record.name}.`,
+        description: `Decants of ${entry.name}.`,
       })
       .returning({ id: products.id });
 
@@ -334,15 +270,8 @@ async function seedFragrances() {
         stock: randomInt(3, 8),
         isTester: true,
         testerFamily: family,
-        testerBrand: record.brand || null,
+        testerBrand: entry.brand || null,
       });
-    }
-
-    if (record.imageUrl) {
-      await client.insert(productImages).values([
-        { productId: fullBottleProduct.id, url: record.imageUrl, alt: `${record.brand} — ${record.name}`, position: 0 },
-        { productId: decantProduct.id, url: record.imageUrl, alt: `${record.brand} — ${record.name} decant`, position: 0 },
-      ]);
     }
 
     if (Math.random() < 0.3) {
