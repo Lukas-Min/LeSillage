@@ -170,7 +170,16 @@ export function CartLineItem({
               {formatPHP(displayDiscounted)} <span className="tabular-nums">× {qty}</span>
             </p>
             <div className="text-right">
-              <p className="text-sm font-semibold tabular-nums">{formatPHP(displayDiscounted * qty)}</p>
+              <p className="text-sm font-semibold tabular-nums">
+                {formatPHP(
+                  // Use the server's authoritative line total when nothing's
+                  // being staged/edited locally — unit price × qty can be off
+                  // by a centavo due to rounding. While a size swap is staged
+                  // or the debounced quantity edit hasn't landed yet, this is
+                  // necessarily an optimistic estimate.
+                  !stagedOption && qty === item.quantity ? item.lineTotalCentavos : displayDiscounted * qty,
+                )}
+              </p>
               {displayOriginal > displayDiscounted ? (
                 <p className="text-xs text-muted-foreground line-through tabular-nums">
                   {formatPHP(displayOriginal * qty)}

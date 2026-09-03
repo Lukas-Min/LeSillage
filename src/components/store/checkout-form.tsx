@@ -359,7 +359,7 @@ export function CheckoutForm({
                   </p>
                 </div>
                 <div className="shrink-0 text-right tabular-nums">
-                  <p className="font-medium">{formatPHP(item.retailPriceCentavos * item.quantity)}</p>
+                  <p className="font-medium">{formatPHP(item.lineTotalCentavos)}</p>
                   {item.originalUnitCentavos > item.retailPriceCentavos ? (
                     <p className="text-xs text-muted-foreground line-through">
                       {formatPHP(item.originalUnitCentavos * item.quantity)}

@@ -1,11 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { createOrderFromCart, submitReceipt } from "@/lib/orders";
+import { db } from "@/db/client";
+import { orders } from "@/db/schema";
+import { createOrderFromCart, submitReceipt, transitionOrderStatus } from "@/lib/orders";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { phMobileRequiredSchema } from "@/domain/phone";
+import { canTransition } from "@/domain/order-state";
 
 const checkoutSchema = z.object({
   fulfillmentMethod: z.enum(["DELIVERY", "PICKUP"]),
@@ -83,11 +87,42 @@ export async function submitPaymentReceipt(formData: FormData) {
   });
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
   const buffer = await file.arrayBuffer();
-  await submitReceipt({
+  const result = await submitReceipt({
     orderId,
     userId: session.user.id as string,
     file: { name: file.name, type: file.type, bytes: buffer },
     note: typeof note === "string" ? note : null,
   });
+  if (!result.ok) throw new Error(result.error ?? "Upload failed");
+  revalidatePath("/account/orders");
+}
+
+// Customers can cancel their own order any time before it ships — the same
+// AWAITING_PAYMENT/RECEIPT_SUBMITTED/CONFIRMED -> CANCELLED transitions the
+// admin side allows (src/domain/order-state.ts), just self-service. Once an
+// order is SHIPPED it's already in transit and can't be pulled back.
+export async function cancelOrder(orderId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Please sign in to cancel an order");
+  const decision = await rateLimit({
+    bucket: "CHECKOUT",
+    key: await getRequestKey("cancel-order", session.user.id as string),
+    limit: 8,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
+
+  const order = (
+    await db()
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.userId, session.user.id as string)))
+  )[0];
+  if (!order) throw new Error("Order not found");
+  if (!canTransition(order.status, "CANCELLED")) {
+    throw new Error("This order can no longer be cancelled");
+  }
+
+  await transitionOrderStatus({ orderId, next: "CANCELLED", reason: "Cancelled by customer" });
   revalidatePath("/account/orders");
 }

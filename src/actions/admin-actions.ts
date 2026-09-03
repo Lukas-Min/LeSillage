@@ -126,7 +126,8 @@ export async function adminConfirmReceipt(formData: FormData) {
   if (typeof orderId !== "string") throw new Error("Order id required");
   const order = (await db().select().from(orders).where(eq(orders.id, orderId)))[0];
   if (!order) throw new Error("Order not found");
-  const next = order.status === "RECEIPT_SUBMITTED" ? "CONFIRMED" : order.status;
+  if (order.status !== "RECEIPT_SUBMITTED") return;
+  const next = "CONFIRMED";
   await transitionOrderStatus({ orderId, next });
   revalidatePath("/admin/orders");
   auditLogSubject({

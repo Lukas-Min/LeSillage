@@ -9,7 +9,8 @@ import { PageHeader, SectionCard } from "@/components/ui/section";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { Price } from "@/components/store/price";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
-import { describeStatus } from "@/domain/order-state";
+import { CancelOrderButton } from "@/components/store/cancel-order-button";
+import { describeStatus, canTransition } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
 import { computeEtaSummary } from "@/domain/eta";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default async function OrderDetailPage({
         actions={
           <>
             <OrderStatusPill status={order.status} />
+            {canTransition(order.status, "CANCELLED") ? <CancelOrderButton orderId={order.id} /> : null}
             <Button asChild variant="outline" size="sm">
               <Link href="/account/orders">
                 <ArrowLeft className="h-4 w-4" />

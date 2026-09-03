@@ -1,4 +1,4 @@
-import { and, count, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, count, eq, gte, inArray, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   carts,
@@ -26,6 +26,7 @@ import { generateOrderNumber } from "@/domain/order-number";
 import { isTesterBonusEligible } from "@/domain/promo";
 import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
 import { checkPromoCodeEligibility } from "@/domain/promo-code";
+import { assertTransition } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment } from "@/lib/cart";
 import { withSiteWideDiscount } from "@/domain/discount";
@@ -202,7 +203,15 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         .for("update");
       if (!codeRow) throw new Error("Invalid promo code");
       const [priorOrderCount, priorRedemption] = await Promise.all([
-        tx.select({ value: count() }).from(orders).where(eq(orders.userId, input.user.userId)),
+        tx
+          .select({ value: count() })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.userId, input.user.userId),
+              notInArray(orders.status, ["REJECTED", "CANCELLED"]),
+            ),
+          ),
         tx
           .select({ id: promoCodeRedemptions.id })
           .from(promoCodeRedemptions)
@@ -275,34 +284,38 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         .where(eq(promoCodes.id, lockedCode.id));
     }
 
+    // orderItems and the cart-clear share this transaction with the order
+    // row itself: if the orderItems insert throws (a data-integrity issue
+    // like a missing product row), the whole order rolls back instead of
+    // leaving a committed zero-item order with a burned promo redemption.
+    await tx.insert(orderItems).values(
+      priced.lines.map((line) => {
+        const found = skuRows.find((row) => row.sku.id === line.skuId);
+        if (!found) throw new Error("Cart item missing product data");
+        return {
+          orderId: insertedOrder.id,
+          skuId: line.skuId,
+          productName: found.productName,
+          skuLabel: found.sku.label,
+          productType: found.productType,
+          fragranceCategory: found.productCategory,
+          condition: found.sku.condition,
+          provenance: found.sku.provenance,
+          packaging: found.sku.packaging,
+          fulfillment: line.fulfillment,
+          quantity: line.quantity,
+          originalUnitCentavos: line.unitPriceCentavos,
+          unitPriceCentavos: line.discountedUnitCentavos,
+          discountCentavos: line.lineDiscountCentavos,
+          lineTotalCentavos: line.lineSubtotalCentavos,
+        };
+      }),
+    );
+
+    await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+
     return { order: insertedOrder, totals };
   });
-
-  await client.insert(orderItems).values(
-    priced.lines.map((line) => {
-      const found = skuRows.find((row) => row.sku.id === line.skuId);
-      if (!found) throw new Error("Cart item missing product data");
-      return {
-        orderId: order.id,
-        skuId: line.skuId,
-        productName: found.productName,
-        skuLabel: found.sku.label,
-        productType: found.productType,
-        fragranceCategory: found.productCategory,
-        condition: found.sku.condition,
-        provenance: found.sku.provenance,
-        packaging: found.sku.packaging,
-        fulfillment: line.fulfillment,
-        quantity: line.quantity,
-        originalUnitCentavos: line.unitPriceCentavos,
-        unitPriceCentavos: line.discountedUnitCentavos,
-        discountCentavos: line.lineDiscountCentavos,
-        lineTotalCentavos: line.lineSubtotalCentavos,
-      };
-    }),
-  );
-
-  await client.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
   if (input.saveAddress && !isPickup && addressSnapshot) {
     const existing = Number(
@@ -431,18 +444,24 @@ export async function submitReceipt(
   }
 
   const uploaded = await uploadPrivateImage(`receipts/${orderRow.id}`, input.file);
-  await client.insert(receipts).values({
-    orderId: orderRow.id,
-    blobUrl: uploaded.url,
-    note: input.note ?? null,
+  // Shared transaction: if stock reservation fails (e.g. sold out between
+  // checkout and receipt upload), the receipt row rolls back too instead of
+  // leaving an orphaned receipt on an order stuck at AWAITING_PAYMENT.
+  await client.transaction(async (tx) => {
+    await tx.insert(receipts).values({
+      orderId: orderRow.id,
+      blobUrl: uploaded.url,
+      note: input.note ?? null,
+    });
+
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderRow.id));
+    await reserveStockWithinTx(tx, orderRow.id, orderRow, items);
+
+    await tx
+      .update(orders)
+      .set({ status: "RECEIPT_SUBMITTED", updatedAt: new Date(), statusUpdatedAt: new Date() })
+      .where(eq(orders.id, orderRow.id));
   });
-
-  await reserveStockForOrder(orderRow.id);
-
-  await client
-    .update(orders)
-    .set({ status: "RECEIPT_SUBMITTED", updatedAt: new Date(), statusUpdatedAt: new Date() })
-    .where(eq(orders.id, orderRow.id));
 
   const itemRows = await client
     .select()
@@ -542,6 +561,17 @@ export async function reserveStockForOrder(orderId: string): Promise<void> {
     .where(eq(orderItems.orderId, orderId));
 
   return client.transaction(async (tx) => {
+    await reserveStockWithinTx(tx, orderId, orderRow, items);
+  });
+}
+
+async function reserveStockWithinTx(
+  tx: Pick<ReturnType<typeof db>, "select" | "update" | "insert">,
+  orderId: string,
+  orderRow: typeof orders.$inferSelect,
+  items: (typeof orderItems.$inferSelect)[],
+): Promise<void> {
+  {
     for (const item of items) {
       if (item.productType === "DECANT" && item.fulfillment === "ON_HAND") {
         const sku = (
@@ -551,27 +581,39 @@ export async function reserveStockForOrder(orderId: string): Promise<void> {
             .where(eq(skus.id, item.skuId))
         )[0];
         if (sku) {
+          // Row-locked for the rest of this transaction so a concurrent
+          // reservation for the same decant can't read the same
+          // remainingMl before either commits and both "succeed",
+          // oversubscribing the physical stock.
           const product = (
-            await tx.select().from(products).where(eq(products.id, sku.productId))
+            await tx
+              .select({ remainingMl: products.remainingMl })
+              .from(products)
+              .where(eq(products.id, sku.productId))
+              .for("update")
           )[0];
+          const requestedMl = (sku.sizeMl ?? 0) * item.quantity;
           const deduct = mlToReserve({
             remainingMl: product?.remainingMl ?? 0,
             sizeMl: sku.sizeMl ?? 0,
             quantity: item.quantity,
             fulfillment: item.fulfillment,
           });
-          if (deduct > 0) {
-            await tx
-              .update(products)
-              .set({ remainingMl: sql`GREATEST(0, ${products.remainingMl} - ${deduct})` })
-              .where(eq(products.id, sku.productId));
-            await tx.insert(stockMovements).values({
-              skuId: item.skuId,
-              delta: -deduct,
-              reason: "ML_RESERVED",
-              orderId,
-            });
-          }
+          // Previously this silently reserved whatever ml was left (even
+          // zero) with no error when stock ran out between order creation
+          // and receipt submission. Fail loudly instead, matching the
+          // unit-SKU path below.
+          if (deduct < requestedMl) throw new Error(`Not enough stock for order ${orderId}`);
+          await tx
+            .update(products)
+            .set({ remainingMl: sql`GREATEST(0, ${products.remainingMl} - ${deduct})` })
+            .where(eq(products.id, sku.productId));
+          await tx.insert(stockMovements).values({
+            skuId: item.skuId,
+            delta: -deduct,
+            reason: "ML_RESERVED",
+            orderId,
+          });
         }
         continue;
       }
@@ -642,7 +684,7 @@ export async function reserveStockForOrder(orderId: string): Promise<void> {
         .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: chosen.id })
         .where(eq(orders.id, orderId));
     }
-  });
+  }
 }
 
 export async function releaseStockForOrder(orderId: string): Promise<void> {
@@ -673,7 +715,11 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
     }
     for (const movement of reserved) {
       const isMl = movement.reason === "ML_RESERVED";
-      const key = `${isMl ? "ml" : "unit"}:${movement.skuId}:${-movement.delta}`;
+      // Release rows store the negation of the reservation's delta (see the
+      // insert below), so `alreadyReleased` keys are built as -m.delta to
+      // land back on the reservation's own sign convention — this check-key
+      // must use movement.delta as-is (not re-negated) to match it.
+      const key = `${isMl ? "ml" : "unit"}:${movement.skuId}:${movement.delta}`;
       if (alreadyReleased.has(key)) continue;
       if (isMl) {
         const sku = (await tx.select({ productId: skus.productId }).from(skus).where(eq(skus.id, movement.skuId)))[0];
@@ -716,7 +762,7 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
       testerReleased.add(`${m.skuId}:${-m.delta}`);
     }
     for (const movement of tester) {
-      const key = `${movement.skuId}:${1}`;
+      const key = `${movement.skuId}:${movement.delta}`;
       if (testerReleased.has(key)) continue;
       await tx
         .update(skus)
@@ -771,6 +817,7 @@ export async function transitionOrderStatus(args: {
   const client = db();
   const orderRow = (await client.select().from(orders).where(eq(orders.id, args.orderId)))[0];
   if (!orderRow) throw new Error("Order not found");
+  assertTransition(orderRow.status, args.next);
 
   if (args.next === "REJECTED" || args.next === "CANCELLED") {
     if (!args.reason || args.reason.trim().length === 0) {

@@ -28,6 +28,10 @@ export interface CartLineView {
   skuLabel: string;
   retailPriceCentavos: number;
   originalUnitCentavos: number;
+  /** Authoritative line total from priceCart — use this instead of
+   *  retailPriceCentavos * quantity, which can be off by a centavo due to
+   *  discountedUnitCentavos being a rounded per-unit value. */
+  lineTotalCentavos: number;
   fulfillment: Fulfillment;
   productType: ProductType;
   quantity: number;
@@ -298,6 +302,7 @@ async function loadPricedCart(
       skuLabel: found?.sku?.label ?? "",
       retailPriceCentavos: line.discountedUnitCentavos,
       originalUnitCentavos: line.unitPriceCentavos,
+      lineTotalCentavos: line.lineSubtotalCentavos,
       fulfillment: line.fulfillment,
       productType: line.productType,
       quantity: line.quantity,
@@ -319,6 +324,7 @@ async function loadPricedCart(
         skuLabel: row.sku?.label ?? "",
         retailPriceCentavos: 0,
         originalUnitCentavos: 0,
+        lineTotalCentavos: 0,
         fulfillment: row.sku?.fulfillment ?? "ON_HAND",
         productType: row.productType ?? "DECANT",
         quantity: row.quantity,

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, notInArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, promoCodes, promoCodeRedemptions } from "@/db/schema";
@@ -51,7 +51,10 @@ export async function previewPromoCode(
   if (totals.merchandiseSubtotalCentavos <= 0) throw new Error("Your bag is empty");
 
   const [priorOrderCount, priorRedemption] = await Promise.all([
-    client.select({ value: count() }).from(orders).where(eq(orders.userId, session.user.id)),
+    client
+      .select({ value: count() })
+      .from(orders)
+      .where(and(eq(orders.userId, session.user.id), notInArray(orders.status, ["REJECTED", "CANCELLED"]))),
     client
       .select({ id: promoCodeRedemptions.id })
       .from(promoCodeRedemptions)
