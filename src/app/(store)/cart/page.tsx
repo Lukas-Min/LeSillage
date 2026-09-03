@@ -41,26 +41,31 @@ export default function CartPage() {
             <CardHeader>
               <CardTitle className="font-serif-display text-base">Order summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1 text-sm">
-              <p className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatPHP(cart.totals.merchandiseSubtotalCentavos)}</span>
-              </p>
-              <p className="flex justify-between">
-                <span>Delivery fee</span>
-                <span>{cart.totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(cart.totals.deliveryFeeCentavos)}</span>
-              </p>
-              <p className="flex justify-between font-medium">
-                <span>Total</span>
-                <span>{formatPHP(cart.totals.totalCentavos)}</span>
+            <CardContent className="text-sm">
+              <div className="space-y-1.5 text-muted-foreground">
+                <p className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span className="tabular-nums text-foreground">{formatPHP(cart.totals.merchandiseSubtotalCentavos)}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span>Delivery fee</span>
+                  <span className="tabular-nums text-foreground">
+                    {cart.totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(cart.totals.deliveryFeeCentavos)}
+                  </span>
+                </p>
+              </div>
+              <Separator className="my-3" />
+              <p className="flex items-baseline justify-between">
+                <span className="font-serif-display text-lg text-foreground">Total</span>
+                <span className="font-serif-display text-2xl tabular-nums">{formatPHP(cart.totals.totalCentavos)}</span>
               </p>
               {cart.totals.discountCentavos > 0 ? (
-                <p className="flex justify-between text-xs text-muted-foreground">
+                <p className="mt-1 flex justify-between text-xs text-muted-foreground">
                   <span>You saved</span>
-                  <span>{formatPHP(cart.totals.discountCentavos)}</span>
+                  <span className="tabular-nums">{formatPHP(cart.totals.discountCentavos)}</span>
                 </p>
               ) : null}
-              <p className="text-xs text-muted-foreground">
+              <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
                 {cart.totals.freeShipping
                   ? `Free delivery unlocked${cart.totals.testerBonusEligible ? ", plus a free tester" : ""} from your decants.`
                   : `Add ${formatPHP(Math.max(0, DECANT_PROMO_THRESHOLD_CENTAVOS - cart.totals.decantSubtotalCentavos))} more in decants to unlock free delivery and a free tester.`}

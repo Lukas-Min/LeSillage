@@ -13,7 +13,6 @@ import { formatPHP } from "@/domain/money";
 import { PHONE_COUNTRY, PHONE_PLACEHOLDER } from "@/domain/phone";
 import { createCheckoutOrder } from "@/actions/order-actions";
 import { previewPromoCode, type PromoCodePreview } from "@/actions/promo-code-actions";
-import { Price } from "@/components/store/price";
 import { PhAddressFields, type PhAddressValues } from "@/components/store/ph-address-fields";
 import type { CartLineView } from "@/lib/cart";
 import type { CheckoutTotals } from "@/domain/checkout-totals";
@@ -345,68 +344,74 @@ export function CheckoutForm({
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="space-y-2 p-4 text-sm">
+        <CardContent className="p-4 text-sm">
           <h2 className="font-serif-display text-lg">Order summary</h2>
-          <ul className="space-y-3">
+          <ul className="mt-4 space-y-4">
             {lineItems.map((item) => (
               <li key={item.skuId} className="flex items-start justify-between gap-3">
-                <div>
+                <div className="space-y-0.5">
                   <p className="font-medium">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {item.skuLabel} · ×{item.quantity} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
                   </p>
                 </div>
-                <Price
-                  originalCentavos={item.originalUnitCentavos}
-                  discountedCentavos={item.retailPriceCentavos}
-                  quantity={item.quantity}
-                  className="text-right"
-                />
+                <div className="shrink-0 text-right tabular-nums">
+                  <p className="font-medium">{formatPHP(item.retailPriceCentavos * item.quantity)}</p>
+                  {item.originalUnitCentavos > item.retailPriceCentavos ? (
+                    <p className="text-xs text-muted-foreground line-through">
+                      {formatPHP(item.originalUnitCentavos * item.quantity)}
+                    </p>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
-          <Separator />
+          <Separator className="my-4" />
           {/* merchandiseSubtotalCentavos is already post-item-discount (see
               priceCart) — discountCentavos below is shown as an
               informational note, not subtracted again; only the promo-code
               lines below are real subtractions (see displayedTotalCentavos). */}
-          <p className="flex justify-between">
-            <span>Merchandise subtotal</span>
-            <span>{formatPHP(totals.merchandiseSubtotalCentavos)}</span>
-          </p>
-          {appliedPromoCode && appliedPromoCode.orderDiscountCentavos > 0 ? (
+          <div className="space-y-1.5 text-muted-foreground">
             <p className="flex justify-between">
-              <span>Promo code ({appliedPromoCode.code})</span>
-              <span>-{formatPHP(appliedPromoCode.orderDiscountCentavos)}</span>
+              <span>Merchandise subtotal</span>
+              <span className="tabular-nums text-foreground">{formatPHP(totals.merchandiseSubtotalCentavos)}</span>
             </p>
-          ) : null}
-          <p className="flex justify-between">
-            <span>Delivery</span>
-            <span>{totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(totals.deliveryFeeCentavos)}</span>
-          </p>
-          {appliedPromoCode && appliedPromoCode.deliveryDiscountCentavos > 0 ? (
+            {appliedPromoCode && appliedPromoCode.orderDiscountCentavos > 0 ? (
+              <p className="flex justify-between">
+                <span>Promo code ({appliedPromoCode.code})</span>
+                <span className="tabular-nums text-foreground">-{formatPHP(appliedPromoCode.orderDiscountCentavos)}</span>
+              </p>
+            ) : null}
             <p className="flex justify-between">
-              <span>Delivery discount ({appliedPromoCode.code})</span>
-              <span>-{formatPHP(appliedPromoCode.deliveryDiscountCentavos)}</span>
+              <span>Delivery</span>
+              <span className="tabular-nums text-foreground">
+                {totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(totals.deliveryFeeCentavos)}
+              </span>
             </p>
-          ) : null}
-          <Separator />
-          <p className="flex justify-between font-medium">
-            <span>Total to pay</span>
-            <span>{formatPHP(displayedTotalCentavos)}</span>
+            {appliedPromoCode && appliedPromoCode.deliveryDiscountCentavos > 0 ? (
+              <p className="flex justify-between">
+                <span>Delivery discount ({appliedPromoCode.code})</span>
+                <span className="tabular-nums text-foreground">-{formatPHP(appliedPromoCode.deliveryDiscountCentavos)}</span>
+              </p>
+            ) : null}
+          </div>
+          <Separator className="my-4" />
+          <p className="flex items-baseline justify-between">
+            <span className="font-serif-display text-lg">Total to pay</span>
+            <span className="font-serif-display text-2xl tabular-nums">{formatPHP(displayedTotalCentavos)}</span>
           </p>
           {totals.discountCentavos > 0 ? (
-            <p className="flex justify-between text-xs text-muted-foreground">
+            <p className="mt-1 flex justify-between text-xs text-muted-foreground">
               <span>You saved</span>
-              <span>{formatPHP(totals.discountCentavos)}</span>
+              <span className="tabular-nums">{formatPHP(totals.discountCentavos)}</span>
             </p>
           ) : null}
-          <label className="flex items-start gap-2 pt-3 text-xs">
+          <label className="mt-4 flex items-start gap-2 border-t pt-4 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={accepted}
               onChange={(event) => setAccepted(event.target.checked)}
-              className="mt-1"
+              className="mt-0.5"
             />
             <span>I accept the policies and understand that payment is by QR upload and that stock is not reserved until the receipt is verified.</span>
           </label>
