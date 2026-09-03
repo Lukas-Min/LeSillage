@@ -54,6 +54,10 @@ interface CartContextValue {
   changeSize: (fromSkuId: string, toSkuId: string) => Promise<void>;
   clear: () => Promise<void>;
   count: number;
+  /** True until the cart's first real fetch from the server resolves — the
+   *  provider starts from an empty local `view`, so consumers must not treat
+   *  "0 items" as "the cart is empty" while this is still true. */
+  loading: boolean;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -71,13 +75,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // conflict (e.g. the tab closes mid-decision) is asked again next time.
   const [conflict, setConflict] = useState<GuestCartMergeState | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === "loading") return;
+    const finishLoad = (next: CartView) => {
+      setView(next);
+      setLoading(false);
+    };
     if (status === "authenticated") {
       if (typeof window === "undefined") return;
       if (window.sessionStorage.getItem(mergeFlagKey) === "1") {
-        void getCart().then(setView);
+        void getCart().then(finishLoad);
         return;
       }
       void checkGuestCartMerge().then((state) => {
@@ -85,17 +94,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           // Show the current account cart while the user decides — the
           // guest cart stays untouched either way until they answer.
           setConflict(state);
-          void getCart().then(setView);
+          void getCart().then(finishLoad);
           return;
         }
         window.sessionStorage.setItem(mergeFlagKey, "1");
         void mergeGuestCartIntoUser().then(() => {
-          void getCart().then(setView);
+          void getCart().then(finishLoad);
         });
       });
       return;
     }
-    void getCart().then(setView);
+    void getCart().then(finishLoad);
   }, [status]);
 
   useEffect(() => {
@@ -149,8 +158,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ items: view.items, totals: view.totals, add, setQuantity, remove, changeSize, clear, count: view.count }),
-    [view, add, setQuantity, remove, changeSize, clear],
+    () => ({
+      items: view.items,
+      totals: view.totals,
+      add,
+      setQuantity,
+      remove,
+      changeSize,
+      clear,
+      count: view.count,
+      loading,
+    }),
+    [view, add, setQuantity, remove, changeSize, clear, loading],
   );
   return (
     <CartContext.Provider value={value}>

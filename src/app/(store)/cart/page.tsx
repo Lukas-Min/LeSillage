@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { formatPHP, DECANT_PROMO_THRESHOLD_CENTAVOS } from "@/domain/money";
 import { policyCopy } from "@/lib/policy-copy";
@@ -22,7 +23,14 @@ export default function CartPage() {
         <h1 className="font-serif-display text-2xl">Your cart</h1>
         <ClearCartButton />
       </div>
-      {cart.items.length === 0 ? (
+      {cart.loading ? (
+        <div className="mt-6 space-y-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Separator />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      ) : cart.items.length === 0 ? (
         <Card className="mt-6">
           <CardContent className="space-y-3 p-6 text-center">
             <p className="text-muted-foreground">Your cart is empty.</p>

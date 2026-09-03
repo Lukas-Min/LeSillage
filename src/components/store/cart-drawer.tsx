@@ -7,6 +7,7 @@ import { CartLineItem } from "@/components/store/cart-line-item";
 import { ClearCartButton } from "@/components/store/clear-cart-button";
 import { Button } from "@/components/ui/button";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -36,7 +37,12 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
         <SheetHeader className="border-b border-border/60">
           <SheetTitle className="font-serif-display text-2xl">Your bag</SheetTitle>
         </SheetHeader>
-        {cart.items.length === 0 ? (
+        {cart.loading ? (
+          <div className="flex-1 space-y-3 px-4 py-4">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        ) : cart.items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border">
               <ShoppingBag className="h-5 w-5 text-muted-foreground" aria-hidden="true" />

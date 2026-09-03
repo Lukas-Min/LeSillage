@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- `/cart` (and the cart drawer) briefly showed "Your cart is empty" on every reload before the real items appeared — `CartProvider` starts from a local empty `view` and fetches the real cart asynchronously, and both consumers used `items.length === 0` to mean "empty," which can't distinguish "actually empty" from "not fetched yet." Added a `loading` flag to `CartContext` (true until the first fetch resolves) and both `/cart` and the drawer now show a shaped skeleton while `loading` is true instead of the empty-cart state
 ### Changed
 - Checkout's and cart's "Order summary" now both show the same per-item breakdown (name, size/fulfillment, unit price × quantity, line total) before the Subtotal/Delivery/Total block — the cart's Order summary card previously jumped straight to Subtotal with no line items, unlike checkout's
 - Cart line items' quantity control was a bare, unlabeled `<input type="number">` (tiny native spinner arrows, easy to miss) and the price row split unit/total across a muted "each" label and a PDP-sized serif total that didn't visually read as "unit × qty = total". `CartLineItem` now uses the same Minus/qty/Plus stepper already established on the PDP's `AddToCartButton` (still directly editable by typing into the middle field), and the price row shows the unit price and quantity explicitly ("₱960.00 × 2") next to a bold total, both at consistent, readable size
