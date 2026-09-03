@@ -76,6 +76,19 @@ export function ShopToolbar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Gender</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={activeGender ?? ""}
+              onValueChange={(value) => navigate({ gender: value || null })}
+            >
+              <DropdownMenuRadioItem value="">Any gender</DropdownMenuRadioItem>
+              {GENDERS.map((key) => (
+                <DropdownMenuRadioItem key={key} value={key}>
+                  {GENDER_LABELS[key]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
             <DropdownMenuLabel>Shelf</DropdownMenuLabel>
             <DropdownMenuRadioGroup
               value={activeCategory ?? ""}
@@ -98,19 +111,6 @@ export function ShopToolbar({
               {(Object.keys(CONCENTRATION_LABELS) as Concentration[]).map((key) => (
                 <DropdownMenuRadioItem key={key} value={key}>
                   {CONCENTRATION_LABELS[key]}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Gender</DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={activeGender ?? ""}
-              onValueChange={(value) => navigate({ gender: value || null })}
-            >
-              <DropdownMenuRadioItem value="">Any gender</DropdownMenuRadioItem>
-              {GENDERS.map((key) => (
-                <DropdownMenuRadioItem key={key} value={key}>
-                  {GENDER_LABELS[key]}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
