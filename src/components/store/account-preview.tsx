@@ -42,7 +42,7 @@ export function AccountPreview({
             {email ? <p className="text-sm text-muted-foreground">{email}</p> : null}
             <SidebarContent isAdmin={isAdmin} />
             <SheetClose asChild>
-              <Button asChild variant="gold" className="rounded-md">
+              <Button asChild variant="gold" className="h-11 w-full rounded-md">
                 <Link href="/shop">Continue shopping</Link>
               </Button>
             </SheetClose>
@@ -53,12 +53,12 @@ export function AccountPreview({
               Sign in to track orders, save a wishlist, and check out faster.
             </p>
             <SheetClose asChild>
-              <Button asChild variant="gold" className="rounded-md">
+              <Button asChild variant="gold" className="h-11 w-full rounded-md">
                 <Link href="/sign-in">Sign in</Link>
               </Button>
             </SheetClose>
             <SheetClose asChild>
-              <Button asChild variant="outline" className="rounded-md">
+              <Button asChild variant="outline" className="h-11 w-full rounded-md">
                 <Link href="/sign-up">Create an account</Link>
               </Button>
             </SheetClose>

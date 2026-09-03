@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/store/sign-out-overlay";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumbs";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   User,
@@ -72,7 +73,7 @@ function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: strin
             <Link
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
                 active
                   ? "bg-gold/15 font-medium text-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -99,19 +100,16 @@ export function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
       <NavList items={items} pathname={pathname ?? ""} />
-      {isAdmin ? (
-        <div className="mt-4 border-t border-border/60 pt-4">
-          <Link
-            href="/account"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <User className="h-4 w-4" />
-            <span>My account</span>
-          </Link>
-        </div>
-      ) : null}
-      <div className="pt-2">
-        <SignOutButton variant="outline" className="w-full justify-start" />
+      <div className="mt-4 space-y-1.5 border-t border-border/60 pt-4">
+        {isAdmin ? (
+          <Button asChild variant="outline" className="h-11 w-full justify-start gap-3 rounded-md px-3">
+            <Link href="/account">
+              <User className="h-4 w-4" />
+              My account
+            </Link>
+          </Button>
+        ) : null}
+        <SignOutButton variant="outline" className="h-11 w-full justify-start gap-3 rounded-md px-3" />
       </div>
     </>
   );
