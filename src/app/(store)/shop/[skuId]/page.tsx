@@ -217,11 +217,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                   id: "shipping",
                   label: policyCopy.shipping.label,
                   content: <p>{policyCopy.shipping.body}</p>,
+                  defaultOpen: true,
                 },
                 {
                   id: "returns",
                   label: policyCopy.returns.label,
                   content: <p>{policyCopy.returns.body}</p>,
+                  defaultOpen: true,
                 },
               ]}
             />

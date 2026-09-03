@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Product page's "Shipping & Delivery" and "Returns & Authenticity" sections now default to open (`defaultOpen: true`) instead of collapsed, per clarified feedback — both were closed by default already, but the customer wants the policy copy visible without an extra tap
+
 ### Fixed
 - The mobile-wishlist layout fix below left the decant buy box's `order-6` wrapper as a plain block `div` instead of `flex flex-col gap-6`, so `DecantBuyBox`'s fragment children (size picker, `Price`, quantity/add-to-cart) lost their row spacing — `Price`'s root is a bare `<span>`, which collapsed flush against the size pills with no gap in a non-flex context. Added the missing `flex flex-col gap-6` back to that wrapper
 
