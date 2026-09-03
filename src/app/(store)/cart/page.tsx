@@ -8,7 +8,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
-import { formatPHP } from "@/domain/money";
+import { formatPHP, DECANT_PROMO_THRESHOLD_CENTAVOS } from "@/domain/money";
 import { policyCopy } from "@/lib/policy-copy";
 
 export default function CartPage() {
@@ -57,9 +57,9 @@ export default function CartPage() {
                 <span>{formatPHP(cart.totals.totalCentavos)}</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Decant subtotal: {formatPHP(cart.totals.decantSubtotalCentavos)} · free shipping unlocks at ₱2,000
-                {cart.totals.freeShipping ? " · unlocked." : "."}
-                {cart.totals.testerBonusEligible ? " Tester bonus unlocked." : ""}
+                {cart.totals.freeShipping
+                  ? `Free delivery unlocked${cart.totals.testerBonusEligible ? ", plus a free tester" : ""} from your decants.`
+                  : `Add ${formatPHP(Math.max(0, DECANT_PROMO_THRESHOLD_CENTAVOS - cart.totals.decantSubtotalCentavos))} more in decants to unlock free delivery and a free tester.`}
               </p>
             </CardContent>
             <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

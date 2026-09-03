@@ -4,6 +4,13 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Cart-line "Customize" now previews the staged size's price immediately when a pill is picked (before Save), matching the product page's buy box instead of only updating the price after committing
+
+### Fixed
+- Product photos (`CompositionCanvas`) were cropped top/bottom — the container is a square, but every sourced photo (Fragella and Fragrantica alike) is a tall 3:4 portrait shot, and `object-cover` crops to fill the square rather than showing the whole image. Switched to `object-contain` with a background fill so the full bottle is always visible, letterboxed instead of cropped
+- Clicking "Add to cart" with no size picked showed a toast — inconsistent with how every other validation error in the app (wrong password, weak password, etc.) is handled: inline, next to the field, not a transient popup. Repeated clicks also stacked multiple overlapping toasts (each a separate call), which looked broken with the new translucent tint. Now shows an inline message next to the button instead, matching the auth forms' convention; the remaining legitimate async-failure toasts (add/customize failures) were given stable ids so a retry replaces the previous toast instead of stacking a new one on top
+- Cart drawer's "Shipping & delivery" / "Returns & authenticity" sections were expanded by default, taking up most of the drawer before you'd even looked at your bag. Closed by default now
+- The free-shipping/tester-bonus line in the cart's order summary ("Decant subtotal: ₱X · free shipping unlocks at ₱2,000 · unlocked. Tester bonus unlocked.") read like a technical status dump. Rewritten to plain sentences matching the checkout page's existing tone ("Add ₱X more in decants to unlock free delivery and a free tester." / "Free delivery unlocked, plus a free tester, from your decants.")
 - Gucci "Guilty" resolved to its exact Fragrantica identity — **Guilty Pour Homme Parfum** (2022, id 71378), confirmed by the user after three real candidates were left ambiguous in an earlier pass. Hand-entered into `fragella_mirror`, product renamed and linked, SKU codes regenerated to match (see Fixed, below), real photo added — 24 of 24 decant products now have a name, notes, and image
 
 ### Fixed

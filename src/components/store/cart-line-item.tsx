@@ -68,7 +68,7 @@ export function CartLineItem({
         setSiblings(await getSiblingSkuOptions(item.skuId));
       } catch {
         setSiblings([]);
-        toast.error("Could not load sizes");
+        toast.error("Could not load sizes", { id: `cart-customize-${item.skuId}` });
       }
     });
   }
@@ -89,7 +89,9 @@ export function CartLineItem({
         setCustomizing(false);
         setSiblings(null); // prices/stock may have moved — refetch next time
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Could not change size");
+        toast.error(error instanceof Error ? error.message : "Could not change size", {
+          id: `cart-customize-${item.skuId}`,
+        });
       }
     });
   }
@@ -111,6 +113,13 @@ export function CartLineItem({
   }
 
   const outOfStock = item.maxQuantity <= 0;
+
+  // While a different size is staged (not yet saved), preview its price —
+  // same as the product page's buy box, which updates the price the moment
+  // a size is picked rather than only after committing.
+  const stagedOption = customizing ? (siblings?.find((o) => o.skuId === stagedSkuId) ?? null) : null;
+  const displayOriginal = stagedOption?.originalCentavos ?? item.originalUnitCentavos;
+  const displayDiscounted = stagedOption?.discountedCentavos ?? item.retailPriceCentavos;
 
   return (
     <div
@@ -142,10 +151,10 @@ export function CartLineItem({
             ) : null}
           </div>
           <div className="mt-1 flex items-baseline justify-between gap-2">
-            <p className="text-xs text-muted-foreground">{formatPHP(item.retailPriceCentavos)} each</p>
+            <p className="text-xs text-muted-foreground">{formatPHP(displayDiscounted)} each</p>
             <Price
-              originalCentavos={item.originalUnitCentavos}
-              discountedCentavos={item.retailPriceCentavos}
+              originalCentavos={displayOriginal}
+              discountedCentavos={displayDiscounted}
               quantity={qty}
               suffix="total"
               className="text-right"

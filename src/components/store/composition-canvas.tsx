@@ -27,14 +27,19 @@ export function CompositionCanvas({
 
   if (imageUrl && !imageFailed) {
     return (
-      <div className={cn("relative aspect-square w-full overflow-hidden border border-border", className)}>
+      <div
+        className={cn(
+          "relative aspect-square w-full overflow-hidden border border-border bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] p-4",
+          className,
+        )}
+      >
         {cornerLabel ? <CornerLabel>{cornerLabel}</CornerLabel> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
           alt={imageAlt ?? `${brand} — ${name}`}
           onError={() => setImageFailed(true)}
-          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         />
       </div>
     );
