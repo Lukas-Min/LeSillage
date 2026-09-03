@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { Price } from "@/components/store/price";
 import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
-import { labelForCondition } from "@/domain/product-type";
 
 export function DecantBuyBox({
   options,
@@ -31,11 +30,13 @@ export function DecantBuyBox({
 
   return (
     <>
+      {/* No condition badge here — "Sealed"/"A few sprays missing" describe a
+          specific physical bottle, but a decant is poured to order from a
+          shared pool, so condition doesn't apply. */}
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">
           {selected.fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
         </Badge>
-        {selected.condition ? <Badge variant="outline">{labelForCondition(selected.condition)}</Badge> : null}
       </div>
 
       <div className="space-y-3">

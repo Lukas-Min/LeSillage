@@ -56,7 +56,10 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               <Badge variant={card.fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
                 {card.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
               </Badge>
-              <Badge variant="outline">{card.conditionLabel}</Badge>
+              {/* Condition ("Sealed", "A few sprays missing"...) only means
+                  something for a specific physical bottle — a decant is
+                  poured to order from a shared pool, so it doesn't apply. */}
+              {card.type !== "DECANT" ? <Badge variant="outline">{card.conditionLabel}</Badge> : null}
               {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
             {isDecant ? (
