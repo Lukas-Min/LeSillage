@@ -165,10 +165,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={resolving} onClick={() => void resolveConflict("keep-account")}>
-              Keep my account bag
+              Use my account bag
             </AlertDialogCancel>
             <AlertDialogAction disabled={resolving} onClick={() => void resolveConflict("use-guest")}>
-              Use the other bag
+              Use my current bag
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

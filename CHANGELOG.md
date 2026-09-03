@@ -4,6 +4,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Guest/account cart-conflict dialog's buttons renamed for clarity and parallelism: "Keep my account bag" → "Use my account bag", "Use the other bag" → "Use my current bag" (the bag built up during the just-ended signed-out session)
+
+### Changed
 - Header's account-preview sheet (the person-icon panel, on both mobile and desktop) was a separate hardcoded flat link list (`Dashboard`/`Orders`/`Wishlist`/`Addresses`, plus `Admin` for admins) with no icons or active-state highlighting — out of sync with the desktop sidebar and the mobile "More" sheet. Now renders the same shared `SidebarContent` component (exported from `account-nav.tsx`) those already use, so all three stay in sync automatically
 
 ### Fixed
