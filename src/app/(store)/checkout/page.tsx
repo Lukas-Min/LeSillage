@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { addresses, users } from "@/db/schema";
-import { loadCartView, resolveActiveCart } from "@/lib/cart";
+import { loadCartViewForBothMethods, resolveActiveCart } from "@/lib/cart";
 import { CheckoutForm } from "@/components/store/checkout-form";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
@@ -21,16 +21,15 @@ export default async function CheckoutPage() {
     .select({ phone: users.phone, defaultAddressId: users.defaultAddressId, name: users.name })
     .from(users)
     .where(eq(users.id, session.user.id));
-  const [deliveryView, pickupView, savedAddresses] = await Promise.all([
-    loadCartView(cart.id, "DELIVERY"),
-    loadCartView(cart.id, "PICKUP"),
+  const [cartView, savedAddresses] = await Promise.all([
+    loadCartViewForBothMethods(cart.id),
     db().select().from(addresses).where(eq(addresses.userId, session.user.id)),
   ]);
   const userRow = userRows[0];
   // Deactivated-SKU lines ride along in `items` (see loadCartView) so the
   // drawer/cart page can show a "no longer available" notice — but they must
   // not count as real, purchasable items here or reach the order form.
-  const purchasableItems = deliveryView.items.filter((item) => item.available);
+  const purchasableItems = cartView.items.filter((item) => item.available);
   if (purchasableItems.length === 0) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -56,8 +55,8 @@ export default async function CheckoutPage() {
         defaultEmail={session.user.email ?? ""}
         preloadedPhone={userRow?.phone ?? ""}
         lineItems={purchasableItems}
-        deliveryTotals={deliveryView.totals}
-        pickupTotals={pickupView.totals}
+        deliveryTotals={cartView.deliveryTotals}
+        pickupTotals={cartView.pickupTotals}
         addresses={savedAddresses}
         defaultAddressId={userRow?.defaultAddressId ?? savedAddresses.find((a) => a.isDefault)?.id ?? null}
       />

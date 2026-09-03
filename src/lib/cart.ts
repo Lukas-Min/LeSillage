@@ -13,7 +13,7 @@ import {
   type ProductType,
 } from "@/db/schema";
 import { auth } from "@/auth";
-import { priceCart } from "@/domain/cart";
+import { priceCart, type CartTotals } from "@/domain/cart";
 import { buildCartTotals, type CheckoutTotals } from "@/domain/checkout-totals";
 import { clampQuantity } from "@/domain/money";
 import { DEFAULT_PROMO_CONFIG, type PromoConfig } from "@/domain/promo";
@@ -176,14 +176,25 @@ export async function addOneToCart(
   }
 }
 
-export async function loadCartView(
+interface PricedCart {
+  lines: CartLineView[];
+  unavailableLines: CartLineView[];
+  priced: CartTotals;
+  promoConfig: PromoConfig & { decantPreOrderThresholdMl: number };
+}
+
+/**
+ * The DB-fetching + pricing portion of loadCartView, split out so a caller
+ * that needs totals for more than one fulfillment method (checkout, which
+ * shows both delivery and pickup totals side by side) doesn't pay for the
+ * query and pricing work twice — buildCartTotals's `priced` input doesn't
+ * depend on fulfillmentMethod at all, only the totals math built from it
+ * does. See loadCartView and loadCartViewForBothMethods below.
+ */
+async function loadPricedCart(
   cartId: string,
-  fulfillmentMethod: FulfillmentMethod = "DELIVERY",
-  // Callers that already fetched promo config for their own cap/fulfillment
-  // calculations (addItemToCart, updateCartItem, changeCartItemSize) can
-  // pass it through to skip a second, identical round trip here.
   preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
-): Promise<CartView> {
+): Promise<PricedCart> {
   const client = db();
   const [items, promoConfig] = await Promise.all([
     client.select().from(cartItems).where(eq(cartItems.cartId, cartId)),
@@ -191,22 +202,19 @@ export async function loadCartView(
   ]);
   if (items.length === 0) {
     return {
-      items: [],
-      count: 0,
-      totals: buildCartTotals(
-        {
-          lines: [],
-          merchandiseSubtotalCentavos: 0,
-          discountCentavos: 0,
-          deliveryFeeCentavos: 0,
-          totalCentavos: 0,
-          purchasedBrands: new Set(),
-          purchasedFamilies: new Set(),
-          decantSubtotalCentavos: 0,
-        },
-        promoConfig,
-        fulfillmentMethod,
-      ),
+      lines: [],
+      unavailableLines: [],
+      priced: {
+        lines: [],
+        merchandiseSubtotalCentavos: 0,
+        discountCentavos: 0,
+        deliveryFeeCentavos: 0,
+        totalCentavos: 0,
+        purchasedBrands: new Set(),
+        purchasedFamilies: new Set(),
+        decantSubtotalCentavos: 0,
+      },
+      promoConfig,
     };
   }
   const skuRows = await client
@@ -250,7 +258,6 @@ export async function loadCartView(
     deliveryFeeCentavos: promoConfig.deliveryFeeCentavos,
     freeShipping: false,
   });
-  const totals = buildCartTotals(priced, promoConfig, fulfillmentMethod);
   const lines: CartLineView[] = priced.lines.map((line) => {
     const found = skuRows.find((row) => row.sku.id === line.skuId);
     const cap = resolveCartCap({
@@ -295,10 +302,46 @@ export async function loadCartView(
       },
     ];
   });
+  return { lines, unavailableLines, priced, promoConfig };
+}
+
+export async function loadCartView(
+  cartId: string,
+  fulfillmentMethod: FulfillmentMethod = "DELIVERY",
+  // Callers that already fetched promo config for their own cap/fulfillment
+  // calculations (addItemToCart, updateCartItem, changeCartItemSize) can
+  // pass it through to skip a second, identical round trip here.
+  preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
+): Promise<CartView> {
+  const { lines, unavailableLines, priced, promoConfig } = await loadPricedCart(cartId, preloadedPromoConfig);
   return {
     items: [...lines, ...unavailableLines],
     count: lines.reduce((sum, line) => sum + line.quantity, 0),
-    totals,
+    totals: buildCartTotals(priced, promoConfig, fulfillmentMethod),
+  };
+}
+
+/**
+ * Checkout shows delivery and pickup totals side by side — this fetches and
+ * prices the cart once and computes both, instead of checkout calling
+ * loadCartView twice (which used to mean two full DB fetches and two
+ * priceCart passes for numbers that only differ in a cheap in-memory step).
+ */
+export async function loadCartViewForBothMethods(
+  cartId: string,
+  preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
+): Promise<{
+  items: CartLineView[];
+  count: number;
+  deliveryTotals: CheckoutTotals;
+  pickupTotals: CheckoutTotals;
+}> {
+  const { lines, unavailableLines, priced, promoConfig } = await loadPricedCart(cartId, preloadedPromoConfig);
+  return {
+    items: [...lines, ...unavailableLines],
+    count: lines.reduce((sum, line) => sum + line.quantity, 0),
+    deliveryTotals: buildCartTotals(priced, promoConfig, "DELIVERY"),
+    pickupTotals: buildCartTotals(priced, promoConfig, "PICKUP"),
   };
 }
 
