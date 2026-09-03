@@ -2,9 +2,9 @@
  * One-time load of a full-bottle pricelist (as of 2026-09-03) into
  * `product`/`sku`. Each entry's price is the store's own "discounted" cost
  * basis — the product's costPrice/pricingMode/pricingInput are set to
- * PERCENTAGE @ 25% (per the store owner, overriding the schema's own 30%
+ * PERCENTAGE @ 20% (per the store owner, overriding the schema's own 30%
  * default), so the SKU's retailPrice is derived automatically (e.g. ₱3,600
- * cost -> ₱4,500 retail), not hardcoded — unlike `import-decant-pricelist.ts`,
+ * cost -> ₱4,320 retail), not hardcoded — unlike `import-decant-pricelist.ts`,
  * which has to hardcode SKU prices because its decant pricing isn't linear.
  *
  * Metadata (description/notes/accords/perfumers/rating/image/releaseYear/
@@ -236,7 +236,7 @@ async function main() {
       fragranticaUrl: entry.fragranticaUrl,
       costPrice,
       pricingMode: "PERCENTAGE" as const,
-      pricingInput: 25,
+      pricingInput: 20,
     };
 
     const [existing] = await client
@@ -255,7 +255,7 @@ async function main() {
     }
     productCount += 1;
 
-    const retailPrice = Math.round(costPrice * 1.25);
+    const retailPrice = Math.round(costPrice * 1.2);
     const [existingSku] = await client
       .select({ id: skus.id })
       .from(skus)
