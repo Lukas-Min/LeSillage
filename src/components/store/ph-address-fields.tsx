@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PhLocationOption, PhProvinceOption } from "@/lib/ph-locations";
 
-const selectClass = "h-8 w-full rounded-lg border bg-background px-2.5 text-sm";
+const selectClass =
+  "h-8 w-full rounded-lg border bg-background px-2.5 text-sm disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50";
 
 export interface PhAddressValues {
   region: string;
