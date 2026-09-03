@@ -42,6 +42,32 @@ export default function CartPage() {
               <CardTitle className="font-serif-display text-base">Order summary</CardTitle>
             </CardHeader>
             <CardContent className="text-sm">
+              <ul className="space-y-4">
+                {cart.items
+                  .filter((item) => item.available)
+                  .map((item) => (
+                    <li key={item.skuId} className="flex items-start justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatPHP(item.retailPriceCentavos)} <span className="tabular-nums">× {item.quantity}</span>
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right tabular-nums">
+                        <p className="font-medium">{formatPHP(item.retailPriceCentavos * item.quantity)}</p>
+                        {item.originalUnitCentavos > item.retailPriceCentavos ? (
+                          <p className="text-xs text-muted-foreground line-through">
+                            {formatPHP(item.originalUnitCentavos * item.quantity)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+              <Separator className="my-4" />
               <div className="space-y-1.5 text-muted-foreground">
                 <p className="flex justify-between">
                   <span>Subtotal</span>

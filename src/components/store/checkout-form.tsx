@@ -352,7 +352,10 @@ export function CheckoutForm({
                 <div className="space-y-0.5">
                   <p className="font-medium">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {item.skuLabel} · ×{item.quantity} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
+                    {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatPHP(item.retailPriceCentavos)} <span className="tabular-nums">× {item.quantity}</span>
                   </p>
                 </div>
                 <div className="shrink-0 text-right tabular-nums">
