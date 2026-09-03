@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Sign-in form cleared the email field along with the password on a failed attempt (native `<form action>` server action, redirecting on error), forcing a full retype instead of just the password. `signInWithPassword` now carries the submitted email back through the redirect's query string, and the sign-in page prefills it via `SignInForm`'s new `defaultEmail` prop
+
 ### Changed
 - Product page's "Shipping & Delivery" and "Returns & Authenticity" sections now default to open (`defaultOpen: true`) instead of collapsed, per clarified feedback — both were closed by default already, but the customer wants the policy copy visible without an extra tap
 

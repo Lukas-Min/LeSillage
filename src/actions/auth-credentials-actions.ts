@@ -224,11 +224,14 @@ export async function completePasswordReset(formData: FormData) {
 export async function signInWithPassword(formData: FormData) {
   const returnToRaw = String(formData.get("returnTo") ?? "/account");
   const returnTo = returnToRaw.startsWith("/") && !returnToRaw.startsWith("//") ? returnToRaw : "/account";
+  const emailRaw = String(formData.get("email") ?? "");
   await withAuthErrorRedirect(
-    (query) => `/sign-in?returnTo=${encodeURIComponent(returnTo)}&${query}`,
+    // Carries the submitted email back so the form can refill it on failure
+    // instead of making the customer retype it alongside a rejected password.
+    (query) => `/sign-in?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(emailRaw)}&${query}`,
     async () => {
       await limitAuth("password-signin");
-      const email = emailSchema.parse(String(formData.get("email") ?? ""));
+      const email = emailSchema.parse(emailRaw);
       const password = String(formData.get("password") ?? "");
       const user = (await db().select().from(users).where(eq(users.email, email)))[0];
       if (user && !user.emailVerified) {

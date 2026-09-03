@@ -11,9 +11,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 export function SignInForm({
   returnTo,
   errorMessage,
+  defaultEmail,
 }: {
   returnTo: string;
   errorMessage?: string | null;
+  defaultEmail?: string;
 }) {
   return (
     <Card className="mt-6">
@@ -22,7 +24,15 @@ export function SignInForm({
           <input type="hidden" name="returnTo" value={returnTo} />
           <div className="space-y-1">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" className="h-11" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              defaultValue={defaultEmail}
+              className="h-11"
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="password">Password</Label>

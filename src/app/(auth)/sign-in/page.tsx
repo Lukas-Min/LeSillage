@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string; error?: string; msg?: string }>;
+  searchParams: Promise<{ returnTo?: string; error?: string; msg?: string; email?: string }>;
 }) {
   const session = await auth();
   const params = await searchParams;
@@ -20,7 +20,11 @@ export default async function SignInPage({
       <p className="mt-2 text-sm text-muted-foreground">
         Use email and password, or continue with Google or Facebook.
       </p>
-      <SignInForm returnTo={returnTo} errorMessage={authErrorMessage(params.error, params.msg)} />
+      <SignInForm
+        returnTo={returnTo}
+        errorMessage={authErrorMessage(params.error, params.msg)}
+        defaultEmail={params.email}
+      />
     </main>
   );
 }
