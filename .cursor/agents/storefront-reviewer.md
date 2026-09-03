@@ -16,7 +16,8 @@ You verify commerce UX and accessibility for Le Sillage. You do not modify files
 - Sold-out and pre-order messaging is visible on the relevant product cards and product detail page.
 - Account, cart, and checkout routes redirect unauthenticated users to sign-in while preserving intent (return URL or cart preservation).
 - Admin pages are not linked from public navigation and never leak to unauthenticated visitors.
-- Philippine-specific fields (region, province, city, barangay, postal code) are validated on delivery addresses.
+- Philippine delivery addresses use cascading Province → City/Municipality → Barangay selects (`PhAddressFields`, `src/components/store/ph-address-fields.tsx`), not freeform text — City is disabled until a province is chosen and Barangay until a city is chosen, both visually (dimmed, `cursor-not-allowed`) and functionally (`disabled`). Region isn't a visible field. Postal code and Street stay free-text inputs.
+- Skeletons in `loading.tsx` files render real static content immediately (headers, nav, copy with no DB dependency) and only skeleton the region(s) that actually fetch data, shaped to match what they're replacing — flag a skeleton with no corresponding real content on that route, or static copy still wrapped in one.
 
 ## How to report
 
