@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -50,7 +51,8 @@ export function StoreHeader() {
       <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <div className="flex items-center gap-2">
           <MobileMenu signedIn={signedIn} />
-          <Link href="/" className="font-serif-display text-lg">
+          <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
+            <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
             Le Sillage
           </Link>
         </div>
@@ -105,7 +107,10 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
       </SheetTrigger>
       <SheetContent side="left" className="w-72">
         <SheetHeader>
-          <SheetTitle className="font-serif-display">Le Sillage</SheetTitle>
+          <SheetTitle className="flex items-center gap-2 font-serif-display">
+            <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-6 w-auto" />
+            Le Sillage
+          </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-2">
           {MENU_LINKS.map((link) => (

@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Real logo mark ("L" monogram) next to the "Le Sillage" wordmark in the header, footer, and mobile menu sheet — previously plain text everywhere. Favicon replaced with the same mark, trimmed and padded to a square (`src/app/icon.png`, replacing the old default `favicon.ico`)
+
 ### Changed
 - Mobile account/admin nav (`AccountBottomNav`) didn't match the desktop sidebar — it was missing Sign Out entirely (no way to sign out on mobile) and, for admin, the "My account" link. Kept a 3-item bottom bar (Home/Orders/Wishlist for customers, Dashboard/Orders/Products for admin) plus a new "More" button opening a bottom sheet with the exact same content as the desktop sidebar (`SidebarContent`, shared by both), so mobile now has full parity with desktop
 

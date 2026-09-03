@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { AtSign, Mail, Phone } from "lucide-react";
 import { getEnv } from "@/lib/env";
 
@@ -39,7 +40,7 @@ export function StoreFooter() {
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
         <div className="space-y-3">
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
-            <span className="inline-block h-2 w-2 rounded-full bg-gold" />
+            <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />
             Le Sillage
           </Link>
           <p className="text-sm text-muted-foreground">
