@@ -5,8 +5,8 @@ import { PageHeader, SectionCard } from "@/components/ui/section";
 const PILLARS = [
   {
     icon: FlaskConical,
-    title: "Poured from sealed testers",
-    body: "Never from someone's used bottle — so decants stay honestly priced without touching sealed retail stock.",
+    title: "Poured from testers and partials",
+    body: "Decants come from sealed testers or opened partials, never bottled to order from someone's personal fragrance — so pricing stays honest without touching untouched retail stock.",
   },
   {
     icon: ShieldCheck,

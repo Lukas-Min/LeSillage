@@ -10,7 +10,7 @@ const FAQ_GROUPS = [
     items: [
       {
         q: "What's the difference between a full bottle, a partial, and a decant?",
-        a: "A full bottle is sealed and unused. A partial is an opened bottle with a few sprays missing, priced to move. A decant is a smaller volume poured from a sealed tester into its own vial — the way to try a fragrance without buying the whole bottle.",
+        a: "A full bottle is sealed and unused. A partial is an opened bottle with a few sprays missing, priced to move. A decant is a smaller volume poured from a tester or a partial into its own vial — the way to try a fragrance without buying the whole bottle.",
       },
       {
         q: "Do I need an account to order?",
