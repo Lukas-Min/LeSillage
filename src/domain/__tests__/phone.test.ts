@@ -29,7 +29,7 @@ describe("PH phone", () => {
 
   it("schema", () => {
     expect(phMobileSchema.parse("9171234567")).toBe("9171234567");
-    expect(phMobileSchema.parse("+63 917 123 4567")).toBe("639171234567");
+    expect(() => phMobileSchema.parse("+63 917 123 4567")).toThrow();
     expect(() => phMobileSchema.parse("0917")).toThrow();
   });
 

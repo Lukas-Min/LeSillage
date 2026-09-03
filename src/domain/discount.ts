@@ -39,20 +39,28 @@ export function withSiteWideDiscount(
 export function bestDiscount(
   discounts: ProductDiscount[],
   unitPriceCentavos: number,
+  quantity = 1,
   now: Date = new Date(),
 ): ProductDiscount | null {
   const active = discounts.filter((d) => isDiscountActive(d, now));
   if (active.length === 0) return null;
   return active.sort(
-    (a, b) => savingsFor(b, unitPriceCentavos) - savingsFor(a, unitPriceCentavos),
+    (a, b) =>
+      totalSavingsFor(b, unitPriceCentavos, quantity) -
+      totalSavingsFor(a, unitPriceCentavos, quantity),
   )[0];
 }
 
-function savingsFor(discount: ProductDiscount, unitPriceCentavos: number): number {
+// PERCENTAGE savings scale per unit; FIXED is a flat amount off the whole line.
+function totalSavingsFor(
+  discount: ProductDiscount,
+  unitPriceCentavos: number,
+  quantity: number,
+): number {
   if (discount.type === "PERCENTAGE") {
-    return Math.round((unitPriceCentavos * discount.amount) / 100);
+    return Math.round((unitPriceCentavos * discount.amount) / 100) * quantity;
   }
-  return Math.min(unitPriceCentavos, discount.amount);
+  return Math.min(unitPriceCentavos * quantity, discount.amount);
 }
 
 export function applyDiscount(
@@ -74,5 +82,31 @@ export function applyDiscount(
   return {
     discountedUnitCentavos: unitPriceCentavos - perUnit,
     perUnitDiscountCentavos: perUnit,
+  };
+}
+
+// Line-level application: PERCENTAGE scales with quantity, FIXED is a flat
+// amount off the whole line (capped at the line's pre-discount subtotal).
+export function applyLineDiscount(
+  unitPriceCentavos: number,
+  quantity: number,
+  discount: ProductDiscount | null,
+): { lineSubtotalCentavos: number; lineDiscountCentavos: number } {
+  const lineTotal = unitPriceCentavos * quantity;
+  if (!discount) {
+    return { lineSubtotalCentavos: lineTotal, lineDiscountCentavos: 0 };
+  }
+  let lineDiscount = 0;
+  if (discount.type === "PERCENTAGE") {
+    lineDiscount = Math.round((unitPriceCentavos * discount.amount) / 100) * quantity;
+  } else if (discount.type === "FIXED") {
+    lineDiscount = Math.min(lineTotal, discount.amount);
+  } else {
+    const exhaustive: never = discount.type;
+    throw new Error(`Unknown discount type: ${String(exhaustive)}`);
+  }
+  return {
+    lineSubtotalCentavos: lineTotal - lineDiscount,
+    lineDiscountCentavos: lineDiscount,
   };
 }
