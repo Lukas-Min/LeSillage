@@ -152,7 +152,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
           {notePyramid ? (
             <div className="order-4">
-              <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} />
+              <CompositionContent pyramid={notePyramid} />
             </div>
           ) : looseNotes ? (
             <p className="order-4 border-t border-border/60 pt-4 text-sm text-muted-foreground">{looseNotes}</p>
@@ -304,10 +304,8 @@ function SizeSection({
 
 function CompositionContent({
   pyramid,
-  perfumers,
 }: {
   pyramid: ReturnType<typeof normaliseNotePyramid>;
-  perfumers: string[] | null;
 }) {
   const top = pyramid?.top ?? [];
   const middle = pyramid?.middle ?? [];
@@ -327,11 +325,6 @@ function CompositionContent({
           <NoteColumn notes={base} />
         </div>
       </div>
-      {perfumers && perfumers.length > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          <span className="uppercase tracking-[0.28em]">Perfumer</span>: {perfumers.join(", ")}
-        </p>
-      ) : null}
     </div>
   );
 }

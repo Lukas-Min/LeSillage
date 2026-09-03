@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- PDP no longer shows the "Perfumer" credit line below the note pyramid — not needed for now. `CompositionContent` dropped its `perfumers` prop; the underlying `products.perfumers` data is untouched, just not rendered
 - PDP's Notes section listed each Top/Heart/Base column's notes as one comma-joined line; now one note per row, still centered under its column, easier to scan for a long note list
 
 ### Added
