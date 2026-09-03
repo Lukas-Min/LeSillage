@@ -23,6 +23,7 @@ export function CartLineItem({
   layout?: "drawer" | "page";
 }) {
   const cart = useCart();
+  const locked = cart.locked;
 
   // Local, instantly-updated quantity — the server call is debounced so
   // typing doesn't fire a request (and a full cart reload) per keystroke.
@@ -117,7 +118,7 @@ export function CartLineItem({
           variant="ghost"
           size="sm"
           className="mt-1 h-8 px-2 text-xs"
-          disabled={removing}
+          disabled={removing || locked}
           onClick={handleRemove}
         >
           {removing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Remove"}
@@ -157,7 +158,7 @@ export function CartLineItem({
                 variant="ghost"
                 size="sm"
                 className="h-7 shrink-0 px-2 text-[11px] uppercase tracking-[0.15em]"
-                disabled={saving}
+                disabled={saving || locked}
                 onClick={customizing ? cancelCustomize : openCustomize}
               >
                 {customizing ? "Cancel" : "Customize"}
@@ -210,7 +211,7 @@ export function CartLineItem({
                 size="icon"
                 aria-label="Decrease quantity"
                 className="h-11 w-10 rounded-none rounded-l-md"
-                disabled={outOfStock || qty <= 1}
+                disabled={outOfStock || qty <= 1 || locked}
                 onClick={() => handleQtyChange(Math.max(1, qty - 1))}
               >
                 <Minus className="h-4 w-4" />
@@ -220,7 +221,7 @@ export function CartLineItem({
                 min={1}
                 max={item.maxQuantity}
                 value={qty}
-                disabled={outOfStock}
+                disabled={outOfStock || locked}
                 onChange={(event) => {
                   const next = Number(event.target.value);
                   if (Number.isFinite(next)) handleQtyChange(next);
@@ -234,7 +235,7 @@ export function CartLineItem({
                 size="icon"
                 aria-label="Increase quantity"
                 className="h-11 w-10 rounded-none rounded-r-md"
-                disabled={outOfStock || qty >= item.maxQuantity}
+                disabled={outOfStock || qty >= item.maxQuantity || locked}
                 onClick={() => handleQtyChange(Math.min(item.maxQuantity, qty + 1))}
               >
                 <Plus className="h-4 w-4" />
@@ -245,7 +246,7 @@ export function CartLineItem({
               size="icon"
               aria-label={`Remove ${item.name}`}
               className="min-h-11 min-w-11"
-              disabled={removing}
+              disabled={removing || locked}
               onClick={handleRemove}
             >
               {removing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}

@@ -18,7 +18,7 @@ const FAQ_GROUPS = [
       },
       {
         q: "How do I know what's happening with my order?",
-        a: "Every order moves through clear stages — awaiting payment, receipt submitted, confirmed, shipped, completed — visible any time under Account → Orders. We also email you at each step.",
+        a: "Every order moves through clear stages — Awaiting payment → Receipt submitted → Confirmed → Shipped → Completed — visible any time under Account → Orders. We also email you at each step.",
       },
     ],
   },

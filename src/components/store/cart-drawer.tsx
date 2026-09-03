@@ -79,6 +79,11 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
               </p>
               <ClearCartButton />
             </div>
+            {cart.locked ? (
+              <p className="px-4 pt-2 text-xs text-muted-foreground">
+                Your bag is locked while you&apos;re checking out.
+              </p>
+            ) : null}
             <ul className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
               {cart.items.map((item) => (
                 <li key={item.skuId}>

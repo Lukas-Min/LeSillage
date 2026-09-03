@@ -45,9 +45,25 @@ async function uploadImage(
         token: env.BLOB_READ_WRITE_TOKEN,
       });
       return { url: blob.url, pathname };
-    } catch {
-      // fall through to local storage
+    } catch (error) {
+      // Log instead of swallowing — a bad token / network failure here used
+      // to fall through silently to the local-disk fallback below, which is
+      // guaranteed to throw on Vercel (its functions have a read-only
+      // filesystem outside /tmp), surfacing as an opaque React RSC error
+      // instead of the real cause.
+      console.error("Vercel Blob upload failed, falling back to local storage:", error);
     }
+  }
+
+  // Local disk only works where the process can actually write next to
+  // itself (local dev). On Vercel (and any other read-only-filesystem
+  // deployment) this mkdir/writeFile always throws — so once we're there,
+  // fail with a clear, actionable message instead of attempting a doomed
+  // write that surfaces as an unhandled, unhelpful error on the client.
+  if (process.env.VERCEL) {
+    throw new Error(
+      "Image storage is not configured (BLOB_READ_WRITE_TOKEN missing or invalid). Set it in the Vercel project's environment variables.",
+    );
   }
 
   const baseDir = join(process.cwd(), ".blob", scope, prefix);

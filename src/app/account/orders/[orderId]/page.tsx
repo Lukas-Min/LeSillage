@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, orderItems } from "@/db/schema";
-import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
+import { PageHeader, SectionCard } from "@/components/ui/section";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { Price } from "@/components/store/price";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
@@ -158,10 +158,6 @@ export default async function OrderDetailPage({
                 </li>
               ))}
             </ul>
-            <Eyebrow className="pt-2">Reference</Eyebrow>
-            <p className="text-xs text-muted-foreground">
-              Status: {order.status}
-            </p>
           </SectionCard>
         </div>
       </div>

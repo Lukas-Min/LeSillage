@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   addItemToCart,
@@ -58,6 +59,12 @@ interface CartContextValue {
    *  provider starts from an empty local `view`, so consumers must not treat
    *  "0 items" as "the cart is empty" while this is still true. */
   loading: boolean;
+  /** True while on /checkout, whose totals/line items are a server-rendered
+   *  snapshot fetched once at page load — not reactive to this context.
+   *  Editing the live cart from here (e.g. via the header drawer) would
+   *  silently desync what checkout displays from what's actually in the
+   *  cart, so cart-editing UI should disable itself while this is true. */
+  locked: boolean;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -66,6 +73,8 @@ const STORAGE_KEY = "le-sillage-cart";
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<CartView>(EMPTY);
   const { data: session, status } = useSession();
+  const pathname = usePathname();
+  const locked = pathname?.startsWith("/checkout") ?? false;
   // Debounced quantity edits can have two updateCartItem calls in flight at
   // once; a slower-resolving stale one must not overwrite a newer one.
   const quantityRequestIdRef = useRef(0);
@@ -168,8 +177,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       clear,
       count: view.count,
       loading,
+      locked,
     }),
-    [view, add, setQuantity, remove, changeSize, clear, loading],
+    [view, add, setQuantity, remove, changeSize, clear, loading, locked],
   );
   return (
     <CartContext.Provider value={value}>

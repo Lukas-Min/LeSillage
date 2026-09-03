@@ -22,7 +22,7 @@ export function ClearCartButton({ className }: { className?: string }) {
   const cart = useCart();
   const [clearing, startClear] = useTransition();
 
-  if (cart.items.length === 0) return null;
+  if (cart.items.length === 0 || cart.locked) return null;
 
   function handleClear() {
     startClear(async () => {

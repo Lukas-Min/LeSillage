@@ -1,26 +1,31 @@
 import Link from "next/link";
-import { HelpCircle, Mail, MapPin, Phone } from "lucide-react";
+import { Globe, HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
 
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
+const MESSENGER_URL = "https://m.me/61591955240476";
+
 export default function ContactPage() {
   const env = getEnv();
   const rows = [
-    { icon: Mail, label: "Order questions", value: env.GMAIL_USER },
-    env.NEXT_PUBLIC_PHONE ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE } : null,
-    { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only." },
-  ].filter((row): row is { icon: typeof Mail; label: string; value: string } => row !== null);
+    { icon: Mail, label: "Order questions", value: env.GMAIL_USER, href: `mailto:${env.GMAIL_USER}` },
+    env.NEXT_PUBLIC_PHONE
+      ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE, href: `tel:${env.NEXT_PUBLIC_PHONE}` }
+      : null,
+    { icon: Globe, label: "Facebook", value: "Le Sillage", href: FACEBOOK_URL },
+    { icon: MessageCircle, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },
+  ].filter(
+    (row): row is { icon: typeof Mail; label: string; value: string; href: string | null } => row !== null,
+  );
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
       <div className="mx-auto max-w-3xl space-y-6">
-        <PageHeader
-          eyebrow="Help"
-          title="Contact"
-          subtitle="Questions about a fragrance, an order, or anything else — a real person reads every message."
-        />
+        <PageHeader eyebrow="Help" title="Contact" />
         <SectionCard
           eyebrow="Response time"
           title="Usually within one business day"
@@ -33,7 +38,18 @@ export default function ContactPage() {
               </span>
               <div>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{row.label}</p>
-                <p className="text-sm">{row.value}</p>
+                {row.href ? (
+                  <a
+                    href={row.href}
+                    target={row.href.startsWith("http") ? "_blank" : undefined}
+                    rel={row.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="text-sm text-foreground underline-offset-4 hover:underline"
+                  >
+                    {row.value}
+                  </a>
+                ) : (
+                  <p className="text-sm">{row.value}</p>
+                )}
               </div>
             </div>
           ))}

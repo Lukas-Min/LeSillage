@@ -1,7 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { AtSign, Mail, Phone } from "lucide-react";
+import { AtSign, Globe, Mail, Phone } from "lucide-react";
 import { getEnv } from "@/lib/env";
+
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
 
 const COLUMNS = [
   {
@@ -60,6 +62,12 @@ export function StoreFooter() {
             <li className="flex items-center gap-2">
               <AtSign className="h-3.5 w-3.5 text-gold" />
               <span>@le.sillage.mnl</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Globe className="h-3.5 w-3.5 text-gold" />
+              <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+                Facebook
+              </a>
             </li>
           </ul>
         </div>
