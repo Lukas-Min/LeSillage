@@ -55,6 +55,26 @@ const SAUVAGE_FIXTURE_HTML = `
 <meta property="og:image" content="https://fimgs.net/mdimg/perfume/375x500.31861.jpg">
 `;
 
+// A second real fixture (Yves Saint Laurent, Libre Eau de Toilette) covering
+// two things the Khadlaj fixture doesn't: the "X was created by A and B"
+// perfumer phrasing (as opposed to "the nose behind this fragrance is X"),
+// and a popular fragrance's longer accord-bar list, which pushes the
+// "Search by accords" link's actual position well past a too-small search
+// window — this exact page is what caught that window being too small.
+const LIBRE_FIXTURE_HTML = `
+<h1 itemprop="name">Libre Eau de Toilette Yves Saint Laurent <span>for women</span></h1>
+<div class="flex flex-col items-center pb-4">
+  <h6 class="text-sm font-semibold">main accords</h6>
+  <div class="flex flex-col w-full">
+    ${"<div class=\"w-full\"><div style=\"width: 10%;\"><span class=\"truncate\">filler</span></div></div>".repeat(40)}
+  </div>
+  <a href="/accords-search/?white+floral=100&amp;citrus=83&amp;lavender=51&amp;floral=44&amp;fresh=36&amp;musky=33&amp;vanilla=32&amp;sweet=32&amp;f_from_perfume_id=65936&amp;f_gender=female%2Cunisex">Search by accords</a>
+</div>
+<div itemprop="description">
+<p><b>Libre Eau de Toilette</b> by <b>Yves Saint Laurent</b> is a Floral fragrance for women. <b>Libre Eau de Toilette</b> was launched in 2021. Libre Eau de Toilette was created by Anne Flipo and Carlos Benaïm. Top notes are Lavender, Bergamot and Mandarin Orange; middle notes are Orange Blossom, Jasmine Tea and Jasmine; base notes are Musk, Vanilla and Ambergris. </p>
+</div>
+`;
+
 describe("parseFragranticaHtml", () => {
   it("extracts name and brand from the description paragraph's bold tags, not the h1", () => {
     const parsed = parseFragranticaHtml(FIXTURE_HTML);
@@ -113,6 +133,22 @@ describe("parseFragranticaHtml", () => {
       middle: ["Sichuan Pepper", "Lavender", "Pink Pepper", "Vetiver", "Patchouli", "Geranium", "elemi"],
       base: ["Ambroxan", "Cedar", "Labdanum"],
     });
+  });
+
+  it("extracts perfumers from 'was created by' phrasing, and accords past a short first guess at the search window", () => {
+    const parsed = parseFragranticaHtml(LIBRE_FIXTURE_HTML);
+    expect(parsed.perfumers).toEqual(["Anne Flipo", "Carlos Benaïm"]);
+    expect(parsed.accords).toEqual([
+      { name: "white floral", strength: 100, color: null },
+      { name: "citrus", strength: 83, color: null },
+      { name: "lavender", strength: 51, color: null },
+      { name: "floral", strength: 44, color: null },
+      { name: "fresh", strength: 36, color: null },
+      { name: "musky", strength: 33, color: null },
+      { name: "vanilla", strength: 32, color: null },
+      { name: "sweet", strength: 32, color: null },
+    ]);
+    expect(parsed.notes?.middle).toEqual(["Orange Blossom", "Jasmine Tea", "Jasmine"]);
   });
 
   it("returns an empty result rather than throwing on unrelated HTML", () => {

@@ -125,7 +125,9 @@ function extractYearFromText(text: string): number | null {
 }
 
 function extractPerfumersFromText(text: string): string[] {
-  const match = /noses? behind this fragrance (?:is|are) ([^.]+)\./i.exec(text);
+  const match =
+    /noses? behind this fragrance (?:is|are) ([^.]+)\./i.exec(text) ??
+    /was created by ([^.]+)\./i.exec(text);
   return match ? splitList(match[1]) : [];
 }
 
@@ -183,7 +185,10 @@ function extractNotes(html: string, summaryText: string): { top: string[]; middl
 function extractAccords(html: string): FragranticaAccord[] {
   const markerIdx = html.toLowerCase().indexOf("main accords");
   if (markerIdx < 0) return [];
-  const window = html.slice(markerIdx, markerIdx + 4000);
+  // Each accord bar is its own chunk of markup, so a fragrance with more
+  // than a handful of accords pushes the "Search by accords" link (which
+  // carries the actual percentages) well past a few thousand characters.
+  const window = html.slice(markerIdx, markerIdx + 12000);
   const hrefMatch = /href="\/accords-search\/\?([^"]+)"/i.exec(window);
   if (!hrefMatch) return [];
   const params = new URLSearchParams(decodeEntities(hrefMatch[1]));
