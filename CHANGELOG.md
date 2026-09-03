@@ -4,6 +4,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- The mobile-wishlist layout fix below left the decant buy box's `order-6` wrapper as a plain block `div` instead of `flex flex-col gap-6`, so `DecantBuyBox`'s fragment children (size picker, `Price`, quantity/add-to-cart) lost their row spacing — `Price`'s root is a bare `<span>`, which collapsed flush against the size pills with no gap in a non-flex context. Added the missing `flex flex-col gap-6` back to that wrapper
+
+### Fixed
 - Product page's wishlist heart had drifted below "Notes" on mobile instead of sitting next to the product name, because the mobile title text and the (single-instance) `WishlistButton` lived in two separate DOM subtrees that only happened to render adjacently on desktop. Restructured `src/app/(store)/shop/[skuId]/page.tsx`'s two-column layout to use `display: contents` on the column wrappers below `md`, so every section becomes a direct flex child reorderable per-breakpoint via `order-*` — the title+wishlist row now sits right under the image on mobile and re-enters its original sticky right column at `md`, still mounted exactly once (a second instance previously crashed production, see the wishlist fix above)
 
 ### Fixed

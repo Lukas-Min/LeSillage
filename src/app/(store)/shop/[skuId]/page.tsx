@@ -178,7 +178,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           </div>
 
           {isDecant ? (
-            <div className="order-6">
+            <div className="order-6 flex flex-col gap-6">
               <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
             </div>
           ) : (
