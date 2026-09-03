@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import Link, { useLinkStatus } from "next/link";
+import { Loader2, ShoppingBag } from "lucide-react";
 import { useCart, useCartCount } from "@/components/store/cart-context";
 import { CartLineItem } from "@/components/store/cart-line-item";
 import { ClearCartButton } from "@/components/store/clear-cart-button";
@@ -17,6 +17,22 @@ import {
 } from "@/components/ui/sheet";
 import { formatPHP } from "@/domain/money";
 import { policyCopy } from "@/lib/policy-copy";
+
+// /checkout does a real server-side fetch (auth, cart, addresses, provinces)
+// before it can paint, so the navigation isn't instant — useLinkStatus lets
+// this button show its own pending state the moment it's tapped, rather than
+// looking unresponsive until the destination page appears.
+function CheckoutLinkLabel() {
+  const { pending } = useLinkStatus();
+  return pending ? (
+    <span className="inline-flex items-center gap-1.5">
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      Checking out…
+    </span>
+  ) : (
+    "Checkout"
+  );
+}
 
 export function CartDrawer({ mounted }: { mounted: boolean }) {
   const cart = useCart();
@@ -79,7 +95,9 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
               </p>
               <p className="text-xs text-muted-foreground">Delivery fee calculated at checkout.</p>
               <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
-                <Link href="/checkout">Checkout</Link>
+                <Link href="/checkout">
+                  <CheckoutLinkLabel />
+                </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md">
                 <Link href="/cart">View full cart</Link>

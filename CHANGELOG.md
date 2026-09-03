@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- The cart drawer's "Checkout" button gave no feedback while `/checkout` did its server-side fetch (auth, cart, addresses, provinces) after being tapped — it could look unresponsive for a moment. Added `next/link`'s `useLinkStatus` so the button swaps to a spinner + "Checking out…" while that specific navigation is pending (skipped automatically once the route is prefetched, per Next's own guidance for this hook)
 ### Fixed
 - `/cart` (and the cart drawer) briefly showed "Your cart is empty" on every reload before the real items appeared — `CartProvider` starts from a local empty `view` and fetches the real cart asynchronously, and both consumers used `items.length === 0` to mean "empty," which can't distinguish "actually empty" from "not fetched yet." Added a `loading` flag to `CartContext` (true until the first fetch resolves) and both `/cart` and the drawer now show a shaped skeleton while `loading` is true instead of the empty-cart state
 ### Changed
