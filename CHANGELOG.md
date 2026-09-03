@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Mobile hamburger menu was a flat, unstyled list of plain-text links — no icons, no grouping, no active-state highlighting, nothing matching the rest of the site's design language. Rebuilt to mirror the footer's Shop/Help/Maison grouping with icon+label rows (active route highlighted, same pattern as the account sidebar), and a prominent gold Sign in/My account button at the bottom instead of just another list row
+
 ### Added
 - Real logo mark ("L" monogram) next to the "Le Sillage" wordmark in the header, footer, and mobile menu sheet — previously plain text everywhere. Favicon replaced with the same mark, trimmed and padded to a square (`src/app/icon.png`, replacing the old default `favicon.ico`)
 - Real payment QR codes (BPI, GCash, MariBank) loaded via `scripts/import-qr-codes.ts`, replacing the seeded BPI/GCash placeholders and adding a new MariBank entry — shown at checkout payment

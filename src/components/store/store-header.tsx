@@ -5,7 +5,17 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Menu } from "lucide-react";
+import {
+  Menu,
+  Store,
+  HelpCircle,
+  MessageCircle,
+  Wallet,
+  FileText,
+  Info,
+  LogIn,
+  UserCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AccountPreview } from "@/components/store/account-preview";
 import { CartDrawer } from "@/components/store/cart-drawer";
@@ -26,13 +36,24 @@ const PRIMARY_LINKS = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
-const MENU_LINKS = [
-  { href: "/shop", label: "Shop" },
-  { href: "/faq", label: "FAQs" },
-  { href: "/contact", label: "Contact" },
-  { href: "/how-to-pay", label: "How to pay" },
-  { href: "/about", label: "About" },
-  { href: "/policies", label: "Policies" },
+const MENU_GROUPS = [
+  {
+    title: "Shop",
+    links: [{ href: "/shop", label: "Shop", icon: Store }],
+  },
+  {
+    title: "Help",
+    links: [
+      { href: "/faq", label: "FAQs", icon: HelpCircle },
+      { href: "/contact", label: "Contact", icon: MessageCircle },
+      { href: "/how-to-pay", label: "How to pay", icon: Wallet },
+      { href: "/policies", label: "Policies", icon: FileText },
+    ],
+  },
+  {
+    title: "Maison",
+    links: [{ href: "/about", label: "About", icon: Info }],
+  },
 ] as const;
 
 export function StoreHeader() {
@@ -98,6 +119,7 @@ export function StoreHeader() {
 }
 
 function MobileMenu({ signedIn }: { signedIn: boolean }) {
+  const pathname = usePathname();
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -106,28 +128,53 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72">
-        <SheetHeader>
+        <SheetHeader className="border-b border-border/60">
           <SheetTitle className="flex items-center gap-2 font-serif-display">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-6 w-auto" />
             Le Sillage
           </SheetTitle>
         </SheetHeader>
-        <nav className="flex flex-col gap-1 px-2">
-          {MENU_LINKS.map((link) => (
-            <SheetClose asChild key={link.href}>
-              <Link href={link.href} className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-muted">
-                {link.label}
+        <nav className="flex flex-col gap-5 overflow-y-auto px-4 pb-4">
+          {MENU_GROUPS.map((group) => (
+            <div key={group.title} className="space-y-1.5">
+              <p className="px-3 text-[10px] uppercase tracking-[0.3em] text-gold">{group.title}</p>
+              <ul className="space-y-0.5">
+                {group.links.map((link) => {
+                  const Icon = link.icon;
+                  const active = pathname === link.href || pathname?.startsWith(link.href + "/");
+                  return (
+                    <li key={link.href}>
+                      <SheetClose asChild>
+                        <Link
+                          href={link.href}
+                          className={cn(
+                            "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
+                            active
+                              ? "bg-gold/15 font-medium text-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {link.label}
+                        </Link>
+                      </SheetClose>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+          <div className="border-t border-border/60 pt-4">
+            <SheetClose asChild>
+              <Link
+                href={signedIn ? "/account" : "/sign-in"}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-md bg-gold px-3 text-sm font-medium text-gold-foreground transition-colors hover:bg-gold/90"
+              >
+                {signedIn ? <UserCircle className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                {signedIn ? "My account" : "Sign in"}
               </Link>
             </SheetClose>
-          ))}
-          <SheetClose asChild>
-            <Link
-              href={signedIn ? "/account" : "/sign-in"}
-              className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-muted"
-            >
-              {signedIn ? "Account" : "Sign in"}
-            </Link>
-          </SheetClose>
+          </div>
         </nav>
       </SheetContent>
     </Sheet>
