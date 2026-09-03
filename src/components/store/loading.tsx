@@ -52,10 +52,20 @@ export function CatalogPaginationSkeleton() {
   );
 }
 
-export function CatalogResultsSkeleton({ count = 6 }: { count?: number }) {
+export function CatalogResultsSkeleton({
+  count = 6,
+  showCount = true,
+}: {
+  count?: number;
+  /** Set false wherever the real results view is rendered with its own
+   *  `showCount={false}` (e.g. the shop page, whose `ShopToolbar` already
+   *  shows the count) — otherwise this skeletons a count line that never
+   *  actually appears. */
+  showCount?: boolean;
+}) {
   return (
     <>
-      <Skeleton className="mx-auto mb-6 h-3 w-24" />
+      {showCount ? <Skeleton className="mx-auto mb-6 h-3 w-24" /> : null}
       <CatalogCardsSkeleton count={count} />
       <CatalogPaginationSkeleton />
     </>

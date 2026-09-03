@@ -23,7 +23,7 @@ export default function ShopLoading() {
       <div className="mb-4 flex justify-center">
         <ShopFilters />
       </div>
-      <CatalogResultsSkeleton />
+      <CatalogResultsSkeleton showCount={false} />
     </main>
   );
 }
