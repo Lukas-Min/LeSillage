@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- Receipt uploads still failed in production after the earlier Blob fix — root cause was `uploadPrivateImage()` requesting `access: "private"` from Vercel Blob, but the project's connected Blob store is provisioned as public-access only, and Blob's access mode is fixed per store, not per upload ("Cannot use private access on a public store"). `uploadImage()` (`src/lib/blob.ts`) now always requests `access: "public"` — receipt files still get an unguessable random pathname, but are no longer truly access-controlled; a private-type store plus signed-URL serving would be needed for that
 - Every full-bottle SKU just said "Full bottle" with no size — set each to its real, regular retail bottle size instead (90ml for the YSL Libre family and Prada Paradoxe Intense, 100ml for the rest), researched per product against brand sites/major retailers rather than guessed; SKU label now reads e.g. "100ml Full bottle". Doesn't touch pricing — `sourceMl` stays unset on the product row, so `computeSkuRetailPrice` still returns the reference price as-is
 ### Added
 - Contact page and footer: added Facebook and Messenger as real, clickable contact methods; Contact page's email/phone rows are now also real `mailto:`/`tel:` links instead of plain text

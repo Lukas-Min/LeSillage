@@ -40,7 +40,14 @@ async function uploadImage(
     try {
       const mod = await import("@vercel/blob");
       const blob = await mod.put(pathname, file.bytes, {
-        access: scope === "public" ? "public" : "private",
+        // The connected Blob store is provisioned as a public-access store;
+        // Vercel Blob's access mode is fixed per store, not per upload, so
+        // requesting "private" here always throws ("Cannot use private
+        // access on a public store"). Private-scope uploads (receipts) still
+        // get an unguessable random pathname — just not a truly
+        // access-controlled one. Real access control would need a second,
+        // private-type Blob store plus signed-URL serving.
+        access: "public",
         contentType: file.type,
         token: env.BLOB_READ_WRITE_TOKEN,
       });
