@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiblingSkuOptions } from "@/actions/cart-actions";
 import { useCart } from "@/components/store/cart-context";
-import { Price } from "@/components/store/price";
 import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,14 +165,17 @@ export function CartLineItem({
             ) : null}
           </div>
           <div className="mt-1 flex items-baseline justify-between gap-2">
-            <p className="text-xs text-muted-foreground">{formatPHP(displayDiscounted)} each</p>
-            <Price
-              originalCentavos={displayOriginal}
-              discountedCentavos={displayDiscounted}
-              quantity={qty}
-              suffix="total"
-              className="text-right"
-            />
+            <p className="text-xs text-muted-foreground">
+              {formatPHP(displayDiscounted)} <span className="tabular-nums">× {qty}</span>
+            </p>
+            <div className="text-right">
+              <p className="text-sm font-semibold tabular-nums">{formatPHP(displayDiscounted * qty)}</p>
+              {displayOriginal > displayDiscounted ? (
+                <p className="text-xs text-muted-foreground line-through tabular-nums">
+                  {formatPHP(displayOriginal * qty)}
+                </p>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -201,18 +203,43 @@ export function CartLineItem({
 
         <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
           <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min={1}
-              max={item.maxQuantity}
-              value={qty}
-              disabled={outOfStock}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                if (Number.isFinite(next)) handleQtyChange(next);
-              }}
-              className="h-11 w-16 rounded-md"
-            />
+            <div className="flex items-center rounded-md border border-border">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Decrease quantity"
+                className="h-11 w-10 rounded-none rounded-l-md"
+                disabled={outOfStock || qty <= 1}
+                onClick={() => handleQtyChange(Math.max(1, qty - 1))}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input
+                type="number"
+                min={1}
+                max={item.maxQuantity}
+                value={qty}
+                disabled={outOfStock}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  if (Number.isFinite(next)) handleQtyChange(next);
+                }}
+                aria-label={`${item.name} quantity`}
+                className="h-11 w-12 rounded-none border-x-0 border-y-0 text-center text-base font-medium tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Increase quantity"
+                className="h-11 w-10 rounded-none rounded-r-md"
+                disabled={outOfStock || qty >= item.maxQuantity}
+                onClick={() => handleQtyChange(Math.min(item.maxQuantity, qty + 1))}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             <Button
               variant="ghost"
               size="icon"
