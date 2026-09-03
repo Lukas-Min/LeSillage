@@ -37,6 +37,36 @@ export default function PoliciesLoading() {
             ]}
           />
         </SectionCard>
+        <SectionCard eyebrow="Money" title="Payment & verification">
+          <DisclosureAccordion
+            items={[
+              {
+                id: "payment-methods",
+                label: "How payment works",
+                content: (
+                  <p>
+                    We don&apos;t run a card or e-wallet gateway — you pay by scanning one of our
+                    bank or e-wallet QR codes at checkout, then upload a screenshot of the
+                    receipt. A person checks every receipt by hand before your stock is reserved,
+                    so verification can take up to one business day.
+                  </p>
+                ),
+              },
+              {
+                id: "order-changes",
+                label: "Changing or cancelling an order",
+                content: (
+                  <p>
+                    Email us before your receipt is verified and we can usually adjust or cancel
+                    the order outright. After verification, cancellation is still possible but
+                    requires a reason and may take a little longer while we release any reserved
+                    stock.
+                  </p>
+                ),
+              },
+            ]}
+          />
+        </SectionCard>
       </div>
     </main>
   );

@@ -13,13 +13,17 @@ export default function HowToPayPage() {
         </header>
         <Card className="rounded-md">
           <CardContent className="space-y-3 p-6 text-sm leading-relaxed">
-            <p>1. Place your order on the checkout page.</p>
-            <p>2. Pay the total using any of our bank or e-wallet QR codes.</p>
-            <p>3. Upload a screenshot of your receipt on the payment page.</p>
-            <p>4. We will verify and confirm by email within one business day.</p>
+            <p>1. Place your order at checkout, choosing delivery or pickup.</p>
+            <p>
+              2. On the payment page, scan whichever QR code matches how you want to pay — bank
+              transfer, GCash, Maya, or another e-wallet — and send the exact total shown.
+            </p>
+            <p>3. Upload a screenshot of your receipt on that same page.</p>
+            <p>4. We verify it by hand and confirm by email, usually within one business day.</p>
             <p className="text-muted-foreground">
-              Stock is reserved only after your receipt is verified. If something becomes unavailable,
-              we will reach out with options.
+              Stock is reserved only once your receipt is verified — not the moment you place the
+              order. If something becomes unavailable in that window, we&apos;ll reach out with
+              options before doing anything else.
             </p>
           </CardContent>
         </Card>

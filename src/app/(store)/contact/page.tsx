@@ -14,7 +14,11 @@ export default function ContactPage() {
           <h1 className="font-serif-display text-4xl">Contact</h1>
         </header>
         <Card className="rounded-md">
-          <CardContent className="space-y-2 p-6 text-sm">
+          <CardContent className="space-y-3 p-6 text-sm leading-relaxed">
+            <p className="text-muted-foreground">
+              Questions about a fragrance, an order, or anything else — a real person reads every
+              message and usually replies within one business day.
+            </p>
             <p>For order questions: {env.GMAIL_USER}</p>
             {env.NEXT_PUBLIC_PHONE ? <p>Phone: {env.NEXT_PUBLIC_PHONE}</p> : null}
             <p>Pickup: {env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only."}</p>
