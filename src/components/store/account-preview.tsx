@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { User } from "lucide-react";
-import { SignOutButton } from "@/components/store/sign-out-overlay";
+import { SidebarContent } from "@/components/store/account-nav";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,13 +12,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-
-const SIGNED_IN_LINKS = [
-  { href: "/account", label: "Dashboard" },
-  { href: "/account/orders", label: "Orders" },
-  { href: "/account/wishlist", label: "Wishlist" },
-  { href: "/account/addresses", label: "Addresses" },
-] as const;
 
 export function AccountPreview({
   signedIn,
@@ -38,40 +31,21 @@ export function AccountPreview({
           <User className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-sm">
+      <SheetContent side="right" className="flex w-full flex-col sm:max-w-sm">
         <SheetHeader>
           <SheetTitle className="font-serif-display text-2xl">
             {signedIn ? (name ?? "Your account") : "Welcome"}
           </SheetTitle>
         </SheetHeader>
         {signedIn ? (
-          <div className="flex flex-col gap-4 px-4 pb-6">
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6">
             {email ? <p className="text-sm text-muted-foreground">{email}</p> : null}
-            <nav className="flex flex-col gap-1">
-              {SIGNED_IN_LINKS.map((link) => (
-                <SheetClose asChild key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-muted"
-                  >
-                    {link.label}
-                  </Link>
-                </SheetClose>
-              ))}
-              {isAdmin ? (
-                <SheetClose asChild>
-                  <Link href="/admin" className="flex min-h-11 items-center rounded-md px-3 text-sm hover:bg-muted">
-                    Admin
-                  </Link>
-                </SheetClose>
-              ) : null}
-            </nav>
+            <SidebarContent isAdmin={isAdmin} />
             <SheetClose asChild>
               <Button asChild variant="gold" className="rounded-md">
                 <Link href="/shop">Continue shopping</Link>
               </Button>
             </SheetClose>
-            <SignOutButton variant="outline" className="rounded-md" />
           </div>
         ) : (
           <div className="flex flex-col gap-3 px-4 pb-6">

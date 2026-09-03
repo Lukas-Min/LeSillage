@@ -88,9 +88,10 @@ function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: strin
 }
 
 /** The full nav — every item plus sign out (and, for admin, a link back to
- *  the customer account). Shared by the desktop sidebar and the mobile
- *  "More" sheet below so the two never drift apart. */
-function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
+ *  the customer account). Shared by the desktop sidebar, the mobile "More"
+ *  sheet below, and the header's account-preview sheet, so none of them
+ *  drift out of sync with each other. */
+export function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const items = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
   return (

@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Header's account-preview sheet (the person-icon panel, on both mobile and desktop) was a separate hardcoded flat link list (`Dashboard`/`Orders`/`Wishlist`/`Addresses`, plus `Admin` for admins) with no icons or active-state highlighting — out of sync with the desktop sidebar and the mobile "More" sheet. Now renders the same shared `SidebarContent` component (exported from `account-nav.tsx`) those already use, so all three stay in sync automatically
+
 ### Fixed
 - Sign-in form cleared the email field along with the password on a failed attempt (native `<form action>` server action, redirecting on error), forcing a full retype instead of just the password. `signInWithPassword` now carries the submitted email back through the redirect's query string, and the sign-in page prefills it via `SignInForm`'s new `defaultEmail` prop
 
