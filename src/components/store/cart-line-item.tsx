@@ -134,25 +134,27 @@ export function CartLineItem({
                 variant="ghost"
                 size="sm"
                 className="h-7 shrink-0 px-2 text-[11px] uppercase tracking-[0.15em]"
-                onClick={openCustomize}
+                disabled={saving}
+                onClick={customizing ? cancelCustomize : openCustomize}
               >
-                Customize
+                {customizing ? "Cancel" : "Customize"}
               </Button>
             ) : null}
           </div>
-          <div className="mt-1 space-y-0.5">
+          <div className="mt-1 flex items-baseline justify-between gap-2">
             <p className="text-xs text-muted-foreground">{formatPHP(item.retailPriceCentavos)} each</p>
             <Price
               originalCentavos={item.originalUnitCentavos}
               discountedCentavos={item.retailPriceCentavos}
               quantity={qty}
               suffix="total"
+              className="text-right"
             />
           </div>
         </div>
 
         {customizing ? (
-          <div className="space-y-2 border-t border-border/60 pt-3">
+          <div className="border-t border-border/60 pt-3">
             {loadingSiblings || siblings === null ? (
               <p className="text-xs text-muted-foreground">Loading sizes…</p>
             ) : (
@@ -164,55 +166,47 @@ export function CartLineItem({
                 className={saving ? "pointer-events-none opacity-50" : undefined}
               />
             )}
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="gold"
-                size="sm"
-                className="h-8 px-3 text-xs"
-                disabled={saving || loadingSiblings}
-                onClick={saveCustomize}
-              >
-                {saving ? "Saving…" : "Save"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 text-xs"
-                disabled={saving}
-                onClick={cancelCustomize}
-              >
-                Cancel
-              </Button>
-            </div>
           </div>
         ) : null}
 
         {outOfStock ? <p className="text-xs text-destructive">Out of stock</p> : null}
 
-        <div className="flex items-center gap-2 border-t border-border/60 pt-3">
-          <Input
-            type="number"
-            min={1}
-            max={item.maxQuantity}
-            value={qty}
-            disabled={outOfStock}
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              if (Number.isFinite(next)) handleQtyChange(next);
-            }}
-            className="h-11 w-16 rounded-md"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Remove ${item.name}`}
-            className="min-h-11 min-w-11"
-            onClick={() => void cart.remove(item.skuId)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={1}
+              max={item.maxQuantity}
+              value={qty}
+              disabled={outOfStock}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (Number.isFinite(next)) handleQtyChange(next);
+              }}
+              className="h-11 w-16 rounded-md"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Remove ${item.name}`}
+              className="min-h-11 min-w-11"
+              onClick={() => void cart.remove(item.skuId)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          {customizing ? (
+            <Button
+              type="button"
+              variant="gold"
+              size="sm"
+              className="h-8 px-3 text-xs"
+              disabled={saving || loadingSiblings}
+              onClick={saveCustomize}
+            >
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

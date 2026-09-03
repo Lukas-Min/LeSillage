@@ -49,6 +49,7 @@ export function WishlistButton({
       type="button"
       variant="outline"
       size="lg"
+      className="h-11 rounded-md"
       disabled={isPending}
       aria-pressed={saved}
       onClick={() =>

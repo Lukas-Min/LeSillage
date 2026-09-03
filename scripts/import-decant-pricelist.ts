@@ -87,14 +87,11 @@ const CATALOG: DecantEntry[] = [
     fragellaMirrorId: "Coach::Coach Dreams Sunset",
   },
   {
-    // NEEDS USER CONFIRMATION: pricelist says "Gucci Guilty Parfum" but no
-    // Fragrantica title is literally "Guilty ... Parfum". Three real candidates:
-    // "Guilty Pour Homme" (2011, EDT), "Guilty Pour Homme Eau de Parfum" (2020),
-    // or "Guilty Absolu de Parfum Pour Homme" (2025). Left unlinked/unrenamed
-    // until confirmed which one this actually is.
-    brand: "Gucci", name: "Guilty", concentration: "PARFUM", category: "DESIGNER", gender: "male",
+    // Confirmed by the user: "Guilty Pour Homme Parfum" (2022), fragrance id 71378.
+    brand: "Gucci", name: "Guilty Pour Homme Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
     prices: { 3: 120, 5: 155, 10: 405, 30: 1215 },
     fullBottle: { sizeMl: 90, basePricePhp: 3640 },
+    fragellaMirrorId: "gucci-guilty-pour-homme-parfum-manual",
   },
   {
     brand: "Moschino", name: "Toy Boy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",

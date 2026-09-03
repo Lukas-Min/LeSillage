@@ -68,7 +68,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
               <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
                 <Link href="/checkout">Checkout</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full rounded-md">
+              <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md">
                 <Link href="/cart">View full cart</Link>
               </Button>
               <DisclosureAccordion

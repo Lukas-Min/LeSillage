@@ -11,6 +11,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      // Header is a sticky h-14 (56px) bar at z-30 — without an offset,
+      // sonner's default top position sits underneath/inside it, reading as
+      // an ugly full-width strip merged into the nav instead of a floating
+      // card. Push toasts below it with a visible gap.
+      offset={{ top: "72px" }}
+      mobileOffset={{ top: "72px" }}
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />

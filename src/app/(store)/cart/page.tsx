@@ -22,7 +22,7 @@ export default function CartPage() {
         <Card className="mt-6">
           <CardContent className="space-y-3 p-6 text-center">
             <p className="text-muted-foreground">Your cart is empty.</p>
-            <Button asChild variant="gold" className="rounded-md">
+            <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
               <Link href="/shop">Browse the shop</Link>
             </Button>
           </CardContent>
@@ -64,7 +64,7 @@ export default function CartPage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">Sign in is required to checkout.</p>
-              <Button asChild variant="gold" size="lg" className="rounded-md">
+              <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
                 <Link href="/checkout">Checkout</Link>
               </Button>
             </CardFooter>

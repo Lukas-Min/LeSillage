@@ -4,6 +4,12 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Gucci "Guilty" resolved to its exact Fragrantica identity — **Guilty Pour Homme Parfum** (2022, id 71378), confirmed by the user after three real candidates were left ambiguous in an earlier pass. Hand-entered into `fragella_mirror`, product renamed and linked, SKU codes regenerated to match (see Fixed, below), real photo added — 24 of 24 decant products now have a name, notes, and image
+
+### Fixed
+- Toast notifications rendered overlapping the sticky header (`h-14`, `z-30`) instead of below it — sonner's default top offset put them underneath/inside the nav bar, reading as an ugly full-width strip merged into it rather than a floating card. Added an explicit `offset`/`mobileOffset` on the `Toaster` (`src/components/ui/sonner.tsx`) to clear the header
+- Cart-line "Customize" is repositioned: the size pills' Save button now sits bottom-right, aligned with the quantity/remove row, instead of left-aligned under the pills; the top-right "Customize" button itself turns into "Cancel" while editing instead of showing a separate Cancel button below; the unit price and line total now sit on the same row (each left, total right) instead of stacked
+- Several primary buttons across the storefront had `size="lg"` without the `h-11` override the rest of the site pairs it with, so they silently rendered at the smaller default `lg` height (36px) instead of 44px — most visibly "Checkout" vs "View full cart" in the cart drawer/page looking mismatched side by side. Fixed in `cart-drawer.tsx`, `cart/page.tsx` (two buttons), and `wishlist-button.tsx`'s text variant
 - Cart line "Customize" now has explicit Save/Cancel instead of committing a swap the instant a size pill is clicked: picking a size only stages it locally (no request fires), Save calls `changeCartItemSize`, Cancel discards and reverts to the current size — also removes the network round-trip that made picking a size in the drawer feel laggy, since nothing hits the server until Save
 - Cart line items now show both the unit price ("₱195.00 each") and the line total (via `<Price suffix="total">`), not just one combined number
 
