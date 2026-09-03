@@ -340,7 +340,13 @@ function NoteColumn({ notes }: { notes: string[] }) {
   if (notes.length === 0) {
     return <p className="text-center text-xs text-muted-foreground">—</p>;
   }
-  return <p className="text-center text-sm text-foreground">{notes.join(", ")}</p>;
+  return (
+    <div className="flex flex-col items-center gap-1 text-center text-sm text-foreground">
+      {notes.map((note, index) => (
+        <span key={`${note}-${index}`}>{note}</span>
+      ))}
+    </div>
+  );
 }
 
 function topSeasonLabels(breakout: unknown, limit = 2): string | null {
