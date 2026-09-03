@@ -1,4 +1,4 @@
-import { applyDiscount, bestDiscount } from "./discount";
+import { applyLineDiscount, bestDiscount } from "./discount";
 import type {
   Fulfillment,
   ProductDiscount,
@@ -59,13 +59,13 @@ export function priceCart(
   for (const item of items) {
     if (item.quantity <= 0) continue;
     const unitPriceCentavos = item.sku.retailPrice;
-    const discount = bestDiscount(item.discounts ?? [], unitPriceCentavos, now);
-    const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(
+    const discount = bestDiscount(item.discounts ?? [], unitPriceCentavos, item.quantity, now);
+    const { lineSubtotalCentavos: lineSubtotal, lineDiscountCentavos: lineDiscount } = applyLineDiscount(
       unitPriceCentavos,
+      item.quantity,
       discount,
     );
-    const lineSubtotal = discountedUnitCentavos * item.quantity;
-    const lineDiscount = perUnitDiscountCentavos * item.quantity;
+    const discountedUnitCentavos = Math.round(lineSubtotal / item.quantity);
     lines.push({
       skuId: item.sku.id,
       productType: item.productType,

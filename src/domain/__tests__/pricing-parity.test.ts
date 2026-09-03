@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { computeRetailPrice } from "../pricing";
-import { db } from "@/db/client";
 import { skus } from "@/db/schema";
 
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+
 describe("seed pricing parity", () => {
-  it("every sku stores a retailPrice equal to computeRetailPrice", async () => {
+  it.skipIf(!hasDatabase)("every sku stores a retailPrice equal to computeRetailPrice", async () => {
+    const { db } = await import("@/db/client");
     const client = db();
     const rows = await client
       .select({
