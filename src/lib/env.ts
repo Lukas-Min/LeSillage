@@ -35,6 +35,10 @@ const baseSchema = z.object({
   FACEBOOK_CLIENT_SECRET: optionalString,
   BLOB_READ_WRITE_TOKEN: optionalString,
   BLOB_BASE_URL: optionalString,
+  // Token for the separate, private-access Blob store used for payment
+  // receipts (bank references, names) — kept apart from the public-access
+  // store above, which can't serve truly access-controlled files.
+  RECEIPTS_READ_WRITE_TOKEN: optionalString,
 });
 
 const clientSchema = z.object({

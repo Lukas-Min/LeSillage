@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Security
+- Payment receipt images are now genuinely access-controlled instead of just having an unguessable URL. Provisioned a second, private-access Vercel Blob store (`le-sillage-receipts`, connected with a `RECEIPTS_` env var prefix to avoid colliding with the existing public store) and wired `uploadPrivateImage` to upload there with real `access: "private"`. Since a private blob's own URL isn't fetchable without the store's token, `receipts.blobUrl` now stores an `/api/admin/file?path=...` proxy URL instead — that route (already admin-session-gated) fetches the blob server-side via `@vercel/blob`'s `get()` and streams it back. Verified directly against the live store: the raw blob URL now returns 403 when fetched without the token, and the authenticated `get()` call retrieves the content correctly
 ### Added
 - Customers can now cancel their own order from the order detail page any time before it ships (`AWAITING_PAYMENT`/`RECEIPT_SUBMITTED`/`CONFIRMED` → `CANCELLED`, same transitions the admin side already allowed) via a new `cancelOrder` action and `CancelOrderButton`, gated by the existing `canTransition` state machine so the button only shows when cancelling is actually legal
 ### Fixed

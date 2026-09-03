@@ -20,23 +20,35 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Only private paths are allowed", { status: 400 });
   }
   const env = getEnv();
-  if (!env.BLOB_READ_WRITE_TOKEN) {
-    const root = resolve(process.cwd(), ".blob");
-    const resolved = resolve(root, safe);
-    if (!resolved.startsWith(root)) {
-      return new NextResponse("Invalid path", { status: 400 });
-    }
-    try {
-      const data = await fs.readFile(resolved);
-      return new NextResponse(data, {
-        status: 200,
-        headers: { "Cache-Control": "private, max-age=60" },
-      });
-    } catch {
+  if (env.RECEIPTS_READ_WRITE_TOKEN) {
+    const { get } = await import("@vercel/blob");
+    const result = await get(safe, { access: "private", token: env.RECEIPTS_READ_WRITE_TOKEN });
+    if (!result || result.statusCode !== 200) {
       return new NextResponse("Not found", { status: 404 });
     }
+    return new NextResponse(result.stream, {
+      status: 200,
+      headers: {
+        "Content-Type": result.blob.contentType,
+        "Cache-Control": "private, max-age=60",
+      },
+    });
   }
-  return NextResponse.redirect(`https://vercel.com/`);
+
+  const root = resolve(process.cwd(), ".blob");
+  const resolved = resolve(root, safe);
+  if (!resolved.startsWith(root)) {
+    return new NextResponse("Invalid path", { status: 400 });
+  }
+  try {
+    const data = await fs.readFile(resolved);
+    return new NextResponse(data, {
+      status: 200,
+      headers: { "Cache-Control": "private, max-age=60" },
+    });
+  } catch {
+    return new NextResponse("Not found", { status: 404 });
+  }
 }
 
 export const runtime = "nodejs";

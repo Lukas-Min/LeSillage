@@ -35,30 +35,32 @@ async function uploadImage(
   const ext = inferExtension(file);
   const safeName = `${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
   const pathname = `${scope}/${prefix}/${safeName}`;
+  // Two separate Blob stores: the original store only supports public
+  // access, so private-scope uploads (receipts — bank references, names)
+  // go to a dedicated private-access store instead, using its own token.
+  const token = scope === "public" ? env.BLOB_READ_WRITE_TOKEN : env.RECEIPTS_READ_WRITE_TOKEN;
 
-  if (env.BLOB_READ_WRITE_TOKEN) {
+  if (token) {
     try {
       const mod = await import("@vercel/blob");
       const blob = await mod.put(pathname, file.bytes, {
-        // The connected Blob store is provisioned as a public-access store;
-        // Vercel Blob's access mode is fixed per store, not per upload, so
-        // requesting "private" here always throws ("Cannot use private
-        // access on a public store"). Private-scope uploads (receipts) still
-        // get an unguessable random pathname — just not a truly
-        // access-controlled one. Real access control would need a second,
-        // private-type Blob store plus signed-URL serving.
-        access: "public",
+        access: scope,
         contentType: file.type,
-        token: env.BLOB_READ_WRITE_TOKEN,
+        token,
       });
-      return { url: blob.url, pathname };
+      // A private blob's own URL isn't fetchable without the read-write
+      // token, so callers get a same-origin proxy URL instead — served by
+      // /api/admin/file, which is gated to signed-in admins and fetches the
+      // blob server-side with the token.
+      const url = scope === "public" ? blob.url : `/api/admin/file?path=${encodeURIComponent(pathname)}`;
+      return { url, pathname };
     } catch (error) {
       // Log instead of swallowing — a bad token / network failure here used
       // to fall through silently to the local-disk fallback below, which is
       // guaranteed to throw on Vercel (its functions have a read-only
       // filesystem outside /tmp), surfacing as an opaque React RSC error
       // instead of the real cause.
-      console.error("Vercel Blob upload failed, falling back to local storage:", error);
+      console.error(`Vercel Blob upload failed (${scope}), falling back to local storage:`, error);
     }
   }
 
@@ -69,7 +71,9 @@ async function uploadImage(
   // write that surfaces as an unhandled, unhelpful error on the client.
   if (process.env.VERCEL) {
     throw new Error(
-      "Image storage is not configured (BLOB_READ_WRITE_TOKEN missing or invalid). Set it in the Vercel project's environment variables.",
+      scope === "public"
+        ? "Image storage is not configured (BLOB_READ_WRITE_TOKEN missing or invalid). Set it in the Vercel project's environment variables."
+        : "Receipt storage is not configured (RECEIPTS_READ_WRITE_TOKEN missing or invalid). Set it in the Vercel project's environment variables.",
     );
   }
 
