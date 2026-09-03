@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 
 const COST = 12;
-const MIN_LENGTH = 10;
+const MIN_LENGTH = 6;
 const WEAK = new Set([
   "password10",
   "password123",

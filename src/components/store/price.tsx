@@ -22,10 +22,11 @@ export function Price({
     originalCentavos > 0 ? Math.round((savedCentavos / originalCentavos) * 100) : 0;
   if (!hasDiscount) {
     return (
-      <span className={className} aria-label={suffix ?? undefined}>
+      <span className={className}>
         <span className="font-serif-display text-2xl tracking-tight">
           {formatPHP(discountedCentavos * quantity)}
         </span>
+        {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}
       </span>
     );
   }

@@ -35,8 +35,8 @@ export default async function SignUpPage({
             </div>
             <div className="space-y-1">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required minLength={10} className="h-11" />
-              <p className="text-xs text-muted-foreground">At least 10 characters, with a letter and a number.</p>
+              <Input id="password" name="password" type="password" required minLength={6} className="h-11" />
+              <p className="text-xs text-muted-foreground">At least 6 characters, with a letter and a number.</p>
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
             <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Creating…">

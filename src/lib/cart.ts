@@ -313,16 +313,22 @@ export async function mergeGuestCartIntoUser(): Promise<void> {
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(inArray(skus.id, guestItems.map((item) => item.skuId)));
-    for (const item of guestItems) {
-      const found = skuRows.find((row) => row.sku.id === item.skuId);
-      if (!found || !found.sku.isActive) continue;
-      await addOneToCart(
-        userCart,
-        { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
-        item.quantity,
-        promoConfig.decantPreOrderThresholdMl,
-      );
-    }
+    // Each item targets a distinct skuId (unique per cart), so these don't
+    // contend with each other — safe to run concurrently instead of one
+    // sequential round trip per item (this runs on every sign-in that has a
+    // guest cart to merge).
+    await Promise.all(
+      guestItems.map((item) => {
+        const found = skuRows.find((row) => row.sku.id === item.skuId);
+        if (!found || !found.sku.isActive) return null;
+        return addOneToCart(
+          userCart,
+          { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
+          item.quantity,
+          promoConfig.decantPreOrderThresholdMl,
+        );
+      }),
+    );
   }
   await client.delete(cartItems).where(eq(cartItems.cartId, guestCart.id));
   await client.delete(carts).where(eq(carts.id, guestCart.id));
@@ -339,15 +345,19 @@ export async function importLegacyCartLines(lines: Array<{ skuId: string; quanti
     .from(skus)
     .innerJoin(products, eq(products.id, skus.productId))
     .where(inArray(skus.id, lines.map((line) => line.skuId)));
-  for (const line of lines) {
-    const found = skuRows.find((row) => row.sku.id === line.skuId);
-    if (!found || !found.sku.isActive) continue;
-    await addOneToCart(
-      cart,
-      { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
-      line.quantity,
-      promoConfig.decantPreOrderThresholdMl,
-    );
-  }
+  // Same reasoning as mergeGuestCartIntoUser above — distinct skuIds, safe
+  // to run concurrently rather than one sequential round trip per line.
+  await Promise.all(
+    lines.map((line) => {
+      const found = skuRows.find((row) => row.sku.id === line.skuId);
+      if (!found || !found.sku.isActive) return null;
+      return addOneToCart(
+        cart,
+        { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
+        line.quantity,
+        promoConfig.decantPreOrderThresholdMl,
+      );
+    }),
+  );
   return loadCartView(cart.id);
 }

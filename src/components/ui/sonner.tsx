@@ -39,6 +39,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "cn-toast",
+          // Le Sillage's own palette, not sonner's built-in richColors preset —
+          // same destructive/gold tint conventions as Badge/Button elsewhere,
+          // not a solid alert-red/green block.
+          success: "!bg-gold/15 !text-gold-foreground !border-gold/30",
+          error: "!bg-destructive/10 !text-destructive !border-destructive/20 dark:!bg-destructive/20",
+          warning: "!bg-gold/15 !text-gold-foreground !border-gold/30",
         },
       }}
       {...props}

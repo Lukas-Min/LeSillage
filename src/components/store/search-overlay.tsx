@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { searchCatalog } from "@/actions/catalog-search-actions";
-import type { CatalogCardModel } from "@/lib/catalog";
+import type { SearchResultCard } from "@/lib/catalog";
 import { labelForType } from "@/domain/product-type";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import { formatPHPRange } from "@/domain/money";
 export function SearchOverlay() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CatalogCardModel[]>([]);
+  const [results, setResults] = useState<SearchResultCard[]>([]);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function SearchOverlay() {
       startTransition(async () => {
         setResults(await searchCatalog(term));
       });
-    }, 1000);
+    }, 500);
     return () => window.clearTimeout(handle);
   }, [query]);
 

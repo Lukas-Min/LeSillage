@@ -308,6 +308,75 @@ function priceVariant(variant: SkuRow, discounts: ProductDiscount[]) {
   };
 }
 
+export interface SearchResultCard {
+  productId: string;
+  name: string;
+  brand: string;
+  type: ProductType;
+  href: string;
+  minDiscountedCentavos: number;
+  maxDiscountedCentavos: number;
+}
+
+const SEARCH_RESULT_LIMIT = 20;
+
+/**
+ * Lightweight search for the header search-as-you-type dropdown. Deliberately
+ * NOT `loadCatalogCards({ query })`: that pipeline computes full pricing,
+ * fulfillment, note pyramids, images, and (for decants) every size option for
+ * every matching product — none of which the dropdown renders — and had no
+ * result limit, so a broad query (e.g. a single letter) priced the entire
+ * matching catalog. This fetches only what's displayed and caps at
+ * `SEARCH_RESULT_LIMIT`.
+ */
+export async function searchCatalogCards(query: string): Promise<SearchResultCard[]> {
+  const term = query.trim();
+  if (term.length === 0) return [];
+  const client = db();
+  const needle = `%${term}%`;
+  const matches = await client
+    .select({ id: products.id, name: products.name, brand: products.brand, type: products.type })
+    .from(products)
+    .where(
+      and(
+        eq(products.isActive, true),
+        or(ilike(products.name, needle), ilike(products.brand, needle), ilike(products.family, needle)),
+      ),
+    )
+    .orderBy(desc(products.createdAt))
+    .limit(SEARCH_RESULT_LIMIT);
+  if (matches.length === 0) return [];
+
+  const productIds = matches.map((m) => m.id);
+  const [skuRows, discountRows] = await Promise.all([
+    client
+      .select({ id: skus.id, productId: skus.productId, retailPrice: skus.retailPrice })
+      .from(skus)
+      .where(and(eq(skus.isActive, true), eq(skus.isTester, false), inArray(skus.productId, productIds))),
+    client.select().from(productDiscounts).where(inArray(productDiscounts.productId, productIds)),
+  ]);
+  const skusByProduct = groupBy(skuRows, (row) => row.productId);
+  const discountsByProduct = groupBy(discountRows, (row) => row.productId);
+
+  const results: SearchResultCard[] = [];
+  for (const product of matches) {
+    const variants = skusByProduct.get(product.id) ?? [];
+    if (variants.length === 0) continue;
+    const discounts = discountsByProduct.get(product.id) ?? [];
+    const discounted = variants.map((v) => applyDiscount(v.retailPrice, bestDiscount(discounts, v.retailPrice)).discountedUnitCentavos);
+    results.push({
+      productId: product.id,
+      name: product.name,
+      brand: product.brand,
+      type: product.type,
+      href: `/shop/${variants[0].id}`,
+      minDiscountedCentavos: Math.min(...discounted),
+      maxDiscountedCentavos: Math.max(...discounted),
+    });
+  }
+  return results;
+}
+
 function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>();
   for (const row of rows) {

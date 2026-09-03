@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiblingSkuOptions } from "@/actions/cart-actions";
@@ -9,8 +9,11 @@ import { Price } from "@/components/store/price";
 import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatPHP } from "@/domain/money";
 import type { CartLineView } from "@/lib/cart";
 import { cn } from "@/lib/utils";
+
+const QUANTITY_DEBOUNCE_MS = 500;
 
 export function CartLineItem({
   item,
@@ -20,17 +23,45 @@ export function CartLineItem({
   layout?: "drawer" | "page";
 }) {
   const cart = useCart();
+
+  // Local, instantly-updated quantity — the server call is debounced so
+  // typing doesn't fire a request (and a full cart reload) per keystroke.
+  // Resyncing when the server-confirmed quantity/sku changes (e.g. after the
+  // debounced call lands, or a size swap) is done during render — React's
+  // documented pattern for "adjust state when a prop changes" — rather than
+  // an effect, which would cascade an extra render on every sync.
+  const [qty, setQtyLocal] = useState(item.quantity);
+  const [syncedKey, setSyncedKey] = useState(`${item.skuId}:${item.quantity}`);
+  const currentKey = `${item.skuId}:${item.quantity}`;
+  if (currentKey !== syncedKey) {
+    setSyncedKey(currentKey);
+    setQtyLocal(item.quantity);
+  }
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
+
+  function handleQtyChange(next: number) {
+    setQtyLocal(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void cart.setQuantity(item.skuId, next);
+    }, QUANTITY_DEBOUNCE_MS);
+  }
+
+  // Customize: picking a size only stages it locally — nothing is sent to
+  // the server (and nothing re-fetches the cart) until Save is clicked.
   const [customizing, setCustomizing] = useState(false);
   const [siblings, setSiblings] = useState<SizePickerOption[] | null>(null);
+  const [stagedSkuId, setStagedSkuId] = useState(item.skuId);
   const [loadingSiblings, startLoadSiblings] = useTransition();
-  const [swapping, startSwap] = useTransition();
+  const [saving, startSave] = useTransition();
 
-  function toggleCustomize() {
-    if (customizing) {
-      setCustomizing(false);
-      return;
-    }
+  function openCustomize() {
+    if (customizing) return;
     setCustomizing(true);
+    setStagedSkuId(item.skuId);
     if (siblings) return;
     startLoadSiblings(async () => {
       try {
@@ -42,14 +73,19 @@ export function CartLineItem({
     });
   }
 
-  function handleSelect(option: SizePickerOption) {
-    if (option.skuId === item.skuId) {
+  function cancelCustomize() {
+    setCustomizing(false);
+    setStagedSkuId(item.skuId);
+  }
+
+  function saveCustomize() {
+    if (!stagedSkuId || stagedSkuId === item.skuId) {
       setCustomizing(false);
       return;
     }
-    startSwap(async () => {
+    startSave(async () => {
       try {
-        await cart.changeSize(item.skuId, option.skuId);
+        await cart.changeSize(item.skuId, stagedSkuId);
         setCustomizing(false);
         setSiblings(null); // prices/stock may have moved — refetch next time
       } catch (error) {
@@ -83,71 +119,101 @@ export function CartLineItem({
         layout === "page" && "sm:flex sm:items-center sm:gap-4 sm:p-4",
       )}
     >
-      <div className="flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-serif-display text-base leading-tight">{item.name}</p>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
-            </p>
+      <div className="flex-1 space-y-3">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="font-serif-display text-base leading-tight">{item.name}</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
+              </p>
+            </div>
+            {item.productType === "DECANT" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 shrink-0 px-2 text-[11px] uppercase tracking-[0.15em]"
+                onClick={openCustomize}
+              >
+                Customize
+              </Button>
+            ) : null}
           </div>
-          {item.productType === "DECANT" ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 px-2 text-[11px] uppercase tracking-[0.15em]"
-              onClick={toggleCustomize}
-            >
-              Customize
-            </Button>
-          ) : null}
+          <div className="mt-1 space-y-0.5">
+            <p className="text-xs text-muted-foreground">{formatPHP(item.retailPriceCentavos)} each</p>
+            <Price
+              originalCentavos={item.originalUnitCentavos}
+              discountedCentavos={item.retailPriceCentavos}
+              quantity={qty}
+              suffix="total"
+            />
+          </div>
         </div>
-        <Price
-          originalCentavos={item.originalUnitCentavos}
-          discountedCentavos={item.retailPriceCentavos}
-          quantity={item.quantity}
-          className="mt-1 block"
-        />
+
         {customizing ? (
-          <div className="mt-2 border-t border-border/60 pt-2">
+          <div className="space-y-2 border-t border-border/60 pt-3">
             {loadingSiblings || siblings === null ? (
               <p className="text-xs text-muted-foreground">Loading sizes…</p>
             ) : (
               <SizePicker
                 density="compact"
                 options={siblings}
-                selectedSkuId={item.skuId}
-                onSelect={handleSelect}
-                className={swapping ? "pointer-events-none opacity-50" : undefined}
+                selectedSkuId={stagedSkuId}
+                onSelect={(option) => setStagedSkuId(option.skuId)}
+                className={saving ? "pointer-events-none opacity-50" : undefined}
               />
             )}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="gold"
+                size="sm"
+                className="h-8 px-3 text-xs"
+                disabled={saving || loadingSiblings}
+                onClick={saveCustomize}
+              >
+                {saving ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-xs"
+                disabled={saving}
+                onClick={cancelCustomize}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         ) : null}
-        {outOfStock ? <p className="mt-1 text-xs text-destructive">Out of stock</p> : null}
-      </div>
-      <div className="mt-2 flex items-center gap-2 sm:mt-0">
-        <Input
-          type="number"
-          min={1}
-          max={item.maxQuantity}
-          value={item.quantity}
-          disabled={outOfStock}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            if (Number.isFinite(next)) void cart.setQuantity(item.skuId, next);
-          }}
-          className="h-11 w-16 rounded-md"
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Remove ${item.name}`}
-          className="min-h-11 min-w-11"
-          onClick={() => void cart.remove(item.skuId)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+
+        {outOfStock ? <p className="text-xs text-destructive">Out of stock</p> : null}
+
+        <div className="flex items-center gap-2 border-t border-border/60 pt-3">
+          <Input
+            type="number"
+            min={1}
+            max={item.maxQuantity}
+            value={qty}
+            disabled={outOfStock}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              if (Number.isFinite(next)) handleQtyChange(next);
+            }}
+            className="h-11 w-16 rounded-md"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Remove ${item.name}`}
+            className="min-h-11 min-w-11"
+            onClick={() => void cart.remove(item.skuId)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

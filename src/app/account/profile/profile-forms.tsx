@@ -200,10 +200,10 @@ export function ChangePasswordForm() {
             onChange={(event) => setNext(event.target.value)}
             autoComplete="new-password"
             required
-            minLength={8}
+            minLength={6}
           />
           <p className="text-xs text-muted-foreground">
-            At least 8 characters with a letter and a digit.
+            At least 6 characters with a letter and a digit.
           </p>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
