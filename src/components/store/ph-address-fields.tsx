@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PhLocationOption, PhProvinceOption } from "@/lib/ph-locations";
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
+const selectClass = "h-8 w-full rounded-lg border bg-background px-2.5 text-sm";
 
 export interface PhAddressValues {
   region: string;
@@ -262,7 +262,6 @@ export function PhAddressFields({
           onChange={(event) => setPostalCode(event.target.value)}
           minLength={4}
           required
-          className="h-11"
         />
       </div>
       <div className="space-y-1 sm:col-span-2">
@@ -273,7 +272,6 @@ export function PhAddressFields({
           value={street}
           onChange={(event) => setStreet(event.target.value)}
           required
-          className="h-11"
         />
       </div>
     </>
