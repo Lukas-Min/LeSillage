@@ -117,8 +117,16 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
-        <div className="flex flex-col gap-6 md:pr-12">
+      {/* Both column wrappers below use `contents` on mobile — they render no
+          box of their own, so their children flow directly into this
+          outer flex column and can be reordered per-child with `order-*`.
+          That lets the title row (which must stay a single WishlistButton
+          instance — mounting it twice crashed production, see
+          wishlist-button.tsx) sit right under the image on mobile while
+          still opening the sticky right column on desktop, without ever
+          rendering a second copy of it. */}
+      <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
+        <div className="contents md:flex md:flex-col md:gap-6 md:pr-12">
           <CompositionCanvas
             brand={row.brand}
             name={row.name}
@@ -127,39 +135,26 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             imageUrl={image[0]?.url}
             imageAlt={image[0]?.alt}
             cornerLabel={labelForCategory(row.fragranceCategory)}
-          />
-
-          {/* Mobile only — plain text, so the title sits above "Main accords"
-              on narrow screens instead of after it. Text-only (no
-              WishlistButton here): that's a stateful client component with
-              its own server action binding, and mounting two live instances
-              of it for the same product crashed production (both instances
-              share the same in-flight action, and Next's re-render recovery
-              for a rejected action from one instance blew up trying to
-              reconcile the other). The button itself stays single-instance,
-              in its original spot in the column below. */}
-          <ProductTitleText
-            brand={row.brand}
-            name={row.name}
-            concentrationGender={concentrationGender}
-            className="md:hidden"
+            className="order-1"
           />
 
           {accords && accords.length > 0 ? (
-            <div className="space-y-2">
+            <div className="order-3 space-y-2">
               <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
               <AccordStrip accords={accords} />
             </div>
           ) : null}
 
           {notePyramid ? (
-            <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} />
+            <div className="order-4">
+              <CompositionContent pyramid={notePyramid} perfumers={row.perfumers ?? null} />
+            </div>
           ) : looseNotes ? (
-            <p className="border-t border-border/60 pt-4 text-sm text-muted-foreground">{looseNotes}</p>
+            <p className="order-4 border-t border-border/60 pt-4 text-sm text-muted-foreground">{looseNotes}</p>
           ) : null}
 
           {row.longevity || topSeasons ? (
-            <div className="grid grid-cols-2 gap-4 border-t border-border/60 pt-4">
+            <div className="order-5 grid grid-cols-2 gap-4 border-t border-border/60 pt-4">
               {topSeasons ? (
                 <div className="space-y-1.5">
                   <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Seasons</p>
@@ -176,21 +171,18 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
-          <div className="flex items-start justify-between gap-3">
-            <ProductTitleText
-              brand={row.brand}
-              name={row.name}
-              concentrationGender={concentrationGender}
-              className="hidden md:block"
-            />
+        <div className="contents md:flex md:flex-col md:gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
+          <div className="order-2 flex items-start justify-between gap-3">
+            <ProductTitleText brand={row.brand} name={row.name} concentrationGender={concentrationGender} />
             <WishlistButton productId={row.productId} variant="icon" />
           </div>
 
           {isDecant ? (
-            <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
+            <div className="order-6">
+              <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
+            </div>
           ) : (
-            <>
+            <div className="order-6 flex flex-col gap-6">
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
                   {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
@@ -215,10 +207,10 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                 savedCentavos={perUnitDiscountCentavos}
                 soldOut={soldOut}
               />
-            </>
+            </div>
           )}
 
-          <section className="border-t border-border/60 pt-2">
+          <section className="order-7 border-t border-border/60 pt-2">
             <DisclosureAccordion
               items={[
                 {
