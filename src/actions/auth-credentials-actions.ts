@@ -40,6 +40,23 @@ function toRedirectQuery(error: unknown): string {
   return "error=message";
 }
 
+/**
+ * Shared shape for every auth action below: run `action`, and on a real
+ * error (not a Next.js redirect/notFound control-flow signal — unstable_rethrow
+ * lets those pass through untouched) redirect back to `fallback` with the
+ * error encoded via toRedirectQuery. `action` itself may or may not redirect
+ * on success (most do; resendSignupCode doesn't) — this wrapper only ever
+ * intercepts the failure path, so that's unaffected either way.
+ */
+async function withAuthErrorRedirect(fallback: (query: string) => string, action: () => Promise<void>) {
+  try {
+    await action();
+  } catch (error) {
+    unstable_rethrow(error);
+    redirect(fallback(toRedirectQuery(error)));
+  }
+}
+
 async function logEmail(recipient: string, template: string, result: { ok: boolean; error?: string }) {
   await db().insert(notificationLog).values({
     recipient,
@@ -61,163 +78,163 @@ async function limitAuth(key: string) {
 
 export async function registerWithEmail(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? "/");
-  try {
-    await limitAuth("signup");
-    const name = z.string().min(2).max(120).parse(String(formData.get("name") ?? ""));
-    const email = emailSchema.parse(String(formData.get("email") ?? ""));
-    const password = String(formData.get("password") ?? "");
-    const passwordError = validatePassword(password);
-    if (passwordError) throw new Error(passwordError);
-    const client = db();
-    const existing = (await client.select().from(users).where(eq(users.email, email)))[0];
-    if (existing?.deletedAt || existing?.emailVerified) {
-      // Intentionally silent — do not add an ?error= here for either case.
-      // Confirming "this email is already registered" (verified or deleted)
-      // would let an attacker enumerate accounts.
-      redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
-    }
-    const passwordHash = await hashPassword(password);
-    const env = getEnv();
-    const role = email === env.ADMIN_EMAIL.toLowerCase() ? "ADMIN" : "CUSTOMER";
-    if (existing) {
-      await client
-        .update(users)
-        .set({ name, passwordHash, role })
-        .where(eq(users.id, existing.id));
-    } else {
-      await client.insert(users).values({ name, email, passwordHash, role });
-    }
-    const issued = await issueVerificationCode({ identifier: email, purpose: "SIGNUP" });
-    if (!issued.resentTooSoon && issued.code) {
-      const sent = await sendEmail({ to: email, ...confirmSignupEmail(issued.code) });
-      await logEmail(email, "confirm_signup", sent);
-    }
-    await auditLogSubject({
-      actor: email,
-      action: "AUTH_SIGNUP",
-      targetType: "user",
-      targetId: email,
-    });
-    redirect(`/verify-email?email=${encodeURIComponent(email)}&returnTo=${encodeURIComponent(returnTo)}`);
-  } catch (error) {
-    unstable_rethrow(error);
-    redirect(`/sign-up?returnTo=${encodeURIComponent(returnTo)}&${toRedirectQuery(error)}`);
-  }
+  await withAuthErrorRedirect(
+    (query) => `/sign-up?returnTo=${encodeURIComponent(returnTo)}&${query}`,
+    async () => {
+      await limitAuth("signup");
+      const name = z.string().min(2).max(120).parse(String(formData.get("name") ?? ""));
+      const email = emailSchema.parse(String(formData.get("email") ?? ""));
+      const password = String(formData.get("password") ?? "");
+      const passwordError = validatePassword(password);
+      if (passwordError) throw new Error(passwordError);
+      const client = db();
+      const existing = (await client.select().from(users).where(eq(users.email, email)))[0];
+      if (existing?.deletedAt || existing?.emailVerified) {
+        // Intentionally silent — do not add an ?error= here for either case.
+        // Confirming "this email is already registered" (verified or deleted)
+        // would let an attacker enumerate accounts.
+        redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+      }
+      const passwordHash = await hashPassword(password);
+      const env = getEnv();
+      const role = email === env.ADMIN_EMAIL.toLowerCase() ? "ADMIN" : "CUSTOMER";
+      if (existing) {
+        await client
+          .update(users)
+          .set({ name, passwordHash, role })
+          .where(eq(users.id, existing.id));
+      } else {
+        await client.insert(users).values({ name, email, passwordHash, role });
+      }
+      const issued = await issueVerificationCode({ identifier: email, purpose: "SIGNUP" });
+      if (!issued.resentTooSoon && issued.code) {
+        const sent = await sendEmail({ to: email, ...confirmSignupEmail(issued.code) });
+        await logEmail(email, "confirm_signup", sent);
+      }
+      await auditLogSubject({
+        actor: email,
+        action: "AUTH_SIGNUP",
+        targetType: "user",
+        targetId: email,
+      });
+      redirect(`/verify-email?email=${encodeURIComponent(email)}&returnTo=${encodeURIComponent(returnTo)}`);
+    },
+  );
 }
 
 export async function verifyEmailCode(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? "/account");
   const emailRaw = String(formData.get("email") ?? "");
-  try {
-    await limitAuth("verify-email");
-    const email = emailSchema.parse(emailRaw);
-    const code = String(formData.get("code") ?? "").replace(/\D/g, "");
-    const password = String(formData.get("password") ?? "");
-    const result = await consumeVerificationCode({ identifier: email, purpose: "SIGNUP", code });
-    if (!result.ok) throw new Error(result.error ?? "Invalid code");
-    await db()
-      .update(users)
-      .set({ emailVerified: new Date() })
-      .where(eq(users.email, email));
-    if (password) {
-      await signIn("credentials", { email, password, redirectTo: returnTo.startsWith("/") ? returnTo : "/account" });
-    }
-    redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
-  } catch (error) {
-    unstable_rethrow(error);
-    redirect(`/verify-email?email=${encodeURIComponent(emailRaw)}&returnTo=${encodeURIComponent(returnTo)}&${toRedirectQuery(error)}`);
-  }
+  await withAuthErrorRedirect(
+    (query) => `/verify-email?email=${encodeURIComponent(emailRaw)}&returnTo=${encodeURIComponent(returnTo)}&${query}`,
+    async () => {
+      await limitAuth("verify-email");
+      const email = emailSchema.parse(emailRaw);
+      const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+      const password = String(formData.get("password") ?? "");
+      const result = await consumeVerificationCode({ identifier: email, purpose: "SIGNUP", code });
+      if (!result.ok) throw new Error(result.error ?? "Invalid code");
+      await db()
+        .update(users)
+        .set({ emailVerified: new Date() })
+        .where(eq(users.email, email));
+      if (password) {
+        await signIn("credentials", { email, password, redirectTo: returnTo.startsWith("/") ? returnTo : "/account" });
+      }
+      redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+    },
+  );
 }
 
 export async function resendSignupCode(formData: FormData) {
   const emailRaw = String(formData.get("email") ?? "");
-  try {
-    await limitAuth("resend-signup");
-    const email = emailSchema.parse(emailRaw);
-    const issued = await issueVerificationCode({ identifier: email, purpose: "SIGNUP" });
-    if (issued.resentTooSoon) throw new Error("Please wait a moment before requesting another code");
-    if (issued.code) {
-      const sent = await sendEmail({ to: email, ...confirmSignupEmail(issued.code) });
-      await logEmail(email, "confirm_signup", sent);
-    }
-  } catch (error) {
-    unstable_rethrow(error);
-    redirect(`/verify-email?email=${encodeURIComponent(emailRaw)}&${toRedirectQuery(error)}`);
-  }
+  await withAuthErrorRedirect(
+    (query) => `/verify-email?email=${encodeURIComponent(emailRaw)}&${query}`,
+    async () => {
+      await limitAuth("resend-signup");
+      const email = emailSchema.parse(emailRaw);
+      const issued = await issueVerificationCode({ identifier: email, purpose: "SIGNUP" });
+      if (issued.resentTooSoon) throw new Error("Please wait a moment before requesting another code");
+      if (issued.code) {
+        const sent = await sendEmail({ to: email, ...confirmSignupEmail(issued.code) });
+        await logEmail(email, "confirm_signup", sent);
+      }
+    },
+  );
 }
 
 export async function requestPasswordReset(formData: FormData) {
   const emailRaw = String(formData.get("email") ?? "");
-  try {
-    await limitAuth("forgot-password");
-    const email = emailSchema.parse(emailRaw);
-    const existing = (await db().select().from(users).where(eq(users.email, email)))[0];
-    if (existing && !existing.deletedAt) {
-      const issued = await issueVerificationCode({ identifier: email, purpose: "RESET_PASSWORD" });
-      if (!issued.resentTooSoon && issued.code) {
-        const sent = await sendEmail({ to: email, ...resetPasswordEmail(issued.code) });
-        await logEmail(email, "reset_password", sent);
+  await withAuthErrorRedirect(
+    (query) => `/forgot-password?${query}`,
+    async () => {
+      await limitAuth("forgot-password");
+      const email = emailSchema.parse(emailRaw);
+      const existing = (await db().select().from(users).where(eq(users.email, email)))[0];
+      if (existing && !existing.deletedAt) {
+        const issued = await issueVerificationCode({ identifier: email, purpose: "RESET_PASSWORD" });
+        if (!issued.resentTooSoon && issued.code) {
+          const sent = await sendEmail({ to: email, ...resetPasswordEmail(issued.code) });
+          await logEmail(email, "reset_password", sent);
+        }
       }
-    }
-    // Always redirects the same way regardless of whether the account exists
-    // — this branch is already enumeration-safe by design, untouched here.
-    redirect(`/reset-password?email=${encodeURIComponent(email)}`);
-  } catch (error) {
-    unstable_rethrow(error);
-    redirect(`/forgot-password?${toRedirectQuery(error)}`);
-  }
+      // Always redirects the same way regardless of whether the account exists
+      // — this branch is already enumeration-safe by design, untouched here.
+      redirect(`/reset-password?email=${encodeURIComponent(email)}`);
+    },
+  );
 }
 
 export async function completePasswordReset(formData: FormData) {
   const emailRaw = String(formData.get("email") ?? "");
-  try {
-    await limitAuth("reset-password");
-    const email = emailSchema.parse(emailRaw);
-    const code = String(formData.get("code") ?? "").replace(/\D/g, "");
-    const password = String(formData.get("password") ?? "");
-    const passwordError = validatePassword(password);
-    if (passwordError) throw new Error(passwordError);
-    const result = await consumeVerificationCode({ identifier: email, purpose: "RESET_PASSWORD", code });
-    if (!result.ok) throw new Error(result.error ?? "Invalid code");
-    const passwordHash = await hashPassword(password);
-    await db()
-      .update(users)
-      .set({ passwordHash, sessionVersion: sql`${users.sessionVersion} + 1`, emailVerified: new Date() })
-      .where(eq(users.email, email));
-    await sendEmail({
-      to: email,
-      ...securityNoticeEmail({
-        subject: "Your Le Sillage password changed",
-        body: "The password on your Le Sillage account was just changed.",
-      }),
-    });
-    await auditLogSubject({
-      actor: email,
-      action: "AUTH_PASSWORD_CHANGE",
-      targetType: "user",
-      targetId: email,
-    });
-    redirect("/sign-in");
-  } catch (error) {
-    unstable_rethrow(error);
-    redirect(`/reset-password?email=${encodeURIComponent(emailRaw)}&${toRedirectQuery(error)}`);
-  }
+  await withAuthErrorRedirect(
+    (query) => `/reset-password?email=${encodeURIComponent(emailRaw)}&${query}`,
+    async () => {
+      await limitAuth("reset-password");
+      const email = emailSchema.parse(emailRaw);
+      const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+      const password = String(formData.get("password") ?? "");
+      const passwordError = validatePassword(password);
+      if (passwordError) throw new Error(passwordError);
+      const result = await consumeVerificationCode({ identifier: email, purpose: "RESET_PASSWORD", code });
+      if (!result.ok) throw new Error(result.error ?? "Invalid code");
+      const passwordHash = await hashPassword(password);
+      await db()
+        .update(users)
+        .set({ passwordHash, sessionVersion: sql`${users.sessionVersion} + 1`, emailVerified: new Date() })
+        .where(eq(users.email, email));
+      await sendEmail({
+        to: email,
+        ...securityNoticeEmail({
+          subject: "Your Le Sillage password changed",
+          body: "The password on your Le Sillage account was just changed.",
+        }),
+      });
+      await auditLogSubject({
+        actor: email,
+        action: "AUTH_PASSWORD_CHANGE",
+        targetType: "user",
+        targetId: email,
+      });
+      redirect("/sign-in");
+    },
+  );
 }
 
 export async function signInWithPassword(formData: FormData) {
   const returnToRaw = String(formData.get("returnTo") ?? "/account");
   const returnTo = returnToRaw.startsWith("/") && !returnToRaw.startsWith("//") ? returnToRaw : "/account";
-  try {
-    await limitAuth("password-signin");
-    const email = emailSchema.parse(String(formData.get("email") ?? ""));
-    const password = String(formData.get("password") ?? "");
-    const user = (await db().select().from(users).where(eq(users.email, email)))[0];
-    if (user && !user.emailVerified) {
-      redirect(`/verify-email?email=${encodeURIComponent(email)}&returnTo=${encodeURIComponent(returnTo)}`);
-    }
-    await signIn("credentials", { email, password, redirectTo: returnTo });
-  } catch (error) {
-    unstable_rethrow(error);
-    redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}&${toRedirectQuery(error)}`);
-  }
+  await withAuthErrorRedirect(
+    (query) => `/sign-in?returnTo=${encodeURIComponent(returnTo)}&${query}`,
+    async () => {
+      await limitAuth("password-signin");
+      const email = emailSchema.parse(String(formData.get("email") ?? ""));
+      const password = String(formData.get("password") ?? "");
+      const user = (await db().select().from(users).where(eq(users.email, email)))[0];
+      if (user && !user.emailVerified) {
+        redirect(`/verify-email?email=${encodeURIComponent(email)}&returnTo=${encodeURIComponent(returnTo)}`);
+      }
+      await signIn("credentials", { email, password, redirectTo: returnTo });
+    },
+  );
 }

@@ -306,6 +306,43 @@ export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "o
   return count;
 }
 
+/**
+ * Turns a decant product's raw sibling SKU rows into priced, fulfillment-
+ * aware `SizePickerOption[]` — the mapping shared by the cart drawer's
+ * "Customize" picker (getSiblingSkuOptions, src/actions/cart-actions.ts) and
+ * the product page's buy box (src/app/(store)/shop/[skuId]/page.tsx), which
+ * used to duplicate this logic. Pure (no DB access) so each call site keeps
+ * fetching `siblings`/`discounts` however best fits its own query shape
+ * (e.g. in parallel with unrelated queries) instead of being forced through
+ * one fetching function.
+ */
+export function buildDecantSizeOptions(
+  siblings: Array<{ id: string; sizeMl: number | null; retailPrice: number; condition: SkuRow["condition"] }>,
+  discounts: ProductDiscount[],
+  context: { remainingMl: number; thresholdMl: number },
+): SizePickerOption[] {
+  return siblings
+    .filter((s) => s.sizeMl != null)
+    .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+    .map((s) => {
+      const applied = applyDiscount(s.retailPrice, bestDiscount(discounts, s.retailPrice));
+      return {
+        skuId: s.id,
+        sizeMl: s.sizeMl!,
+        label: `${s.sizeMl}ML`,
+        fulfillment: decantFulfillment({
+          remainingMl: context.remainingMl,
+          sizeMl: s.sizeMl!,
+          thresholdMl: context.thresholdMl,
+        }),
+        condition: s.condition,
+        originalCentavos: s.retailPrice,
+        discountedCentavos: applied.discountedUnitCentavos,
+        savedCentavos: applied.perUnitDiscountCentavos,
+      };
+    });
+}
+
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {
   const sorted = [...cards];
   switch (sort) {

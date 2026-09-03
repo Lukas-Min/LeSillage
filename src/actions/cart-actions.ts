@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { cartItems, carts, productDiscounts, products, skus } from "@/db/schema";
-import { applyDiscount, bestDiscount } from "@/domain/discount";
+import { cartItems, carts, productDiscounts, products, promoSettings, skus } from "@/db/schema";
 import { clampQuantity } from "@/domain/money";
+import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import type { SizePickerOption } from "@/components/store/size-picker";
+import { buildDecantSizeOptions } from "@/lib/catalog";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import {
   addOneToCart,
@@ -143,42 +144,36 @@ export async function importLegacyCart(lines: Array<{ skuId: string; quantity: n
  * "Customize" size picker. Self-contained (looks up productId itself)
  * rather than widening CartLineView with a productId field that would
  * ripple into checkout/order-snapshot code for a need that's local to this
- * one feature. Mirrors the PDP's sibling-SKU query shape. DECANT only —
- * other product types don't get a size picker anywhere in the store.
+ * one feature. Fulfillment per size is computed for real via the shared
+ * buildDecantSizeOptions (src/lib/catalog.ts) — same helper the PDP's buy
+ * box uses. DECANT only — other product types don't get a size picker
+ * anywhere in the store.
  */
 export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOption[]> {
   const client = db();
   const current = (
     await client
-      .select({ productId: skus.productId, productType: products.type })
+      .select({ productId: skus.productId, productType: products.type, remainingMl: products.remainingMl })
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, skuId))
   )[0];
   if (!current || current.productType !== "DECANT") return [];
-  const [siblings, discounts] = await Promise.all([
+  const [siblings, discounts, promoRow] = await Promise.all([
     client
       .select({ id: skus.id, sizeMl: skus.sizeMl, retailPrice: skus.retailPrice, condition: skus.condition })
       .from(skus)
       .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, current.productId)),
+    client
+      .select({ decantPreOrderThresholdMl: promoSettings.decantPreOrderThresholdMl })
+      .from(promoSettings)
+      .where(eq(promoSettings.id, "singleton")),
   ]);
-  return siblings
-    .filter((s) => s.sizeMl != null)
-    .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
-    .map((s) => {
-      const applied = applyDiscount(s.retailPrice, bestDiscount(discounts, s.retailPrice));
-      return {
-        skuId: s.id,
-        sizeMl: s.sizeMl!,
-        label: `${s.sizeMl}ML`,
-        fulfillment: "ON_HAND" as const, // display-only in the picker; real fulfillment isn't needed to pick a size
-        condition: s.condition,
-        originalCentavos: s.retailPrice,
-        discountedCentavos: applied.discountedUnitCentavos,
-        savedCentavos: applied.perUnitDiscountCentavos,
-      };
-    });
+  return buildDecantSizeOptions(siblings, discounts, {
+    remainingMl: current.remainingMl ?? 0,
+    thresholdMl: promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML,
+  });
 }
 
 /**

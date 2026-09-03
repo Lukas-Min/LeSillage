@@ -14,8 +14,8 @@ import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
 import { DecantBuyBox } from "@/components/store/decant-buy-box";
-import type { SizePickerOption } from "@/components/store/size-picker";
 import { labelForCategory, labelForCondition, labelForType } from "@/domain/product-type";
+import { buildDecantSizeOptions } from "@/lib/catalog";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
 import { normaliseNotePyramid } from "@/lib/note-pyramid";
@@ -96,23 +96,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const soldOut = row.type !== "DECANT" && fulfillment === "ON_HAND" && row.stock <= 0;
   const discount = bestDiscount(discounts, row.retailPrice);
   const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
-  const decantOptions: SizePickerOption[] = siblings
-    .filter((s) => s.sizeMl != null)
-    .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
-    .map((match) => {
-      const sizeDiscount = bestDiscount(discounts, match.retailPrice);
-      const applied = applyDiscount(match.retailPrice, sizeDiscount);
-      return {
-        sizeMl: match.sizeMl!,
-        label: `${match.sizeMl}ML`,
-        skuId: match.id,
-        fulfillment: decantFulfillment({ remainingMl, sizeMl: match.sizeMl!, thresholdMl: threshold }),
-        condition: match.condition,
-        originalCentavos: match.retailPrice,
-        discountedCentavos: applied.discountedUnitCentavos,
-        savedCentavos: applied.perUnitDiscountCentavos,
-      };
-    });
+  const decantOptions = buildDecantSizeOptions(siblings, discounts, { remainingMl, thresholdMl: threshold });
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, null);
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
