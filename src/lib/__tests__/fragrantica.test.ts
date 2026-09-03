@@ -118,8 +118,16 @@ describe("parseFragranticaHtml", () => {
     expect(parsed.ratingCount).toBe(112);
   });
 
-  it("extracts the image from og:image", () => {
+  it("falls back to og:image when no itemprop=image bottle photo is present", () => {
     expect(parseFragranticaHtml(FIXTURE_HTML).imageUrl).toBe("https://fimgs.net/mdimg/perfume/375x500.99107.jpg");
+  });
+
+  it("prefers the clean itemprop=image bottle photo over the branded og:image social card", () => {
+    const html = `
+      <img itemprop="image" src="https://fimgs.net/mdimg/perfume-thumbs/375x500.99107.jpg" alt="perfume">
+      <meta property="og:image" content="https://fimgs.net/mdimg/perfume-social-cards/en-social-99107.jpeg">
+    `;
+    expect(parseFragranticaHtml(html).imageUrl).toBe("https://fimgs.net/mdimg/perfume-thumbs/375x500.99107.jpg");
   });
 
   it("extracts year and perfumer(s) from the summary sentence when present", () => {

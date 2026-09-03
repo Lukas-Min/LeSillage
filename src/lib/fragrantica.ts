@@ -262,8 +262,14 @@ function extractRating(html: string): { ratingValue: number | null; ratingCount:
 }
 
 function extractImage(html: string): string | null {
-  const match = /<img[^>]+id="[^"]*mainpic[^"]*"[^>]+src="([^"]+)"/i.exec(html);
-  if (match) return decodeEntities(match[1]);
+  // The clean bottle photo (itemprop="image") is what the page itself
+  // displays. og:image is last resort only — it points at a heavily
+  // branded "social card" graphic (Fragrantica logo, accord bars, QR code)
+  // meant for link previews, not a product photo.
+  const itemprop = /<img[^>]+itemprop="image"[^>]+src="([^"]+)"/i.exec(html);
+  if (itemprop) return decodeEntities(itemprop[1]);
+  const mainpic = /<img[^>]+id="[^"]*mainpic[^"]*"[^>]+src="([^"]+)"/i.exec(html);
+  if (mainpic) return decodeEntities(mainpic[1]);
   const fallback = /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i.exec(html);
   return fallback ? decodeEntities(fallback[1]) : null;
 }
