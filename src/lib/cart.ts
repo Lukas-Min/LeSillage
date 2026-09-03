@@ -196,11 +196,32 @@ async function loadPricedCart(
   preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
 ): Promise<PricedCart> {
   const client = db();
-  const [items, promoConfig] = await Promise.all([
-    client.select().from(cartItems).where(eq(cartItems.cartId, cartId)),
+  // Single JOIN instead of a plain cartItems select followed by a separate
+  // skus+products lookup keyed off its results — cuts a full sequential
+  // round trip off every cart read (this runs at the end of every cart
+  // mutation: add, remove, quantity change, size swap). Left-joined (not
+  // inner) so a cart item whose SKU row no longer exists at all still comes
+  // back as a row (sku/productType/etc. null) instead of silently
+  // disappearing — same resilience the old two-query version had via `found?.`.
+  const [combined, promoConfig] = await Promise.all([
+    client
+      .select({
+        skuId: cartItems.skuId,
+        quantity: cartItems.quantity,
+        sku: skus,
+        productType: products.type,
+        productBrand: products.brand,
+        productFamily: products.family,
+        productName: products.name,
+        remainingMl: products.remainingMl,
+      })
+      .from(cartItems)
+      .leftJoin(skus, eq(skus.id, cartItems.skuId))
+      .leftJoin(products, eq(products.id, skus.productId))
+      .where(eq(cartItems.cartId, cartId)),
     preloadedPromoConfig ?? loadPromoConfig(),
   ]);
-  if (items.length === 0) {
+  if (combined.length === 0) {
     return {
       lines: [],
       unavailableLines: [],
@@ -217,40 +238,34 @@ async function loadPricedCart(
       promoConfig,
     };
   }
-  const skuRows = await client
-    .select({
-      sku: skus,
-      productType: products.type,
-      productBrand: products.brand,
-      productFamily: products.family,
-      productName: products.name,
-      remainingMl: products.remainingMl,
-    })
-    .from(skus)
-    .innerJoin(products, eq(products.id, skus.productId))
-    .where(inArray(skus.id, items.map((item) => item.skuId)));
+  const productIds = Array.from(
+    new Set(combined.flatMap((row) => (row.sku ? [row.sku.productId] : []))),
+  );
   const discounts = await client
     .select()
     .from(productDiscounts)
-    .where(inArray(productDiscounts.productId, Array.from(new Set(skuRows.map((row) => row.sku.productId)))));
-  const pricedInputs = items.flatMap((item) => {
-    const found = skuRows.find((row) => row.sku.id === item.skuId);
-    if (!found || !found.sku.isActive) return [];
+    .where(inArray(productDiscounts.productId, productIds));
+  const pricedInputs = combined.flatMap((row) => {
+    if (!row.sku || !row.sku.isActive) return [];
+    // A matched sku row guarantees a matched product row too — skus.productId
+    // is a NOT NULL FK with an onDelete cascade, so the product can't be
+    // missing while its sku still exists.
+    const productType = row.productType!;
     const fulfillment = effectiveFulfillment({
-      productType: found.productType,
-      skuFulfillment: found.sku.fulfillment,
-      sizeMl: found.sku.sizeMl,
-      remainingMl: found.remainingMl,
+      productType,
+      skuFulfillment: row.sku.fulfillment,
+      sizeMl: row.sku.sizeMl,
+      remainingMl: row.remainingMl,
       thresholdMl: promoConfig.decantPreOrderThresholdMl,
     });
     return [
       {
-        sku: { ...found.sku, fulfillment },
-        quantity: item.quantity,
-        productType: found.productType,
-        productBrand: found.productBrand,
-        productFamily: found.productFamily,
-        discounts: discounts.filter((d) => d.productId === found.sku.productId),
+        sku: { ...row.sku, fulfillment },
+        quantity: row.quantity,
+        productType,
+        productBrand: row.productBrand!,
+        productFamily: row.productFamily,
+        discounts: discounts.filter((d) => d.productId === row.sku!.productId),
       },
     ];
   });
@@ -259,18 +274,18 @@ async function loadPricedCart(
     freeShipping: false,
   });
   const lines: CartLineView[] = priced.lines.map((line) => {
-    const found = skuRows.find((row) => row.sku.id === line.skuId);
+    const found = combined.find((row) => row.skuId === line.skuId);
     const cap = resolveCartCap({
       productType: line.productType,
       fulfillment: line.fulfillment,
-      sizeMl: found?.sku.sizeMl ?? null,
+      sizeMl: found?.sku?.sizeMl ?? null,
       remainingMl: found?.remainingMl,
-      stock: found?.sku.stock ?? 0,
+      stock: found?.sku?.stock ?? 0,
     });
     return {
       skuId: line.skuId,
       name: found?.productName ?? "Fragrance",
-      skuLabel: found?.sku.label ?? "",
+      skuLabel: found?.sku?.label ?? "",
       retailPriceCentavos: line.discountedUnitCentavos,
       originalUnitCentavos: line.unitPriceCentavos,
       fulfillment: line.fulfillment,
@@ -280,23 +295,23 @@ async function loadPricedCart(
       available: true,
     };
   });
-  // Items whose SKU was deactivated after being added — kept visible with a
-  // "no longer available" notice instead of vanishing with no explanation.
-  // Excluded from totals/checkout (priced.lines/buildCartTotals above never
-  // saw them, since pricedInputs filters them out).
-  const unavailableLines: CartLineView[] = items.flatMap((item) => {
-    const found = skuRows.find((row) => row.sku.id === item.skuId);
-    if (found && found.sku.isActive) return [];
+  // Items whose SKU was deactivated (or, rarer, fully deleted) after being
+  // added — kept visible with a "no longer available" notice instead of
+  // vanishing with no explanation. Excluded from totals/checkout
+  // (priced.lines/buildCartTotals above never saw them, since pricedInputs
+  // filters them out).
+  const unavailableLines: CartLineView[] = combined.flatMap((row) => {
+    if (row.sku && row.sku.isActive) return [];
     return [
       {
-        skuId: item.skuId,
-        name: found?.productName ?? "This item",
-        skuLabel: found?.sku.label ?? "",
+        skuId: row.skuId,
+        name: row.productName ?? "This item",
+        skuLabel: row.sku?.label ?? "",
         retailPriceCentavos: 0,
         originalUnitCentavos: 0,
-        fulfillment: found?.sku.fulfillment ?? "ON_HAND",
-        productType: found?.productType ?? "DECANT",
-        quantity: item.quantity,
+        fulfillment: row.sku?.fulfillment ?? "ON_HAND",
+        productType: row.productType ?? "DECANT",
+        quantity: row.quantity,
         maxQuantity: 0,
         available: false,
       },
