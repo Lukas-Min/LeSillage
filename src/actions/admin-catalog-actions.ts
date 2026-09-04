@@ -30,6 +30,34 @@ import { auditLogSubject } from "@/lib/audit";
 import { uploadPublicImage } from "@/lib/blob";
 import { clampRemainingMl } from "@/domain/decant";
 
+function skuSlugPart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Derives a readable, unique SKU code from the product's brand/name and the
+ *  SKU's own size (or label, if sizeless) — e.g. "LATTAFA-KHAMRAH-10". The
+ *  admin never types this; it's generated once at creation and never
+ *  changes, so every SKU code is guaranteed system-issued. Collisions
+ *  (e.g. two 10ml SKUs on the same product) get a "-2", "-3"... suffix. */
+async function generateSkuCode(product: { brand: string; name: string }, sizeMl: number | null, label: string) {
+  const base = [skuSlugPart(product.brand), skuSlugPart(product.name), sizeMl ? String(sizeMl) : skuSlugPart(label)]
+    .filter(Boolean)
+    .join("-");
+  let candidate = base;
+  let suffix = 1;
+  for (;;) {
+    const existing = await db().select({ id: skus.id }).from(skus).where(eq(skus.sku, candidate)).limit(1);
+    if (existing.length === 0) return candidate;
+    suffix += 1;
+    candidate = `${base}-${suffix}`;
+  }
+}
+
 async function limitAdmin(adminId: string, key: string) {
   const decision = await rateLimit({
     bucket: "ACCOUNT",
@@ -170,7 +198,9 @@ export async function upsertProduct(formData: FormData) {
 const skuSchema = z.object({
   skuId: z.string().optional(),
   productId: z.string().min(1),
-  sku: z.string().min(2).max(80),
+  // No "sku" field: the code is system-generated on creation (see
+  // generateSkuCode) and never re-derived on edit — the admin can't set or
+  // change it, so it's not part of the submitted form at all.
   label: z.string().min(1).max(120),
   sizeMl: z.coerce.number().int().min(0).optional(),
   condition: z.enum(["BNIB", "SEALED", "FEW_SPRAYS_MISSING"]),
@@ -195,7 +225,6 @@ export async function upsertSku(formData: FormData) {
   const parsed = skuSchema.parse({
     skuId: formData.get("skuId") || undefined,
     productId: formData.get("productId"),
-    sku: formData.get("sku"),
     label: formData.get("label"),
     sizeMl: formData.get("sizeMl") || undefined,
     condition: formData.get("condition"),
@@ -211,7 +240,15 @@ export async function upsertSku(formData: FormData) {
   });
   const product = (
     await db()
-      .select({ type: products.type, costPrice: products.costPrice, pricingMode: products.pricingMode, pricingInput: products.pricingInput, sourceMl: products.sourceMl })
+      .select({
+        brand: products.brand,
+        name: products.name,
+        type: products.type,
+        costPrice: products.costPrice,
+        pricingMode: products.pricingMode,
+        pricingInput: products.pricingInput,
+        sourceMl: products.sourceMl,
+      })
       .from(products)
       .where(eq(products.id, parsed.productId))
   )[0];
@@ -252,7 +289,6 @@ export async function upsertSku(formData: FormData) {
   }
   const values = {
     productId: parsed.productId,
-    sku: parsed.sku,
     label: parsed.label,
     sizeMl: parsed.sizeMl ?? null,
     condition: parsed.condition as Condition,
@@ -269,6 +305,8 @@ export async function upsertSku(formData: FormData) {
     updatedAt: new Date(),
   };
   if (parsed.skuId) {
+    // "sku" is deliberately absent from `values` — the code is set once at
+    // creation and never re-derived on edit.
     await db().update(skus).set(values).where(eq(skus.id, parsed.skuId));
     await auditLogSubject({
       actor: admin.id,
@@ -277,7 +315,8 @@ export async function upsertSku(formData: FormData) {
       targetId: parsed.skuId,
     });
   } else {
-    const inserted = await db().insert(skus).values(values).returning();
+    const sku = await generateSkuCode(product, parsed.sizeMl ?? null, parsed.label);
+    const inserted = await db().insert(skus).values({ ...values, sku }).returning();
     await auditLogSubject({
       actor: admin.id,
       action: "SKU_CREATE",

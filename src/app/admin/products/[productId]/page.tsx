@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { products, skus, productDiscounts, productImages, orders, orderItems } from "@/db/schema";
@@ -234,13 +235,30 @@ export default async function AdminProductDetailPage({
         <CardContent className="space-y-6 text-sm">
           {skuList.map((sku) => (
             <div key={sku.id} className="space-y-3 border-b pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{sku.label}</p>
+              <ConfirmSubmitButton
+                formId={`delete-sku-form-${sku.id}`}
+                triggerLabel={<Trash2 className="h-4 w-4" />}
+                triggerVariant="destructive"
+                triggerSize="icon-sm"
+                triggerAriaLabel={`Archive or delete ${sku.label}`}
+                title={`Archive or delete "${sku.label}"?`}
+                description="If it has orders or cart entries, it's archived (hidden, kept for records). Otherwise it's deleted permanently."
+                confirmLabel="Archive or delete"
+              />
+            </div>
             <form action={upsertSku} className="space-y-3">
               <input type="hidden" name="skuId" value={sku.id} />
               <input type="hidden" name="productId" value={product.id} />
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{sku.label}</p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {/* SKU code is system-generated once at creation (see
+                    generateSkuCode in admin-catalog-actions.ts) and never
+                    editable afterward — shown as plain text, not submitted. */}
                 <Field label="SKU code" htmlFor={`sku-code-${sku.id}`}>
-                  <Input id={`sku-code-${sku.id}`} name="sku" defaultValue={sku.sku} />
+                  <p id={`sku-code-${sku.id}`} className="flex h-11 items-center truncate rounded-lg border bg-muted/40 px-3 text-sm text-muted-foreground">
+                    {sku.sku}
+                  </p>
                 </Field>
                 <Field label="Label" htmlFor={`sku-label-${sku.id}`}>
                   <Input id={`sku-label-${sku.id}`} name="label" defaultValue={sku.label} />
@@ -323,14 +341,6 @@ export default async function AdminProductDetailPage({
                 <input type="hidden" name="skuId" value={sku.id} />
                 <input type="hidden" name="productId" value={product.id} />
               </form>
-              <ConfirmSubmitButton
-                formId={`delete-sku-form-${sku.id}`}
-                triggerLabel={`Archive or delete ${sku.label}`}
-                triggerVariant="outline"
-                title={`Archive or delete "${sku.label}"?`}
-                description="If it has orders or cart entries, it's archived (hidden, kept for records). Otherwise it's deleted permanently."
-                confirmLabel="Archive or delete"
-              />
             </div>
           ))}
           <div className="space-y-3 border-t pt-4">
@@ -339,7 +349,9 @@ export default async function AdminProductDetailPage({
               <input type="hidden" name="productId" value={product.id} />
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Field label="SKU code" htmlFor="new-sku-code">
-                  <Input id="new-sku-code" name="sku" placeholder="e.g. BRAND-NAME-100" required />
+                  <p id="new-sku-code" className="flex h-11 items-center rounded-lg border bg-muted/40 px-3 text-sm text-muted-foreground">
+                    Generated on save
+                  </p>
                 </Field>
                 <Field label="Label" htmlFor="new-sku-label">
                   <Input id="new-sku-label" name="label" placeholder="e.g. 100ml Eau de Parfum" required />

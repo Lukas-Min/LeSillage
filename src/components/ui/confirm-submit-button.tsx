@@ -26,7 +26,9 @@ export function ConfirmSubmitButton({
   confirmLabel = "Delete",
   triggerLabel,
   triggerVariant = "destructive",
+  triggerSize,
   triggerClassName,
+  triggerAriaLabel,
 }: {
   formId: string;
   title: string;
@@ -34,12 +36,15 @@ export function ConfirmSubmitButton({
   confirmLabel?: string;
   triggerLabel: React.ReactNode;
   triggerVariant?: React.ComponentProps<typeof Button>["variant"];
+  triggerSize?: React.ComponentProps<typeof Button>["size"];
   triggerClassName?: string;
+  /** Required for an icon-only triggerLabel (no visible text for a screen reader to read). */
+  triggerAriaLabel?: string;
 }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button type="button" variant={triggerVariant} className={triggerClassName}>
+        <Button type="button" variant={triggerVariant} size={triggerSize} className={triggerClassName} aria-label={triggerAriaLabel}>
           {triggerLabel}
         </Button>
       </AlertDialogTrigger>

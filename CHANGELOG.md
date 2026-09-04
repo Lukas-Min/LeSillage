@@ -4,12 +4,14 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- SKU codes are now system-generated (brand+name+size, with a numeric suffix on collision) instead of admin-typed, and shown read-only on both the "Add a SKU" and existing-SKU forms — `generateSkuCode` in `src/actions/admin-catalog-actions.ts`
 - Retail-provenance decant SKUs can now be priced independently of the product's reference formula — a manual Cost price/Retail price pair on the SKU, instead of always being scaled from the reference size (`resyncSkuPricesForProduct` skips Retail decants so a "Save product" never overwrites their independent price)
 - Admin product images can now be added by pasting a URL, not just uploading a file — one shared form, one Alt text field, for either path
 - Decant SKUs gained a real Retail vs In-house provenance distinction: In-house (poured from a whole bottle) still uses the shared remaining-ml pool exactly as before; Retail (bought pre-made as a decant from the perfumery) now works like a full-bottle SKU with its own real Fulfillment/Stock, and can genuinely sell out. Migrated all 104 existing decant SKUs from the old generic "Retail" provenance to "In-house" so their live availability didn't change (`scripts/migrate-decant-provenance-to-in-house.ts`) — Retail is now reserved for new decant listings actually bought pre-made
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 ### Changed
+- Per-SKU "Archive or delete" moved from a full-width text button at the bottom of each SKU into a small destructive trash-icon button in the upper-right of that SKU's header row, next to its label (`ConfirmSubmitButton` gained `triggerSize`/`triggerAriaLabel` for icon-only triggers)
 - Size/provenance picker rebuilt as two tiers, for decants and full-bottle/partial products alike: the size button always names both size and provenance (e.g. "10ML · In-house"), and a secondary condition/packaging picker (BNIB/Sealed, With box/Bottle only) appears underneath only when that size+provenance actually has more than one SKU to distinguish — no separate condition/provenance badges anymore (`buildVariantOptions` in `src/lib/catalog.ts` replaces the old decant-only size builder)
 - Per-SKU "Archive or delete" now sits with its own SKU's fields instead of in a separate compiled list at the bottom of the SKUs card
 - Admin orders list cards are now clickable anywhere (not just the order number) to open the detail page; action buttons stay right-aligned by default when there's only one showing
