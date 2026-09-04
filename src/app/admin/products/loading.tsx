@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminProductsLoading() {
@@ -22,6 +23,12 @@ export default function AdminProductsLoading() {
             {label}
           </span>
         ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input type="search" placeholder="Search by brand or name…" disabled className="h-11 max-w-xs" />
+        <Button type="button" variant="outline" disabled>
+          Search
+        </Button>
       </div>
       <Skeleton className="h-28 w-full" />
       <Skeleton className="h-28 w-full" />

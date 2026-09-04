@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Admin Products list gained search (brand/name/family, combines with the type tabs) and pagination (20 per page, Previous/Next + "Page X of Y"). List is now always sorted alphabetically by brand then name (A first) instead of unspecified insertion order
 ### Changed
 - The 16 full-bottle products from `scripts/import-full-bottle-pricelist.ts` had a short auto-generated description reading "Name by Brand (Year)." — changed to "By Perfumer(s) (Year)." (e.g. "By Shyamala Maisondieu, Adriana Medina-Baez, Nadege le Garlantezec and Sonia Constant (2019)."), falling back to the brand only for the 4 entries with no credited perfumer. Re-ran the script to update the live descriptions (pricing untouched)
 - Product picture hover effects were inconsistent — the shop grid zoomed the photo in slightly on hover, the homepage flagship lifted the whole card instead, and the product detail page had no hover effect at all, with two different zoom amounts (1.03 vs 1.06) between the photo and the no-image fallback glyph. `CompositionCanvas` now carries its own `group` and hover-zoom (uniform 1.05 scale) internally, so every picture across the site (card, flagship, PDP) zooms in the same way regardless of how the caller wraps it

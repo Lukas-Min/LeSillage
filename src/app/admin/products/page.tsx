@@ -4,6 +4,7 @@ import { products, skus, promoSettings, type ProductType } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatPHP } from "@/domain/money";
 import { concentrationLabel } from "@/domain/concentration";
 import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
@@ -19,14 +20,18 @@ const TYPE_TABS: { value: ProductType | "ALL"; label: string }[] = [
   { value: "PARTIAL", label: "Partials" },
 ];
 
+const PAGE_SIZE = 20;
+
 export default async function ProductsAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; q?: string; page?: string }>;
 }) {
-  const { type: typeParam } = await searchParams;
+  const { type: typeParam, q: qParam, page: pageParam } = await searchParams;
   const activeType: ProductType | "ALL" =
     typeParam === "DECANT" || typeParam === "FULL_BOTTLE" || typeParam === "PARTIAL" ? typeParam : "ALL";
+  const query = (qParam ?? "").trim();
+  const requestedPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
   const [allProductRows, skuRows, promoRow] = await Promise.all([
     db().select().from(products),
@@ -36,7 +41,36 @@ export default async function ProductsAdminPage({
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   const countByType = new Map<ProductType, number>();
   for (const p of allProductRows) countByType.set(p.type, (countByType.get(p.type) ?? 0) + 1);
-  const productRows = activeType === "ALL" ? allProductRows : allProductRows.filter((p) => p.type === activeType);
+
+  let filtered = activeType === "ALL" ? allProductRows : allProductRows.filter((p) => p.type === activeType);
+  if (query) {
+    const q = query.toLowerCase();
+    filtered = filtered.filter(
+      (p) => p.brand.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || (p.family ?? "").toLowerCase().includes(q),
+    );
+  }
+  // Always alphabetical, A first — by brand, then name within a brand.
+  filtered = [...filtered].sort((a, b) => {
+    const byBrand = a.brand.localeCompare(b.brand, undefined, { sensitivity: "base" });
+    if (byBrand !== 0) return byBrand;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(requestedPage, totalPages);
+  const productRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function hrefFor(overrides: { type?: ProductType | "ALL"; q?: string; page?: number }) {
+    const params = new URLSearchParams();
+    const t = overrides.type ?? activeType;
+    if (t !== "ALL") params.set("type", t);
+    const qq = overrides.q ?? query;
+    if (qq) params.set("q", qq);
+    const p = overrides.page ?? page;
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return `/admin/products${qs ? `?${qs}` : ""}`;
+  }
 
   return (
     <div className="flex flex-1 flex-col space-y-4">
@@ -58,7 +92,7 @@ export default async function ProductsAdminPage({
           return (
             <Link
               key={tab.value}
-              href={tab.value === "ALL" ? "/admin/products" : `/admin/products?type=${tab.value}`}
+              href={hrefFor({ type: tab.value, page: 1 })}
               className={cn(
                 "min-h-11 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] transition-colors",
                 active
@@ -71,10 +105,26 @@ export default async function ProductsAdminPage({
           );
         })}
       </div>
+      <form action="/admin/products" className="flex flex-wrap items-center gap-2">
+        {activeType !== "ALL" ? <input type="hidden" name="type" value={activeType} /> : null}
+        <Input type="search" name="q" defaultValue={query} placeholder="Search by brand or name…" className="h-11 max-w-xs" />
+        <Button type="submit" variant="outline">
+          Search
+        </Button>
+        {query ? (
+          <Link href={hrefFor({ q: "", page: 1 })} className="text-xs text-muted-foreground hover:underline">
+            Clear search
+          </Link>
+        ) : null}
+      </form>
       {productRows.length === 0 ? (
         <Card className="flex flex-1 flex-col">
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            {activeType === "ALL" ? "No products yet." : `No ${labelForType(activeType).toLowerCase()} products yet.`}
+            {query
+              ? `No products match "${query}".`
+              : activeType === "ALL"
+                ? "No products yet."
+                : `No ${labelForType(activeType).toLowerCase()} products yet.`}
           </CardContent>
         </Card>
       ) : null}
@@ -127,6 +177,19 @@ export default async function ProductsAdminPage({
           </Link>
         );
       })}
+      {filtered.length > PAGE_SIZE ? (
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <Button asChild variant="outline" disabled={page <= 1}>
+            {page > 1 ? <Link href={hrefFor({ page: page - 1 })}>Previous</Link> : <span>Previous</span>}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Page {page} of {totalPages} · {filtered.length} product{filtered.length === 1 ? "" : "s"}
+          </p>
+          <Button asChild variant="outline" disabled={page >= totalPages}>
+            {page < totalPages ? <Link href={hrefFor({ page: page + 1 })}>Next</Link> : <span>Next</span>}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
