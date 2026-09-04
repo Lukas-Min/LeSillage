@@ -37,7 +37,7 @@ import { db } from "../src/db/client";
 import { products, skus } from "../src/db/schema";
 import type { Concentration, FragranceCategory } from "../src/db/schema";
 
-type Gender = "male" | "female" | "unisex";
+type Gender = "men" | "women" | "unisex";
 
 interface DecantEntry {
   brand: string;
@@ -64,43 +64,43 @@ interface DecantEntry {
 const CATALOG: DecantEntry[] = [
   // --- Designer ---
   {
-    brand: "Carolina Herrera", name: "Good Girl", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Carolina Herrera", name: "Good Girl", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     prices: { 3: 270, 5: 345, 10: 895, 30: 2680 },
     fullBottle: { sizeMl: 80, basePricePhp: 7150 },
   },
   {
-    brand: "Coach", name: "Dreams", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Coach", name: "Dreams", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     prices: { 3: 135, 5: 170, 10: 450, 30: 1345 },
     fullBottle: { sizeMl: 90, basePricePhp: 4030 },
   },
   {
-    brand: "Coach", name: "Dreams Sunset", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Coach", name: "Dreams Sunset", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     prices: { 3: 135, 5: 170, 10: 450, 30: 1345 },
     fullBottle: { sizeMl: 90, basePricePhp: 4030 },
   },
   {
     // Confirmed by the user: "Guilty Pour Homme Parfum" (2022), fragrance id 71378.
-    brand: "Gucci", name: "Guilty Pour Homme Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Gucci", name: "Guilty Pour Homme Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "men",
     prices: { 3: 120, 5: 155, 10: 405, 30: 1215 },
     fullBottle: { sizeMl: 90, basePricePhp: 3640 },
   },
   {
-    brand: "Moschino", name: "Toy Boy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Moschino", name: "Toy Boy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
     prices: { 3: 115, 5: 145, 10: 375, 30: 1130 },
     fullBottle: { sizeMl: 100, basePricePhp: 3770 },
   },
   {
-    brand: "Nautica", name: "Voyage Sport", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "male",
+    brand: "Nautica", name: "Voyage Sport", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "men",
     prices: { 3: 55, 5: 70, 10: 180, 30: 545 },
     fullBottle: { sizeMl: 100, basePricePhp: 1820 },
   },
   {
-    brand: "Valentino", name: "Uomo Born In Roma Coral Fantasy", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "male",
+    brand: "Valentino", name: "Uomo Born In Roma Coral Fantasy", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "men",
     prices: { 3: 200, 5: 255, 10: 665, 30: 1990 },
     fullBottle: { sizeMl: 100, basePricePhp: 6630 },
   },
   {
-    brand: "Versace", name: "Eros Energy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Versace", name: "Eros Energy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
     prices: { 3: 135, 5: 175, 10: 455, 30: 1365 },
     fullBottle: { sizeMl: 100, basePricePhp: 4550 },
   },
@@ -108,7 +108,7 @@ const CATALOG: DecantEntry[] = [
     // Pricelist said "YSL Y EDP" — Fragrantica's exact title for the EDP
     // concentration is "Y Eau de Parfum" (2018), distinct from "Y" (1964,
     // discontinued vintage) and "Y Eau de Toilette"/"Y Le Parfum" flankers.
-    brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
     prices: { 3: 215, 5: 275, 10: 715, 30: 2145 },
     fullBottle: { sizeMl: 100, basePricePhp: 7150 },
   },
@@ -117,7 +117,7 @@ const CATALOG: DecantEntry[] = [
     // guess (100ml; base back-computed from the 5ml price, which every other
     // row's spreadsheet formula shows sells at exactly the raw per-ml rate off
     // the *discounted* price, and discounted = base * 10/13 on every row).
-    brand: "Yves Saint Laurent", name: "Libre Flowers & Flames", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Yves Saint Laurent", name: "Libre Flowers & Flames", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     prices: { 3: 240, 5: 400, 10: 800, 30: 2420 },
     fullBottle: { sizeMl: 100, basePricePhp: 10400 },
     costBasisEstimated: true,
@@ -135,12 +135,12 @@ const CATALOG: DecantEntry[] = [
   },
   // --- Middle Eastern & others ---
   {
-    brand: "Afnan", name: "Mystique Bouquet", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "female",
+    brand: "Afnan", name: "Mystique Bouquet", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "women",
     prices: { 3: 120, 5: 155, 10: 400, 30: 1195 },
     fullBottle: { sizeMl: 80, basePricePhp: 3185 },
   },
   {
-    brand: "Armaf", name: "Club De Nuit Maleka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "female",
+    brand: "Armaf", name: "Club De Nuit Maleka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "women",
     prices: { 3: 95, 5: 125, 10: 320, 30: 965 },
     fullBottle: { sizeMl: 105, basePricePhp: 3380 },
   },
@@ -148,7 +148,7 @@ const CATALOG: DecantEntry[] = [
     // Full name per the linked mirror row (Fragrantica): "Club de Nuit Intense
     // Man Parfum" (2022) — distinct from the base "Club de Nuit Intense Man"
     // (2015, EDT). Pricelist's concentration column said "Parfum", matching this one.
-    brand: "Armaf", name: "Club De Nuit Intense Man Parfum", concentration: "PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "Armaf", name: "Club De Nuit Intense Man Parfum", concentration: "PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 95, 5: 125, 10: 320, 30: 960 },
     fullBottle: { sizeMl: 150, basePricePhp: 4810 },
   },
@@ -158,7 +158,7 @@ const CATALOG: DecantEntry[] = [
     fullBottle: { sizeMl: 100, basePricePhp: 3380 },
   },
   {
-    brand: "French Avenue", name: "Liquid Brun", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "French Avenue", name: "Liquid Brun", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 80, 5: 100, 10: 260, 30: 780 },
     fullBottle: { sizeMl: 100, basePricePhp: 2600 },
   },
@@ -174,32 +174,32 @@ const CATALOG: DecantEntry[] = [
     fullBottle: { sizeMl: 50, basePricePhp: 2080 },
   },
   {
-    brand: "Rasasi", name: "Hawas Kobra", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "Rasasi", name: "Hawas Kobra", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
     fullBottle: { sizeMl: 100, basePricePhp: 2730 },
   },
   {
-    brand: "Rasasi", name: "Hawas Ice", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "Rasasi", name: "Hawas Ice", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
     fullBottle: { sizeMl: 100, basePricePhp: 2730 },
   },
   {
-    brand: "Rasasi", name: "Hawas Malibu", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "Rasasi", name: "Hawas Malibu", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
     fullBottle: { sizeMl: 100, basePricePhp: 2730 },
   },
   {
-    brand: "Rayhaan", name: "Pacific Aura", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "Rayhaan", name: "Pacific Aura", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 60, 5: 75, 10: 195, 30: 585 },
     fullBottle: { sizeMl: 100, basePricePhp: 1950 },
   },
   {
-    brand: "Rayhaan", name: "Aquatica", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "male",
+    brand: "Rayhaan", name: "Aquatica", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
     prices: { 3: 65, 5: 85, 10: 220, 30: 665 },
     fullBottle: { sizeMl: 100, basePricePhp: 2210 },
   },
   {
-    brand: "Rayhaan", name: "Ayka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "female",
+    brand: "Rayhaan", name: "Ayka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "women",
     prices: { 3: 55, 5: 75, 10: 190, 30: 565 },
     fullBottle: { sizeMl: 100, basePricePhp: 1885 },
     // Linked, but this mirror row has no note pyramid yet (Fragrantica page has

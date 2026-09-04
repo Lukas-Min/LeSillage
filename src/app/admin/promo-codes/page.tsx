@@ -112,14 +112,14 @@ export default async function PromoCodesPage() {
             <Field label="Type" htmlFor="type">
               <select id="type" name="type" className={selectClass} defaultValue="PERCENTAGE">
                 <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed centavos</option>
+                <option value="FIXED">Fixed ₱ off</option>
               </select>
             </Field>
-            <Field label="Amount" htmlFor="amount">
-              <Input id="amount" name="amount" type="number" required min={1} />
+            <Field label="Amount (% or ₱)" htmlFor="amount">
+              <Input id="amount" name="amount" type="number" step="0.01" required min={1} />
             </Field>
-            <Field label="Minimum spend (centavos, optional)" htmlFor="minSpendCentavos">
-              <Input id="minSpendCentavos" name="minSpendCentavos" type="number" min={0} placeholder="e.g. 200000 for ₱2,000" />
+            <Field label="Minimum spend (₱, optional)" htmlFor="minSpendCentavos">
+              <Input id="minSpendCentavos" name="minSpendCentavos" type="number" step="0.01" min={0} placeholder="e.g. 2000" />
             </Field>
             <Field label="Max redemptions (optional)" htmlFor="maxRedemptions">
               <Input id="maxRedemptions" name="maxRedemptions" type="number" min={1} placeholder="Unlimited" />
@@ -138,6 +138,9 @@ export default async function PromoCodesPage() {
               <input type="checkbox" name="onePerCustomer" />
               Once per customer
             </label>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Amount and minimum spend are entered in pesos for a Fixed/₱ discount (add a period for centavos) — not centavos.
+            </p>
             <div className="sm:col-span-2">
               <SubmitButton>Create code</SubmitButton>
             </div>

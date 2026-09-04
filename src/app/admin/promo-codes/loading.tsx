@@ -49,11 +49,11 @@ export default function AdminPromoCodesLoading() {
                 <option>Percentage</option>
               </select>
             </Field>
-            <Field label="Amount" htmlFor="amount">
+            <Field label="Amount (% or ₱)" htmlFor="amount">
               <Input id="amount" type="number" disabled />
             </Field>
-            <Field label="Minimum spend (centavos, optional)" htmlFor="minSpendCentavos">
-              <Input id="minSpendCentavos" type="number" placeholder="e.g. 200000 for ₱2,000" disabled />
+            <Field label="Minimum spend (₱, optional)" htmlFor="minSpendCentavos">
+              <Input id="minSpendCentavos" type="number" placeholder="e.g. 2000" disabled />
             </Field>
             <Field label="Max redemptions (optional)" htmlFor="maxRedemptions">
               <Input id="maxRedemptions" type="number" placeholder="Unlimited" disabled />
@@ -72,6 +72,9 @@ export default function AdminPromoCodesLoading() {
               <input type="checkbox" disabled />
               Once per customer
             </label>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Amount and minimum spend are entered in pesos for a Fixed/₱ discount (add a period for centavos) — not centavos.
+            </p>
             <div className="sm:col-span-2">
               <Button type="button" disabled>
                 Create code

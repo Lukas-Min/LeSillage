@@ -18,7 +18,7 @@ import {
   upsertProduct,
   upsertSku,
 } from "@/actions/admin-catalog-actions";
-import { formatPHP } from "@/domain/money";
+import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
 
 export const dynamic = "force-dynamic";
@@ -128,8 +128,16 @@ export default async function AdminProductDetailPage({
                 <Input id="p-remainingMl" name="remainingMl" type="number" defaultValue={product.remainingMl ?? ""} placeholder="e.g. 80" />
               </Field>
             ) : null}
-            <Field label="Cost price (₱ centavos, what you paid wholesale)" htmlFor="p-costPrice" className="sm:col-span-2">
-              <Input id="p-costPrice" name="costPrice" type="number" defaultValue={product.costPrice ?? ""} required />
+            <Field label="Cost price (₱, what you paid wholesale)" htmlFor="p-costPrice" className="sm:col-span-2">
+              <Input
+                id="p-costPrice"
+                name="costPrice"
+                type="number"
+                step="0.01"
+                defaultValue={product.costPrice != null ? fromCentavos(product.costPrice) : ""}
+                placeholder="e.g. 3500 — add a period for centavos, e.g. 3500.50"
+                required
+              />
             </Field>
             <Field label="Pricing formula" htmlFor="p-pricingMode">
               <select id="p-pricingMode" name="pricingMode" defaultValue={product.pricingMode} className={selectClass}>
@@ -139,12 +147,19 @@ export default async function AdminProductDetailPage({
               </select>
             </Field>
             <Field label="Markup % (or ₱ for fixed/direct)" htmlFor="p-pricingInput">
-              <Input id="p-pricingInput" name="pricingInput" type="number" defaultValue={product.pricingInput} />
+              <Input
+                id="p-pricingInput"
+                name="pricingInput"
+                type="number"
+                step="0.01"
+                defaultValue={product.pricingMode === "PERCENTAGE" ? product.pricingInput : fromCentavos(product.pricingInput)}
+              />
             </Field>
             <p className="text-xs text-muted-foreground sm:col-span-2">
               Reference retail price = cost price run through the formula above. Every SKU&apos;s price is derived from
               it: reference price ÷ reference size × that SKU&apos;s size — e.g. a ₱2,000 / 100ml reference prices a
-              10ml decant at ₱200. A SKU without a size just uses the reference price directly.
+              10ml decant at ₱200. A SKU without a size just uses the reference price directly. Cost price and the
+              Fixed/Direct markup are entered in pesos (add a period for centavos, e.g. 3500.50) — not centavos.
             </p>
             <Field label="Description" htmlFor="p-description" className="sm:col-span-2">
               <Textarea id="p-description" name="description" defaultValue={product.description ?? ""} />
@@ -358,11 +373,11 @@ export default async function AdminProductDetailPage({
             <Field label="Type" htmlFor="new-discount-type">
               <select id="new-discount-type" name="type" className={selectClass}>
                 <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed centavos</option>
+                <option value="FIXED">Fixed ₱ off</option>
               </select>
             </Field>
-            <Field label="Amount" htmlFor="new-discount-amount">
-              <Input id="new-discount-amount" name="amount" type="number" required className="w-32" />
+            <Field label="Amount (% or ₱)" htmlFor="new-discount-amount">
+              <Input id="new-discount-amount" name="amount" type="number" step="0.01" required className="w-32" />
             </Field>
             <SubmitButton>Add discount</SubmitButton>
           </form>

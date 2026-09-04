@@ -8,6 +8,7 @@ import { db } from "@/db/client";
 import { promoCodes } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
+import { toCentavos } from "@/domain/money";
 
 const createSchema = z.object({
   code: z
@@ -17,9 +18,11 @@ const createSchema = z.object({
     .max(40)
     .transform((value) => value.toUpperCase()),
   type: z.enum(["PERCENTAGE", "FIXED"]),
-  amount: z.coerce.number().int().min(1),
+  // Pesos when type is FIXED (converted to centavos below); a plain percent when PERCENTAGE.
+  amount: z.coerce.number().min(1),
   scope: z.enum(["ORDER", "DELIVERY"]),
-  minSpendCentavos: z.coerce.number().int().min(0).optional(),
+  // Entered in pesos, converted to centavos below.
+  minSpendCentavos: z.coerce.number().min(0).optional(),
   firstOrderOnly: z.coerce.boolean(),
   onePerCustomer: z.coerce.boolean(),
   maxRedemptions: z.coerce.number().int().min(1).optional(),
@@ -58,6 +61,8 @@ export async function createPromoCode(formData: FormData) {
   if (parsed.type === "PERCENTAGE" && parsed.amount > 100) {
     throw new Error("Percentage discounts can't exceed 100%");
   }
+  const amount = parsed.type === "FIXED" ? toCentavos(parsed.amount) : Math.round(parsed.amount);
+  const minSpendCentavos = parsed.minSpendCentavos !== undefined ? toCentavos(parsed.minSpendCentavos) : undefined;
 
   const existing = (await db().select({ id: promoCodes.id }).from(promoCodes).where(eq(promoCodes.code, parsed.code)))[0];
   if (existing) throw new Error(`Code "${parsed.code}" already exists`);
@@ -67,9 +72,9 @@ export async function createPromoCode(formData: FormData) {
     .values({
       code: parsed.code,
       type: parsed.type,
-      amount: parsed.amount,
+      amount,
       scope: parsed.scope,
-      minSpendCentavos: parsed.minSpendCentavos ?? null,
+      minSpendCentavos: minSpendCentavos ?? null,
       firstOrderOnly: parsed.firstOrderOnly,
       onePerCustomer: parsed.onePerCustomer,
       maxRedemptions: parsed.maxRedemptions ?? null,
@@ -84,7 +89,7 @@ export async function createPromoCode(formData: FormData) {
     action: "PROMO_CODE_CREATE",
     targetType: "promo_code",
     targetId: created[0].id,
-    metadata: { code: parsed.code, type: parsed.type, amount: parsed.amount, scope: parsed.scope },
+    metadata: { code: parsed.code, type: parsed.type, amount, scope: parsed.scope },
   });
   revalidatePath("/admin/promo-codes");
 }

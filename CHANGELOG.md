@@ -3,6 +3,13 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Renamed the `male`/`female` gender values to `men`/`women` throughout (`src/domain/gender.ts`, the shop's Gender filter, and the pricelist import scripts); `unisex` is unchanged. Migrated existing catalog data with `scripts/rename-gender-values.ts` (17 `male` → `men`, 18 `female` → `women`)
+### Fixed
+- Every admin money input (product cost price, product discount amount, site-wide/promo-code discount amount, free-shipping threshold, delivery fee, promo code minimum spend) was silently read as raw centavos — typing "3500" meant to enter ₱3,500 actually saved ₱35.00. These fields now accept pesos directly (add a period for centavos, e.g. "3500.50"), converted to centavos server-side via `toCentavos()`; existing stored values now display divided back down to pesos. Percent-type fields (markup %, percentage discounts) are unaffected — only currency amounts were misread
+- Normalized every DECANT product to a uniform 30% markup across all sizes (`scripts/normalize-decant-markup.ts`). The 24 fragrances loaded by `import-decant-pricelist.ts` had hardcoded per-size prices that carried 0% markup on 5ml and ~30% on 3/10/30ml (a known limitation documented in that script); each product's cost price is rederived as the true discounted cost (Base Full Bottle Price ÷ 1.3) and switched to the PERCENTAGE(30) formula, so every size's retail price is now consistently cost × 1.3
+### Added
+- Added Yves Saint Laurent — Libre Eau de Toilette as a new DECANT product (`scripts/add-libre-edt-decant.ts`), metadata sourced from its Fragrantica page. 40ml source bottle at a ₱3,600 discounted cost with a 30% PERCENTAGE markup, so 3/5/10/30ml SKU prices derive from that reference instead of being hardcoded
 ### Security
 - Payment receipt images are now genuinely access-controlled instead of just having an unguessable URL. Provisioned a second, private-access Vercel Blob store (`le-sillage-receipts`, connected with a `RECEIPTS_` env var prefix to avoid colliding with the existing public store) and wired `uploadPrivateImage` to upload there with real `access: "private"`. Since a private blob's own URL isn't fetchable without the store's token, `receipts.blobUrl` now stores an `/api/admin/file?path=...` proxy URL instead — that route (already admin-session-gated) fetches the blob server-side via `@vercel/blob`'s `get()` and streams it back. Verified directly against the live store: the raw blob URL now returns 403 when fetched without the token, and the authenticated `get()` call retrieves the content correctly
 ### Added

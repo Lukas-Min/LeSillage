@@ -24,6 +24,7 @@ import {
   type Provenance,
 } from "@/db/schema";
 import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
+import { toCentavos } from "@/domain/money";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { uploadPublicImage } from "@/lib/blob";
@@ -75,8 +76,12 @@ const productSchema = z.object({
   notes: z.string().max(2000).optional(),
   sourceMl: z.coerce.number().int().min(0).optional(),
   remainingMl: z.coerce.number().int().min(0).optional(),
-  costPrice: z.coerce.number().int().min(0),
+  // Entered in pesos (decimals allowed for centavos, e.g. "3500.50"), converted
+  // to centavos below — NOT raw centavos. See src/domain/money.ts#toCentavos.
+  costPrice: z.coerce.number().min(0),
   pricingMode: z.enum(["PERCENTAGE", "FIXED", "DIRECT"]),
+  // Pesos for FIXED/DIRECT (converted to centavos below); a plain percent
+  // number for PERCENTAGE (no conversion — it's not a currency amount).
   pricingInput: z.coerce.number().min(0),
   isActive: z.boolean(),
 });
@@ -112,9 +117,10 @@ export async function upsertProduct(formData: FormData) {
     notes: parsed.notes ?? null,
     sourceMl: parsed.sourceMl ?? null,
     remainingMl: parsed.type === "DECANT" ? clampRemainingMl(parsed.remainingMl ?? 0) : null,
-    costPrice: parsed.costPrice,
+    costPrice: toCentavos(parsed.costPrice),
     pricingMode: parsed.pricingMode as PricingMode,
-    pricingInput: parsed.pricingInput,
+    pricingInput:
+      parsed.pricingMode === "PERCENTAGE" ? Math.round(parsed.pricingInput) : toCentavos(parsed.pricingInput),
     isActive: parsed.isActive,
     updatedAt: new Date(),
   };
@@ -316,7 +322,9 @@ export async function upsertDiscount(formData: FormData) {
   const admin = await requireAdmin();
   const productId = String(formData.get("productId") ?? "");
   const type = z.enum(["PERCENTAGE", "FIXED"]).parse(formData.get("type"));
-  const amount = z.coerce.number().int().min(1).parse(formData.get("amount"));
+  // Entered in pesos for FIXED (converted to centavos below); a plain percent for PERCENTAGE.
+  const rawAmount = z.coerce.number().min(1).parse(formData.get("amount"));
+  const amount = type === "FIXED" ? toCentavos(rawAmount) : Math.round(rawAmount);
   await db().insert(productDiscounts).values({ productId, type, amount, isActive: true });
   await auditLogSubject({ actor: admin.id, action: "DISCOUNT_UPDATE", targetType: "product", targetId: productId });
   revalidatePath(`/admin/products/${productId}`);

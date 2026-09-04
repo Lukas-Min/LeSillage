@@ -9,11 +9,11 @@ export default function AdminPromoLoading() {
       <Card>
         <CardContent className="space-y-3 p-4">
           <div className="space-y-1">
-            <Label>Free-shipping threshold (centavos)</Label>
+            <Label>Free-shipping threshold (₱)</Label>
             <Skeleton className="h-11 w-full" />
           </div>
           <div className="space-y-1">
-            <Label>Delivery fee (centavos)</Label>
+            <Label>Delivery fee (₱)</Label>
             <Skeleton className="h-11 w-full" />
           </div>
           <Skeleton className="h-5 w-40" />

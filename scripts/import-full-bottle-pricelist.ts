@@ -40,7 +40,7 @@ import { db } from "../src/db/client";
 import { productImages, products, skus } from "../src/db/schema";
 import type { Concentration, FragranceCategory } from "../src/db/schema";
 
-type Gender = "male" | "female" | "unisex";
+type Gender = "men" | "women" | "unisex";
 
 interface Accord {
   name: string;
@@ -69,7 +69,7 @@ interface FullBottleEntry {
 
 const CATALOG: FullBottleEntry[] = [
   {
-    brand: "Yves Saint Laurent", name: "Libre", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Yves Saint Laurent", name: "Libre", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5250, sizeMl: 90, releaseYear: 2019, perfumers: ["Anne Flipo", "Carlos Benaïm"],
     notes: { top: ["Lavender", "Mandarin Orange", "Black Currant", "Petitgrain"], middle: ["Lavender", "Orange Blossom", "Jasmine"], base: ["Madagascar Vanilla", "Musk", "Cedar", "Ambergris"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "citrus", strength: 73 }, { name: "lavender", strength: 65 }, { name: "vanilla", strength: 49 }, { name: "aromatic", strength: 39 }, { name: "sweet", strength: 36 }, { name: "powdery", strength: 33 }, { name: "animalic", strength: 32 }],
@@ -77,7 +77,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-56077.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "Libre Intense", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Yves Saint Laurent", name: "Libre Intense", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5750, sizeMl: 90, releaseYear: 2020, perfumers: ["Anne Flipo", "Carlos Benaïm"],
     notes: { top: ["Lavender", "Mandarin Orange", "Bergamot"], middle: ["Lavender", "Tunisian Orange Blossom", "Jasmine Sambac", "Orchid"], base: ["Madagascar Vanilla", "Tonka Bean", "Ambergris", "Vetiver"] },
     accords: [{ name: "vanilla", strength: 100 }, { name: "white floral", strength: 74 }, { name: "citrus", strength: 62 }, { name: "lavender", strength: 59 }, { name: "sweet", strength: 57 }, { name: "aromatic", strength: 53 }, { name: "amber", strength: 44 }, { name: "powdery", strength: 28 }],
@@ -85,7 +85,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-Intense-62318.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "Libre Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Yves Saint Laurent", name: "Libre Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5750, sizeMl: 90, releaseYear: 2022, perfumers: ["Anne Flipo", "Carlos Benaïm"],
     notes: { top: ["Ginger", "Saffron", "Mandarin Orange", "Bergamot"], middle: ["Orange Blossom", "Lavender"], base: ["Bourbon Vanilla", "Honey", "Tonka Bean", "Vetiver"] },
     accords: [{ name: "vanilla", strength: 100 }, { name: "sweet", strength: 87 }, { name: "citrus", strength: 82 }, { name: "honey", strength: 67 }, { name: "white floral", strength: 57 }, { name: "lavender", strength: 56 }, { name: "fresh spicy", strength: 54 }, { name: "aromatic", strength: 52 }],
@@ -93,7 +93,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-Le-Parfum-75676.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "Mon Paris", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Yves Saint Laurent", name: "Mon Paris", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5550, sizeMl: 90, releaseYear: 2016, perfumers: ["Olivier Cresp", "Harry Fremont", "Dora Baghriche"],
     notes: { top: ["Strawberry", "Raspberry", "Pear", "Orange", "Calabrian bergamot", "Tangerine", "Calone"], middle: ["Peony", "Jasmine Sambac", "Chinese Jasmine", "Datura", "Orange Blossom"], base: ["Indonesian Patchouli Leaf", "Patchouli", "White Musk", "Vanila", "Ambroxan", "Moss", "Cedar"] },
     accords: [{ name: "fruity", strength: 100 }, { name: "sweet", strength: 79 }, { name: "fresh", strength: 32 }, { name: "white floral", strength: 31 }, { name: "patchouli", strength: 30 }, { name: "citrus", strength: 30 }, { name: "woody", strength: 27 }, { name: "floral", strength: 27 }],
@@ -101,7 +101,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Mon-Paris-38914.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "Libre Flowers & Flames", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Yves Saint Laurent", name: "Libre Flowers & Flames", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5750, sizeMl: 90, releaseYear: 2024, perfumers: [],
     notes: { top: ["Lavender", "Bergamot"], middle: ["Orange Blossom", "Lavender", "Coconut", "Lily", "Palm Tree"], base: ["Vanilla"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "vanilla", strength: 68 }, { name: "citrus", strength: 57 }, { name: "lavender", strength: 56 }, { name: "sweet", strength: 50 }, { name: "coconut", strength: 44 }, { name: "aromatic", strength: 30 }, { name: "fresh spicy", strength: 30 }],
@@ -109,7 +109,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-Flowers-Flames-95623.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
     costPricePhp: 5250, sizeMl: 100, releaseYear: 2018, perfumers: ["Dominique Ropion", "Claire Liégent"],
     notes: { top: ["Apple", "Ginger", "Bergamot"], middle: ["Sage", "Juniper Berries", "Geranium"], base: ["Amberwood", "Tonka Bean", "Cedar", "Vetiver", "Olibanum"] },
     accords: [{ name: "aromatic", strength: 100 }, { name: "fresh spicy", strength: 98 }, { name: "woody", strength: 73 }, { name: "fruity", strength: 59 }, { name: "fresh", strength: 52 }, { name: "amber", strength: 52 }, { name: "citrus", strength: 46 }, { name: "herbal", strength: 39 }],
@@ -117,7 +117,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Y-Eau-de-Parfum-50757.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "MYSLF Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Yves Saint Laurent", name: "MYSLF Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
     costPricePhp: 5350, sizeMl: 100, releaseYear: 2023, perfumers: ["Christophe Raynaud", "Antoine Maisondieu", "Daniela Andrier"],
     notes: { top: ["Calabrian bergamot", "Bergamot"], middle: ["Tunisian Orange Blossom"], base: ["Ambrofix™", "Patchouli"] },
     accords: [{ name: "citrus", strength: 100 }, { name: "white floral", strength: 76 }, { name: "patchouli", strength: 33 }, { name: "fresh spicy", strength: 31 }, { name: "woody", strength: 26 }, { name: "sweet", strength: 23 }, { name: "soapy", strength: 19 }, { name: "aromatic", strength: 19 }],
@@ -125,7 +125,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/MYSLF-Eau-de-Parfum-84094.html",
   },
   {
-    brand: "Yves Saint Laurent", name: "MYSLF Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Yves Saint Laurent", name: "MYSLF Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "men",
     costPricePhp: 5750, sizeMl: 100, releaseYear: 2024, perfumers: ["Daniela Andrier", "Antoine Maisondieu", "Christophe Raynaud"],
     notes: { top: ["Black Pepper"], middle: ["Orange Blossom"], base: ["Bourbon Vanilla", "Amber", "Woody Notes", "Patchouli"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "vanilla", strength: 75 }, { name: "woody", strength: 63 }, { name: "citrus", strength: 50 }, { name: "amber", strength: 46 }, { name: "sweet", strength: 45 }, { name: "fresh spicy", strength: 43 }, { name: "warm spicy", strength: 34 }],
@@ -133,7 +133,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/MYSLF-Le-Parfum-94983.html",
   },
   {
-    brand: "Prada", name: "Paradigme Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "male",
+    brand: "Prada", name: "Paradigme Le Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "men",
     costPricePhp: 5650, sizeMl: 100, releaseYear: 2026, perfumers: [],
     notes: { top: ["Bergamot"], middle: ["Vanilla", "Geranium"], base: ["Peru Balsam", "Benzoin", "Guaiac Wood", "Amberever"] },
     accords: [{ name: "amber", strength: 100 }, { name: "balsamic", strength: 81 }, { name: "vanilla", strength: 78 }, { name: "woody", strength: 70 }, { name: "fresh spicy", strength: 51 }, { name: "aromatic", strength: 38 }, { name: "warm spicy", strength: 34 }, { name: "citrus", strength: 33 }],
@@ -157,7 +157,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Nishane/Wulong-Cha-30567.html",
   },
   {
-    brand: "Miu Miu", name: "Miutine", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Miu Miu", name: "Miutine", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 3990, sizeMl: 100, releaseYear: 2025, perfumers: ["Dominique Ropion"],
     notes: { top: ["Strawberry", "Citruses"], middle: ["Rose", "Gardenia", "Jasmine"], base: ["Brown sugar", "Patchouli", "Bourbon Vanilla", "Oakmoss", "Amber"] },
     accords: [{ name: "sweet", strength: 100 }, { name: "fruity", strength: 76 }, { name: "rose", strength: 45 }, { name: "patchouli", strength: 40 }, { name: "earthy", strength: 30 }, { name: "woody", strength: 30 }, { name: "vanilla", strength: 29 }, { name: "mossy", strength: 20 }],
@@ -165,7 +165,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Miu-Miu/Miutine-113885.html",
   },
   {
-    brand: "Miu Miu", name: "Miu Miu Fleur de Lait", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Miu Miu", name: "Miu Miu Fleur de Lait", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 3990, sizeMl: 100, releaseYear: 2023, perfumers: [],
     notes: { top: ["Mango"], middle: ["Osmanthus"], base: ["Coconut Milk"] },
     accords: [{ name: "fruity", strength: 100 }, { name: "tropical", strength: 95 }, { name: "sweet", strength: 73 }, { name: "coconut", strength: 72 }, { name: "floral", strength: 47 }, { name: "lactonic", strength: 41 }, { name: "terpenic", strength: 22 }, { name: "vanilla", strength: 22 }],
@@ -173,7 +173,7 @@ const CATALOG: FullBottleEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Miu-Miu/Miu-Miu-Fleur-de-Lait-78755.html",
   },
   {
-    brand: "Prada", name: "Prada Paradoxe Intense", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Prada", name: "Prada Paradoxe Intense", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5450, sizeMl: 90, releaseYear: 2023, perfumers: ["Nadège Le Garlantezec", "Shyamala Maisondieu", "Antoine Maisondieu"],
     notes: { top: ["Neroli", "Pear", "Bergamot"], middle: ["Jasmine", "Neroli Essence", "Moss"], base: ["Bourbon Vanilla", "Vanilla", "Amber", "Ambrofix™", "Serenolide"] },
     accords: [{ name: "white floral", strength: 100 }, { name: "vanilla", strength: 72 }, { name: "citrus", strength: 70 }, { name: "mossy", strength: 61 }, { name: "amber", strength: 54 }, { name: "fruity", strength: 48 }, { name: "sweet", strength: 46 }, { name: "fresh", strength: 45 }],
@@ -182,7 +182,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     // Store owner confirmed: Lancôme Idôle bottles here are 100ml.
-    brand: "Lancôme", name: "Idôle", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Lancôme", name: "Idôle", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5450, sizeMl: 100, releaseYear: 2019, perfumers: ["Shyamala Maisondieu", "Adriana Medina-Baez", "Nadege le Garlantezec", "Sonia Constant"],
     notes: { top: ["Pear", "Bergamot", "Pink Pepper"], middle: ["Rose", "Jasmine"], base: ["White Musk", "Vanilla", "Patchouli", "Cedar"] },
     accords: [{ name: "rose", strength: 100 }, { name: "musky", strength: 71 }, { name: "fruity", strength: 56 }, { name: "sweet", strength: 53 }, { name: "white floral", strength: 51 }, { name: "powdery", strength: 47 }, { name: "floral", strength: 45 }, { name: "citrus", strength: 40 }],
@@ -191,7 +191,7 @@ const CATALOG: FullBottleEntry[] = [
   },
   {
     // Store owner confirmed: Lancôme Idôle Power bottles here are 100ml.
-    brand: "Lancôme", name: "Idôle Power", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "female",
+    brand: "Lancôme", name: "Idôle Power", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
     costPricePhp: 5350, sizeMl: 100, releaseYear: 2024, perfumers: [],
     notes: { top: ["Apple"], middle: ["May Rose"], base: ["Sandalwood"] },
     accords: [{ name: "rose", strength: 100 }, { name: "woody", strength: 83 }, { name: "powdery", strength: 41 }, { name: "fruity", strength: 34 }, { name: "warm spicy", strength: 33 }, { name: "floral", strength: 29 }, { name: "fresh", strength: 21 }, { name: "green", strength: 17 }],

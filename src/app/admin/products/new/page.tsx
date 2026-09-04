@@ -46,8 +46,15 @@ export default function NewProductPage() {
             <Input name="remainingMl" type="number" placeholder="Remaining ml (decants)" />
             <Textarea name="description" placeholder="Description" className="sm:col-span-2" />
             <div className="space-y-1 sm:col-span-2">
-              <Label htmlFor="new-costPrice">Cost price (₱ centavos, what you paid wholesale)</Label>
-              <Input id="new-costPrice" name="costPrice" type="number" placeholder="e.g. 500000 = ₱5,000" required />
+              <Label htmlFor="new-costPrice">Cost price (₱, what you paid wholesale)</Label>
+              <Input
+                id="new-costPrice"
+                name="costPrice"
+                type="number"
+                step="0.01"
+                placeholder="e.g. 3500 — add a period for centavos, e.g. 3500.50"
+                required
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="new-pricingMode">Pricing formula</Label>
@@ -64,10 +71,11 @@ export default function NewProductPage() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="new-pricingInput">Markup % (or ₱ for fixed/direct)</Label>
-              <Input id="new-pricingInput" name="pricingInput" type="number" defaultValue={30} />
+              <Input id="new-pricingInput" name="pricingInput" type="number" step="0.01" defaultValue={30} />
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">
               For decants, every size&apos;s retail price is derived from this: reference price ÷ source ml × that size&apos;s ml.
+              Cost price and the Fixed/Direct markup are entered in pesos (add a period for centavos) — not centavos.
             </p>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="isActive" defaultChecked />

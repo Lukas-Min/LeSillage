@@ -30,8 +30,8 @@ export default function AdminNewProductLoading() {
             <Input type="number" placeholder="Remaining ml (decants)" disabled />
             <Textarea placeholder="Description" className="sm:col-span-2" disabled />
             <div className="space-y-1 sm:col-span-2">
-              <Label htmlFor="new-costPrice">Cost price (₱ centavos, what you paid wholesale)</Label>
-              <Input id="new-costPrice" type="number" placeholder="e.g. 500000 = ₱5,000" disabled />
+              <Label htmlFor="new-costPrice">Cost price (₱, what you paid wholesale)</Label>
+              <Input id="new-costPrice" type="number" placeholder="e.g. 3500 — add a period for centavos, e.g. 3500.50" disabled />
             </div>
             <div className="space-y-1">
               <Label htmlFor="new-pricingMode">Pricing formula</Label>
@@ -45,6 +45,7 @@ export default function AdminNewProductLoading() {
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">
               For decants, every size&apos;s retail price is derived from this: reference price ÷ source ml × that size&apos;s ml.
+              Cost price and the Fixed/Direct markup are entered in pesos (add a period for centavos) — not centavos.
             </p>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" defaultChecked disabled />

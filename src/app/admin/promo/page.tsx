@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updatePromoSettings } from "@/actions/admin-actions";
+import { fromCentavos } from "@/domain/money";
 
 export const dynamic = "force-dynamic";
 
@@ -18,21 +19,23 @@ export default async function PromoSettingsPage() {
         <CardContent className="p-4">
           <form action={updatePromoSettings} className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (centavos)</Label>
+              <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (₱)</Label>
               <Input
                 id="decantThresholdCentavos"
                 name="decantThresholdCentavos"
                 type="number"
-                defaultValue={row?.decantThresholdCentavos ?? 200000}
+                step="0.01"
+                defaultValue={fromCentavos(row?.decantThresholdCentavos ?? 200000)}
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="deliveryFeeCentavos">Delivery fee (centavos)</Label>
+              <Label htmlFor="deliveryFeeCentavos">Delivery fee (₱)</Label>
               <Input
                 id="deliveryFeeCentavos"
                 name="deliveryFeeCentavos"
                 type="number"
-                defaultValue={row?.deliveryFeeCentavos ?? 12000}
+                step="0.01"
+                defaultValue={fromCentavos(row?.deliveryFeeCentavos ?? 12000)}
               />
             </div>
             <label className="flex items-center gap-2 text-sm">
@@ -81,22 +84,29 @@ export default async function PromoSettingsPage() {
                   className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
                 >
                   <option value="PERCENTAGE">Percentage</option>
-                  <option value="FIXED">Fixed centavos</option>
+                  <option value="FIXED">Fixed ₱ off</option>
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="siteWideDiscountAmount">Amount</Label>
+                <Label htmlFor="siteWideDiscountAmount">Amount (% or ₱)</Label>
                 <Input
                   id="siteWideDiscountAmount"
                   name="siteWideDiscountAmount"
                   type="number"
+                  step="0.01"
                   min={0}
-                  defaultValue={row?.siteWideDiscountAmount ?? 0}
+                  defaultValue={
+                    row?.siteWideDiscountType === "FIXED"
+                      ? fromCentavos(row?.siteWideDiscountAmount ?? 0)
+                      : row?.siteWideDiscountAmount ?? 0
+                  }
                 />
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
               Competes with each product's own discount — whichever saves the customer more wins, they never stack.
+              Free-shipping threshold, delivery fee, and a Fixed discount amount are entered in pesos (add a period
+              for centavos) — not centavos.
             </p>
             <Button type="submit">Save</Button>
           </form>

@@ -10,16 +10,20 @@ import { requireAdmin } from "@/auth";
 import { transitionOrderStatus } from "@/lib/orders";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
+import { toCentavos } from "@/domain/money";
 
+// decantThresholdCentavos/deliveryFeeCentavos/siteWideDiscountAmount (when FIXED)
+// are entered in pesos here (decimals allowed for centavos) and converted below
+// via toCentavos — the field names keep their DB-column spelling, not their unit.
 const promoSchema = z.object({
-  decantThresholdCentavos: z.coerce.number().int().min(0).max(1_000_000_00),
-  deliveryFeeCentavos: z.coerce.number().int().min(0).max(1_000_000_00),
+  decantThresholdCentavos: z.coerce.number().min(0).max(1_000_000),
+  deliveryFeeCentavos: z.coerce.number().min(0).max(1_000_000),
   freeDeliveryEnabled: z.coerce.boolean(),
   testerBonusEnabled: z.coerce.boolean(),
   decantPreOrderThresholdMl: z.coerce.number().int().min(0).max(1000),
   siteWideDiscountEnabled: z.coerce.boolean(),
   siteWideDiscountType: z.enum(["PERCENTAGE", "FIXED"]),
-  siteWideDiscountAmount: z.coerce.number().int().min(0),
+  siteWideDiscountAmount: z.coerce.number().min(0),
 });
 
 export async function adminOAuthSignIn(provider: "google" | "facebook", returnTo?: string) {
@@ -55,16 +59,27 @@ export async function updatePromoSettings(formData: FormData) {
   if (parsed.siteWideDiscountType === "PERCENTAGE" && parsed.siteWideDiscountAmount > 100) {
     throw new Error("Percentage discounts can't exceed 100%");
   }
+  const values = {
+    decantThresholdCentavos: toCentavos(parsed.decantThresholdCentavos),
+    deliveryFeeCentavos: toCentavos(parsed.deliveryFeeCentavos),
+    freeDeliveryEnabled: parsed.freeDeliveryEnabled,
+    testerBonusEnabled: parsed.testerBonusEnabled,
+    decantPreOrderThresholdMl: parsed.decantPreOrderThresholdMl,
+    siteWideDiscountEnabled: parsed.siteWideDiscountEnabled,
+    siteWideDiscountType: parsed.siteWideDiscountType,
+    siteWideDiscountAmount:
+      parsed.siteWideDiscountType === "FIXED" ? toCentavos(parsed.siteWideDiscountAmount) : Math.round(parsed.siteWideDiscountAmount),
+  };
   await db()
     .update(promoSettings)
-    .set({ ...parsed, updatedAt: new Date() })
+    .set({ ...values, updatedAt: new Date() })
     .where(eq(promoSettings.id, "singleton"));
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_UPDATE",
     targetType: "promo_setting",
     targetId: "singleton",
-    metadata: parsed,
+    metadata: values,
   });
   revalidatePath("/admin/settings");
   revalidatePath("/admin/promo");
