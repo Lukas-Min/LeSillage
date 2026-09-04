@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { formatPHP } from "@/domain/money";
 import { concentrationLabel } from "@/domain/concentration";
 import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
@@ -105,17 +106,25 @@ export default async function ProductsAdminPage({
           );
         })}
       </div>
-      <form action="/admin/products" className="flex flex-wrap items-center gap-2">
+      <form action="/admin/products" className="flex flex-wrap items-center justify-end gap-2">
         {activeType !== "ALL" ? <input type="hidden" name="type" value={activeType} /> : null}
-        <Input type="search" name="q" defaultValue={query} placeholder="Search by brand or name…" className="h-11 max-w-xs" />
-        <Button type="submit" variant="outline">
-          Search
-        </Button>
         {query ? (
           <Link href={hrefFor({ q: "", page: 1 })} className="text-xs text-muted-foreground hover:underline">
             Clear search
           </Link>
         ) : null}
+        <div className="flex w-full max-w-xs">
+          <Input
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder="Search by brand or name…"
+            className="h-11 rounded-r-none border-r-0"
+          />
+          <Button type="submit" variant="outline" size="icon-lg" aria-label="Search" className="h-11 w-11 shrink-0 rounded-l-none">
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
       </form>
       {productRows.length === 0 ? (
         <Card className="flex flex-1 flex-col">

@@ -161,6 +161,10 @@ export const users = pgTable("user", {
   marketingOptIn: boolean("marketingOptIn").notNull().default(false),
   passwordHash: text("passwordHash"),
   sessionVersion: integer("sessionVersion").notNull().default(0),
+  // "light" | "dark" | "system" | null (never set). Lets a signed-in customer's
+  // theme choice follow them across devices/browsers instead of living only
+  // in that browser's localStorage (see src/components/theme-toggle.tsx).
+  themePreference: text("themePreference"),
   deletedAt: timestamp("deletedAt", { mode: "date" }),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
 });

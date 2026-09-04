@@ -1,6 +1,7 @@
-import { desc, inArray } from "drizzle-orm";
+import Link from "next/link";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { orders, receipts } from "@/db/schema";
+import { orders, receipts, users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { describeStatus } from "@/domain/order-state";
@@ -9,8 +10,30 @@ import { OrderRowActions } from "@/components/admin/order-row-actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrdersPage() {
-  const rows = await db().select().from(orders).orderBy(desc(orders.createdAt));
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ userId?: string; orderId?: string }>;
+}) {
+  const { userId, orderId } = await searchParams;
+  const conditions = [];
+  if (userId) conditions.push(eq(orders.userId, userId));
+  if (orderId) conditions.push(eq(orders.id, orderId));
+
+  const [rows, customer] = await Promise.all([
+    db()
+      .select()
+      .from(orders)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(orders.createdAt)),
+    userId
+      ? db()
+          .select({ id: users.id, email: users.email, name: users.name })
+          .from(users)
+          .where(eq(users.id, userId))
+          .then((r) => r[0])
+      : Promise.resolve(undefined),
+  ]);
   const receiptRows =
     rows.length > 0
       ? await db()
@@ -27,13 +50,25 @@ export default async function AdminOrdersPage() {
       latestReceiptByOrder.set(r.orderId, { blobUrl: r.blobUrl, submittedAt: r.submittedAt });
     }
   }
+  const filterLabel = orderId
+    ? "this order"
+    : customer
+      ? `orders for ${customer.name ?? customer.email}`
+      : null;
   return (
     <div className="flex flex-1 flex-col space-y-4">
-      <h1 className="font-serif-display text-2xl">Orders</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-serif-display text-2xl">Orders</h1>
+        {filterLabel ? (
+          <Link href="/admin/orders" className="text-xs text-muted-foreground hover:underline">
+            Showing {filterLabel} · Clear filter
+          </Link>
+        ) : null}
+      </div>
       {rows.length === 0 ? (
         <Card className="flex flex-1 flex-col">
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            No orders yet.
+            {filterLabel ? "No matching orders." : "No orders yet."}
           </CardContent>
         </Card>
       ) : null}

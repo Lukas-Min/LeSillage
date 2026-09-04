@@ -50,7 +50,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-4">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">{card.brand}</p>
-          <h2 className="font-serif-display line-clamp-2 text-lg leading-snug transition-colors group-hover:text-gold">
+          <h2 className="font-serif-display line-clamp-2 text-lg leading-snug font-semibold">
             {card.name}
           </h2>
           <p className="line-clamp-1 text-xs text-muted-foreground">{subtitle}</p>

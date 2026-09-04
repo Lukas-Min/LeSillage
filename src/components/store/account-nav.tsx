@@ -18,7 +18,6 @@ import {
   Users,
   ScrollText,
   Tag,
-  Ticket,
   QrCode,
   Settings,
   MoreHorizontal,
@@ -50,7 +49,6 @@ export const adminNavItems: AccountNavItem[] = [
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/audit", label: "Audit log", icon: ScrollText },
   { href: "/admin/promo", label: "Promo & delivery", icon: Tag },
-  { href: "/admin/promo-codes", label: "Promo codes", icon: Ticket },
   { href: "/admin/qr", label: "QR codes", icon: QrCode },
   { href: "/admin/settings", label: "Admin settings", icon: Settings },
 ];

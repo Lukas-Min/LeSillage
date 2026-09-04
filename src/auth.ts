@@ -30,6 +30,7 @@ export const getUserAuthState = cache(async (userId: string) => {
         sessionVersion: users.sessionVersion,
         deletedAt: users.deletedAt,
         emailVerified: users.emailVerified,
+        themePreference: users.themePreference,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -145,12 +146,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.role = state.role;
       token.sessionVersion = state.sessionVersion;
       token.email = state.email;
+      token.themePreference = state.themePreference;
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
         (session.user as { role?: string }).role = (token.role as string) ?? "CUSTOMER";
+        (session.user as { themePreference?: string | null }).themePreference =
+          (token.themePreference as string | null) ?? null;
       }
       return session;
     },

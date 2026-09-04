@@ -4,8 +4,15 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Dark/light mode now follows a signed-in customer's account, not just the browser: added `users.themePreference`, a server action to save it on every toggle, and an `AccountThemeSync` component that adopts it on a fresh device/browser with no local preference yet. Guests keep working exactly as before via localStorage only
 - Admin Products list gained search (brand/name/family, combines with the type tabs) and pagination (20 per page, Previous/Next + "Page X of Y"). List is now always sorted alphabetically by brand then name (A first) instead of unspecified insertion order
 ### Changed
+- Merged "Promo & delivery" and "Promo codes" into one sidebar entry (`/admin/promo`, now with Settings/Promo codes tabs) — `/admin/promo-codes` redirects there for old links
+- Every `<Input>` in the app relied on the base component's stale `h-8` default, while every hand-styled `<select>` (and every place that DID override Input's height) used `h-11` — causing a systematic height mismatch between dropdowns and text fields across the whole admin section (Discounts, new SKU, etc.). Fixed by correcting the `Input` component's own default to `h-11`, matching the convention already used everywhere else
+- The destructive button variant ("Archive or delete", etc.) was a faint outline (light red text on a barely-tinted background) — now a solid red fill with white text
+- Admin customer detail page was barely useful: no clickable orders, a stray duplicate role badge floating at the bottom, and no summary data. Orders now link into `/admin/orders` filtered to that one order (new `userId`/`orderId` filters there); added order count, completed count, and total spent; account info now also shows phone, marketing opt-in, join date, and deleted status
+- The "Adjust pool" (Remaining ml / Reason) fields on the admin product page were narrow instead of filling their row like other form fields — now stretch with `flex-1`
+- Product card titles no longer change color on hover (removed the `group-hover:text-gold` effect) and are bold by default instead
 - The 16 full-bottle products from `scripts/import-full-bottle-pricelist.ts` had a short auto-generated description reading "Name by Brand (Year)." — changed to "By Perfumer(s) (Year)." (e.g. "By Shyamala Maisondieu, Adriana Medina-Baez, Nadege le Garlantezec and Sonia Constant (2019)."), falling back to the brand only for the 4 entries with no credited perfumer. Re-ran the script to update the live descriptions (pricing untouched)
 - Product picture hover effects were inconsistent — the shop grid zoomed the photo in slightly on hover, the homepage flagship lifted the whole card instead, and the product detail page had no hover effect at all, with two different zoom amounts (1.03 vs 1.06) between the photo and the no-image fallback glyph. `CompositionCanvas` now carries its own `group` and hover-zoom (uniform 1.05 scale) internally, so every picture across the site (card, flagship, PDP) zooms in the same way regardless of how the caller wraps it
 ### Added

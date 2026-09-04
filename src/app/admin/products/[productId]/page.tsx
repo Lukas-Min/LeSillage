@@ -184,10 +184,10 @@ export default async function AdminProductDetailPage({
           {product.type === "DECANT" ? (
             <form action={adjustDecantMl} className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4">
               <input type="hidden" name="productId" value={product.id} />
-              <Field label="Remaining ml" htmlFor="adjust-ml">
+              <Field label="Remaining ml" htmlFor="adjust-ml" className="flex-1">
                 <Input id="adjust-ml" name="remainingMl" type="number" defaultValue={product.remainingMl ?? 0} />
               </Field>
-              <Field label="Reason" htmlFor="adjust-note">
+              <Field label="Reason" htmlFor="adjust-note" className="flex-1">
                 <Input id="adjust-note" name="note" placeholder="e.g. damaged bottle, recount" />
               </Field>
               <SubmitButton>Adjust pool</SubmitButton>
