@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { Condition, Fulfillment } from "@/db/schema";
+import type { Condition, Fulfillment, Provenance } from "@/db/schema";
 
 /** One real, purchasable size for a decant product — never a placeholder for a size the product doesn't offer. */
 export interface SizePickerOption {
@@ -10,6 +10,14 @@ export interface SizePickerOption {
   skuId: string;
   fulfillment: Fulfillment;
   condition?: Condition;
+  /** Set on decant options so a size with both a RETAIL and an IN_HOUSE SKU
+   *  can be told apart — see labelDecantSizeOptions in lib/catalog.ts, which
+   *  bakes this into `label` too whenever a size has more than one option. */
+  provenance?: Provenance;
+  /** Only meaningful for a RETAIL-provenance decant option (a distinct
+   *  physical unit with its own stock, unlike an IN_HOUSE decant, which is
+   *  never "sold out" — it just tips into pre-order via the shared pool). */
+  soldOut?: boolean;
   originalCentavos: number;
   discountedCentavos: number;
   savedCentavos: number;

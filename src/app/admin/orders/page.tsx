@@ -78,7 +78,9 @@ export default async function AdminOrdersPage({
             <Link href={`/admin/orders/${order.id}`} className="hover:underline">
               <CardTitle className="text-base">{order.orderNumber}</CardTitle>
             </Link>
-            <Badge className="h-auto px-3 py-1.5 text-sm">{describeStatus(order.status)}</Badge>
+            <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
+              {describeStatus(order.status)}
+            </Badge>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>

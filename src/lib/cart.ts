@@ -11,6 +11,7 @@ import {
   type Fulfillment,
   type FulfillmentMethod,
   type ProductType,
+  type Provenance,
 } from "@/db/schema";
 import { auth } from "@/auth";
 import { priceCart, type CartTotals } from "@/domain/cart";
@@ -126,8 +127,13 @@ export function resolveCartCap(args: {
   sizeMl: number | null;
   remainingMl: number | null | undefined;
   stock: number;
+  /** A RETAIL decant SKU is a distinct physical unit bought pre-made from
+   *  the perfumery — capped by its own `stock`, exactly like a full bottle.
+   *  Only an IN_HOUSE decant (poured to order from a whole bottle) draws
+   *  from the shared remainingMl pool below. */
+  provenance?: Provenance;
 }): number {
-  if (args.productType === "DECANT") {
+  if (args.productType === "DECANT" && args.provenance !== "RETAIL") {
     if (args.fulfillment !== "ON_HAND") return 99;
     // Same null-sizeMl fallback as effectiveFulfillment below, so the two
     // never disagree on whether a SKU with no sizeMl is available.
@@ -145,8 +151,11 @@ export function effectiveFulfillment(args: {
   sizeMl: number | null;
   remainingMl: number | null;
   thresholdMl: number;
+  /** See resolveCartCap — a RETAIL decant SKU uses its own fulfillment
+   *  column directly instead of the shared-pool calculation. */
+  provenance?: Provenance;
 }): Fulfillment {
-  if (args.productType !== "DECANT") return args.skuFulfillment;
+  if (args.productType !== "DECANT" || args.provenance === "RETAIL") return args.skuFulfillment;
   return decantFulfillment({
     remainingMl: args.remainingMl ?? 0,
     sizeMl: args.sizeMl ?? DECANT_SIZES_ML[0],
@@ -168,8 +177,16 @@ export async function addOneToCart(
     sizeMl: sku.sizeMl,
     remainingMl: sku.remainingMl ?? null,
     thresholdMl,
+    provenance: sku.provenance,
   });
-  const cap = resolveCartCap({ productType, fulfillment, sizeMl: sku.sizeMl, remainingMl: sku.remainingMl, stock: sku.stock });
+  const cap = resolveCartCap({
+    productType,
+    fulfillment,
+    sizeMl: sku.sizeMl,
+    remainingMl: sku.remainingMl,
+    stock: sku.stock,
+    provenance: sku.provenance,
+  });
   if (cap <= 0) throw new Error("This item is currently out of stock");
   const clamped = clampQuantity(quantity, cap);
   const existing = (
@@ -250,6 +267,7 @@ async function priceCombinedRows(
       sizeMl: row.sku.sizeMl,
       remainingMl: row.remainingMl,
       thresholdMl: promoConfig.decantPreOrderThresholdMl,
+      provenance: row.sku.provenance,
     });
     return [
       {
@@ -278,6 +296,7 @@ async function priceCombinedRows(
       sizeMl: found?.sku?.sizeMl ?? null,
       remainingMl: found?.remainingMl,
       stock: found?.sku?.stock ?? 0,
+      provenance: found?.sku?.provenance,
     });
     return {
       skuId: line.skuId,
@@ -399,6 +418,7 @@ async function loadPricedDirectItem(
       sizeMl: row.sku.sizeMl,
       remainingMl: row.remainingMl,
       thresholdMl: promoConfig.decantPreOrderThresholdMl,
+      provenance: row.sku.provenance,
     });
     const cap = resolveCartCap({
       productType: row.productType,
@@ -406,6 +426,7 @@ async function loadPricedDirectItem(
       sizeMl: row.sku.sizeMl,
       remainingMl: row.remainingMl,
       stock: row.sku.stock,
+      provenance: row.sku.provenance,
     });
     if (cap > 0) {
       combined = [

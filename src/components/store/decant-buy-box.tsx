@@ -38,6 +38,11 @@ export function DecantBuyBox({
         <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
           {selected.fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
         </Badge>
+        {selected.soldOut ? (
+          <Badge variant="destructive" className="h-auto px-3 py-1.5 text-sm">
+            Sold out
+          </Badge>
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -52,14 +57,18 @@ export function DecantBuyBox({
         quantity={quantity}
       />
 
-      <div className="space-y-2">
-        <AddToCartButton
-          skuId={selected.skuId}
-          quantity={quantity}
-          onQuantityChange={setQuantity}
-        />
-        <BuyNowButton skuId={selected.skuId} quantity={quantity} />
-      </div>
+      {selected.soldOut ? (
+        <p className="text-sm text-destructive">Sold out — check back soon.</p>
+      ) : (
+        <div className="space-y-2">
+          <AddToCartButton
+            skuId={selected.skuId}
+            quantity={quantity}
+            onQuantityChange={setQuantity}
+          />
+          <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+        </div>
+      )}
     </>
   );
 }

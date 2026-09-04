@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { DecantSkuFields } from "@/components/admin/decant-sku-fields";
 import {
   adjustDecantMl,
   archiveOrDeleteProduct,
@@ -260,14 +261,19 @@ export default async function AdminProductDetailPage({
                   <Input id={`sku-size-${sku.id}`} name="sizeMl" type="number" defaultValue={sku.sizeMl ?? ""} />
                 </Field>
                 {product.type === "DECANT" ? (
-                  // Availability/stock for a decant size are always derived
-                  // from the shared ml pool above (see the "Adjust pool"
-                  // form and its read-only summary) — showing them again per
-                  // SKU here was pure duplication. Preserved as hidden inputs
-                  // so saving this form doesn't disturb the real columns.
                   <>
-                    <input type="hidden" name="fulfillment" value={sku.fulfillment} />
-                    <input type="hidden" name="stock" value={sku.stock} />
+                    {/* A decant bottle isn't "Sealed"/"BNIB", and isn't sold
+                        "with box"/"bottle only" — both only describe a
+                        specific full-bottle/partial unit. Preserved as
+                        hidden fields so saving doesn't erase them. */}
+                    <input type="hidden" name="condition" value={sku.condition} />
+                    <input type="hidden" name="packaging" value={sku.packaging} />
+                    <DecantSkuFields
+                      idPrefix={`sku-${sku.id}`}
+                      initialProvenance={sku.provenance === "TESTER" ? "IN_HOUSE" : sku.provenance}
+                      fulfillment={sku.fulfillment}
+                      stock={sku.stock}
+                    />
                   </>
                 ) : (
                   <>
@@ -280,28 +286,27 @@ export default async function AdminProductDetailPage({
                     <Field label="Stock" htmlFor={`sku-stock-${sku.id}`}>
                       <Input id={`sku-stock-${sku.id}`} name="stock" type="number" defaultValue={sku.stock} />
                     </Field>
+                    <Field label="Condition" htmlFor={`sku-condition-${sku.id}`}>
+                      <select id={`sku-condition-${sku.id}`} name="condition" defaultValue={sku.condition} className={selectClass}>
+                        <option value="BNIB">BNIB</option>
+                        <option value="SEALED">Sealed</option>
+                        <option value="FEW_SPRAYS_MISSING">Few sprays missing</option>
+                      </select>
+                    </Field>
+                    <Field label="Provenance" htmlFor={`sku-provenance-${sku.id}`}>
+                      <select id={`sku-provenance-${sku.id}`} name="provenance" defaultValue={sku.provenance} className={selectClass}>
+                        <option value="RETAIL">Retail</option>
+                        <option value="TESTER">Tester</option>
+                      </select>
+                    </Field>
+                    <Field label="Packaging" htmlFor={`sku-packaging-${sku.id}`}>
+                      <select id={`sku-packaging-${sku.id}`} name="packaging" defaultValue={sku.packaging} className={selectClass}>
+                        <option value="WITH_BOX">With box</option>
+                        <option value="BOTTLE_ONLY">Bottle only</option>
+                      </select>
+                    </Field>
                   </>
                 )}
-                <Field label="Condition" htmlFor={`sku-condition-${sku.id}`}>
-                  <select id={`sku-condition-${sku.id}`} name="condition" defaultValue={sku.condition} className={selectClass}>
-                    <option value="BNIB">BNIB</option>
-                    <option value="SEALED">Sealed</option>
-                    <option value="FEW_SPRAYS_MISSING">Few sprays missing</option>
-                    <option value="PARTIAL_ML">Partial ml</option>
-                  </select>
-                </Field>
-                <Field label="Provenance" htmlFor={`sku-provenance-${sku.id}`}>
-                  <select id={`sku-provenance-${sku.id}`} name="provenance" defaultValue={sku.provenance} className={selectClass}>
-                    <option value="RETAIL">Retail</option>
-                    <option value="TESTER">Tester</option>
-                  </select>
-                </Field>
-                <Field label="Packaging" htmlFor={`sku-packaging-${sku.id}`}>
-                  <select id={`sku-packaging-${sku.id}`} name="packaging" defaultValue={sku.packaging} className={selectClass}>
-                    <option value="WITH_BOX">With box</option>
-                    <option value="BOTTLE_ONLY">Bottle only</option>
-                  </select>
-                </Field>
               </div>
               <p className="text-xs text-muted-foreground">Computed retail price: {formatPHP(sku.retailPrice)}</p>
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -344,8 +349,9 @@ export default async function AdminProductDetailPage({
                 </Field>
                 {product.type === "DECANT" ? (
                   <>
-                    <input type="hidden" name="fulfillment" value="ON_HAND" />
-                    <input type="hidden" name="stock" value={0} />
+                    <input type="hidden" name="condition" value="SEALED" />
+                    <input type="hidden" name="packaging" value="BOTTLE_ONLY" />
+                    <DecantSkuFields idPrefix="new-sku" initialProvenance="IN_HOUSE" fulfillment="ON_HAND" stock={0} />
                   </>
                 ) : (
                   <>
@@ -358,28 +364,27 @@ export default async function AdminProductDetailPage({
                     <Field label="Stock" htmlFor="new-sku-stock">
                       <Input id="new-sku-stock" name="stock" type="number" defaultValue={0} />
                     </Field>
+                    <Field label="Condition" htmlFor="new-sku-condition">
+                      <select id="new-sku-condition" name="condition" defaultValue="SEALED" className={selectClass}>
+                        <option value="BNIB">BNIB</option>
+                        <option value="SEALED">Sealed</option>
+                        <option value="FEW_SPRAYS_MISSING">Few sprays missing</option>
+                      </select>
+                    </Field>
+                    <Field label="Provenance" htmlFor="new-sku-provenance">
+                      <select id="new-sku-provenance" name="provenance" defaultValue="RETAIL" className={selectClass}>
+                        <option value="RETAIL">Retail</option>
+                        <option value="TESTER">Tester</option>
+                      </select>
+                    </Field>
+                    <Field label="Packaging" htmlFor="new-sku-packaging">
+                      <select id="new-sku-packaging" name="packaging" defaultValue="WITH_BOX" className={selectClass}>
+                        <option value="WITH_BOX">With box</option>
+                        <option value="BOTTLE_ONLY">Bottle only</option>
+                      </select>
+                    </Field>
                   </>
                 )}
-                <Field label="Condition" htmlFor="new-sku-condition">
-                  <select id="new-sku-condition" name="condition" defaultValue="SEALED" className={selectClass}>
-                    <option value="BNIB">BNIB</option>
-                    <option value="SEALED">Sealed</option>
-                    <option value="FEW_SPRAYS_MISSING">Few sprays missing</option>
-                    <option value="PARTIAL_ML">Partial ml</option>
-                  </select>
-                </Field>
-                <Field label="Provenance" htmlFor="new-sku-provenance">
-                  <select id="new-sku-provenance" name="provenance" defaultValue="RETAIL" className={selectClass}>
-                    <option value="RETAIL">Retail</option>
-                    <option value="TESTER">Tester</option>
-                  </select>
-                </Field>
-                <Field label="Packaging" htmlFor="new-sku-packaging">
-                  <select id="new-sku-packaging" name="packaging" defaultValue="WITH_BOX" className={selectClass}>
-                    <option value="WITH_BOX">With box</option>
-                    <option value="BOTTLE_ONLY">Bottle only</option>
-                  </select>
-                </Field>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-xs">

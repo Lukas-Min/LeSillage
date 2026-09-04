@@ -17,10 +17,18 @@ export type ProductType = (typeof productType)[number];
 export const fragranceCategory = ["NICHE", "DESIGNER", "MIDDLE_EASTERN"] as const;
 export type FragranceCategory = (typeof fragranceCategory)[number];
 
-export const condition = ["BNIB", "SEALED", "FEW_SPRAYS_MISSING", "PARTIAL_ML"] as const;
+// PARTIAL_ML was removed as a condition — "partial" is already covered by
+// the PARTIAL product type, so a condition value of the same name was
+// confusing/redundant (no SKU used it: verified 0 rows before removing).
+export const condition = ["BNIB", "SEALED", "FEW_SPRAYS_MISSING"] as const;
 export type Condition = (typeof condition)[number];
 
-export const provenance = ["RETAIL", "TESTER"] as const;
+// IN_HOUSE is decant-only: poured to order from a whole bottle we own,
+// tracked against the product's shared remainingMl pool. RETAIL on a decant
+// SKU means it was bought pre-made as a decant directly from the perfumery —
+// a distinct physical unit with its own stock count, handled exactly like a
+// full-bottle SKU (see effectiveFulfillment/resolveCartCap in lib/cart.ts).
+export const provenance = ["RETAIL", "TESTER", "IN_HOUSE"] as const;
 export type Provenance = (typeof provenance)[number];
 
 export const packaging = ["WITH_BOX", "BOTTLE_ONLY"] as const;

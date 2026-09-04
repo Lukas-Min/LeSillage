@@ -33,8 +33,6 @@ export function labelForCondition(c: Condition): string {
       return "Sealed";
     case "FEW_SPRAYS_MISSING":
       return "A few sprays missing";
-    case "PARTIAL_ML":
-      return "Partial (ml)";
     default: {
       const exhaustive: never = c;
       return String(exhaustive);
@@ -48,6 +46,8 @@ export function labelForProvenance(p: Provenance): string {
       return "Retail";
     case "TESTER":
       return "Tester";
+    case "IN_HOUSE":
+      return "In-house decant";
     default: {
       const exhaustive: never = p;
       return String(exhaustive);

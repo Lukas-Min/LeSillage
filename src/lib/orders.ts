@@ -138,6 +138,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         sizeMl: found.sku.sizeMl,
         remainingMl: found.remainingMl,
         thresholdMl: promoConfig.decantPreOrderThresholdMl,
+        provenance: found.sku.provenance,
       });
       const cap = resolveCartCap({
         productType: found.productType,
@@ -145,6 +146,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         sizeMl: found.sku.sizeMl,
         remainingMl: found.remainingMl,
         stock: found.sku.stock,
+        provenance: found.sku.provenance,
       });
       if (cap <= 0) throw new Error("This item is currently out of stock");
       return { ...item, quantity: clampQuantity(item.quantity, cap) };
@@ -195,6 +197,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         sizeMl: found.sku.sizeMl,
         remainingMl: found.remainingMl,
         thresholdMl: promoConfig.decantPreOrderThresholdMl,
+        provenance: found.sku.provenance,
       });
       return {
         sku: { ...found.sku, fulfillment },
@@ -623,7 +626,10 @@ async function reserveStockWithinTx(
 ): Promise<void> {
   {
     for (const item of items) {
-      if (item.productType === "DECANT" && item.fulfillment === "ON_HAND") {
+      // A RETAIL decant is reserved like a full-bottle SKU (below, by its
+      // own unit stock) — only an IN_HOUSE decant draws from the shared ml
+      // pool here.
+      if (item.productType === "DECANT" && item.provenance !== "RETAIL" && item.fulfillment === "ON_HAND") {
         const sku = (
           await tx
             .select({ productId: skus.productId, sizeMl: skus.sizeMl })

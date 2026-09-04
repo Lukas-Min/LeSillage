@@ -5,7 +5,6 @@ import { db } from "@/db/client";
 import { orders, orderItems, receipts, users, skus } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { describeStatus } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
@@ -56,28 +55,16 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs
-        items={[
-          { label: "Home", href: "/" },
-          { label: "Admin", href: "/admin" },
-          { label: "Orders", href: "/admin/orders" },
-          { label: order.orderNumber },
-        ]}
-      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif-display text-2xl">{order.orderNumber}</h1>
-        <Badge className="h-auto px-3 py-1.5 text-sm">{describeStatus(order.status)}</Badge>
+        <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
+          {describeStatus(order.status)}
+        </Badge>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <OrderRowActions orderId={order.id} status={order.status} />
-          {order.statusReason ? <p className="mt-2 text-sm text-destructive">Reason: {order.statusReason}</p> : null}
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <OrderRowActions orderId={order.id} status={order.status} />
+      </div>
+      {order.statusReason ? <p className="text-sm text-destructive">Reason: {order.statusReason}</p> : null}
 
       <Card>
         <CardHeader>
@@ -140,8 +127,15 @@ export default async function AdminOrderDetailPage({
           <CardTitle className="text-base">Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {items.map((item) => (
-            <div key={item.id} className="flex items-start justify-between gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0">
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              className={
+                index < items.length - 1
+                  ? "flex items-start justify-between gap-3 border-b border-border/60 pb-3"
+                  : "flex items-start justify-between gap-3"
+              }
+            >
               <div className="min-w-0">
                 <p className="font-medium">{item.productName}</p>
                 <p className="text-xs text-muted-foreground">

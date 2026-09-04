@@ -34,6 +34,10 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   // message, so both appeared stacked under the two-column button row.
   const [sizeWarningAttempted, setSizeWarningAttempted] = useState(false);
   const showSizeWarning = sizeWarningAttempted && requireSizeSelection;
+  // The card's own soldOut is only about its default destination SKU — once
+  // a specific size is picked (e.g. a sold-out RETAIL-provenance decant
+  // size), that size's own status takes over.
+  const effectiveSoldOut = selected ? Boolean(selected.soldOut) : card.soldOut;
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link href={card.href} className="flex flex-1 flex-col">
@@ -81,7 +85,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
                   <Badge variant="outline">{card.provenanceLabel}</Badge>
                 </>
               ) : null}
-              {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+              {effectiveSoldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
             {hasSizeOptions ? (
               <SizePicker
@@ -119,7 +123,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
           <AddToCartButton
             skuId={activeSkuId}
             variant="compact"
-            soldOut={card.soldOut}
+            soldOut={effectiveSoldOut}
             disabled={requireSizeSelection}
             hideRequireSelectionMessage
             onRequireSelection={() => setSizeWarningAttempted(true)}
@@ -127,7 +131,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
           <BuyNowButton
             skuId={activeSkuId}
             quantity={1}
-            soldOut={card.soldOut}
+            soldOut={effectiveSoldOut}
             disabled={requireSizeSelection}
             hideRequireSelectionMessage
             onRequireSelection={() => setSizeWarningAttempted(true)}

@@ -93,6 +93,7 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
     sizeMl: found.sku.sizeMl,
     remainingMl: found.remainingMl,
     thresholdMl: promoConfig.decantPreOrderThresholdMl,
+    provenance: found.sku.provenance,
   });
   const cap = resolveCartCap({
     productType: found.productType,
@@ -100,6 +101,7 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
     sizeMl: found.sku.sizeMl,
     remainingMl: found.remainingMl,
     stock: found.sku.stock,
+    provenance: found.sku.provenance,
   });
   if (cap <= 0) throw new Error("This item is currently out of stock");
   await db()
@@ -169,7 +171,15 @@ export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOpt
   if (!current || current.productType !== "DECANT") return [];
   const [siblings, discounts, promoConfig] = await Promise.all([
     client
-      .select({ id: skus.id, sizeMl: skus.sizeMl, retailPrice: skus.retailPrice, condition: skus.condition })
+      .select({
+        id: skus.id,
+        sizeMl: skus.sizeMl,
+        retailPrice: skus.retailPrice,
+        condition: skus.condition,
+        provenance: skus.provenance,
+        fulfillment: skus.fulfillment,
+        stock: skus.stock,
+      })
       .from(skus)
       .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, current.productId)),
@@ -217,6 +227,7 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
     sizeMl: toFound.sku.sizeMl,
     remainingMl: toFound.remainingMl,
     thresholdMl: promoConfig.decantPreOrderThresholdMl,
+    provenance: toFound.sku.provenance,
   });
   const cap = resolveCartCap({
     productType: toFound.productType,
@@ -224,6 +235,7 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
     sizeMl: toFound.sku.sizeMl,
     remainingMl: toFound.remainingMl,
     stock: toFound.sku.stock,
+    provenance: toFound.sku.provenance,
   });
   if (cap <= 0) throw new Error("That size is currently out of stock");
   await client.transaction(async (tx) => {

@@ -3,7 +3,16 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Decant SKUs gained a real Retail vs In-house provenance distinction: In-house (poured from a whole bottle) still uses the shared remaining-ml pool exactly as before; Retail (bought pre-made as a decant from the perfumery) now works like a full-bottle SKU with its own real Fulfillment/Stock, and can genuinely sell out. Migrated all 104 existing decant SKUs from the old generic "Retail" provenance to "In-house" so their live availability didn't change (`scripts/migrate-decant-provenance-to-in-house.ts`) — Retail is now reserved for new decant listings actually bought pre-made
+- A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
+- New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
+### Changed
+- Admin product page: removed "Condition" and "Packaging" from decant SKUs (neither describes a decant — both only mean something for a specific full-bottle/partial unit); removed "Partial ml" as a condition option entirely (redundant with the PARTIAL product type; unused by any existing SKU)
+- Order status badges and action buttons (list and detail page) resized to match the rest of the app; the status badge no longer looks like a solid black button
+- Order detail page: removed the separately-labeled "Actions" card — Confirm/Reject now sit right below the header, right-aligned; removed the page's own breadcrumb (the admin layout already renders one, which was showing twice)
 ### Fixed
+- Order detail page: two adjacent items showed a doubled border line between them (a `last:` Tailwind selector was matching "last child of the whole card," not "last item in the list")
 - Checkout's Province/City/Barangay selects (`PhAddressFields`) were still hardcoded to the old `h-8` height, 12px shorter than every neighboring field on the same form — missed by the earlier field-height sweep since it's a raw `<select>` outside the admin pages that sweep covered. Corrected to `h-11`
 - Buy Now / cart checkout could still create an order for a SKU an admin had deactivated after it was added to a cart or after a `?buyNow=` link was generated — `createOrderFromCart`'s SKU lookup didn't filter on `isActive`, only checking that the row existed at all. Now filtered the same way the cart/checkout display already was, so a deactivated SKU is rejected consistently instead of only being hidden from view
 - A malformed or truncated `?buyNow=` checkout link (missing the quantity segment, hand-edited) silently fell back to checking out the customer's unrelated cart instead of failing — now shown "This item is no longer available" instead

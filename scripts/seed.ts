@@ -61,8 +61,8 @@ interface SeedSkuInput {
   sku: string;
   label: string;
   sizeMl: number;
-  condition: "BNIB" | "SEALED" | "FEW_SPRAYS_MISSING" | "PARTIAL_ML";
-  provenance: "RETAIL" | "TESTER";
+  condition: "BNIB" | "SEALED" | "FEW_SPRAYS_MISSING";
+  provenance: "RETAIL" | "TESTER" | "IN_HOUSE";
   packaging: "WITH_BOX" | "BOTTLE_ONLY";
   // Legacy per-SKU pricing columns — no longer used to compute retailPrice
   // (that now derives from the product's costPrice/pricingMode/pricingInput,
@@ -380,14 +380,9 @@ async function main() {
       label: "A few sprays missing",
       position: 2,
     },
-    {
-      listKey: "condition",
-      value: "PARTIAL_ML",
-      label: "Partial — ml only",
-      position: 3,
-    },
     { listKey: "provenance", value: "RETAIL", label: "Retail", position: 0 },
     { listKey: "provenance", value: "TESTER", label: "Tester", position: 1 },
+    { listKey: "provenance", value: "IN_HOUSE", label: "In-house decant", position: 2 },
     { listKey: "packaging", value: "WITH_BOX", label: "With box", position: 0 },
     { listKey: "packaging", value: "BOTTLE_ONLY", label: "Bottle only", position: 1 },
   ];

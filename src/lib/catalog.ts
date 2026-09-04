@@ -11,6 +11,7 @@ import {
   type Fulfillment,
   type ProductDiscount,
   type ProductType,
+  type Provenance,
 } from "@/db/schema";
 import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
 import type { SiteWideDiscountConfig } from "@/domain/promo";
@@ -80,6 +81,42 @@ interface SkuRow {
   provenance: (typeof skus.$inferSelect)["provenance"];
   sizeMl: number | null;
   isActive: boolean;
+}
+
+/**
+ * A RETAIL decant SKU is a distinct physical unit bought pre-made from the
+ * perfumery — it uses its own fulfillment column directly, exactly like a
+ * full-bottle SKU. Only an IN_HOUSE decant (poured to order from a whole
+ * bottle) is computed from the product's shared remainingMl pool. Mirrors
+ * effectiveFulfillment in src/lib/cart.ts, which the cart/checkout path uses
+ * for the same decision — kept as a separate small helper here since this
+ * file has no dependency on cart.ts and takes a slightly different shape of
+ * input (a raw variant row, not cart-line args).
+ */
+function decantVariantFulfillment(
+  variant: { fulfillment: Fulfillment; sizeMl: number | null; provenance: Provenance },
+  remainingMl: number,
+  thresholdMl: number,
+): Fulfillment {
+  if (variant.provenance === "RETAIL") return variant.fulfillment;
+  return decantFulfillment({ remainingMl, sizeMl: variant.sizeMl ?? DECANT_SIZES_ML[0], thresholdMl });
+}
+
+/**
+ * A decant size (e.g. 10ml) can have more than one SKU when both a RETAIL
+ * and an IN_HOUSE unit of that size exist — plain "10ML" would be ambiguous
+ * between them, so the provenance is appended to the label only when a size
+ * is actually shared by more than one option; a size with just one SKU stays
+ * plain.
+ */
+function labelDecantSizeOptions<T extends { sizeMl: number; label: string; provenance: Provenance }>(
+  options: T[],
+): T[] {
+  const countBySize = new Map<number, number>();
+  for (const o of options) countBySize.set(o.sizeMl, (countBySize.get(o.sizeMl) ?? 0) + 1);
+  return options.map((o) =>
+    (countBySize.get(o.sizeMl) ?? 0) > 1 ? { ...o, label: `${o.label} · ${labelForProvenance(o.provenance)}` } : o,
+  );
 }
 
 export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
@@ -197,14 +234,15 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     const hasDiscount = priced.some((p) => p.discounted < p.original);
     const destFulfillment =
       product.type === "DECANT"
-        ? decantFulfillment({
-            remainingMl,
-            sizeMl: destination.sizeMl ?? DECANT_SIZES_ML[0],
-            thresholdMl: threshold,
-          })
+        ? decantVariantFulfillment(destination, remainingMl, threshold)
         : destination.fulfillment;
+    // A RETAIL decant is a distinct physical unit with its own stock, like a
+    // full bottle — it can genuinely sell out. An IN_HOUSE decant can't:
+    // running low just tips it into PRE_ORDER via the shared ml pool.
     const soldOut =
-      product.type !== "DECANT" && destFulfillment === "ON_HAND" && destination.stock <= 0;
+      (product.type !== "DECANT" || destination.provenance === "RETAIL") &&
+      destFulfillment === "ON_HAND" &&
+      destination.stock <= 0;
     const savePercent =
       hasDiscount && minOriginal > 0
         ? Math.round(((minOriginal - minDiscounted) / minOriginal) * 100)
@@ -216,25 +254,26 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     // one SKU there's nothing to pick between, so the card stays as it was.
     const sizeOptions: SizePickerOption[] =
       product.type === "DECANT"
-        ? [...variants]
-            .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
-            .map((variant) => {
-              const p = priced.find((x) => x.skuId === variant.skuId)!;
-              return {
-                sizeMl: variant.sizeMl ?? 0,
-                label: `${variant.sizeMl}ML`,
-                skuId: variant.skuId,
-                fulfillment: decantFulfillment({
-                  remainingMl,
-                  sizeMl: variant.sizeMl ?? DECANT_SIZES_ML[0],
-                  thresholdMl: threshold,
-                }),
-                condition: variant.condition,
-                originalCentavos: p.original,
-                discountedCentavos: p.discounted,
-                savedCentavos: Math.max(0, p.original - p.discounted),
-              };
-            })
+        ? labelDecantSizeOptions(
+            [...variants]
+              .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+              .map((variant) => {
+                const p = priced.find((x) => x.skuId === variant.skuId)!;
+                const variantFulfillment = decantVariantFulfillment(variant, remainingMl, threshold);
+                return {
+                  sizeMl: variant.sizeMl ?? 0,
+                  label: `${variant.sizeMl}ML`,
+                  skuId: variant.skuId,
+                  fulfillment: variantFulfillment,
+                  condition: variant.condition,
+                  provenance: variant.provenance,
+                  soldOut: variant.provenance === "RETAIL" && variantFulfillment === "ON_HAND" && variant.stock <= 0,
+                  originalCentavos: p.original,
+                  discountedCentavos: p.discounted,
+                  savedCentavos: Math.max(0, p.original - p.discounted),
+                };
+              }),
+          )
         : variants.length > 1
           ? [...variants]
               .filter((v) => v.sizeMl != null)
@@ -354,30 +393,43 @@ export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "o
  * one fetching function.
  */
 export function buildDecantSizeOptions(
-  siblings: Array<{ id: string; sizeMl: number | null; retailPrice: number; condition: SkuRow["condition"] }>,
+  siblings: Array<{
+    id: string;
+    sizeMl: number | null;
+    retailPrice: number;
+    condition: SkuRow["condition"];
+    provenance: Provenance;
+    fulfillment: Fulfillment;
+    stock: number;
+  }>,
   discounts: ProductDiscount[],
   context: { remainingMl: number; thresholdMl: number },
 ): SizePickerOption[] {
-  return siblings
-    .filter((s) => s.sizeMl != null)
-    .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
-    .map((s) => {
-      const applied = applyDiscount(s.retailPrice, bestDiscount(discounts, s.retailPrice));
-      return {
-        skuId: s.id,
-        sizeMl: s.sizeMl!,
-        label: `${s.sizeMl}ML`,
-        fulfillment: decantFulfillment({
-          remainingMl: context.remainingMl,
+  return labelDecantSizeOptions(
+    siblings
+      .filter((s) => s.sizeMl != null)
+      .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+      .map((s) => {
+        const applied = applyDiscount(s.retailPrice, bestDiscount(discounts, s.retailPrice));
+        const variantFulfillment = decantVariantFulfillment(
+          { fulfillment: s.fulfillment, sizeMl: s.sizeMl, provenance: s.provenance },
+          context.remainingMl,
+          context.thresholdMl,
+        );
+        return {
+          skuId: s.id,
           sizeMl: s.sizeMl!,
-          thresholdMl: context.thresholdMl,
-        }),
-        condition: s.condition,
-        originalCentavos: s.retailPrice,
-        discountedCentavos: applied.discountedUnitCentavos,
-        savedCentavos: applied.perUnitDiscountCentavos,
-      };
-    });
+          label: `${s.sizeMl}ML`,
+          fulfillment: variantFulfillment,
+          condition: s.condition,
+          provenance: s.provenance,
+          soldOut: s.provenance === "RETAIL" && variantFulfillment === "ON_HAND" && s.stock <= 0,
+          originalCentavos: s.retailPrice,
+          discountedCentavos: applied.discountedUnitCentavos,
+          savedCentavos: applied.perUnitDiscountCentavos,
+        };
+      }),
+  );
 }
 
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {

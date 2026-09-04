@@ -169,7 +169,7 @@ const skuSchema = z.object({
   sku: z.string().min(2).max(80),
   label: z.string().min(1).max(120),
   sizeMl: z.coerce.number().int().min(0).optional(),
-  condition: z.enum(["BNIB", "SEALED", "FEW_SPRAYS_MISSING", "PARTIAL_ML"]),
+  condition: z.enum(["BNIB", "SEALED", "FEW_SPRAYS_MISSING"]),
   provenance: z.enum(["RETAIL", "TESTER"]),
   packaging: z.enum(["WITH_BOX", "BOTTLE_ONLY"]),
   fulfillment: z.enum(["PRE_ORDER", "ON_HAND"]),

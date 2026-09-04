@@ -72,6 +72,9 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         sizeMl: skus.sizeMl,
         retailPrice: skus.retailPrice,
         condition: skus.condition,
+        provenance: skus.provenance,
+        fulfillment: skus.fulfillment,
+        stock: skus.stock,
       })
       .from(skus)
       .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
