@@ -26,6 +26,12 @@ export default async function CheckoutPage({
     rawSkuId && Number.isFinite(Number(rawQuantity)) && Number(rawQuantity) >= 1
       ? { skuId: rawSkuId, quantity: Math.floor(Number(rawQuantity)) }
       : null;
+  // A `buyNow` param that fails to parse (truncated/hand-edited/a future
+  // producer that forgets the quantity segment) must not silently fall
+  // through to checking out the customer's unrelated cart below — that
+  // would charge them for the wrong items with no indication anything
+  // was wrong. Only a fully absent param means "this is a cart checkout".
+  const buyNowMalformed = Boolean(buyNow) && !directItem;
 
   const session = await auth();
   if (!session?.user) {
@@ -33,6 +39,19 @@ export default async function CheckoutPage({
     // dropped in favor of an empty-cart checkout after the redirect back.
     const returnTo = directItem ? `/checkout?buyNow=${encodeURIComponent(buyNow!)}` : "/checkout";
     redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+  }
+
+  if (buyNowMalformed) {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-4 py-8">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
+        <h1 className="font-serif-display text-2xl">Checkout</h1>
+        <p className="mt-4 text-muted-foreground">This item is no longer available.</p>
+        <Button asChild variant="gold" className="mt-4 rounded-md">
+          <Link href="/shop">Browse the shop</Link>
+        </Button>
+      </main>
+    );
   }
 
   const userRows = await db()

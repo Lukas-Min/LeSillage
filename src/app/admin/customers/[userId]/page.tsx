@@ -92,7 +92,7 @@ export default async function AdminCustomerDetailPage({
             rows.map((order) => (
               <Link
                 key={order.id}
-                href={`/admin/orders?orderId=${order.id}`}
+                href={`/admin/orders/${order.id}`}
                 className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2 transition-colors hover:border-gold/40 hover:bg-muted/30"
               >
                 <span className="min-w-0">

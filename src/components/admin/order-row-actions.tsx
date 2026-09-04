@@ -56,7 +56,6 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       {status === "RECEIPT_SUBMITTED" ? (
         <Button
-          size="sm"
           onClick={() => confirm("CONFIRMED")}
           disabled={isPending}
           aria-busy={isPending}
@@ -66,7 +65,6 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
       ) : null}
       {status === "CONFIRMED" ? (
         <Button
-          size="sm"
           onClick={() => confirm("SHIPPED")}
           disabled={isPending}
           aria-busy={isPending}
@@ -76,7 +74,6 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
       ) : null}
       {status !== "COMPLETED" && status !== "REJECTED" && status !== "CANCELLED" && status !== "SHIPPED" ? (
         <Button
-          size="sm"
           variant="destructive"
           onClick={() => setShowReason("REJECTED")}
           disabled={isPending}
@@ -96,7 +93,6 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
           />
           <Button
             onClick={reject}
-            size="sm"
             variant="destructive"
             disabled={isPending || !reason.trim()}
             aria-busy={isPending}

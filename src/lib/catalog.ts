@@ -64,7 +64,9 @@ export interface CatalogCardModel {
   maxDiscountedCentavos: number;
   hasDiscount: boolean;
   savePercent: number | null;
-  /** Every real size this DECANT product offers, for the shop-grid picker. Empty for other types. */
+  /** Every real size this product offers, for the shop-grid picker — always
+   *  populated for a decant (its full size ladder); populated for a full
+   *  bottle/partial only when it has more than one SKU. Empty otherwise. */
   sizeOptions: SizePickerOption[];
 }
 
@@ -208,6 +210,10 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         ? Math.round(((minOriginal - minDiscounted) / minOriginal) * 100)
         : null;
     const image = imageByProduct.get(product.id);
+    // A decant always offers its full size ladder as a picker. A full
+    // bottle/partial only gets one when the admin actually added more than
+    // one SKU (e.g. a 50ml and a 100ml of the same fragrance) — with just
+    // one SKU there's nothing to pick between, so the card stays as it was.
     const sizeOptions: SizePickerOption[] =
       product.type === "DECANT"
         ? [...variants]
@@ -229,7 +235,24 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
                 savedCentavos: Math.max(0, p.original - p.discounted),
               };
             })
-        : [];
+        : variants.length > 1
+          ? [...variants]
+              .filter((v) => v.sizeMl != null)
+              .sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))
+              .map((variant) => {
+                const p = priced.find((x) => x.skuId === variant.skuId)!;
+                return {
+                  sizeMl: variant.sizeMl ?? 0,
+                  label: `${variant.sizeMl}ML`,
+                  skuId: variant.skuId,
+                  fulfillment: variant.fulfillment,
+                  condition: variant.condition,
+                  originalCentavos: p.original,
+                  discountedCentavos: p.discounted,
+                  savedCentavos: Math.max(0, p.original - p.discounted),
+                };
+              })
+          : [];
     cards.push({
       productId: product.id,
       skuId: destination.skuId,

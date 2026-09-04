@@ -86,6 +86,12 @@ const productSchema = z.object({
   // number for PERCENTAGE (no conversion — it's not a currency amount).
   pricingInput: z.coerce.number().min(0),
   isActive: z.boolean(),
+  // One dropdown for the whole product, propagated to every one of its SKUs
+  // on save — see the block below the product update. Replaced the old
+  // per-SKU "Tester" checkbox, which let a product's sizes disagree with
+  // each other for no real reason (a dedicated tester listing is tester
+  // top to bottom).
+  isTester: z.boolean(),
 });
 
 export async function upsertProduct(formData: FormData) {
@@ -108,6 +114,7 @@ export async function upsertProduct(formData: FormData) {
     pricingMode: formData.get("pricingMode"),
     pricingInput: formData.get("pricingInput"),
     isActive: formData.get("isActive") === "on",
+    isTester: formData.get("isTester") === "true",
   });
   const values = {
     type: parsed.type as ProductType,
@@ -131,6 +138,10 @@ export async function upsertProduct(formData: FormData) {
   if (parsed.productId) {
     await db().update(products).set(values).where(eq(products.id, parsed.productId));
     await resyncSkuPricesForProduct(parsed.productId, values);
+    await db()
+      .update(skus)
+      .set({ isTester: parsed.isTester, updatedAt: new Date() })
+      .where(eq(skus.productId, parsed.productId));
     await auditLogSubject({
       actor: admin.id,
       action: "PRODUCT_UPDATE",
@@ -163,7 +174,6 @@ const skuSchema = z.object({
   packaging: z.enum(["WITH_BOX", "BOTTLE_ONLY"]),
   fulfillment: z.enum(["PRE_ORDER", "ON_HAND"]),
   stock: z.coerce.number().int().min(0),
-  isTester: z.boolean(),
   isActive: z.boolean(),
 });
 
@@ -181,7 +191,6 @@ export async function upsertSku(formData: FormData) {
     packaging: formData.get("packaging"),
     fulfillment: formData.get("fulfillment"),
     stock: formData.get("stock"),
-    isTester: formData.get("isTester") === "on",
     isActive: formData.get("isActive") === "on",
   });
   const product = (
@@ -216,11 +225,14 @@ export async function upsertSku(formData: FormData) {
     retailPrice,
     fulfillment: parsed.fulfillment as Fulfillment,
     stock: parsed.stock,
-    isTester: parsed.isTester,
     isActive: parsed.isActive,
     updatedAt: new Date(),
   };
   if (parsed.skuId) {
+    // isTester is deliberately not part of `values` here — it's controlled
+    // product-wide via the Product form's dropdown (see upsertProduct),
+    // never per-SKU, so a SKU save must leave whatever that last set it to
+    // untouched.
     await db().update(skus).set(values).where(eq(skus.id, parsed.skuId));
     await auditLogSubject({
       actor: admin.id,
@@ -229,7 +241,17 @@ export async function upsertSku(formData: FormData) {
       targetId: parsed.skuId,
     });
   } else {
-    const inserted = await db().insert(skus).values(values).returning();
+    // A newly-added SKU has no tester status of its own yet — inherit
+    // whatever the product's existing SKUs currently have (a dedicated
+    // tester listing's new size should also be a tester; a normal
+    // product's new size shouldn't suddenly become one).
+    const existingSibling = (
+      await db().select({ isTester: skus.isTester }).from(skus).where(eq(skus.productId, parsed.productId)).limit(1)
+    )[0];
+    const inserted = await db()
+      .insert(skus)
+      .values({ ...values, isTester: existingSibling?.isTester ?? false })
+      .returning();
     await auditLogSubject({
       actor: admin.id,
       action: "SKU_CREATE",

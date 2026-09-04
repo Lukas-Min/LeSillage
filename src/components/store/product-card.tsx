@@ -19,11 +19,16 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   const genderLabel = card.gender ? capitalizeFirst(card.gender) : null;
   const subtitle =
     [card.family, concentration, genderLabel].filter(Boolean).join(" · ") || labelForType(card.type);
-  const isDecant = card.type === "DECANT" && card.sizeOptions.length > 0;
+  const isDecant = card.type === "DECANT";
+  const hasSizeOptions = card.sizeOptions.length > 0;
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
-  const selected = isDecant ? card.sizeOptions.find((o) => o.skuId === selectedSkuId) ?? null : null;
-  const activeSkuId = isDecant ? (selectedSkuId ?? "") : card.skuId;
-  const requireSizeSelection = isDecant && !selectedSkuId;
+  const selected = hasSizeOptions ? card.sizeOptions.find((o) => o.skuId === selectedSkuId) ?? null : null;
+  // A decant has no single "default" size — the customer must pick one. A
+  // full bottle/partial with multiple SKUs already has a sensible default
+  // (card.skuId, picked by pickDestinationSku in lib/catalog.ts), so picking
+  // a size there is an optional override, not a requirement.
+  const activeSkuId = isDecant ? (selectedSkuId ?? "") : (selectedSkuId ?? card.skuId);
+  const requireSizeSelection = isDecant && hasSizeOptions && !selectedSkuId;
   // Add to cart and Buy now sit side by side — without this, clicking either
   // one with no size picked showed its own identical "Please select a size"
   // message, so both appeared stacked under the two-column button row.
@@ -78,7 +83,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               ) : null}
               {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
-            {isDecant ? (
+            {hasSizeOptions ? (
               <SizePicker
                 density="compact"
                 options={card.sizeOptions}

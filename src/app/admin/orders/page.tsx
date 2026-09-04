@@ -75,8 +75,10 @@ export default async function AdminOrdersPage({
       {rows.map((order) => (
         <Card key={order.id}>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">{order.orderNumber}</CardTitle>
-            <Badge>{describeStatus(order.status)}</Badge>
+            <Link href={`/admin/orders/${order.id}`} className="hover:underline">
+              <CardTitle className="text-base">{order.orderNumber}</CardTitle>
+            </Link>
+            <Badge className="h-auto px-3 py-1.5 text-sm">{describeStatus(order.status)}</Badge>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { products, skus, productDiscounts, productImages, orders, orderItems, promoSettings } from "@/db/schema";
+import { products, skus, productDiscounts, productImages, orders, orderItems } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,6 @@ import {
 } from "@/actions/admin-catalog-actions";
 import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
-import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 
 export const dynamic = "force-dynamic";
 
@@ -53,13 +52,11 @@ export default async function AdminProductDetailPage({
   const { productId } = await params;
   const product = (await db().select().from(products).where(eq(products.id, productId)))[0];
   if (!product) return notFound();
-  const [skuList, discountList, imageList, promoRow] = await Promise.all([
+  const [skuList, discountList, imageList] = await Promise.all([
     db().select().from(skus).where(eq(skus.productId, productId)).orderBy(asc(skus.label)),
     db().select().from(productDiscounts).where(eq(productDiscounts.productId, productId)),
     db().select().from(productImages).where(eq(productImages.productId, productId)),
-    db().select().from(promoSettings),
   ]);
-  const decantThresholdMl = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   let pendingPreOrderMl = 0;
   if (product.type === "DECANT" && skuList.length > 0) {
     const pendingRows = await db()
@@ -88,7 +85,7 @@ export default async function AdminProductDetailPage({
           <CardTitle className="text-base">Product</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={saveProduct} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <form id="save-product-form" action={saveProduct} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input type="hidden" name="productId" value={product.id} />
             <Field label="Name" htmlFor="p-name">
               <Input id="p-name" name="name" defaultValue={product.name} required />
@@ -115,6 +112,20 @@ export default async function AdminProductDetailPage({
                 <option value="PARTIAL">Partial</option>
               </select>
             </Field>
+            <Field label="Tester" htmlFor="p-isTester">
+              {/* Applies to every SKU under this product on save — a
+                  dedicated tester listing is tester top to bottom, so this
+                  isn't a per-size setting. */}
+              <select
+                id="p-isTester"
+                name="isTester"
+                defaultValue={skuList.some((s) => s.isTester) ? "true" : "false"}
+                className={selectClass}
+              >
+                <option value="false">No</option>
+                <option value="true">Yes — tester giveaway product</option>
+              </select>
+            </Field>
             <Field label="Shelf category" htmlFor="p-category">
               <select id="p-category" name="fragranceCategory" defaultValue={product.fragranceCategory} className={selectClass}>
                 <option value="NICHE">Niche</option>
@@ -137,8 +148,19 @@ export default async function AdminProductDetailPage({
             </Field>
             {/* Remaining ml has exactly one editable control on this page — the
                 "Adjust pool" form below (it also logs a reason). Saving this
-                form must not silently reset it, so it rides along hidden. */}
-            {product.type === "DECANT" ? <input type="hidden" name="remainingMl" value={product.remainingMl ?? 0} /> : null}
+                form must not silently reset it, so it rides along hidden; this
+                read-only view next to Reference size is just for quick
+                at-a-glance visibility without scrolling down to Adjust pool. */}
+            {product.type === "DECANT" ? (
+              <>
+                <input type="hidden" name="remainingMl" value={product.remainingMl ?? 0} />
+                <Field label="Remaining ml" htmlFor="p-remainingMl-readonly">
+                  <p id="p-remainingMl-readonly" className="flex h-11 items-center rounded-lg border bg-muted/40 px-3 text-sm text-muted-foreground">
+                    {product.remainingMl ?? 0}ml
+                  </p>
+                </Field>
+              </>
+            ) : null}
             <Field label="Cost price (₱, what you paid wholesale)" htmlFor="p-costPrice" className="sm:col-span-2">
               <Input
                 id="p-costPrice"
@@ -179,7 +201,6 @@ export default async function AdminProductDetailPage({
               <input type="checkbox" name="isActive" defaultChecked={product.isActive} />
               Visible on storefront
             </label>
-            <SubmitButton>Save product</SubmitButton>
           </form>
           {product.type === "DECANT" ? (
             <form action={adjustDecantMl} className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4">
@@ -200,16 +221,22 @@ export default async function AdminProductDetailPage({
               remaining · {pendingPreOrderMl}ml pending in open pre-orders.
             </p>
           ) : null}
-          <form id="delete-product-form" action={archiveOrDeleteProduct} className="mt-4">
+          <form id="delete-product-form" action={archiveOrDeleteProduct}>
             <input type="hidden" name="productId" value={product.id} />
           </form>
-          <ConfirmSubmitButton
-            formId="delete-product-form"
-            triggerLabel="Archive or delete"
-            title={`Archive or delete "${product.name}"?`}
-            description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records). Otherwise it's deleted permanently. This can't be undone from here."
-            confirmLabel="Archive or delete"
-          />
+          <div className="mt-4 flex gap-2">
+            <SubmitButton form="save-product-form" className="flex-1">
+              Save product
+            </SubmitButton>
+            <ConfirmSubmitButton
+              formId="delete-product-form"
+              triggerLabel="Archive or delete"
+              triggerClassName="flex-1"
+              title={`Archive or delete "${product.name}"?`}
+              description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records). Otherwise it's deleted permanently. This can't be undone from here."
+              confirmLabel="Archive or delete"
+            />
+          </div>
         </CardContent>
       </Card>
       <Card>
@@ -233,25 +260,14 @@ export default async function AdminProductDetailPage({
                   <Input id={`sku-size-${sku.id}`} name="sizeMl" type="number" defaultValue={sku.sizeMl ?? ""} />
                 </Field>
                 {product.type === "DECANT" ? (
+                  // Availability/stock for a decant size are always derived
+                  // from the shared ml pool above (see the "Adjust pool"
+                  // form and its read-only summary) — showing them again per
+                  // SKU here was pure duplication. Preserved as hidden inputs
+                  // so saving this form doesn't disturb the real columns.
                   <>
                     <input type="hidden" name="fulfillment" value={sku.fulfillment} />
                     <input type="hidden" name="stock" value={sku.stock} />
-                    <Field label="Availability" htmlFor={`sku-availability-${sku.id}`}>
-                      <p id={`sku-availability-${sku.id}`} className="flex h-11 items-center text-sm text-muted-foreground">
-                        {decantFulfillment({
-                          remainingMl: product.remainingMl ?? 0,
-                          sizeMl: sku.sizeMl ?? 0,
-                          thresholdMl: decantThresholdMl,
-                        }) === "ON_HAND"
-                          ? "On hand"
-                          : "Pre-order"}
-                      </p>
-                    </Field>
-                    <Field label="Stock" htmlFor={`sku-stock-note-${sku.id}`}>
-                      <p id={`sku-stock-note-${sku.id}`} className="flex h-11 items-center text-sm text-muted-foreground">
-                        From the {product.remainingMl ?? 0}ml pool above
-                      </p>
-                    </Field>
                   </>
                 ) : (
                   <>
@@ -288,10 +304,7 @@ export default async function AdminProductDetailPage({
                 </Field>
               </div>
               <p className="text-xs text-muted-foreground">Computed retail price: {formatPHP(sku.retailPrice)}</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Tester
-                </label>
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-xs">
                   <input type="checkbox" name="isActive" defaultChecked={sku.isActive} /> Active
                 </label>
@@ -333,11 +346,6 @@ export default async function AdminProductDetailPage({
                   <>
                     <input type="hidden" name="fulfillment" value="ON_HAND" />
                     <input type="hidden" name="stock" value={0} />
-                    <Field label="Availability" htmlFor="new-sku-availability">
-                      <p id="new-sku-availability" className="flex h-11 items-center text-sm text-muted-foreground">
-                        Auto, from the ml pool above
-                      </p>
-                    </Field>
                   </>
                 ) : (
                   <>
@@ -373,7 +381,7 @@ export default async function AdminProductDetailPage({
                   </select>
                 </Field>
               </div>
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-xs">
                   <input type="checkbox" name="isActive" defaultChecked /> Active
                 </label>
@@ -420,14 +428,14 @@ export default async function AdminProductDetailPage({
           ))}
           <form action={upsertDiscount} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="productId" value={product.id} />
-            <Field label="Type" htmlFor="new-discount-type">
+            <Field label="Type" htmlFor="new-discount-type" className="min-w-[9rem] flex-1">
               <select id="new-discount-type" name="type" className={selectClass}>
                 <option value="PERCENTAGE">Percentage</option>
                 <option value="FIXED">Fixed ₱ off</option>
               </select>
             </Field>
-            <Field label="Amount (% or ₱)" htmlFor="new-discount-amount">
-              <Input id="new-discount-amount" name="amount" type="number" step="0.01" required className="w-32" />
+            <Field label="Amount (% or ₱)" htmlFor="new-discount-amount" className="min-w-[9rem] flex-1">
+              <Input id="new-discount-amount" name="amount" type="number" step="0.01" required />
             </Field>
             <SubmitButton>Add discount</SubmitButton>
           </form>

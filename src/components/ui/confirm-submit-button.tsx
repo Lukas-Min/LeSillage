@@ -26,6 +26,7 @@ export function ConfirmSubmitButton({
   confirmLabel = "Delete",
   triggerLabel,
   triggerVariant = "destructive",
+  triggerClassName,
 }: {
   formId: string;
   title: string;
@@ -33,11 +34,12 @@ export function ConfirmSubmitButton({
   confirmLabel?: string;
   triggerLabel: React.ReactNode;
   triggerVariant?: React.ComponentProps<typeof Button>["variant"];
+  triggerClassName?: string;
 }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button type="button" variant={triggerVariant}>
+        <Button type="button" variant={triggerVariant} className={triggerClassName}>
           {triggerLabel}
         </Button>
       </AlertDialogTrigger>

@@ -24,10 +24,11 @@ export function CompositionCanvas({
   imageUrl?: string | null;
   imageAlt?: string | null;
   cornerLabel?: string | null;
-  /** Clicking the photo opens a larger version in a modal — only meaningful
-   *  on the product detail page, where the canvas isn't already wrapped in a
-   *  navigation Link (product cards and the homepage flagship are, and stay
-   *  plain navigation). */
+  /** Clicking the photo opens a larger version in a modal — only safe where
+   *  the canvas isn't already wrapped in a navigation Link (nesting an
+   *  interactive trigger inside one is invalid HTML). Product cards ARE
+   *  Link-wrapped and never pass this; the product detail page and the
+   *  homepage flagship aren't, so both do. */
   enableLightbox?: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);

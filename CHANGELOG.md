@@ -3,9 +3,20 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Checkout's Province/City/Barangay selects (`PhAddressFields`) were still hardcoded to the old `h-8` height, 12px shorter than every neighboring field on the same form — missed by the earlier field-height sweep since it's a raw `<select>` outside the admin pages that sweep covered. Corrected to `h-11`
+- Buy Now / cart checkout could still create an order for a SKU an admin had deactivated after it was added to a cart or after a `?buyNow=` link was generated — `createOrderFromCart`'s SKU lookup didn't filter on `isActive`, only checking that the row existed at all. Now filtered the same way the cart/checkout display already was, so a deactivated SKU is rejected consistently instead of only being hidden from view
+- A malformed or truncated `?buyNow=` checkout link (missing the quantity segment, hand-edited) silently fell back to checking out the customer's unrelated cart instead of failing — now shown "This item is no longer available" instead
+- Buy Now's own empty-item error said "Some items in your **cart** are no longer available" even though Buy Now never touches the cart
 ### Added
-- Clicking the product photo on the product detail page now opens a larger version in a modal (`CompositionCanvas` gained an opt-in `enableLightbox` prop, used only there — product cards and the homepage flagship stay plain navigation links)
+- Admin orders had no detail page — the list view was also the only view, showing just contact info and a total with no line items, address, or tester-bonus result. Added `/admin/orders/[orderId]` (linked from both the orders list and the customer detail page) showing full line items, delivery/pickup details, order notes, the promo tester-bonus outcome, and the receipt
+- Product cards and the product detail page now show a size picker for full bottle/partial products too, the same way decants already do, whenever that product has more than one SKU (e.g. a 50ml and a 100ml of the same fragrance) — previously only decants got a picker, so a multi-size full bottle showed just a price range with no way to choose a size before adding to cart
+- Admin product page gained a read-only "Remaining ml" field next to "Reference size (ml)" for at-a-glance pool visibility without scrolling down to "Adjust pool"
+- Clicking the product photo on the product detail page (and the homepage flagship) now opens a larger version in a modal (`CompositionCanvas` gained an opt-in `enableLightbox` prop — withheld from product cards, which are already a navigation link and can't nest another interactive trigger)
 ### Changed
+- Admin product page: removed the per-decant-SKU "Availability"/"Stock" read-only fields (already duplicated by the pool summary above and now also by the new read-only Remaining ml field) and the per-SKU "Tester" checkbox (a product's SKUs disagreeing on tester status served no purpose) — Tester is now one dropdown on the Product form, applied to every SKU under it on save
+- Admin product page: "Save product" and "Archive or delete" now sit side by side in one row instead of stacked full-width; the per-SKU "Save SKU"/"Add SKU" buttons now sit at the right of their row instead of immediately after the checkboxes; the Discounts form's Type/Amount fields now stretch to fill the row instead of leaving "Add discount" sitting right next to them with empty space after
+- Admin orders: the status badge and the "Reject"/"Confirm"/"Mark shipped" buttons were still at their old small sizes (tiny badge, `size="sm"` buttons) — brought in line with the rest of the app's enlarged-badge and h-11-button conventions
 - Every raw `<select>` (admin forms, checkout) had equal left/right padding, crowding the browser's native dropdown arrow against the border — added a global `!important` rule giving every select consistent extra clearance on the right, so this can't regress one instance at a time
 - Admin "New product": renamed the "Copy details from an existing product (optional)" label to "Choose a fragrance"
 - Product cards showed "Please select a size" twice — once under Add to cart, once under Buy now — when a decant's size wasn't picked yet; consolidated to one shared message below both buttons

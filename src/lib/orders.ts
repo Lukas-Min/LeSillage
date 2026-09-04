@@ -112,9 +112,14 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     })
     .from(skus)
     .innerJoin(products, eq(products.id, skus.productId))
-    .where(inArray(skus.id, skuIds));
+    // isActive is enforced here (not just in the cart/checkout display
+    // layer) so a SKU deactivated after being added to a cart — or after a
+    // Buy Now link was generated/bookmarked — can't still be ordered.
+    .where(and(inArray(skus.id, skuIds), eq(skus.isActive, true)));
   if (skuRows.length !== items.length) {
-    throw new Error("Some items in your cart are no longer available");
+    throw new Error(
+      usingDirectItems ? "This item is no longer available" : "Some items in your cart are no longer available",
+    );
   }
 
   const promoConfig = await loadPromoConfig();
