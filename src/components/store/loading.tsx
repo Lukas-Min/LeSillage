@@ -52,20 +52,39 @@ export function CatalogPaginationSkeleton() {
   );
 }
 
+/** Matches ShopToolbar's shape (src/components/store/shop-toolbar.tsx) —
+ *  a left-aligned count line and right-aligned Filter/Sort buttons. */
+export function ShopToolbarSkeleton() {
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <Skeleton className="h-3 w-24" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-11 w-24 rounded-md" />
+        <Skeleton className="h-11 w-20 rounded-md" />
+      </div>
+    </div>
+  );
+}
+
 export function CatalogResultsSkeleton({
   count = 6,
   showCount = true,
+  toolbar = false,
 }: {
   count?: number;
   /** Set false wherever the real results view is rendered with its own
    *  `showCount={false}` (e.g. the shop page, whose `ShopToolbar` already
    *  shows the count) — otherwise this skeletons a count line that never
-   *  actually appears. */
+   *  actually appears. Ignored when `toolbar` is true. */
   showCount?: boolean;
+  /** Set true wherever the real results view renders a `ShopToolbar` (count
+   *  plus Filter/Sort buttons) instead of a plain count line — the shop page
+   *  and its route-level loading.tsx. */
+  toolbar?: boolean;
 }) {
   return (
     <>
-      {showCount ? <Skeleton className="mx-auto mb-6 h-3 w-24" /> : null}
+      {toolbar ? <ShopToolbarSkeleton /> : showCount ? <Skeleton className="mx-auto mb-6 h-3 w-24" /> : null}
       <CatalogCardsSkeleton count={count} />
       <CatalogPaginationSkeleton />
     </>

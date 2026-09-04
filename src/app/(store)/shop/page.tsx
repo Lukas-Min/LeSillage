@@ -57,7 +57,7 @@ export default async function ShopPage({
       </div>
       <Suspense
         key={[type, category, concentration, gender, sort, page].join("|")}
-        fallback={<CatalogResultsSkeleton showCount={false} />}
+        fallback={<CatalogResultsSkeleton toolbar />}
       >
         <ShopResults type={type} category={category} concentration={concentration} gender={gender} sort={sort} page={page} />
       </Suspense>

@@ -239,4 +239,36 @@
     pointer-events: none;
     white-space: nowrap;
   }
+  /* Skeleton loading placeholders: a soft sweep instead of a flat pulse,
+     so every skeleton in the app (product cards, admin tables, this) reads
+     as "content is coming" rather than a generic spinner. color-mix against
+     currentColor so the sweep stays visible on both themes without its own
+     dark-mode override. */
+  .skeleton-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton-shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--foreground) 12%, transparent),
+      transparent
+    );
+    animation: skeleton-shimmer 1.8s ease-in-out infinite;
+  }
+  @keyframes skeleton-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shine::after {
+      animation: none;
+    }
+  }
 }

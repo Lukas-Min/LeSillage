@@ -13,7 +13,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 - "Name: A to Z" sort option on `/shop` (`name_asc` in `CATALOG_SORTS`, `src/lib/catalog.ts`)
+- `/shop`'s toolbar (fragrance count + Filter/Sort buttons) now has its own loading skeleton (`ShopToolbarSkeleton` in `src/components/store/loading.tsx`) instead of vanishing to blank space while results load
 ### Changed
+- Every `Skeleton` placeholder (product cards, admin tables, this) now sweeps a soft shimmer highlight instead of a flat pulse — one shared `.skeleton-shine` rule in `globals.css`, so every existing loading state picks it up automatically
 - Payment-reminder cron moved from hourly to once a day at 10:00 PHT (`0 2 * * *`) so Hobby-plan Vercel deploys are not rejected
 - SKU lists and size pickers sort smallest millilitre first, then A–Z by label (3ml before 10ml) in `compareSkuOrder`
 - Shop card and search prices always show centavos (₱1,234.00), matching the selected-variant price so the amount doesn't jump when a size is picked
