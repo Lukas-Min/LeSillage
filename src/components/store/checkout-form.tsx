@@ -425,9 +425,11 @@ export function CheckoutForm({
           </label>
         </CardContent>
       </Card>
-      <Button type="submit" variant="gold" size="lg" className="h-11 rounded-md" disabled={isPending || !accepted}>
-        {isPending ? "Placing order…" : "Place order"}
-      </Button>
+      <div className="flex justify-end">
+        <Button type="submit" variant="gold" size="lg" className="h-11 rounded-md" disabled={isPending || !accepted}>
+          {isPending ? "Placing order…" : "Place order"}
+        </Button>
+      </div>
     </form>
   );
 }

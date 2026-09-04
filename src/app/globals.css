@@ -135,6 +135,18 @@
   input[type="checkbox"] {
     accent-color: var(--primary);
   }
+  /* Hard rule: every text-like field defaults to the same height as a
+     Button (see button.tsx's default/lg sizes) — so a raw <select> or
+     <input> that forgets its own "h-11" still lines up with its
+     neighbors instead of silently regressing back to a shorter native
+     height. An explicit Tailwind height utility on the element (Input's
+     own component class included) still wins — Tailwind's utilities
+     layer is ordered after this base layer regardless of selector
+     specificity — this only fills in when nothing else sets a height. */
+  select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) {
+    height: 2.75rem;
+  }
   html {
     @apply font-sans;
     overflow-y: scroll;

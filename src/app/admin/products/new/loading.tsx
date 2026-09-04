@@ -14,7 +14,7 @@ export default function AdminNewProductLoading() {
             <div className="min-w-0 flex-1 space-y-1">
               <Label htmlFor="copyFrom">Copy details from an existing product (optional)</Label>
               <select id="copyFrom" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-sm">
-                <option>— Don&apos;t copy —</option>
+                <option>Loading products…</option>
               </select>
             </div>
             <Button type="button" variant="outline" disabled>
@@ -31,7 +31,6 @@ export default function AdminNewProductLoading() {
               <Input id="name" disabled />
             </div>
             <Input placeholder="Brand" disabled />
-            <Input placeholder="Family" disabled />
             <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
               <option>Decant</option>
             </select>

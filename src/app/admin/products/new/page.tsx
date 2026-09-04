@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { upsertProduct } from "@/actions/admin-catalog-actions";
 import { db } from "@/db/client";
 import { products } from "@/db/schema";
-import { labelForType } from "@/domain/product-type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,9 +18,9 @@ export default async function NewProductPage({
   searchParams: Promise<{ copyFrom?: string }>;
 }) {
   const { copyFrom } = await searchParams;
-  const [existingProducts, copySource] = await Promise.all([
+  const [allProducts, copySource] = await Promise.all([
     db()
-      .select({ id: products.id, brand: products.brand, name: products.name, type: products.type })
+      .select({ id: products.id, brand: products.brand, name: products.name })
       .from(products)
       .orderBy(products.brand, products.name),
     copyFrom
@@ -32,6 +31,13 @@ export default async function NewProductPage({
           .then((rows) => rows[0])
       : Promise.resolve(undefined),
   ]);
+  // Family/Category/Concentration/Gender/Description/Notes are fragrance-level
+  // facts, identical across a fragrance's Decant/Full bottle/Partial rows —
+  // collapse those into one entry per brand+name so the same fragrance isn't
+  // listed 2-3 times with no meaningful difference between the choices.
+  const existingProducts = Array.from(
+    new Map(allProducts.map((p) => [`${p.brand}::${p.name}`, p])).values(),
+  );
 
   async function create(formData: FormData) {
     "use server";
@@ -54,10 +60,9 @@ export default async function NewProductPage({
                   defaultValue={copyFrom ?? ""}
                   className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
                 >
-                  <option value="">— Don&apos;t copy —</option>
                   {existingProducts.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.brand} — {p.name} ({labelForType(p.type)})
+                      {p.brand} — {p.name}
                     </option>
                   ))}
                 </select>
