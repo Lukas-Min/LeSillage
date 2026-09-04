@@ -147,6 +147,14 @@
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) {
     height: 2.75rem;
   }
+  /* Every raw <select> across the admin forms carries its own "px-3" utility
+     (left and right padding equal), which crowds the browser's native
+     dropdown arrow right up against the border. `!important` so this always
+     wins over whatever px-* a select happens to declare, instead of relying
+     on every one of them to remember an asymmetric pl-3/pr-9 split. */
+  select {
+    padding-right: 2.25rem !important;
+  }
   html {
     @apply font-sans;
     overflow-y: scroll;

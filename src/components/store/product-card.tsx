@@ -23,6 +23,12 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
   const selected = isDecant ? card.sizeOptions.find((o) => o.skuId === selectedSkuId) ?? null : null;
   const activeSkuId = isDecant ? (selectedSkuId ?? "") : card.skuId;
+  const requireSizeSelection = isDecant && !selectedSkuId;
+  // Add to cart and Buy now sit side by side — without this, clicking either
+  // one with no size picked showed its own identical "Please select a size"
+  // message, so both appeared stacked under the two-column button row.
+  const [sizeWarningAttempted, setSizeWarningAttempted] = useState(false);
+  const showSizeWarning = sizeWarningAttempted && requireSizeSelection;
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link href={card.href} className="flex flex-1 flex-col">
@@ -103,19 +109,26 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
           </div>
         </div>
       </Link>
-      <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-        <AddToCartButton
-          skuId={activeSkuId}
-          variant="compact"
-          soldOut={card.soldOut}
-          disabled={isDecant && !selectedSkuId}
-        />
-        <BuyNowButton
-          skuId={activeSkuId}
-          quantity={1}
-          soldOut={card.soldOut}
-          disabled={isDecant && !selectedSkuId}
-        />
+      <div className="px-4 pb-4">
+        <div className="grid grid-cols-2 gap-2">
+          <AddToCartButton
+            skuId={activeSkuId}
+            variant="compact"
+            soldOut={card.soldOut}
+            disabled={requireSizeSelection}
+            hideRequireSelectionMessage
+            onRequireSelection={() => setSizeWarningAttempted(true)}
+          />
+          <BuyNowButton
+            skuId={activeSkuId}
+            quantity={1}
+            soldOut={card.soldOut}
+            disabled={requireSizeSelection}
+            hideRequireSelectionMessage
+            onRequireSelection={() => setSizeWarningAttempted(true)}
+          />
+        </div>
+        {showSizeWarning ? <p className="mt-1 text-xs text-destructive">Please select a size</p> : null}
       </div>
     </article>
   );

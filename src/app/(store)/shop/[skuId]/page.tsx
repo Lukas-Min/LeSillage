@@ -142,6 +142,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             imageAlt={image[0]?.alt}
             cornerLabel={labelForCategory(row.fragranceCategory)}
             className="order-1"
+            enableLightbox
           />
 
           {accords && accords.length > 0 ? (

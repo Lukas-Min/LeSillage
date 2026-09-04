@@ -16,6 +16,8 @@ export function BuyNowButton({
   disabled = false,
   requireSelectionMessage = "Please select a size",
   className,
+  onRequireSelection,
+  hideRequireSelectionMessage = false,
 }: {
   skuId: string;
   quantity: number;
@@ -24,11 +26,19 @@ export function BuyNowButton({
   disabled?: boolean;
   requireSelectionMessage?: string;
   className?: string;
+  /** Called on a blocked click (no size picked yet) in addition to this
+   *  button's own local state — lets a caller with a sibling button (e.g.
+   *  Add to cart next to Buy now) show one shared message instead of each
+   *  button showing its own. */
+  onRequireSelection?: () => void;
+  /** Suppress this button's own inline message — for a caller that renders
+   *  one shared message itself, driven by onRequireSelection above. */
+  hideRequireSelectionMessage?: boolean;
 }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [attempted, setAttempted] = useState(false);
-  const showRequireSelection = attempted && disabled;
+  const showRequireSelection = !hideRequireSelectionMessage && attempted && disabled;
 
   return (
     <div>
@@ -45,6 +55,7 @@ export function BuyNowButton({
           if (soldOut) return;
           if (disabled || !skuId) {
             setAttempted(true);
+            onRequireSelection?.();
             return;
           }
           setIsPending(true);

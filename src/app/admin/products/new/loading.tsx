@@ -12,7 +12,7 @@ export default function AdminNewProductLoading() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-0 flex-1 space-y-1">
-              <Label htmlFor="copyFrom">Copy details from an existing product (optional)</Label>
+              <Label htmlFor="copyFrom">Choose a fragrance</Label>
               <select id="copyFrom" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-sm">
                 <option>Loading products…</option>
               </select>

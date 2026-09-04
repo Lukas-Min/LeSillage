@@ -3,7 +3,12 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Clicking the product photo on the product detail page now opens a larger version in a modal (`CompositionCanvas` gained an opt-in `enableLightbox` prop, used only there — product cards and the homepage flagship stay plain navigation links)
 ### Changed
+- Every raw `<select>` (admin forms, checkout) had equal left/right padding, crowding the browser's native dropdown arrow against the border — added a global `!important` rule giving every select consistent extra clearance on the right, so this can't regress one instance at a time
+- Admin "New product": renamed the "Copy details from an existing product (optional)" label to "Choose a fragrance"
+- Product cards showed "Please select a size" twice — once under Add to cart, once under Buy now — when a decant's size wasn't picked yet; consolidated to one shared message below both buttons
 - The `Button` component's default and `lg` sizes were `h-8`/`h-9` while every field (`Input`, raw `<select>`) is `h-11` — since most buttons never set an explicit `size`, this silently mismatched dozens of buttons across the app (account Save/Update/Delete, admin pagination, checkout's Delivery/Pickup toggle and promo-code Apply, admin's Load details, etc.) any time a call site didn't manually patch it with its own `h-11` override. Raised both to `h-11` (with proportionally larger horizontal padding) so this is a hard rule at the component level instead of a per-instance reminder; `globals.css` also gained a base-layer fallback (`select`, `input:not(checkbox/radio/range/file/hidden)`) so a raw field defaults to the same height even without an explicit class
 - Checkout's "Place order" button sat flush left, the same width as its text, looking like a stray leftover control at the bottom of the form — right-aligned it to read as the form's primary closing action
 - Admin "New product": the "Copy details from an existing product" dropdown listed the same fragrance up to 3 times (once per Decant/Full bottle/Partial row it already has), since Family/Category/Concentration/Gender/Description/Notes are fragrance-level facts that don't differ between those rows — collapsed to one entry per brand+name; removed the "— Don't copy —" placeholder option

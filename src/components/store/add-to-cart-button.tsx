@@ -14,6 +14,8 @@ export function AddToCartButton({
   requireSelectionMessage = "Please select a size",
   quantity,
   onQuantityChange,
+  onRequireSelection,
+  hideRequireSelectionMessage = false,
 }: {
   skuId: string;
   variant?: "full" | "compact";
@@ -23,6 +25,14 @@ export function AddToCartButton({
   requireSelectionMessage?: string;
   quantity?: number;
   onQuantityChange?: (quantity: number) => void;
+  /** Called on a blocked click (no size picked yet) in addition to this
+   *  button's own local state — lets a caller with a sibling button (e.g.
+   *  Buy Now next to Add to cart) show one shared message instead of each
+   *  button showing its own. */
+  onRequireSelection?: () => void;
+  /** Suppress this button's own inline message — for a caller that renders
+   *  one shared message itself, driven by onRequireSelection above. */
+  hideRequireSelectionMessage?: boolean;
 }) {
   const cart = useCart();
   const [isPending, startTransition] = useTransition();
@@ -40,7 +50,7 @@ export function AddToCartButton({
   // gets picked); no effect needed, `attempted && disabled` already goes
   // false on its own once that happens.
   const [attempted, setAttempted] = useState(false);
-  const showRequireSelection = attempted && disabled;
+  const showRequireSelection = !hideRequireSelectionMessage && attempted && disabled;
 
   const add = (quantity: number) =>
     startTransition(async () => {
@@ -68,6 +78,7 @@ export function AddToCartButton({
             if (soldOut) return;
             if (disabled || !skuId) {
               setAttempted(true);
+              onRequireSelection?.();
               return;
             }
             add(1);
@@ -128,6 +139,7 @@ export function AddToCartButton({
             if (soldOut) return;
             if (disabled || !skuId) {
               setAttempted(true);
+              onRequireSelection?.();
               return;
             }
             add(qty);

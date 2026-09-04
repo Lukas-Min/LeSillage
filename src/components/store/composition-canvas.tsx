@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { NotePyramid } from "@/lib/note-pyramid";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function CompositionCanvas({
   brand,
@@ -13,6 +14,7 @@ export function CompositionCanvas({
   imageUrl,
   imageAlt,
   cornerLabel,
+  enableLightbox = false,
 }: {
   brand: string;
   name: string;
@@ -22,10 +24,53 @@ export function CompositionCanvas({
   imageUrl?: string | null;
   imageAlt?: string | null;
   cornerLabel?: string | null;
+  /** Clicking the photo opens a larger version in a modal — only meaningful
+   *  on the product detail page, where the canvas isn't already wrapped in a
+   *  navigation Link (product cards and the homepage flagship are, and stay
+   *  plain navigation). */
+  enableLightbox?: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   if (imageUrl && !imageFailed) {
+    const alt = imageAlt ?? `${brand} — ${name}`;
+    const photo = (
+      <>
+        {cornerLabel ? <CornerLabel>{cornerLabel}</CornerLabel> : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt={alt}
+          onError={() => setImageFailed(true)}
+          className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+        />
+      </>
+    );
+
+    if (enableLightbox) {
+      return (
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              aria-label={`View larger image of ${alt}`}
+              className={cn(
+                "group relative aspect-square w-full cursor-zoom-in overflow-hidden border border-border bg-white p-4",
+                className,
+              )}
+            >
+              {photo}
+            </button>
+          </DialogTrigger>
+          <DialogContent className="w-fit max-w-[92vw] border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-3xl">
+            <DialogTitle className="sr-only">{alt}</DialogTitle>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt={alt} className="max-h-[85vh] w-full rounded-lg bg-white object-contain" />
+          </DialogContent>
+        </Dialog>
+      );
+    }
+
     return (
       <div
         className={cn(
@@ -33,14 +78,7 @@ export function CompositionCanvas({
           className,
         )}
       >
-        {cornerLabel ? <CornerLabel>{cornerLabel}</CornerLabel> : null}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
-          alt={imageAlt ?? `${brand} — ${name}`}
-          onError={() => setImageFailed(true)}
-          className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.05]"
-        />
+        {photo}
       </div>
     );
   }

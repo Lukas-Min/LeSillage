@@ -53,7 +53,7 @@ export default async function NewProductPage({
           <CardContent className="p-4">
             <form className="flex flex-wrap items-end gap-2">
               <div className="min-w-0 flex-1 space-y-1">
-                <Label htmlFor="copyFrom">Copy details from an existing product (optional)</Label>
+                <Label htmlFor="copyFrom">Choose a fragrance</Label>
                 <select
                   id="copyFrom"
                   name="copyFrom"
