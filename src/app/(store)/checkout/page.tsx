@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const dynamic = "force-dynamic";
+// The actions posted to this route send email inside after(); that work
+// counts against the invocation's time budget, so leave room for the SMTP
+// timeouts (8s each) instead of the 10s default.
+export const maxDuration = 30;
 
 export default async function CheckoutPage({
   searchParams,

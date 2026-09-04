@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   carts,
@@ -189,18 +189,20 @@ export async function addOneToCart(
   });
   if (cap <= 0) throw new Error("This item is currently out of stock");
   const clamped = clampQuantity(quantity, cap);
-  const existing = (
-    await client
-      .select()
-      .from(cartItems)
-      .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, sku.id)))
-  )[0];
-  if (existing) {
-    const next = clampQuantity(existing.quantity + clamped, cap);
-    await client.update(cartItems).set({ quantity: next }).where(eq(cartItems.id, existing.id));
-  } else {
-    await client.insert(cartItems).values({ cartId: cart.id, skuId: sku.id, quantity: clamped });
-  }
+  // One round trip: insert the line, or if it already exists add to it —
+  // capped either way (both quantities are >= 1, so LEAST matches what
+  // clampQuantity(existing + clamped, cap) produced). This used to be a
+  // SELECT followed by an INSERT or UPDATE, two sequential round trips on
+  // every add-to-cart, and the two-step version could hit the
+  // (cartId, skuId) unique index as an unhandled error when the same item
+  // was added twice in quick succession.
+  await client
+    .insert(cartItems)
+    .values({ cartId: cart.id, skuId: sku.id, quantity: clamped })
+    .onConflictDoUpdate({
+      target: [cartItems.cartId, cartItems.skuId],
+      set: { quantity: sql`LEAST(${cartItems.quantity} + ${clamped}, ${cap})` },
+    });
 }
 
 interface PricedCart {

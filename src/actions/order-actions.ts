@@ -71,7 +71,13 @@ export async function createCheckoutOrder(input: unknown) {
     promoCode: parsed.promoCode ?? null,
     directItems: parsed.directItem ? [parsed.directItem] : undefined,
   });
-  revalidatePath("/", "layout");
+  // Only the pages that read cart/order data server-side. Revalidating the
+  // whole layout here busted every route's router cache on each order —
+  // the same ~600ms of waste cart-actions.ts already documents and removed.
+  revalidatePath("/checkout");
+  revalidatePath("/checkout/payment");
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${result.order.id}`);
   return { orderId: result.order.id, orderNumber: result.order.orderNumber };
 }
 

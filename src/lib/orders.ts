@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { and, count, eq, gte, inArray, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
@@ -404,52 +405,58 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     }
   }
 
-  try {
-    const paymentEmail = await sendEmail({
-      to: input.email,
-      ...orderCreatedPaymentEmail({
-        orderNumber,
-        status: "AWAITING_PAYMENT",
-        recipientName,
-        email: input.email,
-        fulfillmentMethod: input.fulfillmentMethod,
-        lines: priced.lines.map((line) => {
-          const found = skuRows.find((row) => row.sku.id === line.skuId);
-          return {
-            productName: found?.productName ?? "Fragrance",
-            skuLabel: found?.sku.label ?? "",
-            quantity: line.quantity,
-            originalUnitCentavos: line.unitPriceCentavos,
-            unitPriceCentavos: line.discountedUnitCentavos,
-            discountCentavos: line.lineDiscountCentavos,
-            lineTotalCentavos: line.lineSubtotalCentavos,
-            productType: line.productType,
-            fulfillment: line.fulfillment,
-          };
+  // The order is committed at this point; the confirmation email must
+  // neither delay the response nor fail checkout. after() runs it once the
+  // response has gone out — the SMTP handshake (up to 8s on a cold
+  // transporter) used to sit on the critical path of every "Place order".
+  after(async () => {
+    try {
+      const paymentEmail = await sendEmail({
+        to: input.email,
+        ...orderCreatedPaymentEmail({
+          orderNumber,
+          status: "AWAITING_PAYMENT",
+          recipientName,
+          email: input.email,
+          fulfillmentMethod: input.fulfillmentMethod,
+          lines: priced.lines.map((line) => {
+            const found = skuRows.find((row) => row.sku.id === line.skuId);
+            return {
+              productName: found?.productName ?? "Fragrance",
+              skuLabel: found?.sku.label ?? "",
+              quantity: line.quantity,
+              originalUnitCentavos: line.unitPriceCentavos,
+              unitPriceCentavos: line.discountedUnitCentavos,
+              discountCentavos: line.lineDiscountCentavos,
+              lineTotalCentavos: line.lineSubtotalCentavos,
+              productType: line.productType,
+              fulfillment: line.fulfillment,
+            };
+          }),
+          // Same convention as the stored order row (see the transaction
+          // above): subtotal already has the promo-code order-discount baked
+          // in, discountCentavos is the informational combined total.
+          subtotalCentavos: totals.merchandiseSubtotalCentavos - totals.orderDiscountCentavos,
+          discountCentavos: totals.discountCentavos + totals.orderDiscountCentavos + totals.deliveryDiscountCentavos,
+          deliveryFeeCentavos: totals.deliveryFeeCentavos,
+          totalCentavos: totals.totalCentavos,
+          defaultDeliveryFeeCentavos: totals.defaultDeliveryFeeCentavos,
+          freeDeliveryReason: totals.freeShipping && !isPickup ? "Decant subtotal over ₱2,000" : null,
+          orderedAt: new Date(),
+          pickupNotes: input.pickupNotes,
         }),
-        // Same convention as the stored order row (see the transaction
-        // above): subtotal already has the promo-code order-discount baked
-        // in, discountCentavos is the informational combined total.
-        subtotalCentavos: totals.merchandiseSubtotalCentavos - totals.orderDiscountCentavos,
-        discountCentavos: totals.discountCentavos + totals.orderDiscountCentavos + totals.deliveryDiscountCentavos,
-        deliveryFeeCentavos: totals.deliveryFeeCentavos,
-        totalCentavos: totals.totalCentavos,
-        defaultDeliveryFeeCentavos: totals.defaultDeliveryFeeCentavos,
-        freeDeliveryReason: totals.freeShipping && !isPickup ? "Decant subtotal over ₱2,000" : null,
-        orderedAt: new Date(),
-        pickupNotes: input.pickupNotes,
-      }),
-    });
-    await client.insert(notificationLog).values({
-      orderId: order.id,
-      recipient: input.email,
-      template: "order_created_payment",
-      status: paymentEmail.ok ? "SENT" : "FAILED",
-      error: paymentEmail.ok ? null : paymentEmail.error ?? "unknown",
-    });
-  } catch {
-    // Order is already committed; email failure must not fail checkout.
-  }
+      });
+      await client.insert(notificationLog).values({
+        orderId: order.id,
+        recipient: input.email,
+        template: "order_created_payment",
+        status: paymentEmail.ok ? "SENT" : "FAILED",
+        error: paymentEmail.ok ? null : paymentEmail.error ?? "unknown",
+      });
+    } catch {
+      // Order is already committed; email failure must not fail checkout.
+    }
+  });
 
   return { order, totals: priced, orderItems: priced.lines, skuRows, promoConfig };
 }
@@ -501,7 +508,7 @@ export async function submitReceipt(
   // Shared transaction: if stock reservation fails (e.g. sold out between
   // checkout and receipt upload), the receipt row rolls back too instead of
   // leaving an orphaned receipt on an order stuck at AWAITING_PAYMENT.
-  await client.transaction(async (tx) => {
+  const itemRows = await client.transaction(async (tx) => {
     await tx.insert(receipts).values({
       orderId: orderRow.id,
       blobUrl: uploaded.url,
@@ -515,66 +522,68 @@ export async function submitReceipt(
       .update(orders)
       .set({ status: "RECEIPT_SUBMITTED", updatedAt: new Date(), statusUpdatedAt: new Date() })
       .where(eq(orders.id, orderRow.id));
+    // Handed to the emails below instead of re-selecting the same rows once
+    // the transaction has committed.
+    return items;
   });
 
-  const itemRows = await client
-    .select()
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderRow.id));
+  // Everything below only feeds the two notification emails; after() runs
+  // it once the response is sent, so the upload no longer waits on SMTP.
+  after(async () => {
+    const env = getEnv();
+    const promo = (await client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")))[0];
+    const emailInput = {
+      orderNumber: orderRow.orderNumber,
+      status: "RECEIPT_SUBMITTED" as OrderStatus,
+      recipientName: orderRow.recipientName,
+      email: orderRow.email,
+      fulfillmentMethod: orderRow.fulfillmentMethod,
+      lines: itemRows.map((line) => ({
+        productName: line.productName,
+        skuLabel: line.skuLabel,
+        quantity: line.quantity,
+        originalUnitCentavos: line.originalUnitCentavos,
+        unitPriceCentavos: line.unitPriceCentavos,
+        discountCentavos: line.discountCentavos,
+        lineTotalCentavos: line.lineTotalCentavos,
+        productType: line.productType,
+        fulfillment: line.fulfillment,
+      })),
+      subtotalCentavos: orderRow.subtotalCentavos,
+      discountCentavos: orderRow.discountCentavos,
+      deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
+      totalCentavos: orderRow.totalCentavos,
+      defaultDeliveryFeeCentavos: promo?.deliveryFeeCentavos,
+      freeDeliveryReason:
+        orderRow.deliveryFeeCentavos === 0 && orderRow.fulfillmentMethod === "DELIVERY"
+          ? "Free delivery applied: decant subtotal over ₱2,000."
+          : null,
+      orderedAt: orderRow.createdAt,
+      pickupNotes: orderRow.pickupNotes,
+    };
 
-  const env = getEnv();
-  const promo = (await client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")))[0];
-  const emailInput = {
-    orderNumber: orderRow.orderNumber,
-    status: "RECEIPT_SUBMITTED" as OrderStatus,
-    recipientName: orderRow.recipientName,
-    email: orderRow.email,
-    fulfillmentMethod: orderRow.fulfillmentMethod,
-    lines: itemRows.map((line) => ({
-      productName: line.productName,
-      skuLabel: line.skuLabel,
-      quantity: line.quantity,
-      originalUnitCentavos: line.originalUnitCentavos,
-      unitPriceCentavos: line.unitPriceCentavos,
-      discountCentavos: line.discountCentavos,
-      lineTotalCentavos: line.lineTotalCentavos,
-      productType: line.productType,
-      fulfillment: line.fulfillment,
-    })),
-    subtotalCentavos: orderRow.subtotalCentavos,
-    discountCentavos: orderRow.discountCentavos,
-    deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
-    totalCentavos: orderRow.totalCentavos,
-    defaultDeliveryFeeCentavos: promo?.deliveryFeeCentavos,
-    freeDeliveryReason:
-      orderRow.deliveryFeeCentavos === 0 && orderRow.fulfillmentMethod === "DELIVERY"
-        ? "Free delivery applied: decant subtotal over ₱2,000."
-        : null,
-    orderedAt: orderRow.createdAt,
-    pickupNotes: orderRow.pickupNotes,
-  };
-
-  const customer = await sendEmail({
-    to: orderRow.email,
-    ...receiptSubmittedEmail(emailInput),
-  });
-  await client.insert(notificationLog).values({
-    orderId: orderRow.id,
-    recipient: orderRow.email,
-    template: "receipt_submitted",
-    status: customer.ok ? "SENT" : "FAILED",
-    error: customer.ok ? null : customer.error ?? "unknown error",
-  });
-  const admin = await sendEmail({
-    to: env.ADMIN_EMAIL,
-    ...adminReceiptNotification(emailInput),
-  });
-  await client.insert(notificationLog).values({
-    orderId: orderRow.id,
-    recipient: env.ADMIN_EMAIL,
-    template: "admin_receipt_notification",
-    status: admin.ok ? "SENT" : "FAILED",
-    error: admin.ok ? null : admin.error ?? "unknown error",
+    // Customer and admin notifications are independent — send them together
+    // and log both in one insert rather than four sequential round trips.
+    const [customer, admin] = await Promise.all([
+      sendEmail({ to: orderRow.email, ...receiptSubmittedEmail(emailInput) }),
+      sendEmail({ to: env.ADMIN_EMAIL, ...adminReceiptNotification(emailInput) }),
+    ]);
+    await client.insert(notificationLog).values([
+      {
+        orderId: orderRow.id,
+        recipient: orderRow.email,
+        template: "receipt_submitted",
+        status: customer.ok ? "SENT" : "FAILED",
+        error: customer.ok ? null : customer.error ?? "unknown error",
+      },
+      {
+        orderId: orderRow.id,
+        recipient: env.ADMIN_EMAIL,
+        template: "admin_receipt_notification",
+        status: admin.ok ? "SENT" : "FAILED",
+        error: admin.ok ? null : admin.error ?? "unknown error",
+      },
+    ]);
   });
 
   return { ok: true };
@@ -881,78 +890,83 @@ export async function transitionOrderStatus(args: {
     await releaseStockForOrder(args.orderId);
   }
 
-  const context = await loadOrderForEmail(args.orderId);
-  if (!context) return;
-  const items = await client
-    .select()
-    .from(orderItems)
-    .where(eq(orderItems.orderId, args.orderId));
-  const emailInput = {
-    orderNumber: context.orderNumber,
-    status: args.next,
-    recipientName: context.recipientName,
-    email: context.email,
-    fulfillmentMethod: context.fulfillmentMethod,
-    lines: items.map((it) => ({
-      productName: it.productName,
-      skuLabel: it.skuLabel,
-      quantity: it.quantity,
-      originalUnitCentavos: it.originalUnitCentavos,
-      unitPriceCentavos: it.unitPriceCentavos,
-      discountCentavos: it.discountCentavos,
-      lineTotalCentavos: it.lineTotalCentavos,
-      productType: it.productType,
-      fulfillment: it.fulfillment,
-    })),
-    subtotalCentavos: context.subtotalCentavos,
-    discountCentavos: context.discountCentavos,
-    deliveryFeeCentavos: context.deliveryFeeCentavos,
-    totalCentavos: context.totalCentavos,
-    orderedAt: context.createdAt,
-    reason: args.reason,
-    pickupNotes: context.pickupNotes,
-  };
+  // The status change is committed (and stock released, where relevant);
+  // the customer email runs after the response so admin actions and
+  // self-service cancels return as soon as the DB work is done.
+  after(async () => {
+    const context = await loadOrderForEmail(args.orderId);
+    if (!context) return;
+    const items = await client
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, args.orderId));
+    const emailInput = {
+      orderNumber: context.orderNumber,
+      status: args.next,
+      recipientName: context.recipientName,
+      email: context.email,
+      fulfillmentMethod: context.fulfillmentMethod,
+      lines: items.map((it) => ({
+        productName: it.productName,
+        skuLabel: it.skuLabel,
+        quantity: it.quantity,
+        originalUnitCentavos: it.originalUnitCentavos,
+        unitPriceCentavos: it.unitPriceCentavos,
+        discountCentavos: it.discountCentavos,
+        lineTotalCentavos: it.lineTotalCentavos,
+        productType: it.productType,
+        fulfillment: it.fulfillment,
+      })),
+      subtotalCentavos: context.subtotalCentavos,
+      discountCentavos: context.discountCentavos,
+      deliveryFeeCentavos: context.deliveryFeeCentavos,
+      totalCentavos: context.totalCentavos,
+      orderedAt: context.createdAt,
+      reason: args.reason,
+      pickupNotes: context.pickupNotes,
+    };
 
-  if (args.next === "REJECTED") {
-    const r = await sendEmail({ to: context.email, ...receiptRejectedEmail(emailInput) });
-    await client.insert(notificationLog).values({
-      orderId: args.orderId,
-      recipient: context.email,
-      template: "receipt_rejected",
-      status: r.ok ? "SENT" : "FAILED",
-      error: r.ok ? null : r.error ?? "unknown error",
-    });
-  }
-  if (args.next === "CANCELLED") {
-    const r = await sendEmail({ to: context.email, ...orderCancelledEmail(emailInput) });
-    await client.insert(notificationLog).values({
-      orderId: args.orderId,
-      recipient: context.email,
-      template: "order_cancelled",
-      status: r.ok ? "SENT" : "FAILED",
-      error: r.ok ? null : r.error ?? "unknown error",
-    });
-  }
-  if (args.next === "CONFIRMED") {
-    const r = await sendEmail({ to: context.email, ...orderConfirmedEmail(emailInput) });
-    await client.insert(notificationLog).values({
-      orderId: args.orderId,
-      recipient: context.email,
-      template: "order_confirmed",
-      status: r.ok ? "SENT" : "FAILED",
-      error: r.ok ? null : r.error ?? "unknown error",
-    });
-  }
-  if (args.next === "SHIPPED") {
-    const r = await sendEmail({ to: context.email, ...orderShippedEmail(emailInput) });
-    await client.insert(notificationLog).values({
-      orderId: args.orderId,
-      recipient: context.email,
-      template: "order_shipped",
-      status: r.ok ? "SENT" : "FAILED",
-      error: r.ok ? null : r.error ?? "unknown error",
-    });
-  }
+    if (args.next === "REJECTED") {
+      const r = await sendEmail({ to: context.email, ...receiptRejectedEmail(emailInput) });
+      await client.insert(notificationLog).values({
+        orderId: args.orderId,
+        recipient: context.email,
+        template: "receipt_rejected",
+        status: r.ok ? "SENT" : "FAILED",
+        error: r.ok ? null : r.error ?? "unknown error",
+      });
+    }
+    if (args.next === "CANCELLED") {
+      const r = await sendEmail({ to: context.email, ...orderCancelledEmail(emailInput) });
+      await client.insert(notificationLog).values({
+        orderId: args.orderId,
+        recipient: context.email,
+        template: "order_cancelled",
+        status: r.ok ? "SENT" : "FAILED",
+        error: r.ok ? null : r.error ?? "unknown error",
+      });
+    }
+    if (args.next === "CONFIRMED") {
+      const r = await sendEmail({ to: context.email, ...orderConfirmedEmail(emailInput) });
+      await client.insert(notificationLog).values({
+        orderId: args.orderId,
+        recipient: context.email,
+        template: "order_confirmed",
+        status: r.ok ? "SENT" : "FAILED",
+        error: r.ok ? null : r.error ?? "unknown error",
+      });
+    }
+    if (args.next === "SHIPPED") {
+      const r = await sendEmail({ to: context.email, ...orderShippedEmail(emailInput) });
+      await client.insert(notificationLog).values({
+        orderId: args.orderId,
+        recipient: context.email,
+        template: "order_shipped",
+        status: r.ok ? "SENT" : "FAILED",
+        error: r.ok ? null : r.error ?? "unknown error",
+      });
+    }
+  });
 }
 
 export async function ensureCustomer(email: string, name: string): Promise<string> {
