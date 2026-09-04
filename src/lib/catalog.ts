@@ -20,7 +20,7 @@ import type { SiteWideDiscountConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { labelForCondition, labelForPackaging, labelForProvenance } from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
-import type { SizePickerOption, VariantSubOption } from "@/domain/variant-options";
+import { compareSkuOrder, type SizePickerOption, type VariantSubOption } from "@/domain/variant-options";
 
 export const CATALOG_SORTS = ["featured", "rating", "price_asc", "price_desc"] as const;
 export type CatalogSort = (typeof CATALOG_SORTS)[number];
@@ -184,22 +184,24 @@ export function buildVariantOptions(
     const distinctPackaging = new Set(members.map((m) => m.packaging));
     const subOptions: VariantSubOption[] | undefined =
       members.length > 1
-        ? members.map((m) => {
-            const parts: string[] = [];
-            if (distinctConditions.size > 1) parts.push(labelForCondition(m.condition));
-            if (distinctPackaging.size > 1) parts.push(labelForPackaging(m.packaging));
-            return {
-              skuId: m.skuId,
-              condition: m.condition,
-              packaging: m.packaging,
-              label: parts.length > 0 ? parts.join(" · ") : labelForCondition(m.condition),
-              fulfillment: m.fulfillment,
-              soldOut: m.soldOut,
-              originalCentavos: m.originalCentavos,
-              discountedCentavos: m.discountedCentavos,
-              savedCentavos: m.savedCentavos,
-            };
-          })
+        ? members
+            .map((m) => {
+              const parts: string[] = [];
+              if (distinctConditions.size > 1) parts.push(labelForCondition(m.condition));
+              if (distinctPackaging.size > 1) parts.push(labelForPackaging(m.packaging));
+              return {
+                skuId: m.skuId,
+                condition: m.condition,
+                packaging: m.packaging,
+                label: parts.length > 0 ? parts.join(" · ") : labelForCondition(m.condition),
+                fulfillment: m.fulfillment,
+                soldOut: m.soldOut,
+                originalCentavos: m.originalCentavos,
+                discountedCentavos: m.discountedCentavos,
+                savedCentavos: m.savedCentavos,
+              };
+            })
+            .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }))
         : undefined;
     options.push({
       sizeMl: defaultMember.sizeMl!,
@@ -216,7 +218,7 @@ export function buildVariantOptions(
       subOptions,
     });
   }
-  return options.sort((a, b) => a.sizeMl - b.sizeMl || a.label.localeCompare(b.label));
+  return options.sort(compareSkuOrder);
 }
 
 export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {

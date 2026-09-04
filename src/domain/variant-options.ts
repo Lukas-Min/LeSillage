@@ -51,6 +51,17 @@ export interface SizePickerOption {
   subOptions?: VariantSubOption[];
 }
 
+/** Smallest size first, then A–Z by label (numeric so 3ml sorts before 10ml). */
+export function compareSkuOrder(
+  a: { sizeMl?: number | null; label: string },
+  b: { sizeMl?: number | null; label: string },
+): number {
+  const sizeA = a.sizeMl ?? Number.POSITIVE_INFINITY;
+  const sizeB = b.sizeMl ?? Number.POSITIVE_INFINITY;
+  if (sizeA !== sizeB) return sizeA - sizeB;
+  return a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" });
+}
+
 /**
  * Resolves whichever leaf skuId is currently selected — a top-level group's
  * own skuId, or one of its subOptions' — into one flat SizePickerOption

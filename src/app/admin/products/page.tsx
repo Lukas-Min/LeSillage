@@ -10,6 +10,7 @@ import { formatPHP } from "@/domain/money";
 import { concentrationLabel } from "@/domain/concentration";
 import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { labelForType } from "@/domain/product-type";
+import { compareSkuOrder } from "@/domain/variant-options";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -144,7 +145,7 @@ export default async function ProductsAdminPage({
         </Card>
       ) : null}
       {productRows.map((product) => {
-        const skusForProduct = skuRows.filter((s) => s.productId === product.id);
+        const skusForProduct = skuRows.filter((s) => s.productId === product.id).sort(compareSkuOrder);
         return (
           <Link key={product.id} href={`/admin/products/${product.id}`} className="block">
             <Card className="transition-colors hover:border-gold/40 hover:bg-muted/30">

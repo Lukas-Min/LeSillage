@@ -56,7 +56,7 @@ export default async function AdminProductDetailPage({
   const product = (await db().select().from(products).where(eq(products.id, productId)))[0];
   if (!product) return notFound();
   const [skuList, discountList, imageList] = await Promise.all([
-    db().select().from(skus).where(eq(skus.productId, productId)).orderBy(asc(skus.label)),
+    db().select().from(skus).where(eq(skus.productId, productId)).orderBy(asc(skus.sizeMl), asc(skus.label)),
     db().select().from(productDiscounts).where(eq(productDiscounts.productId, productId)),
     db().select().from(productImages).where(eq(productImages.productId, productId)),
   ]);

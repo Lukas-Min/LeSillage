@@ -13,6 +13,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 ### Changed
+- SKU lists and size pickers sort smallest millilitre first, then A–Z by label (3ml before 10ml) in `compareSkuOrder`
+- Shop card and search prices always show centavos (₱1,234.00), matching the selected-variant price so the amount doesn't jump when a size is picked
 - FAQ, About, How to pay, Policies, shop subtitle, cart/checkout hints, and admin helper copy realigned to current rules: testers are sold, decants are In-house or Retail, fulfillment is per listing, complimentary testers are delivery-only
 - Tester SKUs (`isTester`) stay in the shop, PDP, and cart like any other listing — the checkbox only marks them as eligible for the decant-promo free-tester draw, it no longer hides them
 - Removed `src/app/loading.tsx` — a root `loading.tsx` is the fallback for every route, so it flashed over `/shop`, `/faq`, etc. before those pages' own skeletons. Each route's `loading.tsx` (and the homepage's existing `FlagshipSkeleton` Suspense) is enough
