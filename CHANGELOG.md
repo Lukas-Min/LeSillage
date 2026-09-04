@@ -13,6 +13,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 - "Name: A to Z" sort option on `/shop` (`name_asc` in `CATALOG_SORTS`, `src/lib/catalog.ts`)
+- Two more `/shop` sort options: "Name: Z to A" (`name_desc`) and "Biggest discount" (`discount_desc`, by `savePercent`) — rounds out the sort menu alongside Featured, Most rated, Price low-to-high/high-to-low, and Name A-Z
 - `/shop`'s toolbar (fragrance count + Filter/Sort buttons) now has its own loading skeleton (`ShopToolbarSkeleton` in `src/components/store/loading.tsx`) instead of vanishing to blank space while results load
 - Repo PR template (`.github/pull_request_template.md`): Ticket, Summary, Changes (fixes only), Feature (new features only), Acceptance, Testing, Scope
 ### Changed

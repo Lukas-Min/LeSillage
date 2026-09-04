@@ -20,9 +20,11 @@ import { GENDERS, GENDER_LABELS, type Gender } from "@/domain/gender";
 const SORT_LABELS: Record<CatalogSort, string> = {
   featured: "Featured",
   rating: "Most rated",
+  discount_desc: "Biggest discount",
   price_asc: "Price: low to high",
   price_desc: "Price: high to low",
   name_asc: "Name: A to Z",
+  name_desc: "Name: Z to A",
 };
 
 const CATEGORY_LABELS: Record<FragranceCategory, string> = {
