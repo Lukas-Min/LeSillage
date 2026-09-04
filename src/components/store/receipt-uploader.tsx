@@ -33,7 +33,7 @@ export function ReceiptUploader({ orderId }: { orderId: string }) {
           className="space-y-3"
         >
           <input type="hidden" name="orderId" value={orderId} />
-          <input
+          <Input
             type="file"
             name="file"
             accept="image/jpeg,image/png,image/webp"
@@ -46,7 +46,6 @@ export function ReceiptUploader({ orderId }: { orderId: string }) {
                 setPreview(null);
               }
             }}
-            className="block w-full text-sm"
           />
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element

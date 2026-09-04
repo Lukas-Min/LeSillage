@@ -170,25 +170,6 @@
     -webkit-appearance: none;
     margin: 0;
   }
-  /* The browser's native "Choose File" button rendered a flat white/gray
-     control that didn't match any other button in the app. Styled to match
-     a plain dark Button (the same look as the "Upload image" submit button
-     that sits right below it on the admin product page). */
-  input[type="file"]::file-selector-button {
-    height: 100%;
-    margin-inline-end: 0.75rem;
-    padding: 0 1rem;
-    border: none;
-    border-inline-end: 1px solid var(--border);
-    background: var(--primary);
-    color: var(--primary-foreground);
-    font: inherit;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  input[type="file"]::file-selector-button:hover {
-    background: color-mix(in oklch, var(--primary), transparent 15%);
-  }
   html {
     @apply font-sans;
     overflow-y: scroll;

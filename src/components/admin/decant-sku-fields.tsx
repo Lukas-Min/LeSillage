@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { fromCentavos } from "@/domain/money";
+import { pricingInputLabel } from "@/domain/pricing";
+import type { PricingMode } from "@/db/schema";
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
@@ -22,7 +25,8 @@ export function DecantSkuFields({
   fulfillment,
   stock,
   costPrice,
-  retailPrice,
+  pricingMode,
+  pricingInput,
 }: {
   idPrefix: string;
   initialProvenance: "RETAIL" | "IN_HOUSE" | "TESTER";
@@ -31,9 +35,15 @@ export function DecantSkuFields({
   /** In pesos (already converted from centavos), like every other admin
    *  money field — only meaningful/editable when Provenance is Retail. */
   costPrice: number;
-  retailPrice: number;
+  /** The SKU's own pricing formula — same PERCENTAGE/FIXED/DIRECT mechanism
+   *  as the product's, applied to this SKU's own Cost price instead of the
+   *  product's. Only meaningful/editable when Provenance is Retail. */
+  pricingMode: PricingMode;
+  /** Raw stored value (percent for PERCENTAGE, centavos for FIXED/DIRECT) — converted to pesos for display below. */
+  pricingInput: number;
 }) {
   const [provenance, setProvenance] = useState<"RETAIL" | "IN_HOUSE" | "TESTER">(initialProvenance);
+  const [mode, setMode] = useState<PricingMode>(pricingMode);
   const isRetail = provenance === "RETAIL";
 
   return (
@@ -64,9 +74,6 @@ export function DecantSkuFields({
             <Label htmlFor={`${idPrefix}-stock`}>Stock</Label>
             <Input id={`${idPrefix}-stock`} name="stock" type="number" defaultValue={stock} />
           </div>
-          {/* A retail decant is bought pre-made — its cost/price aren't
-              derived from the product's whole-bottle reference formula, so
-              they're entered directly here instead. */}
           <div className="space-y-1">
             <Label htmlFor={`${idPrefix}-cost`}>Cost price (₱)</Label>
             <Input
@@ -79,14 +86,28 @@ export function DecantSkuFields({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor={`${idPrefix}-price`}>Retail price (₱)</Label>
+            <Label htmlFor={`${idPrefix}-pricing-mode`}>Pricing formula</Label>
+            <select
+              id={`${idPrefix}-pricing-mode`}
+              name="manualPricingMode"
+              value={mode}
+              onChange={(event) => setMode(event.target.value as PricingMode)}
+              className={selectClass}
+            >
+              <option value="PERCENTAGE">Percentage markup</option>
+              <option value="FIXED">Fixed ₱ increment</option>
+              <option value="DIRECT">Direct retail price</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`${idPrefix}-pricing-input`}>{pricingInputLabel(mode)}</Label>
             <Input
-              id={`${idPrefix}-price`}
-              name="manualRetailPrice"
+              key={mode} // remount so defaultValue isn't a stale percent/peso
+              id={`${idPrefix}-pricing-input`}
+              name="manualPricingInput"
               type="number"
               step="0.01"
-              defaultValue={retailPrice || ""}
-              placeholder="e.g. 450"
+              defaultValue={mode === pricingMode ? (mode === "PERCENTAGE" ? pricingInput : fromCentavos(pricingInput)) : ""}
               required
             />
           </div>

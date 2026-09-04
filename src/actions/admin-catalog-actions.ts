@@ -40,16 +40,18 @@ async function limitAdmin(adminId: string, key: string) {
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
 }
 
-/** Recomputes every SKU's retail price AND cost price from the product's reference formula (costPrice/pricingMode/pricingInput, scaled by sourceMl -> sizeMl). Keeping cost in sync too is what makes the admin product list's "(cost ₱X)" actually reflect the real per-size cost basis instead of going stale.
- *
- * A RETAIL-provenance decant SKU is skipped entirely — it's a distinct
- * physical unit bought pre-made from the perfumery, priced independently of
- * this product's reference formula (see upsertSku's manual costPrice/
- * retailPrice handling below), so it must not be silently overwritten back
- * onto the shared size-scaled price every time the product form is saved. */
+/** Recomputes every SKU's retail/cost from the product formula (scaled by
+ *  sourceMl → sizeMl) and keeps the DIRECT cache (pricingMode/pricingInput)
+ *  in sync. Only a RETAIL decant is skipped — it's priced independently. */
 async function resyncSkuPricesForProduct(
   productId: string,
-  product: { costPrice: number; pricingMode: PricingMode; pricingInput: number; sourceMl: number | null },
+  product: {
+    type: ProductType;
+    costPrice: number;
+    pricingMode: PricingMode;
+    pricingInput: number;
+    sourceMl: number | null;
+  },
 ) {
   const referenceRetailPriceCentavos = computeRetailPrice({
     costPriceCentavos: product.costPrice,
@@ -61,14 +63,17 @@ async function resyncSkuPricesForProduct(
     .from(skus)
     .where(eq(skus.productId, productId));
   for (const sku of productSkus) {
-    if (sku.provenance === "RETAIL") continue;
+    if (product.type === "DECANT" && sku.provenance === "RETAIL") continue;
     const retailPrice = computeSkuRetailPrice({
       referenceRetailPriceCentavos,
       sourceMl: product.sourceMl,
       sizeMl: sku.sizeMl,
     });
     const costPrice = scaleBySize({ referenceCentavos: product.costPrice, sourceMl: product.sourceMl, sizeMl: sku.sizeMl });
-    await db().update(skus).set({ retailPrice, costPrice, updatedAt: new Date() }).where(eq(skus.id, sku.id));
+    await db()
+      .update(skus)
+      .set({ retailPrice, costPrice, pricingMode: "DIRECT", pricingInput: retailPrice, updatedAt: new Date() })
+      .where(eq(skus.id, sku.id));
   }
   return referenceRetailPriceCentavos;
 }
@@ -176,9 +181,12 @@ const skuSchema = z.object({
   isTester: z.boolean(),
   isActive: z.boolean(),
   // Only present (and only honored) for a RETAIL-provenance decant SKU — see
-  // below. Entered in pesos, like every other money field in this file.
+  // below. manualCostPrice is entered in pesos; manualPricingInput is pesos
+  // for FIXED/DIRECT, a plain percent for PERCENTAGE (same convention as the
+  // product's own costPrice/pricingInput fields).
   manualCostPrice: z.coerce.number().min(0).optional(),
-  manualRetailPrice: z.coerce.number().min(0).optional(),
+  manualPricingMode: z.enum(["PERCENTAGE", "FIXED", "DIRECT"]).optional(),
+  manualPricingInput: z.coerce.number().min(0).optional(),
 });
 
 export async function upsertSku(formData: FormData) {
@@ -198,7 +206,8 @@ export async function upsertSku(formData: FormData) {
     isTester: formData.get("isTester") === "on",
     isActive: formData.get("isActive") === "on",
     manualCostPrice: formData.get("manualCostPrice") || undefined,
-    manualRetailPrice: formData.get("manualRetailPrice") || undefined,
+    manualPricingMode: formData.get("manualPricingMode") || undefined,
+    manualPricingInput: formData.get("manualPricingInput") || undefined,
   });
   const product = (
     await db()
@@ -210,15 +219,22 @@ export async function upsertSku(formData: FormData) {
   // A RETAIL decant is a distinct physical unit bought pre-made from the
   // perfumery — its cost/price genuinely aren't derived from this product's
   // reference formula (that formula assumes scaling a whole bottle you own
-  // down to a decant size), so it gets its own directly-entered price
-  // instead of the usual sourceMl->sizeMl scaling. Every other SKU
-  // (IN_HOUSE decant, or any full-bottle/partial) keeps the computed path.
+  // down to a decant size), so it gets its own Cost price run through its
+  // own Percentage/Fixed/Direct pricing formula (same mechanism as the
+  // product's), instead of the usual sourceMl->sizeMl scaling. Every other
+  // SKU (IN_HOUSE decant, or any full-bottle/partial) keeps the computed
+  // path, and just caches the resolved price as DIRECT/retailPrice.
   const isRetailDecant = product.type === "DECANT" && parsed.provenance === "RETAIL";
   let retailPrice: number;
   let costPrice: number;
-  if (isRetailDecant && parsed.manualRetailPrice != null) {
-    retailPrice = toCentavos(parsed.manualRetailPrice);
+  let pricingMode: PricingMode;
+  let pricingInput: number;
+  if (isRetailDecant && parsed.manualPricingMode) {
     costPrice = parsed.manualCostPrice != null ? toCentavos(parsed.manualCostPrice) : 0;
+    pricingMode = parsed.manualPricingMode as PricingMode;
+    pricingInput =
+      pricingMode === "PERCENTAGE" ? Math.round(parsed.manualPricingInput ?? 0) : toCentavos(parsed.manualPricingInput ?? 0);
+    retailPrice = computeRetailPrice({ costPriceCentavos: costPrice, mode: pricingMode, input: pricingInput });
   } else {
     const referenceRetailPriceCentavos = computeRetailPrice({
       costPriceCentavos: product.costPrice ?? 0,
@@ -231,6 +247,8 @@ export async function upsertSku(formData: FormData) {
       sizeMl: parsed.sizeMl ?? null,
     });
     costPrice = scaleBySize({ referenceCentavos: product.costPrice ?? 0, sourceMl: product.sourceMl, sizeMl: parsed.sizeMl ?? null });
+    pricingMode = "DIRECT";
+    pricingInput = retailPrice;
   }
   const values = {
     productId: parsed.productId,
@@ -241,8 +259,8 @@ export async function upsertSku(formData: FormData) {
     provenance: parsed.provenance as Provenance,
     packaging: parsed.packaging as Packaging,
     costPrice,
-    pricingMode: "DIRECT" as PricingMode,
-    pricingInput: retailPrice,
+    pricingMode,
+    pricingInput,
     retailPrice,
     fulfillment: parsed.fulfillment as Fulfillment,
     stock: parsed.stock,

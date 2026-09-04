@@ -21,6 +21,7 @@ import {
 } from "@/actions/admin-catalog-actions";
 import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
+import { labelForType } from "@/domain/product-type";
 
 export const dynamic = "force-dynamic";
 
@@ -106,12 +107,12 @@ export default async function AdminProductDetailPage({
                 <option value="unisex">Unisex</option>
               </select>
             </Field>
-            <Field label="Type" htmlFor="p-type">
-              <select id="p-type" name="type" defaultValue={product.type} className={selectClass}>
-                <option value="DECANT">Decant</option>
-                <option value="FULL_BOTTLE">Full bottle</option>
-                <option value="PARTIAL">Partial</option>
-              </select>
+            {/* Type is fixed at creation — existing SKUs assume this field set. */}
+            <input type="hidden" name="type" value={product.type} />
+            <Field label="Type" htmlFor="p-type-readonly">
+              <p id="p-type-readonly" className="flex h-11 items-center rounded-lg border bg-muted/40 px-3 text-sm text-muted-foreground">
+                {labelForType(product.type)}
+              </p>
             </Field>
             <Field label="Shelf category" htmlFor="p-category">
               <select id="p-category" name="fragranceCategory" defaultValue={product.fragranceCategory} className={selectClass}>
@@ -261,7 +262,8 @@ export default async function AdminProductDetailPage({
                       fulfillment={sku.fulfillment}
                       stock={sku.stock}
                       costPrice={fromCentavos(sku.costPrice)}
-                      retailPrice={fromCentavos(sku.retailPrice)}
+                      pricingMode={sku.pricingMode}
+                      pricingInput={sku.pricingInput}
                     />
                   </>
                 ) : (
@@ -355,7 +357,8 @@ export default async function AdminProductDetailPage({
                       fulfillment="ON_HAND"
                       stock={0}
                       costPrice={0}
-                      retailPrice={0}
+                      pricingMode="PERCENTAGE"
+                      pricingInput={30}
                     />
                   </>
                 ) : (
