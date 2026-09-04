@@ -6,10 +6,14 @@
  * Pricing follows the standard product-level formula (see src/domain/pricing.ts),
  * not the hardcoded-per-size approach in import-decant-pricelist.ts — the user
  * gave a single source-bottle cost + markup, not a full per-size pricelist.
- * costPrice = discounted price paid for the 40ml source bottle (₱3,600).
+ * The real Libre EDT retail bottle is 90ml (per Fragrantica); the ₱3,600
+ * discounted cost is for that 90ml bottle. Only 40ml is actually left in it
+ * right now (REMAINING_ML_ON_HAND) — sourceMl (bottle capacity, for the cost
+ * formula) and remainingMl (current stock) are deliberately different numbers.
  * pricingMode = PERCENTAGE, pricingInput = 30 (30% markup) per the user.
- * Every decant SKU (3/5/10/30ml) derives its retail price from that reference,
- * scaled by sourceMl -> sizeMl, exactly like resyncSkuPricesForProduct does.
+ * Every decant SKU (3/5/10/30ml) derives its retail price (and cost price)
+ * from that reference, scaled by sourceMl -> sizeMl, exactly like
+ * resyncSkuPricesForProduct does.
  *
  * Usage: npx tsx scripts/add-libre-edt-decant.ts
  * Safe to re-run: upserts by (brand, name, type DECANT) and by (productId, sizeMl).
@@ -18,15 +22,16 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { and, eq, ilike } from "drizzle-orm";
-import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
+import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain/pricing";
 import { db } from "../src/db/client";
 import { products, skus, productImages } from "../src/db/schema";
 import { DECANT_SIZES_ML } from "../src/domain/decant";
 
 const BRAND = "Yves Saint Laurent";
 const NAME = "Libre Eau de Toilette";
-const SOURCE_ML = 40; // the size of the source bottle in stock
-const COST_PRICE_PHP = 3600; // discounted price paid for the source bottle
+const SOURCE_ML = 90; // real retail bottle capacity (Fragrantica: available as 50/90ml EDT)
+const REMAINING_ML_ON_HAND = 40; // actual stock left in the bottle right now
+const COST_PRICE_PHP = 3600; // discounted price paid for the 90ml bottle
 const MARKUP_PERCENT = 30;
 const IMAGE_URL = "https://fimgs.net/mdimg/perfume-thumbs/375x500.65936.jpg";
 const FRAGRANTICA_URL = "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-Eau-de-Toilette-65936.html";
@@ -104,7 +109,7 @@ async function main() {
   } else {
     const [inserted] = await client
       .insert(products)
-      .values({ ...productValues, remainingMl: SOURCE_ML })
+      .values({ ...productValues, remainingMl: REMAINING_ML_ON_HAND })
       .returning({ id: products.id });
     productId = inserted.id;
   }
@@ -120,6 +125,7 @@ async function main() {
 
   for (const sizeMl of DECANT_SIZES_ML) {
     const retailPrice = computeSkuRetailPrice({ referenceRetailPriceCentavos, sourceMl: SOURCE_ML, sizeMl });
+    const costForSize = scaleBySize({ referenceCentavos: costPrice, sourceMl: SOURCE_ML, sizeMl });
     const [existingSku] = await client
       .select({ id: skus.id })
       .from(skus)
@@ -128,7 +134,7 @@ async function main() {
     if (existingSku) {
       await client
         .update(skus)
-        .set({ retailPrice, pricingInput: retailPrice, updatedAt: new Date() })
+        .set({ retailPrice, costPrice: costForSize, pricingInput: retailPrice, updatedAt: new Date() })
         .where(eq(skus.id, existingSku.id));
     } else {
       await client.insert(skus).values({
@@ -139,7 +145,7 @@ async function main() {
         condition: "BNIB",
         provenance: "RETAIL",
         packaging: "BOTTLE_ONLY",
-        costPrice: 0,
+        costPrice: costForSize,
         pricingMode: "DIRECT",
         pricingInput: retailPrice,
         retailPrice,
@@ -149,7 +155,7 @@ async function main() {
         isTester: false,
       });
     }
-    console.log(`  ${sizeMl}ml -> ₱${(retailPrice / 100).toFixed(2)}`);
+    console.log(`  ${sizeMl}ml -> ₱${(retailPrice / 100).toFixed(2)} (cost ₱${(costForSize / 100).toFixed(2)})`);
   }
 
   const [existingImage] = await client

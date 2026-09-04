@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -57,12 +57,27 @@ export function ShopToolbar({
 
   const filterActive = Boolean(activeCategory || activeConcentration || activeGender);
 
+  function clearFilters() {
+    navigate({ gender: null, category: null, concentration: null });
+  }
+
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         {count} fragrance{count === 1 ? "" : "s"}
       </p>
       <div className="flex items-center gap-2">
+        {filterActive ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="min-h-11 gap-1 rounded-md text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </Button>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

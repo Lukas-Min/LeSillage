@@ -17,6 +17,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountPreview } from "@/components/store/account-preview";
 import { CartDrawer } from "@/components/store/cart-drawer";
 import { SearchOverlay } from "@/components/store/search-overlay";
@@ -96,6 +97,7 @@ export function StoreHeader() {
           })}
         </nav>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <SearchOverlay />
           <CartDrawer mounted={mounted} />
           {!mounted || status === "loading" ? (

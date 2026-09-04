@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { AtSign, Globe, Mail, Phone } from "lucide-react";
+import { AtSign, Globe, Mail, MessageCircle, Phone } from "lucide-react";
 import { getEnv } from "@/lib/env";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
+const MESSENGER_URL = "https://m.me/61591955240476";
 
 const COLUMNS = [
   {
@@ -67,6 +68,12 @@ export function StoreFooter() {
               <Globe className="h-3.5 w-3.5 text-gold" />
               <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Facebook
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <MessageCircle className="h-3.5 w-3.5 text-gold" />
+              <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+                Messenger
               </a>
             </li>
           </ul>

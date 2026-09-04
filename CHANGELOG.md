@@ -3,7 +3,12 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Dark mode: wired up `next-themes`' `ThemeProvider` (was installed but never mounted) and added a sun/moon toggle to the storefront header (also covers admin, which shares the same header). The `.dark` color palette already existed in `globals.css` from the design system setup. Product photos stay on a literal white background regardless of theme — `CompositionCanvas` already hardcodes `bg-white` there rather than a token
+- A "Clear" button now appears on the shop toolbar next to Filter/Sort whenever a gender, shelf, or concentration filter is active, resetting all three in one tap
+- Footer was missing the Messenger link that the Contact page already had — added it next to Facebook
 ### Fixed
+- Yves Saint Laurent — Libre Eau de Toilette's decant had `sourceMl` (bottle capacity used as the pricing formula's divisor) wrongly set to 40 — the actual amount currently in stock — instead of 90, its real retail bottle size; every SKU price was inflated ~2.25x as a result (e.g. 10ml showed ₱1,170 instead of ₱520). Corrected `sourceMl` to 90 in `scripts/add-libre-edt-decant.ts` (kept `remainingMl` at 40, the real current stock — a separate field from bottle capacity) and re-ran it
 - The admin product edit page showed an editable "Fulfillment" and "Stock" field per DECANT SKU that had no real effect — decant availability is always computed live from the product's shared `remainingMl` pool via `decantFulfillment()` (10ml+ pool and at-or-above that size → on hand, otherwise pre-order), never from the per-SKU columns; editing them there was a silent no-op that made it look like each size had its own stock count. Replaced with a read-only computed "Availability" status for decant SKUs (both existing SKUs and the "Add a SKU" form); the underlying columns are preserved via hidden inputs so saving doesn't disturb them
 - `sku.costPrice` for every decant SKU was stale — left over from the original pricelist import's Base-Full-Bottle-Price-per-size figure, unrelated to the corrected product-level cost basis, so the admin product list's "(cost ₱X)" showed almost no margin instead of the real ~30%. `resyncSkuPricesForProduct` (admin save) and `upsertSku` (new SKU) now also resync `costPrice` via the new `scaleBySize()` helper; re-synced all existing decant SKUs with the updated `scripts/resync-decant-sku-prices.ts`
 ### Changed

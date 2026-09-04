@@ -40,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="flex flex-col bg-background text-foreground">
