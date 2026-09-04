@@ -35,7 +35,7 @@ export default function ContactLoading() {
         >
           {rows.map((row) => (
             <div key={row.label} className="flex items-center gap-3 pt-4 first:pt-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-foreground">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
                 <row.icon className="h-4 w-4" />
               </span>
               <div>
@@ -59,7 +59,7 @@ export default function ContactLoading() {
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
           Looking for a quick answer instead? Check the{" "}
-          <Link href="/faq" className="text-foreground underline underline-offset-4 hover:text-gold-foreground">
+          <Link href="/faq" className="text-foreground underline underline-offset-4 hover:text-gold">
             FAQ
           </Link>
           .

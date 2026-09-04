@@ -12,7 +12,7 @@ const statusPill = cva(
         success: "border-emerald-300/60 bg-emerald-50 text-emerald-800",
         warn: "border-amber-300/60 bg-amber-50 text-amber-800",
         danger: "border-destructive/40 bg-destructive/10 text-destructive",
-        gold: "border-gold/40 bg-gold/10 text-gold-foreground",
+        gold: "border-gold/40 bg-gold/10 text-gold",
       },
     },
     defaultVariants: { tone: "neutral" },

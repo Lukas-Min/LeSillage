@@ -1,40 +1,107 @@
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { upsertProduct } from "@/actions/admin-catalog-actions";
+import { db } from "@/db/client";
+import { products } from "@/db/schema";
+import { labelForType } from "@/domain/product-type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 
-export default function NewProductPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NewProductPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ copyFrom?: string }>;
+}) {
+  const { copyFrom } = await searchParams;
+  const [existingProducts, copySource] = await Promise.all([
+    db()
+      .select({ id: products.id, brand: products.brand, name: products.name, type: products.type })
+      .from(products)
+      .orderBy(products.brand, products.name),
+    copyFrom
+      ? db()
+          .select()
+          .from(products)
+          .where(eq(products.id, copyFrom))
+          .then((rows) => rows[0])
+      : Promise.resolve(undefined),
+  ]);
+
   async function create(formData: FormData) {
     "use server";
     const id = await upsertProduct(formData);
     redirect(`/admin/products/${id}`);
   }
+
   return (
     <div className="space-y-4">
       <h1 className="font-serif-display text-2xl">New product</h1>
+      {existingProducts.length > 0 ? (
+        <Card>
+          <CardContent className="p-4">
+            <form className="flex flex-wrap items-end gap-2">
+              <div className="min-w-0 flex-1 space-y-1">
+                <Label htmlFor="copyFrom">Copy details from an existing product (optional)</Label>
+                <select
+                  id="copyFrom"
+                  name="copyFrom"
+                  defaultValue={copyFrom ?? ""}
+                  className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
+                >
+                  <option value="">— Don&apos;t copy —</option>
+                  {existingProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.brand} — {p.name} ({labelForType(p.type)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button type="submit" variant="outline">
+                Load details
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Fills in Name/Brand/Family/Category/Concentration/Gender/Description/Notes below — useful when adding
+              e.g. the Full Bottle of a fragrance you already have as a Decant. You still set type, size, and price
+              yourself.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
       <Card>
         <CardContent className="p-4">
           <form action={create} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" required />
+              <Input id="name" name="name" defaultValue={copySource?.name ?? ""} required />
             </div>
-            <Input name="brand" placeholder="Brand" required />
-            <Input name="family" placeholder="Family" />
+            <Input name="brand" placeholder="Brand" defaultValue={copySource?.brand ?? ""} required />
+            <Input name="family" placeholder="Family" defaultValue={copySource?.family ?? ""} />
             <select name="type" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="DECANT">
               <option value="DECANT">Decant</option>
               <option value="FULL_BOTTLE">Full bottle</option>
               <option value="PARTIAL">Partial</option>
             </select>
-            <select name="fragranceCategory" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="NICHE">
+            <select
+              name="fragranceCategory"
+              className="h-11 rounded-lg border bg-background px-3 text-sm"
+              defaultValue={copySource?.fragranceCategory ?? "NICHE"}
+            >
               <option value="NICHE">Niche</option>
               <option value="DESIGNER">Designer</option>
               <option value="MIDDLE_EASTERN">Middle Eastern</option>
             </select>
-            <select name="concentration" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="">
+            <select
+              name="concentration"
+              className="h-11 rounded-lg border bg-background px-3 text-sm"
+              defaultValue={copySource?.concentration ?? ""}
+            >
               <option value="">No concentration set</option>
               <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
               <option value="EAU_DE_TOILETTE">Eau de Toilette</option>
@@ -42,9 +109,25 @@ export default function NewProductPage() {
               <option value="PARFUM">Parfum</option>
               <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
             </select>
+            <select
+              name="gender"
+              className="h-11 rounded-lg border bg-background px-3 text-sm"
+              defaultValue={copySource?.gender ?? ""}
+            >
+              <option value="">Gender not set</option>
+              <option value="men">Men</option>
+              <option value="women">Women</option>
+              <option value="unisex">Unisex</option>
+            </select>
             <Input name="sourceMl" type="number" placeholder="Reference size, ml (e.g. 100 for a 100ml bottle)" />
             <Input name="remainingMl" type="number" placeholder="Remaining ml (decants)" />
-            <Textarea name="description" placeholder="Description" className="sm:col-span-2" />
+            <Textarea
+              name="description"
+              placeholder="Description"
+              defaultValue={copySource?.description ?? ""}
+              className="sm:col-span-2"
+            />
+            <Textarea name="notes" placeholder="Notes" defaultValue={copySource?.notes ?? ""} className="sm:col-span-2" />
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="new-costPrice">Cost price (₱, what you paid wholesale)</Label>
               <Input

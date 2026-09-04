@@ -40,7 +40,7 @@ export function Price({
           <span className="sr-only">Original price</span>
           {formatPHP(originalCentavos * quantity)}
         </s>
-        <span className="inline-flex items-center rounded-none bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
+        <span className="inline-flex items-center rounded-none bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold">
           {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(savedCentavos * quantity)}`}
         </span>
       </span>
@@ -76,7 +76,7 @@ export function CatalogPrice({
         <p className={`flex flex-wrap items-center gap-2 text-sm text-muted-foreground ${rowJustify}`}>
           <s>{formatPHPRange(minOriginalCentavos, maxOriginalCentavos)}</s>
           {showSaveBadge && savePercent && savePercent > 0 ? (
-            <span className="inline-flex items-center rounded-none bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
+            <span className="inline-flex items-center rounded-none bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold">
               Save {savePercent}%
             </span>
           ) : null}

@@ -10,6 +10,21 @@ export default function AdminNewProductLoading() {
       <h1 className="font-serif-display text-2xl">New product</h1>
       <Card>
         <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-0 flex-1 space-y-1">
+              <Label htmlFor="copyFrom">Copy details from an existing product (optional)</Label>
+              <select id="copyFrom" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-sm">
+                <option>— Don&apos;t copy —</option>
+              </select>
+            </div>
+            <Button type="button" variant="outline" disabled>
+              Load details
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="name">Name</Label>
@@ -26,9 +41,13 @@ export default function AdminNewProductLoading() {
             <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
               <option>No concentration set</option>
             </select>
+            <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
+              <option>Gender not set</option>
+            </select>
             <Input type="number" placeholder="Reference size, ml (e.g. 100 for a 100ml bottle)" disabled />
             <Input type="number" placeholder="Remaining ml (decants)" disabled />
             <Textarea placeholder="Description" className="sm:col-span-2" disabled />
+            <Textarea placeholder="Notes" className="sm:col-span-2" disabled />
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="new-costPrice">Cost price (₱, what you paid wholesale)</Label>
               <Input id="new-costPrice" type="number" placeholder="e.g. 3500 — add a period for centavos, e.g. 3500.50" disabled />

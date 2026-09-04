@@ -68,7 +68,7 @@ export default async function AccountPage() {
         actions={
           <>
             {role ? (
-              <span className="rounded-none border border-gold/40 bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold-foreground">
+              <span className="rounded-none border border-gold/40 bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold">
                 {role}
               </span>
             ) : null}
@@ -101,7 +101,7 @@ export default async function AccountPage() {
               href={link.href}
               className="group flex items-start gap-3 rounded-xl border border-border/60 bg-background p-4 transition-colors hover:border-gold/40 hover:bg-gold/5"
             >
-              <div className="rounded-lg bg-gold/10 p-2 text-gold-foreground">
+              <div className="rounded-lg bg-gold/10 p-2 text-gold">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="flex-1 space-y-0.5">

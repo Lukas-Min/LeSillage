@@ -38,7 +38,7 @@ export default function AccountLoading() {
               href={link.href}
               className="group flex items-start gap-3 rounded-xl border border-border/60 bg-background p-4 transition-colors hover:border-gold/40 hover:bg-gold/5"
             >
-              <div className="rounded-lg bg-gold/10 p-2 text-gold-foreground">
+              <div className="rounded-lg bg-gold/10 p-2 text-gold">
                 <Icon className="h-4 w-4" />
               </div>
               <div className="flex-1 space-y-0.5">

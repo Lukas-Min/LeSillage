@@ -41,7 +41,7 @@ export default function AboutLoading() {
                 key={pillar.title}
                 className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-foreground">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
                   <pillar.icon className="h-5 w-5" />
                 </span>
                 <p className="font-serif-display text-base leading-tight">{pillar.title}</p>

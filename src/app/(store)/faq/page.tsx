@@ -84,7 +84,7 @@ export default function FaqPage() {
             key={group.id}
             eyebrow={group.title}
             actions={
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-foreground">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
                 <group.icon className="h-4 w-4" />
               </span>
             }

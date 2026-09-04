@@ -47,7 +47,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-4">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">{card.brand}</p>
-          <h2 className="font-serif-display line-clamp-2 text-lg leading-snug transition-colors group-hover:text-gold-foreground">
+          <h2 className="font-serif-display line-clamp-2 text-lg leading-snug transition-colors group-hover:text-gold">
             {card.name}
           </h2>
           <p className="line-clamp-1 text-xs text-muted-foreground">{subtitle}</p>
@@ -56,10 +56,16 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               <Badge variant={card.fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
                 {card.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
               </Badge>
-              {/* Condition ("Sealed", "A few sprays missing"...) only means
-                  something for a specific physical bottle — a decant is
-                  poured to order from a shared pool, so it doesn't apply. */}
-              {card.type !== "DECANT" ? <Badge variant="outline">{card.conditionLabel}</Badge> : null}
+              {/* Condition ("Sealed", "A few sprays missing"...) and
+                  provenance ("Retail"/"Tester") only mean something for a
+                  specific physical bottle — a decant is poured to order from
+                  a shared pool, so neither applies. */}
+              {card.type !== "DECANT" ? (
+                <>
+                  <Badge variant="outline">{card.conditionLabel}</Badge>
+                  <Badge variant="outline">{card.provenanceLabel}</Badge>
+                </>
+              ) : null}
               {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
             {isDecant ? (

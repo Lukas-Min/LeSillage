@@ -53,7 +53,7 @@ export function CompositionCanvas({
     >
       {cornerLabel ? <CornerLabel>{cornerLabel}</CornerLabel> : null}
       <div className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
-      <p className="relative text-center text-[10px] uppercase tracking-[0.42em] text-gold-foreground">
+      <p className="relative text-center text-[10px] uppercase tracking-[0.42em] text-gold">
         {brand}
       </p>
       <div className="relative flex flex-1 items-center justify-center px-2 py-4">

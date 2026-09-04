@@ -1,22 +1,43 @@
 import Link from "next/link";
 import { db } from "@/db/client";
-import { products, skus, promoSettings } from "@/db/schema";
+import { products, skus, promoSettings, type ProductType } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPHP } from "@/domain/money";
 import { concentrationLabel } from "@/domain/concentration";
 import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { labelForType } from "@/domain/product-type";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsAdminPage() {
-  const [productRows, skuRows, promoRow] = await Promise.all([
+const TYPE_TABS: { value: ProductType | "ALL"; label: string }[] = [
+  { value: "ALL", label: "All" },
+  { value: "DECANT", label: "Decants" },
+  { value: "FULL_BOTTLE", label: "Full bottles" },
+  { value: "PARTIAL", label: "Partials" },
+];
+
+export default async function ProductsAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
+  const { type: typeParam } = await searchParams;
+  const activeType: ProductType | "ALL" =
+    typeParam === "DECANT" || typeParam === "FULL_BOTTLE" || typeParam === "PARTIAL" ? typeParam : "ALL";
+
+  const [allProductRows, skuRows, promoRow] = await Promise.all([
     db().select().from(products),
     db().select().from(skus),
     db().select().from(promoSettings),
   ]);
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
+  const countByType = new Map<ProductType, number>();
+  for (const p of allProductRows) countByType.set(p.type, (countByType.get(p.type) ?? 0) + 1);
+  const productRows = activeType === "ALL" ? allProductRows : allProductRows.filter((p) => p.type === activeType);
+
   return (
     <div className="flex flex-1 flex-col space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -30,10 +51,30 @@ export default async function ProductsAdminPage() {
           </Button>
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-1 border-b border-border">
+        {TYPE_TABS.map((tab) => {
+          const count = tab.value === "ALL" ? allProductRows.length : (countByType.get(tab.value) ?? 0);
+          const active = tab.value === activeType;
+          return (
+            <Link
+              key={tab.value}
+              href={tab.value === "ALL" ? "/admin/products" : `/admin/products?type=${tab.value}`}
+              className={cn(
+                "min-h-11 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] transition-colors",
+                active
+                  ? "border-gold text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab.label} ({count})
+            </Link>
+          );
+        })}
+      </div>
       {productRows.length === 0 ? (
         <Card className="flex flex-1 flex-col">
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            No products yet.
+            {activeType === "ALL" ? "No products yet." : `No ${labelForType(activeType).toLowerCase()} products yet.`}
           </CardContent>
         </Card>
       ) : null}
@@ -55,7 +96,7 @@ export default async function ProductsAdminPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {product.brand} · {product.family ?? "—"} · {product.type} · {product.fragranceCategory}
+                  {product.brand} · {product.family ?? "—"} · {labelForType(product.type)} · {product.fragranceCategory}
                   {product.type === "DECANT" ? ` · ${product.remainingMl ?? 0}ml left` : ""}
                 </p>
                 <ul className="mt-2 space-y-1">

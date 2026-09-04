@@ -52,12 +52,12 @@ export default function Loading() {
               href={shelf.href}
               className="group flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-8 text-center transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:shadow-[0_16px_40px_-24px_rgba(31,28,24,0.35)]"
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-foreground transition-colors group-hover:border-gold">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold transition-colors group-hover:border-gold">
                 <shelf.icon className="h-6 w-6" />
               </span>
               <h3 className="font-serif-display text-2xl">{shelf.title}</h3>
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{shelf.subtitle}</p>
-              <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.28em] text-gold-foreground opacity-80 transition-opacity group-hover:opacity-100">
+              <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.28em] text-gold opacity-80 transition-opacity group-hover:opacity-100">
                 View the shelf
                 <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
               </span>

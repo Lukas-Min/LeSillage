@@ -24,7 +24,7 @@ export default function AdminLoading() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Low stock SKUs</CardTitle>
+            <CardTitle className="text-sm">Low stock</CardTitle>
           </CardHeader>
           <CardContent>
             <Skeleton className="h-8 w-10" />
@@ -35,10 +35,10 @@ export default function AdminLoading() {
         <CardHeader>
           <CardTitle className="text-sm">Low stock</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
+        <CardContent className="space-y-1.5">
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
         </CardContent>
       </Card>
     </div>

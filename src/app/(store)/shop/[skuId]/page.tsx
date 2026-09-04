@@ -14,7 +14,7 @@ import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
 import { DecantBuyBox } from "@/components/store/decant-buy-box";
-import { labelForCategory, labelForCondition, labelForType } from "@/domain/product-type";
+import { labelForCategory, labelForCondition, labelForProvenance, labelForType } from "@/domain/product-type";
 import { buildDecantSizeOptions } from "@/lib/catalog";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
@@ -46,6 +46,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         longevity: products.longevity,
         seasonBreakout: products.seasonBreakout,
         condition: skus.condition,
+        provenance: skus.provenance,
         skuId: skus.id,
         skuLabel: skus.label,
         sizeMl: skus.sizeMl,
@@ -193,6 +194,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                   {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
                 </Badge>
                 <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
+                <Badge variant="outline">{labelForProvenance(row.provenance)}</Badge>
                 {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
               </div>
 

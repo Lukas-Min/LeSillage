@@ -15,7 +15,7 @@ import {
 import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
 import type { SiteWideDiscountConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
-import { labelForCondition } from "@/domain/product-type";
+import { labelForCondition, labelForProvenance } from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 import type { SizePickerOption } from "@/components/store/size-picker";
 
@@ -57,6 +57,7 @@ export interface CatalogCardModel {
   fulfillment: Fulfillment;
   soldOut: boolean;
   conditionLabel: string;
+  provenanceLabel: string;
   minOriginalCentavos: number;
   maxOriginalCentavos: number;
   minDiscountedCentavos: number;
@@ -74,6 +75,7 @@ interface SkuRow {
   fulfillment: Fulfillment;
   stock: number;
   condition: (typeof skus.$inferSelect)["condition"];
+  provenance: (typeof skus.$inferSelect)["provenance"];
   sizeMl: number | null;
   isActive: boolean;
 }
@@ -135,6 +137,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         fulfillment: skus.fulfillment,
         stock: skus.stock,
         condition: skus.condition,
+        provenance: skus.provenance,
         sizeMl: skus.sizeMl,
         isActive: skus.isActive,
       })
@@ -246,6 +249,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       fulfillment: destFulfillment,
       soldOut,
       conditionLabel: labelForCondition(destination.condition),
+      provenanceLabel: labelForProvenance(destination.provenance),
       minOriginalCentavos: minOriginal,
       maxOriginalCentavos: maxOriginal,
       minDiscountedCentavos: minDiscounted,

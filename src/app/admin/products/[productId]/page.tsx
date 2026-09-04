@@ -99,6 +99,14 @@ export default async function AdminProductDetailPage({
             <Field label="Family / accord" htmlFor="p-family">
               <Input id="p-family" name="family" defaultValue={product.family ?? ""} />
             </Field>
+            <Field label="Gender" htmlFor="p-gender">
+              <select id="p-gender" name="gender" defaultValue={product.gender ?? ""} className={selectClass}>
+                <option value="">Not set</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+                <option value="unisex">Unisex</option>
+              </select>
+            </Field>
             <Field label="Type" htmlFor="p-type">
               <select id="p-type" name="type" defaultValue={product.type} className={selectClass}>
                 <option value="DECANT">Decant</option>

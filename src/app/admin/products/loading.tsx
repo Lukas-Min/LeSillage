@@ -16,6 +16,13 @@ export default function AdminProductsLoading() {
           </Button>
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-1 border-b border-border">
+        {["All", "Decants", "Full bottles", "Partials"].map((label) => (
+          <span key={label} className="min-h-11 border-b-2 border-transparent px-3 py-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+            {label}
+          </span>
+        ))}
+      </div>
       <Skeleton className="h-28 w-full" />
       <Skeleton className="h-28 w-full" />
       <Skeleton className="h-28 w-full" />
