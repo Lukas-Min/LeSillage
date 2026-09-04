@@ -21,6 +21,7 @@ import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain
 import { db } from "../src/db/client";
 import { products, skus, productImages } from "../src/db/schema";
 import { DECANT_SIZES_ML } from "../src/domain/decant";
+import { formatFragranceDescription } from "@/domain/product-type";
 
 const BRAND = "Dolce & Gabbana";
 const NAME = "Devotion";
@@ -61,10 +62,7 @@ async function main() {
     },
     notes: "Top: Candied Lemon | Middle: Panacotta, Orange Blossom, Rum | Base: Vanilla",
     accords: ["vanilla", "sweet", "white floral", "lactonic", "powdery", "rum", "citrus"].map((name) => ({ name })),
-    description:
-      "Devotion by Dolce&Gabbana is an Oriental Vanilla fragrance for women. Devotion was launched in 2023. " +
-      "The nose behind this fragrance is Olivier Cresp. Top note is Candied Lemon; middle notes are Panacotta, " +
-      "Orange Blossom and Rum; base note is Vanilla.",
+    description: formatFragranceDescription({ brand: BRAND, perfumers: ["Olivier Cresp"], releaseYear: 2023 }),
     ratingValue: "3.97",
     ratingCount: 12418,
     reviewsCount: null,

@@ -96,9 +96,10 @@ export default async function AdminProductDetailPage({
             <Field label="Brand" htmlFor="p-brand">
               <Input id="p-brand" name="brand" defaultValue={product.brand} required />
             </Field>
-            <Field label="Family / accord" htmlFor="p-family">
-              <Input id="p-family" name="family" defaultValue={product.family ?? ""} />
-            </Field>
+            {/* Family is sourced from the Fragrantica import, not hand-typed —
+                kept as a hidden field so saving the rest of the form doesn't
+                blow it away, per the user: not editable here. */}
+            <input type="hidden" name="family" value={product.family ?? ""} />
             <Field label="Gender" htmlFor="p-gender">
               <select id="p-gender" name="gender" defaultValue={product.gender ?? ""} className={selectClass}>
                 <option value="">Not set</option>
@@ -134,11 +135,10 @@ export default async function AdminProductDetailPage({
             <Field label="Reference size (ml)" htmlFor="p-sourceMl">
               <Input id="p-sourceMl" name="sourceMl" type="number" defaultValue={product.sourceMl ?? ""} placeholder="e.g. 100" />
             </Field>
-            {product.type === "DECANT" ? (
-              <Field label="Remaining in pool (ml)" htmlFor="p-remainingMl">
-                <Input id="p-remainingMl" name="remainingMl" type="number" defaultValue={product.remainingMl ?? ""} placeholder="e.g. 80" />
-              </Field>
-            ) : null}
+            {/* Remaining ml has exactly one editable control on this page — the
+                "Adjust pool" form below (it also logs a reason). Saving this
+                form must not silently reset it, so it rides along hidden. */}
+            {product.type === "DECANT" ? <input type="hidden" name="remainingMl" value={product.remainingMl ?? 0} /> : null}
             <Field label="Cost price (₱, what you paid wholesale)" htmlFor="p-costPrice" className="sm:col-span-2">
               <Input
                 id="p-costPrice"

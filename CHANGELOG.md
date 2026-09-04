@@ -3,6 +3,11 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Every product-add path (the 4 one-off scripts, the full-bottle pricelist importer, the decant metadata backfill, and the live "Paste Fragrantica HTML" admin flow) now generates the same canonical description — "By &lt;perfumer(s)&gt; (&lt;year&gt;)." via new `formatFragranceDescription()` — instead of five different ad hoc formats (a full scraped paragraph in some, "Name by Brand (Year)." in others). Re-ran every affected script to fix the ~40 already-live products
+- Removed the duplicate account/admin navigation entry point: on mobile, the header's account icon and the bottom nav's "More" sheet showed the exact same menu; the header icon is now hidden on `/account`/`/admin` on mobile (desktop, which has no bottom nav, is unaffected)
+- Tapping a nav link inside the mobile "More" sheet or the header's account-preview panel now closes that sheet (previously only the hamburger menu did this) — `SidebarContent` takes a new `closeOnNavigate` prop
+- Admin product edit page: "Family / accord" was manually editable despite never actually being set by any import path — removed from the UI (now a hidden field so saving doesn't erase an existing value). "Remaining in pool (ml)" was editable in two different places on the same page (the main form, with no audit trail, and the dedicated "Adjust pool" form, which logs a reason) — removed from the main form; adjusting stock now has exactly one path
 ### Fixed
 - Cart drawer ("Your bag") wasn't actually full width on mobile despite `w-full` in its className — the base `Sheet` component's own `data-[side=right]:w-3/4` beats a plain `w-full` class on CSS specificity, so it silently stayed at 75% width with a visible dimmed strip down the side. Matched it with `data-[side=right]:w-full` (same specificity, wins on source order); still capped to `max-w-md` at `sm:` and up (tablet/desktop unaffected)
 - Admin Products' type tabs wrapped to a second row once all four didn't fit on one line — now scroll horizontally instead (with the scrollbar itself hidden via new `.scrollbar-hide` utility), and the search bar is full width on mobile (capped back to a smaller max-width at `sm:` and up) with its button now solid gold instead of outline, connected directly to the input

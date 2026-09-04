@@ -16,6 +16,7 @@ import { computeRetailPrice } from "@/domain/pricing";
 import { db } from "../src/db/client";
 import { products, skus, productImages } from "../src/db/schema";
 import type { Concentration, FragranceCategory } from "../src/db/schema";
+import { formatFragranceDescription } from "@/domain/product-type";
 
 type Gender = "men" | "women" | "unisex";
 
@@ -235,7 +236,7 @@ async function main() {
       notePyramid: entry.notePyramid,
       notes,
       accords: entry.accords.map((name) => ({ name })),
-      description: entry.description,
+      description: formatFragranceDescription(entry),
       ratingValue: entry.ratingValue,
       ratingCount: entry.ratingCount,
       fragranticaUrl: entry.fragranticaUrl,

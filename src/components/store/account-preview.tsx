@@ -31,7 +31,7 @@ export function AccountPreview({
           <User className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="flex w-full flex-col sm:max-w-sm">
+      <SheetContent side="right" className="flex w-full flex-col data-[side=right]:w-full sm:max-w-sm">
         <SheetHeader>
           <SheetTitle className="font-serif-display text-2xl">
             {signedIn ? (name ?? "Your account") : "Welcome"}
@@ -40,7 +40,7 @@ export function AccountPreview({
         {signedIn ? (
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6">
             {email ? <p className="text-sm text-muted-foreground">{email}</p> : null}
-            <SidebarContent isAdmin={isAdmin} />
+            <SidebarContent isAdmin={isAdmin} closeOnNavigate />
             <SheetClose asChild>
               <Button asChild variant="gold" className="h-11 w-full rounded-md">
                 <Link href="/shop">Continue shopping</Link>

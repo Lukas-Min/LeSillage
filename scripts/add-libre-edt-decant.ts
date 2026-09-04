@@ -26,6 +26,7 @@ import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain
 import { db } from "../src/db/client";
 import { products, skus, productImages } from "../src/db/schema";
 import { DECANT_SIZES_ML } from "../src/domain/decant";
+import { formatFragranceDescription } from "@/domain/product-type";
 
 const BRAND = "Yves Saint Laurent";
 const NAME = "Libre Eau de Toilette";
@@ -79,11 +80,7 @@ async function main() {
       { name: "fresh spicy" },
       { name: "powdery" },
     ],
-    description:
-      "Libre Eau de Toilette by Yves Saint Laurent is a Floral fragrance for women. " +
-      "Libre Eau de Toilette was launched in 2021. Libre Eau de Toilette was created by " +
-      "Anne Flipo and Carlos Benaïm. Top notes are Lavender, Bergamot and Mandarin Orange; " +
-      "middle notes are Orange Blossom, Jasmine Tea and Jasmine; base notes are Musk, Vanilla and Ambergris.",
+    description: formatFragranceDescription({ brand: BRAND, perfumers: ["Anne Flipo", "Carlos Benaïm"], releaseYear: 2021 }),
     ratingValue: "3.95",
     ratingCount: 3050,
     reviewsCount: 267,

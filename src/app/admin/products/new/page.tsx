@@ -82,7 +82,8 @@ export default async function NewProductPage({
               <Input id="name" name="name" defaultValue={copySource?.name ?? ""} required />
             </div>
             <Input name="brand" placeholder="Brand" defaultValue={copySource?.brand ?? ""} required />
-            <Input name="family" placeholder="Family" defaultValue={copySource?.family ?? ""} />
+            {/* Not user-editable — carried over only via "Copy details from". */}
+            <input type="hidden" name="family" value={copySource?.family ?? ""} />
             <select name="type" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="DECANT">
               <option value="DECANT">Decant</option>
               <option value="FULL_BOTTLE">Full bottle</option>

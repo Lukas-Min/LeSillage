@@ -39,6 +39,7 @@ import { and, eq, ilike } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { productImages, products, skus } from "../src/db/schema";
 import type { Concentration, FragranceCategory } from "../src/db/schema";
+import { formatFragranceDescription } from "@/domain/product-type";
 
 type Gender = "men" | "women" | "unisex";
 
@@ -208,13 +209,6 @@ function php(pesos: number) {
   return Math.round(pesos * 100);
 }
 
-/** "A" / "A and B" / "A, B and C" — matches Fragrantica's own "created by ..." phrasing. */
-function joinPerfumers(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
-
 function formatNotesSummary(notes: { top: string[]; middle: string[]; base: string[] }) {
   return [
     notes.top.length ? `Top: ${notes.top.join(", ")}` : null,
@@ -241,10 +235,7 @@ async function main() {
       name: entry.name,
       brand: entry.brand,
       gender: entry.gender,
-      // "By <perfumer(s)> (Year)" — falling back to the brand for the few
-      // entries with no credited perfumer (Libre Flowers & Flames, Paradigme
-      // Le Parfum, Miu Miu Fleur de Lait, Idôle Power).
-      description: `By ${entry.perfumers.length > 0 ? joinPerfumers(entry.perfumers) : entry.brand} (${entry.releaseYear}).`,
+      description: formatFragranceDescription(entry),
       notes: formatNotesSummary(entry.notes),
       notePyramid: entry.notes,
       accords: entry.accords,

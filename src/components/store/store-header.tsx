@@ -63,6 +63,11 @@ export function StoreHeader() {
   const { data: session, status } = useSession();
   const signedIn = status === "authenticated" && Boolean(session?.user);
   const isAdmin = signedIn && (session?.user as { role?: string } | undefined)?.role === "ADMIN";
+  // On /account and /admin, the mobile bottom nav's "More" sheet already
+  // shows this exact same account/admin menu — showing this header icon too
+  // was a confusing duplicate entry point. Desktop has no bottom nav, so it
+  // stays the only way in there.
+  const inAccountOrAdminSection = pathname?.startsWith("/account") || pathname?.startsWith("/admin");
 
   useEffect(() => {
     Promise.resolve().then(() => setMounted(true));
@@ -103,12 +108,14 @@ export function StoreHeader() {
           {!mounted || status === "loading" ? (
             <span className="inline-block h-11 w-11" aria-hidden="true" />
           ) : signedIn ? (
-            <AccountPreview
-              signedIn
-              isAdmin={Boolean(isAdmin)}
-              name={session?.user?.name}
-              email={session?.user?.email}
-            />
+            <span className={inAccountOrAdminSection ? "hidden md:inline-flex" : undefined}>
+              <AccountPreview
+                signedIn
+                isAdmin={Boolean(isAdmin)}
+                name={session?.user?.name}
+                email={session?.user?.email}
+              />
+            </span>
           ) : (
             <Button asChild variant="ghost" size="sm" className="hidden min-h-11 rounded-md md:inline-flex">
               <Link href="/sign-in">Sign in</Link>
@@ -129,7 +136,7 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72">
+      <SheetContent side="left" className="w-full data-[side=left]:w-full sm:w-72">
         <SheetHeader className="border-b border-border/60">
           <SheetTitle className="flex items-center gap-2 font-serif-display">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-6 w-auto" />

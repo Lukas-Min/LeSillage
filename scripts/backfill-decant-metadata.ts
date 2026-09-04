@@ -21,6 +21,7 @@ config({ path: ".env.local" });
 import { and, eq, ilike } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { productImages, products } from "../src/db/schema";
+import { formatFragranceDescription } from "@/domain/product-type";
 
 interface Accord {
   name: string;
@@ -244,7 +245,7 @@ async function main() {
     await client
       .update(products)
       .set({
-        description: `${entry.name} by ${entry.brand}${entry.releaseYear ? ` (${entry.releaseYear})` : ""}.`,
+        description: formatFragranceDescription(entry),
         notes: formatNotesSummary(entry.notes),
         notePyramid: entry.notes,
         accords: entry.accords,

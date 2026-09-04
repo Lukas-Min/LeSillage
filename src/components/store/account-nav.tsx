@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/store/sign-out-overlay";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   User,
   ShoppingBag,
@@ -60,27 +60,53 @@ function isActive(pathname: string, item: AccountNavItem) {
 
 const adminHomeItem: AccountNavItem = { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true };
 
-function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: string }) {
+/** Wraps a nav link in SheetClose when rendered inside a Sheet (the mobile
+ *  "More" menu and the header's account-preview panel) so tapping it both
+ *  navigates and closes the sheet — outside a Sheet (the static desktop
+ *  sidebar) it renders the plain Link untouched. */
+function NavLinkItem({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
+  const link = (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+  return <SheetClose asChild>{link}</SheetClose>;
+}
+
+function NavList({
+  items,
+  pathname,
+  closeOnNavigate,
+}: {
+  items: AccountNavItem[];
+  pathname: string;
+  closeOnNavigate: boolean;
+}) {
   return (
     <ul className="space-y-1">
       {items.map((item) => {
         const Icon = item.icon;
         const active = isActive(pathname, item);
+        const linkClassName = cn(
+          "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
+          active
+            ? "bg-gold/15 font-medium text-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          item.destructive && !active ? "text-destructive/80 hover:bg-destructive/5" : "",
+        );
         return (
           <li key={item.href}>
-            <Link
-              href={item.href}
-              className={cn(
-                "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors",
-                active
-                  ? "bg-gold/15 font-medium text-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                item.destructive && !active ? "text-destructive/80 hover:bg-destructive/5" : "",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
+            {closeOnNavigate ? (
+              <NavLinkItem href={item.href} className={linkClassName}>
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </NavLinkItem>
+            ) : (
+              <Link href={item.href} className={linkClassName}>
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            )}
           </li>
         );
       })}
@@ -91,23 +117,37 @@ function NavList({ items, pathname }: { items: AccountNavItem[]; pathname: strin
 /** The full nav — every item plus sign out (and, for admin, a link back to
  *  the customer account). Shared by the desktop sidebar, the mobile "More"
  *  sheet below, and the header's account-preview sheet, so none of them
- *  drift out of sync with each other. */
-export function SidebarContent({ isAdmin }: { isAdmin: boolean }) {
+ *  drift out of sync with each other. `closeOnNavigate` should be true
+ *  whenever this renders inside a Sheet (both mobile usages) and false for
+ *  the static desktop sidebar, which isn't inside one. */
+export function SidebarContent({ isAdmin, closeOnNavigate = false }: { isAdmin: boolean; closeOnNavigate?: boolean }) {
   const pathname = usePathname();
   const items = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
+  const accountLinkClassName = "h-11 w-full justify-start gap-3 rounded-md px-3";
   return (
     <>
-      <NavList items={items} pathname={pathname ?? ""} />
+      <NavList items={items} pathname={pathname ?? ""} closeOnNavigate={closeOnNavigate} />
       <div className="mt-4 space-y-1.5 border-t border-border/60 pt-4">
         {isAdmin ? (
-          <Button asChild variant="outline" className="h-11 w-full justify-start gap-3 rounded-md px-3">
-            <Link href="/account">
-              <User className="h-4 w-4" />
-              My account
-            </Link>
-          </Button>
+          closeOnNavigate ? (
+            <SheetClose asChild>
+              <Button asChild variant="outline" className={accountLinkClassName}>
+                <Link href="/account">
+                  <User className="h-4 w-4" />
+                  My account
+                </Link>
+              </Button>
+            </SheetClose>
+          ) : (
+            <Button asChild variant="outline" className={accountLinkClassName}>
+              <Link href="/account">
+                <User className="h-4 w-4" />
+                My account
+              </Link>
+            </Button>
+          )
         ) : null}
-        <SignOutButton variant="outline" className="h-11 w-full justify-start gap-3 rounded-md px-3" />
+        <SignOutButton variant="outline" className={accountLinkClassName} />
       </div>
     </>
   );
@@ -131,7 +171,7 @@ function AccountMoreMenu({ isAdmin }: { isAdmin: boolean }) {
       <SheetTrigger asChild>
         <button
           type="button"
-          className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="flex min-h-11 w-full min-w-11 flex-col items-center justify-center gap-0.5 rounded-md px-3 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
         >
           <MoreHorizontal className="h-4 w-4" />
           <span>More</span>
@@ -142,7 +182,7 @@ function AccountMoreMenu({ isAdmin }: { isAdmin: boolean }) {
           <SheetTitle className="font-serif-display text-xl">{isAdmin ? "Admin menu" : "Your account"}</SheetTitle>
         </SheetHeader>
         <div className="px-4">
-          <SidebarContent isAdmin={isAdmin} />
+          <SidebarContent isAdmin={isAdmin} closeOnNavigate />
         </div>
       </SheetContent>
     </Sheet>

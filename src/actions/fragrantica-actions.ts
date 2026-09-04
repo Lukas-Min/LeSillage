@@ -21,6 +21,7 @@ import {
   lookupPendingPayload,
   type ReviewPayload,
 } from "@/lib/fragella-pending-store";
+import { formatFragranceDescription } from "@/domain/product-type";
 
 // Re-export the canonical type so other modules import from this file.
 export type { ReviewPayload };
@@ -124,7 +125,14 @@ export async function saveFragranticaImport(formData: FormData) {
     name: merged.name ?? name,
     brand: merged.brand ?? brand,
     family,
-    description: merged.description ?? description,
+    // Canonical short-form description ("By <perfumer(s)> (<year>)."), not
+    // the scraped/pasted paragraph — kept consistent with every other way a
+    // product enters the catalog (see formatFragranceDescription).
+    description: formatFragranceDescription({
+      brand: merged.brand ?? brand,
+      perfumers: merged.perfumers,
+      releaseYear: releaseYear ?? null,
+    }),
     notes: merged.notes
       ? [
           merged.notes.top.length ? `Top: ${merged.notes.top.join(", ")}` : null,
