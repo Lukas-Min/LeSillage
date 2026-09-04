@@ -49,7 +49,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
           ) : null}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full gap-0 sm:max-w-md">
+      <SheetContent side="right" className="w-full gap-0 data-[side=right]:w-full sm:max-w-md">
         <SheetHeader className="border-b border-border/60">
           <SheetTitle className="font-serif-display text-2xl">Your bag</SheetTitle>
         </SheetHeader>

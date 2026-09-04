@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,18 +18,20 @@ export default function AdminProductsLoading() {
           </Button>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1 border-b border-border">
+      <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-border">
         {["All", "Decants", "Full bottles", "Partials"].map((label) => (
-          <span key={label} className="min-h-11 border-b-2 border-transparent px-3 py-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+          <span key={label} className="min-h-11 shrink-0 border-b-2 border-transparent px-3 py-2 text-xs uppercase tracking-[0.15em] whitespace-nowrap text-muted-foreground">
             {label}
           </span>
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input type="search" placeholder="Search by brand or name…" disabled className="h-11 max-w-xs" />
-        <Button type="button" variant="outline" disabled>
-          Search
-        </Button>
+      <div className="flex items-center justify-end gap-2">
+        <div className="flex w-full sm:max-w-xs">
+          <Input type="search" placeholder="Search by brand or name…" disabled className="h-11 rounded-r-none border-r-0" />
+          <Button type="button" variant="gold" size="icon-lg" disabled className="h-11 w-11 shrink-0 rounded-l-none rounded-r-lg">
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <Skeleton className="h-28 w-full" />
       <Skeleton className="h-28 w-full" />

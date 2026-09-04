@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Cart drawer ("Your bag") wasn't actually full width on mobile despite `w-full` in its className — the base `Sheet` component's own `data-[side=right]:w-3/4` beats a plain `w-full` class on CSS specificity, so it silently stayed at 75% width with a visible dimmed strip down the side. Matched it with `data-[side=right]:w-full` (same specificity, wins on source order); still capped to `max-w-md` at `sm:` and up (tablet/desktop unaffected)
+- Admin Products' type tabs wrapped to a second row once all four didn't fit on one line — now scroll horizontally instead (with the scrollbar itself hidden via new `.scrollbar-hide` utility), and the search bar is full width on mobile (capped back to a smaller max-width at `sm:` and up) with its button now solid gold instead of outline, connected directly to the input
 ### Added
 - Dark/light mode now follows a signed-in customer's account, not just the browser: added `users.themePreference`, a server action to save it on every toggle, and an `AccountThemeSync` component that adopts it on a fresh device/browser with no local preference yet. Guests keep working exactly as before via localStorage only
 - Admin Products list gained search (brand/name/family, combines with the type tabs) and pagination (20 per page, Previous/Next + "Page X of Y"). List is now always sorted alphabetically by brand then name (A first) instead of unspecified insertion order

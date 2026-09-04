@@ -86,7 +86,7 @@ export default async function ProductsAdminPage({
           </Button>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1 border-b border-border">
+      <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-border">
         {TYPE_TABS.map((tab) => {
           const count = tab.value === "ALL" ? allProductRows.length : (countByType.get(tab.value) ?? 0);
           const active = tab.value === activeType;
@@ -95,7 +95,7 @@ export default async function ProductsAdminPage({
               key={tab.value}
               href={hrefFor({ type: tab.value, page: 1 })}
               className={cn(
-                "min-h-11 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] transition-colors",
+                "min-h-11 shrink-0 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] whitespace-nowrap transition-colors",
                 active
                   ? "border-gold text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground",
@@ -113,7 +113,7 @@ export default async function ProductsAdminPage({
             Clear search
           </Link>
         ) : null}
-        <div className="flex w-full max-w-xs">
+        <div className="flex w-full sm:max-w-xs">
           <Input
             type="search"
             name="q"
@@ -121,7 +121,13 @@ export default async function ProductsAdminPage({
             placeholder="Search by brand or name…"
             className="h-11 rounded-r-none border-r-0"
           />
-          <Button type="submit" variant="outline" size="icon-lg" aria-label="Search" className="h-11 w-11 shrink-0 rounded-l-none">
+          <Button
+            type="submit"
+            variant="gold"
+            size="icon-lg"
+            aria-label="Search"
+            className="h-11 w-11 shrink-0 rounded-l-none rounded-r-lg"
+          >
             <Search className="h-4 w-4" />
           </Button>
         </div>
