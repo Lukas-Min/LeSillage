@@ -14,6 +14,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 - "Name: A to Z" sort option on `/shop` (`name_asc` in `CATALOG_SORTS`, `src/lib/catalog.ts`)
 - `/shop`'s toolbar (fragrance count + Filter/Sort buttons) now has its own loading skeleton (`ShopToolbarSkeleton` in `src/components/store/loading.tsx`) instead of vanishing to blank space while results load
+- Repo PR template (`.github/pull_request_template.md`): Ticket, Summary, Changes (fixes only), Feature (new features only), Acceptance, Testing, Scope
 ### Changed
 - Every `Skeleton` placeholder (product cards, admin tables, this) now sweeps a soft shimmer highlight instead of a flat pulse — one shared `.skeleton-shine` rule in `globals.css`, so every existing loading state picks it up automatically
 - Payment-reminder cron moved from hourly to once a day at 10:00 PHT (`0 2 * * *`) so Hobby-plan Vercel deploys are not rejected
