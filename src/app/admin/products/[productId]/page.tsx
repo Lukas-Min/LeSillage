@@ -10,11 +10,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { DecantSkuFields } from "@/components/admin/decant-sku-fields";
 import {
+  addProductImage,
   adjustDecantMl,
   archiveOrDeleteProduct,
   archiveOrDeleteSku,
   removeProductImage,
-  uploadProductImage,
   upsertDiscount,
   upsertProduct,
   upsertSku,
@@ -111,20 +111,6 @@ export default async function AdminProductDetailPage({
                 <option value="DECANT">Decant</option>
                 <option value="FULL_BOTTLE">Full bottle</option>
                 <option value="PARTIAL">Partial</option>
-              </select>
-            </Field>
-            <Field label="Tester" htmlFor="p-isTester">
-              {/* Applies to every SKU under this product on save — a
-                  dedicated tester listing is tester top to bottom, so this
-                  isn't a per-size setting. */}
-              <select
-                id="p-isTester"
-                name="isTester"
-                defaultValue={skuList.some((s) => s.isTester) ? "true" : "false"}
-                className={selectClass}
-              >
-                <option value="false">No</option>
-                <option value="true">Yes — tester giveaway product</option>
               </select>
             </Field>
             <Field label="Shelf category" htmlFor="p-category">
@@ -246,7 +232,8 @@ export default async function AdminProductDetailPage({
         </CardHeader>
         <CardContent className="space-y-6 text-sm">
           {skuList.map((sku) => (
-            <form action={upsertSku} key={sku.id} className="space-y-3 border-b pb-4">
+            <div key={sku.id} className="space-y-3 border-b pb-4">
+            <form action={upsertSku} className="space-y-3">
               <input type="hidden" name="skuId" value={sku.id} />
               <input type="hidden" name="productId" value={product.id} />
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{sku.label}</p>
@@ -273,6 +260,8 @@ export default async function AdminProductDetailPage({
                       initialProvenance={sku.provenance === "TESTER" ? "IN_HOUSE" : sku.provenance}
                       fulfillment={sku.fulfillment}
                       stock={sku.stock}
+                      costPrice={fromCentavos(sku.costPrice)}
+                      retailPrice={fromCentavos(sku.retailPrice)}
                     />
                   </>
                 ) : (
@@ -310,15 +299,24 @@ export default async function AdminProductDetailPage({
               </div>
               <p className="text-xs text-muted-foreground">Computed retail price: {formatPHP(sku.retailPrice)}</p>
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" name="isActive" defaultChecked={sku.isActive} /> Active
-                </label>
+                <div className="flex flex-wrap items-center gap-4">
+                  {product.type === "DECANT" ? (
+                    // Testers are a full-bottle/partial concept — a decant
+                    // isn't given away as a bonus unit, so this doesn't
+                    // apply. Preserved as a hidden field either way.
+                    <input type="hidden" name="isTester" value={sku.isTester ? "on" : ""} />
+                  ) : (
+                    <label className="flex items-center gap-2 text-xs">
+                      <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Tester
+                    </label>
+                  )}
+                  <label className="flex items-center gap-2 text-xs">
+                    <input type="checkbox" name="isActive" defaultChecked={sku.isActive} /> Active
+                  </label>
+                </div>
                 <SubmitButton>Save SKU</SubmitButton>
               </div>
             </form>
-          ))}
-          {skuList.map((sku) => (
-            <div key={`${sku.id}-del`}>
               <form id={`delete-sku-form-${sku.id}`} action={archiveOrDeleteSku}>
                 <input type="hidden" name="skuId" value={sku.id} />
                 <input type="hidden" name="productId" value={product.id} />
@@ -351,7 +349,14 @@ export default async function AdminProductDetailPage({
                   <>
                     <input type="hidden" name="condition" value="SEALED" />
                     <input type="hidden" name="packaging" value="BOTTLE_ONLY" />
-                    <DecantSkuFields idPrefix="new-sku" initialProvenance="IN_HOUSE" fulfillment="ON_HAND" stock={0} />
+                    <DecantSkuFields
+                      idPrefix="new-sku"
+                      initialProvenance="IN_HOUSE"
+                      fulfillment="ON_HAND"
+                      stock={0}
+                      costPrice={0}
+                      retailPrice={0}
+                    />
                   </>
                 ) : (
                   <>
@@ -387,9 +392,18 @@ export default async function AdminProductDetailPage({
                 )}
               </div>
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" name="isActive" defaultChecked /> Active
-                </label>
+                <div className="flex flex-wrap items-center gap-4">
+                  {product.type === "DECANT" ? (
+                    <input type="hidden" name="isTester" value="" />
+                  ) : (
+                    <label className="flex items-center gap-2 text-xs">
+                      <input type="checkbox" name="isTester" /> Tester
+                    </label>
+                  )}
+                  <label className="flex items-center gap-2 text-xs">
+                    <input type="checkbox" name="isActive" defaultChecked /> Active
+                  </label>
+                </div>
                 <SubmitButton>Add SKU</SubmitButton>
               </div>
             </form>
@@ -409,15 +423,18 @@ export default async function AdminProductDetailPage({
               <SubmitButton variant="outline">Remove</SubmitButton>
             </form>
           ))}
-          <form action={uploadProductImage} className="space-y-2">
+          <form action={addProductImage} className="space-y-2 border-t pt-3">
             <input type="hidden" name="productId" value={product.id} />
             <Field label="Image file" htmlFor="new-image-file">
-              <Input id="new-image-file" name="file" type="file" accept="image/jpeg,image/png,image/webp" required />
+              <Input id="new-image-file" name="file" type="file" accept="image/jpeg,image/png,image/webp" />
+            </Field>
+            <Field label="Or paste an image URL instead" htmlFor="new-image-url">
+              <Input id="new-image-url" name="url" type="url" placeholder="https://…" />
             </Field>
             <Field label="Alt text" htmlFor="new-image-alt">
               <Input id="new-image-alt" name="alt" placeholder="e.g. Brand — Perfume name" />
             </Field>
-            <SubmitButton>Upload image</SubmitButton>
+            <SubmitButton>Add image</SubmitButton>
           </form>
         </CardContent>
       </Card>

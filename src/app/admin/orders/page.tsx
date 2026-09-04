@@ -73,16 +73,24 @@ export default async function AdminOrdersPage({
         </Card>
       ) : null}
       {rows.map((order) => (
-        <Card key={order.id}>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <Link href={`/admin/orders/${order.id}`} className="hover:underline">
-              <CardTitle className="text-base">{order.orderNumber}</CardTitle>
-            </Link>
+        <Card key={order.id} className="relative">
+          {/* Stretched-link pattern: covers the whole card so anywhere not
+              occupied by a real interactive element navigates to the order.
+              pointer-events-none on the header/content below lets clicks
+              pass through to this link; the receipt link and action buttons
+              explicitly re-enable pointer-events to stay clickable. */}
+          <Link
+            href={`/admin/orders/${order.id}`}
+            className="absolute inset-0 z-0"
+            aria-label={`View order ${order.orderNumber}`}
+          />
+          <CardHeader className="pointer-events-none flex flex-row items-center justify-between">
+            <CardTitle className="text-base">{order.orderNumber}</CardTitle>
             <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
               {describeStatus(order.status)}
             </Badge>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="pointer-events-none space-y-2 text-sm">
             <p>
               {order.recipientName} · {order.email} · {order.phone} ·{" "}
               {order.fulfillmentMethod}
@@ -94,12 +102,14 @@ export default async function AdminOrdersPage({
                 href={latestReceiptByOrder.get(order.id)!.blobUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block text-xs font-medium text-primary underline underline-offset-4"
+                className="pointer-events-auto relative z-10 inline-block text-xs font-medium text-primary underline underline-offset-4"
               >
                 View uploaded receipt
               </a>
             ) : null}
-            <OrderRowActions orderId={order.id} status={order.status} />
+            <div className="pointer-events-auto relative z-10">
+              <OrderRowActions orderId={order.id} status={order.status} />
+            </div>
           </CardContent>
         </Card>
       ))}

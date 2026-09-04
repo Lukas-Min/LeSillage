@@ -6,8 +6,8 @@ import { db } from "@/db/client";
 import { cartItems, carts, productDiscounts, products, skus } from "@/db/schema";
 import { clampQuantity } from "@/domain/money";
 import { withSiteWideDiscount } from "@/domain/discount";
-import type { SizePickerOption } from "@/components/store/size-picker";
-import { buildDecantSizeOptions } from "@/lib/catalog";
+import type { SizePickerOption } from "@/domain/variant-options";
+import { buildVariantOptions } from "@/lib/catalog";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import {
   addOneToCart,
@@ -172,11 +172,12 @@ export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOpt
   const [siblings, discounts, promoConfig] = await Promise.all([
     client
       .select({
-        id: skus.id,
+        skuId: skus.id,
         sizeMl: skus.sizeMl,
         retailPrice: skus.retailPrice,
         condition: skus.condition,
         provenance: skus.provenance,
+        packaging: skus.packaging,
         fulfillment: skus.fulfillment,
         stock: skus.stock,
       })
@@ -186,7 +187,8 @@ export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOpt
     loadPromoConfig(),
   ]);
   const discountsWithSiteWide = withSiteWideDiscount(discounts, current.productId, promoConfig.siteWideDiscount);
-  return buildDecantSizeOptions(siblings, discountsWithSiteWide, {
+  return buildVariantOptions(siblings, discountsWithSiteWide, {
+    isDecant: true,
     remainingMl: current.remainingMl ?? 0,
     thresholdMl: promoConfig.decantPreOrderThresholdMl,
   });

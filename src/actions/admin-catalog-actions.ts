@@ -40,7 +40,13 @@ async function limitAdmin(adminId: string, key: string) {
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
 }
 
-/** Recomputes every SKU's retail price AND cost price from the product's reference formula (costPrice/pricingMode/pricingInput, scaled by sourceMl -> sizeMl). Keeping cost in sync too is what makes the admin product list's "(cost ₱X)" actually reflect the real per-size cost basis instead of going stale. */
+/** Recomputes every SKU's retail price AND cost price from the product's reference formula (costPrice/pricingMode/pricingInput, scaled by sourceMl -> sizeMl). Keeping cost in sync too is what makes the admin product list's "(cost ₱X)" actually reflect the real per-size cost basis instead of going stale.
+ *
+ * A RETAIL-provenance decant SKU is skipped entirely — it's a distinct
+ * physical unit bought pre-made from the perfumery, priced independently of
+ * this product's reference formula (see upsertSku's manual costPrice/
+ * retailPrice handling below), so it must not be silently overwritten back
+ * onto the shared size-scaled price every time the product form is saved. */
 async function resyncSkuPricesForProduct(
   productId: string,
   product: { costPrice: number; pricingMode: PricingMode; pricingInput: number; sourceMl: number | null },
@@ -50,8 +56,12 @@ async function resyncSkuPricesForProduct(
     mode: product.pricingMode,
     input: product.pricingInput,
   });
-  const productSkus = await db().select({ id: skus.id, sizeMl: skus.sizeMl }).from(skus).where(eq(skus.productId, productId));
+  const productSkus = await db()
+    .select({ id: skus.id, sizeMl: skus.sizeMl, provenance: skus.provenance })
+    .from(skus)
+    .where(eq(skus.productId, productId));
   for (const sku of productSkus) {
+    if (sku.provenance === "RETAIL") continue;
     const retailPrice = computeSkuRetailPrice({
       referenceRetailPriceCentavos,
       sourceMl: product.sourceMl,
@@ -86,12 +96,6 @@ const productSchema = z.object({
   // number for PERCENTAGE (no conversion — it's not a currency amount).
   pricingInput: z.coerce.number().min(0),
   isActive: z.boolean(),
-  // One dropdown for the whole product, propagated to every one of its SKUs
-  // on save — see the block below the product update. Replaced the old
-  // per-SKU "Tester" checkbox, which let a product's sizes disagree with
-  // each other for no real reason (a dedicated tester listing is tester
-  // top to bottom).
-  isTester: z.boolean(),
 });
 
 export async function upsertProduct(formData: FormData) {
@@ -114,7 +118,6 @@ export async function upsertProduct(formData: FormData) {
     pricingMode: formData.get("pricingMode"),
     pricingInput: formData.get("pricingInput"),
     isActive: formData.get("isActive") === "on",
-    isTester: formData.get("isTester") === "true",
   });
   const values = {
     type: parsed.type as ProductType,
@@ -138,10 +141,6 @@ export async function upsertProduct(formData: FormData) {
   if (parsed.productId) {
     await db().update(products).set(values).where(eq(products.id, parsed.productId));
     await resyncSkuPricesForProduct(parsed.productId, values);
-    await db()
-      .update(skus)
-      .set({ isTester: parsed.isTester, updatedAt: new Date() })
-      .where(eq(skus.productId, parsed.productId));
     await auditLogSubject({
       actor: admin.id,
       action: "PRODUCT_UPDATE",
@@ -170,11 +169,16 @@ const skuSchema = z.object({
   label: z.string().min(1).max(120),
   sizeMl: z.coerce.number().int().min(0).optional(),
   condition: z.enum(["BNIB", "SEALED", "FEW_SPRAYS_MISSING"]),
-  provenance: z.enum(["RETAIL", "TESTER"]),
+  provenance: z.enum(["RETAIL", "TESTER", "IN_HOUSE"]),
   packaging: z.enum(["WITH_BOX", "BOTTLE_ONLY"]),
   fulfillment: z.enum(["PRE_ORDER", "ON_HAND"]),
   stock: z.coerce.number().int().min(0),
+  isTester: z.boolean(),
   isActive: z.boolean(),
+  // Only present (and only honored) for a RETAIL-provenance decant SKU — see
+  // below. Entered in pesos, like every other money field in this file.
+  manualCostPrice: z.coerce.number().min(0).optional(),
+  manualRetailPrice: z.coerce.number().min(0).optional(),
 });
 
 export async function upsertSku(formData: FormData) {
@@ -191,26 +195,43 @@ export async function upsertSku(formData: FormData) {
     packaging: formData.get("packaging"),
     fulfillment: formData.get("fulfillment"),
     stock: formData.get("stock"),
+    isTester: formData.get("isTester") === "on",
     isActive: formData.get("isActive") === "on",
+    manualCostPrice: formData.get("manualCostPrice") || undefined,
+    manualRetailPrice: formData.get("manualRetailPrice") || undefined,
   });
   const product = (
     await db()
-      .select({ costPrice: products.costPrice, pricingMode: products.pricingMode, pricingInput: products.pricingInput, sourceMl: products.sourceMl })
+      .select({ type: products.type, costPrice: products.costPrice, pricingMode: products.pricingMode, pricingInput: products.pricingInput, sourceMl: products.sourceMl })
       .from(products)
       .where(eq(products.id, parsed.productId))
   )[0];
   if (!product) throw new Error("Product not found");
-  const referenceRetailPriceCentavos = computeRetailPrice({
-    costPriceCentavos: product.costPrice ?? 0,
-    mode: product.pricingMode,
-    input: product.pricingInput,
-  });
-  const retailPrice = computeSkuRetailPrice({
-    referenceRetailPriceCentavos,
-    sourceMl: product.sourceMl,
-    sizeMl: parsed.sizeMl ?? null,
-  });
-  const costPrice = scaleBySize({ referenceCentavos: product.costPrice ?? 0, sourceMl: product.sourceMl, sizeMl: parsed.sizeMl ?? null });
+  // A RETAIL decant is a distinct physical unit bought pre-made from the
+  // perfumery — its cost/price genuinely aren't derived from this product's
+  // reference formula (that formula assumes scaling a whole bottle you own
+  // down to a decant size), so it gets its own directly-entered price
+  // instead of the usual sourceMl->sizeMl scaling. Every other SKU
+  // (IN_HOUSE decant, or any full-bottle/partial) keeps the computed path.
+  const isRetailDecant = product.type === "DECANT" && parsed.provenance === "RETAIL";
+  let retailPrice: number;
+  let costPrice: number;
+  if (isRetailDecant && parsed.manualRetailPrice != null) {
+    retailPrice = toCentavos(parsed.manualRetailPrice);
+    costPrice = parsed.manualCostPrice != null ? toCentavos(parsed.manualCostPrice) : 0;
+  } else {
+    const referenceRetailPriceCentavos = computeRetailPrice({
+      costPriceCentavos: product.costPrice ?? 0,
+      mode: product.pricingMode,
+      input: product.pricingInput,
+    });
+    retailPrice = computeSkuRetailPrice({
+      referenceRetailPriceCentavos,
+      sourceMl: product.sourceMl,
+      sizeMl: parsed.sizeMl ?? null,
+    });
+    costPrice = scaleBySize({ referenceCentavos: product.costPrice ?? 0, sourceMl: product.sourceMl, sizeMl: parsed.sizeMl ?? null });
+  }
   const values = {
     productId: parsed.productId,
     sku: parsed.sku,
@@ -225,14 +246,11 @@ export async function upsertSku(formData: FormData) {
     retailPrice,
     fulfillment: parsed.fulfillment as Fulfillment,
     stock: parsed.stock,
+    isTester: parsed.isTester,
     isActive: parsed.isActive,
     updatedAt: new Date(),
   };
   if (parsed.skuId) {
-    // isTester is deliberately not part of `values` here — it's controlled
-    // product-wide via the Product form's dropdown (see upsertProduct),
-    // never per-SKU, so a SKU save must leave whatever that last set it to
-    // untouched.
     await db().update(skus).set(values).where(eq(skus.id, parsed.skuId));
     await auditLogSubject({
       actor: admin.id,
@@ -241,17 +259,7 @@ export async function upsertSku(formData: FormData) {
       targetId: parsed.skuId,
     });
   } else {
-    // A newly-added SKU has no tester status of its own yet — inherit
-    // whatever the product's existing SKUs currently have (a dedicated
-    // tester listing's new size should also be a tester; a normal
-    // product's new size shouldn't suddenly become one).
-    const existingSibling = (
-      await db().select({ isTester: skus.isTester }).from(skus).where(eq(skus.productId, parsed.productId)).limit(1)
-    )[0];
-    const inserted = await db()
-      .insert(skus)
-      .values({ ...values, isTester: existingSibling?.isTester ?? false })
-      .returning();
+    const inserted = await db().insert(skus).values(values).returning();
     await auditLogSubject({
       actor: admin.id,
       action: "SKU_CREATE",
@@ -372,19 +380,34 @@ export async function removeProductImage(formData: FormData) {
   revalidatePath(`/admin/products/${productId}`);
 }
 
-export async function uploadProductImage(formData: FormData) {
+/** Adds a product image either from an uploaded file or a pasted URL — one
+ *  form, one Alt text field, whichever of the two the admin actually filled
+ *  in. A pasted URL skips the Blob upload entirely (same as how a
+ *  Fragrantica-imported product's photo already ends up here: a plain
+ *  external URL in `productImages.url`) — useful for reusing an image
+ *  that's already hosted somewhere instead of downloading and re-uploading
+ *  it as a file. */
+export async function addProductImage(formData: FormData) {
   const admin = await requireAdmin();
   const productId = String(formData.get("productId") ?? "");
   const file = formData.get("file");
-  if (!(file instanceof File)) throw new Error("Image required");
-  const uploaded = await uploadPublicImage(`products/${productId}`, {
-    name: file.name,
-    type: file.type,
-    bytes: await file.arrayBuffer(),
-  });
+  const rawUrl = String(formData.get("url") ?? "").trim();
+  let url: string;
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadPublicImage(`products/${productId}`, {
+      name: file.name,
+      type: file.type,
+      bytes: await file.arrayBuffer(),
+    });
+    url = uploaded.url;
+  } else if (rawUrl) {
+    url = z.string().trim().url().parse(rawUrl);
+  } else {
+    throw new Error("Choose a file or paste an image URL");
+  }
   await db().insert(productImages).values({
     productId,
-    url: uploaded.url,
+    url,
     alt: String(formData.get("alt") ?? ""),
     position: 0,
   });

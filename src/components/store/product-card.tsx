@@ -9,6 +9,7 @@ import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { BuyNowButton } from "@/components/store/buy-now-button";
 import { SizePicker } from "@/components/store/size-picker";
+import { findSelectedVariant } from "@/domain/variant-options";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
 import { capitalizeFirst } from "@/lib/utils";
@@ -22,7 +23,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   const isDecant = card.type === "DECANT";
   const hasSizeOptions = card.sizeOptions.length > 0;
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
-  const selected = hasSizeOptions ? card.sizeOptions.find((o) => o.skuId === selectedSkuId) ?? null : null;
+  const selected = hasSizeOptions ? findSelectedVariant(card.sizeOptions, selectedSkuId) : null;
   // A decant has no single "default" size — the customer must pick one. A
   // full bottle/partial with multiple SKUs already has a sensible default
   // (card.skuId, picked by pickDestinationSku in lib/catalog.ts), so picking
@@ -75,24 +76,19 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               <Badge variant={card.fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
                 {card.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
               </Badge>
-              {/* Condition ("Sealed", "A few sprays missing"...) and
-                  provenance ("Retail"/"Tester") only mean something for a
-                  specific physical bottle — a decant is poured to order from
-                  a shared pool, so neither applies. */}
-              {card.type !== "DECANT" ? (
-                <>
-                  <Badge variant="outline">{card.conditionLabel}</Badge>
-                  <Badge variant="outline">{card.provenanceLabel}</Badge>
-                </>
-              ) : null}
               {effectiveSoldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
+            {/* Condition and provenance ("Retail"/"Tester"/"In-house") used
+                to be separate badges here — now folded into the size
+                options below instead (always "{size}ML · {provenance}",
+                plus a secondary condition/packaging picker when a size
+                actually has more than one SKU to distinguish). */}
             {hasSizeOptions ? (
               <SizePicker
                 density="compact"
                 options={card.sizeOptions}
                 selectedSkuId={selectedSkuId}
-                onSelect={(option) => setSelectedSkuId(option.skuId)}
+                onSelect={setSelectedSkuId}
               />
             ) : null}
             <div className="border-t border-border/60 pt-3">

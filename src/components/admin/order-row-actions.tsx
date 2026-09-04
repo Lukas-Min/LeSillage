@@ -53,7 +53,7 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
   };
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
       {status === "RECEIPT_SUBMITTED" ? (
         <Button
           onClick={() => confirm("CONFIRMED")}

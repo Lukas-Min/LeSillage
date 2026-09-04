@@ -1,4 +1,4 @@
-import type { Condition, FragranceCategory, ProductType, Provenance } from "@/db/schema";
+import type { Condition, FragranceCategory, Packaging, ProductType, Provenance } from "@/db/schema";
 
 export function labelForType(type: ProductType): string {
   switch (type) {
@@ -47,7 +47,20 @@ export function labelForProvenance(p: Provenance): string {
     case "TESTER":
       return "Tester";
     case "IN_HOUSE":
-      return "In-house decant";
+      return "In-house";
+    default: {
+      const exhaustive: never = p;
+      return String(exhaustive);
+    }
+  }
+}
+
+export function labelForPackaging(p: Packaging): string {
+  switch (p) {
+    case "WITH_BOX":
+      return "With box";
+    case "BOTTLE_ONLY":
+      return "Bottle only";
     default: {
       const exhaustive: never = p;
       return String(exhaustive);

@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { products, skus, productDiscounts, productImages, promoSettings } from "@/db/schema";
-import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
-import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
-import { concentrationLabel, guessConcentration, sizeOnlyLabel } from "@/domain/concentration";
+import { withSiteWideDiscount } from "@/domain/discount";
+import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { concentrationLabel, guessConcentration } from "@/domain/concentration";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
@@ -14,8 +14,9 @@ import { AccordStrip } from "@/components/store/accord-strip";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { WishlistButton } from "@/components/store/wishlist-button";
 import { DecantBuyBox } from "@/components/store/decant-buy-box";
-import { labelForCategory, labelForCondition, labelForProvenance, labelForType } from "@/domain/product-type";
-import { buildDecantSizeOptions } from "@/lib/catalog";
+import { findSelectedVariant, type SizePickerOption } from "@/domain/variant-options";
+import { labelForCategory, labelForType } from "@/domain/product-type";
+import { buildVariantOptions } from "@/lib/catalog";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
 import { normaliseNotePyramid } from "@/lib/note-pyramid";
@@ -67,12 +68,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, row.productId)),
     client
       .select({
-        id: skus.id,
+        skuId: skus.id,
         label: skus.label,
         sizeMl: skus.sizeMl,
         retailPrice: skus.retailPrice,
         condition: skus.condition,
         provenance: skus.provenance,
+        packaging: skus.packaging,
         fulfillment: skus.fulfillment,
         stock: skus.stock,
       })
@@ -89,27 +91,27 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   const remainingMl = row.remainingMl ?? 0;
-  const fulfillment =
-    row.type === "DECANT"
-      ? decantFulfillment({
-          remainingMl,
-          sizeMl: row.sizeMl ?? DECANT_SIZES_ML[0],
-          thresholdMl: threshold,
-        })
-      : row.fulfillment;
-  const soldOut = row.type !== "DECANT" && fulfillment === "ON_HAND" && row.stock <= 0;
   const discountsWithSiteWide = withSiteWideDiscount(discounts, row.productId, {
     enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
     type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
     amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
   });
-  const discount = bestDiscount(discountsWithSiteWide, row.retailPrice);
-  const { discountedUnitCentavos, perUnitDiscountCentavos } = applyDiscount(row.retailPrice, discount);
-  const decantOptions = buildDecantSizeOptions(siblings, discountsWithSiteWide, { remainingMl, thresholdMl: threshold });
+  const isDecant = row.type === "DECANT";
+  const variantOptions = buildVariantOptions(siblings, discountsWithSiteWide, {
+    isDecant,
+    remainingMl,
+    thresholdMl: threshold,
+  });
+  // The current URL's SKU, resolved through the same size+provenance
+  // grouping the picker uses — so the fulfillment badge, sold-out state, and
+  // BuyBox's price all agree with whichever button/sub-option is showing as
+  // selected, instead of being computed separately.
+  const currentVariant = findSelectedVariant(variantOptions, row.skuId)!;
+  const fulfillment = currentVariant.fulfillment;
+  const soldOut = Boolean(currentVariant.soldOut);
   const accords = productAccords(row.accords);
   const notePyramid = normaliseNotePyramid(row.notePyramid, null);
   const looseNotes = !notePyramid ? row.notes?.trim() || null : null;
-  const isDecant = row.type === "DECANT";
   const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
   const genderLabel = row.gender ? capitalizeFirst(row.gender) : null;
   const concentrationGender = [concentration, genderLabel].filter(Boolean).join(" · ") || null;
@@ -189,33 +191,33 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
           {isDecant ? (
             <div className="order-6 flex flex-col gap-6">
-              <DecantBuyBox options={decantOptions} initialSkuId={row.skuId} />
+              <DecantBuyBox options={variantOptions} initialSkuId={row.skuId} />
             </div>
           ) : (
             <div className="order-6 flex flex-col gap-6">
+              {/* Condition and provenance used to be separate badges here —
+                  now folded into the size options below instead (always
+                  "{size}ML · {provenance}", plus a secondary
+                  condition/packaging picker when a size has more than one
+                  SKU to distinguish). */}
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
                   {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
                 </Badge>
-                <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">{labelForCondition(row.condition)}</Badge>
-                <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">{labelForProvenance(row.provenance)}</Badge>
-                {soldOut ? <Badge variant="destructive" className="h-auto px-3 py-1.5 text-sm">Sold out</Badge> : null}
+                {soldOut ? (
+                  <Badge variant="destructive" className="h-auto px-3 py-1.5 text-sm">
+                    Sold out
+                  </Badge>
+                ) : null}
               </div>
 
-              <SizeSection
-                options={siblings.map((s) => ({
-                  key: s.id,
-                  href: `/shop/${s.id}`,
-                  label: sizeOnlyLabel(s.label).toUpperCase() || s.label,
-                  active: s.id === row.skuId,
-                }))}
-              />
+              <VariantSection options={variantOptions} currentSkuId={row.skuId} />
 
               <BuyBox
-                skuId={row.skuId}
-                originalCentavos={row.retailPrice}
-                discountedCentavos={discountedUnitCentavos}
-                savedCentavos={perUnitDiscountCentavos}
+                skuId={currentVariant.skuId}
+                originalCentavos={currentVariant.originalCentavos}
+                discountedCentavos={currentVariant.discountedCentavos}
+                savedCentavos={currentVariant.savedCentavos}
                 soldOut={soldOut}
               />
             </div>
@@ -268,42 +270,62 @@ function ProductTitleText({
   );
 }
 
-function SizeSection({
+/**
+ * Full-bottle/partial equivalent of DecantBuyBox's client-side size picker —
+ * navigates to a different SKU's own page per choice instead of swapping
+ * state client-side, since each SKU here already has its own PDP. Two
+ * tiers, same grouping `buildVariantOptions` already did: a Link per
+ * size+provenance group (label always includes provenance), plus a
+ * secondary row of Links for condition/packaging sub-options — shown only
+ * when the currently-active group actually has more than one.
+ */
+function VariantSection({
   options,
+  currentSkuId,
 }: {
-  options: Array<{ key: string; href: string | null; label: string; active: boolean }>;
+  options: SizePickerOption[];
+  currentSkuId: string;
 }) {
+  const activeGroup = options.find(
+    (o) => o.skuId === currentSkuId || o.subOptions?.some((s) => s.skuId === currentSkuId),
+  );
   return (
     <div className="space-y-3">
       <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
       <div className="flex flex-wrap gap-2">
-        {options.map((option) => {
-          if (!option.href) {
-            return (
-              <span
-                key={option.key}
-                className="inline-flex h-11 min-w-[3.5rem] cursor-not-allowed items-center justify-center border border-dashed border-border px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground"
-              >
-                {option.label}
-              </span>
-            );
-          }
-          return (
+        {options.map((option) => (
+          <Link
+            key={option.skuId}
+            href={`/shop/${option.skuId}`}
+            className={cn(
+              "inline-flex h-11 min-w-[3.5rem] items-center justify-center border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
+              option === activeGroup
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-background hover:bg-muted",
+            )}
+          >
+            {option.label}
+          </Link>
+        ))}
+      </div>
+      {activeGroup?.subOptions && activeGroup.subOptions.length > 1 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {activeGroup.subOptions.map((sub) => (
             <Link
-              key={option.key}
-              href={option.href}
+              key={sub.skuId}
+              href={`/shop/${sub.skuId}`}
               className={cn(
-                "inline-flex h-11 min-w-[3.5rem] items-center justify-center border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
-                option.active
+                "inline-flex h-8 items-center justify-center rounded-md border px-3 text-[10px] uppercase tracking-[0.15em] transition-colors",
+                sub.skuId === currentSkuId
                   ? "border-foreground bg-foreground text-background"
                   : "border-border bg-background hover:bg-muted",
               )}
             >
-              {option.label}
+              {sub.label}
             </Link>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

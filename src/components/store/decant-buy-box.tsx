@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { BuyNowButton } from "@/components/store/buy-now-button";
 import { Price } from "@/components/store/price";
-import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
+import { SizePicker } from "@/components/store/size-picker";
+import { findSelectedVariant, type SizePickerOption } from "@/domain/variant-options";
 
 export function DecantBuyBox({
   options,
@@ -14,19 +15,13 @@ export function DecantBuyBox({
   options: SizePickerOption[];
   initialSkuId: string;
 }) {
-  const initialIndex = Math.max(
-    0,
-    options.findIndex((o) => o.skuId === initialSkuId),
-  );
-  const [index, setIndex] = useState(initialIndex);
+  const [selectedSkuId, setSelectedSkuId] = useState(initialSkuId);
   const [quantity, setQuantity] = useState(1);
-  const selected = options[index];
+  const selected = findSelectedVariant(options, selectedSkuId) ?? options[0];
 
-  function select(option: SizePickerOption) {
-    const nextIndex = options.findIndex((o) => o.skuId === option.skuId);
-    if (nextIndex < 0) return;
-    setIndex(nextIndex);
-    window.history.replaceState(null, "", `/shop/${option.skuId}`);
+  function select(skuId: string) {
+    setSelectedSkuId(skuId);
+    window.history.replaceState(null, "", `/shop/${skuId}`);
   }
 
   return (

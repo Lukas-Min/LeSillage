@@ -155,6 +155,40 @@
   select {
     padding-right: 2.25rem !important;
   }
+  /* Every price/amount/quantity field is a plain type="number" input, and
+     Chrome/Safari's native up/down spinner arrows on it are pure clutter —
+     nobody increments a peso amount or a size-in-ml one click at a time.
+     Applies sitewide instead of per-field so a new number input never needs
+     to remember this on its own (a few already carried their own copy of
+     this exact rule — e.g. the cart quantity stepper — now redundant but
+     harmless). */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  /* The browser's native "Choose File" button rendered a flat white/gray
+     control that didn't match any other button in the app. Styled to match
+     a plain dark Button (the same look as the "Upload image" submit button
+     that sits right below it on the admin product page). */
+  input[type="file"]::file-selector-button {
+    height: 100%;
+    margin-inline-end: 0.75rem;
+    padding: 0 1rem;
+    border: none;
+    border-inline-end: 1px solid var(--border);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  input[type="file"]::file-selector-button:hover {
+    background: color-mix(in oklch, var(--primary), transparent 15%);
+  }
   html {
     @apply font-sans;
     overflow-y: scroll;

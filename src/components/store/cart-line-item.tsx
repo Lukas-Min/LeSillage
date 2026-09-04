@@ -5,7 +5,8 @@ import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiblingSkuOptions } from "@/actions/cart-actions";
 import { useCart } from "@/components/store/cart-context";
-import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
+import { SizePicker } from "@/components/store/size-picker";
+import { findSelectedVariant, type SizePickerOption } from "@/domain/variant-options";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,7 +133,7 @@ export function CartLineItem({
   // While a different size is staged (not yet saved), preview its price —
   // same as the product page's buy box, which updates the price the moment
   // a size is picked rather than only after committing.
-  const stagedOption = customizing ? (siblings?.find((o) => o.skuId === stagedSkuId) ?? null) : null;
+  const stagedOption = customizing && siblings ? findSelectedVariant(siblings, stagedSkuId) : null;
   const displayOriginal = stagedOption?.originalCentavos ?? item.originalUnitCentavos;
   const displayDiscounted = stagedOption?.discountedCentavos ?? item.retailPriceCentavos;
 
@@ -202,7 +203,7 @@ export function CartLineItem({
                 density="compact"
                 options={siblings}
                 selectedSkuId={stagedSkuId}
-                onSelect={(option) => setStagedSkuId(option.skuId)}
+                onSelect={(skuId) => setStagedSkuId(skuId)}
                 className={saving ? "pointer-events-none opacity-50" : undefined}
               />
             )}
