@@ -4,7 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
-- Hourly payment-nudge emails for orders still on Awaiting payment after two hours — sent once per order (`paymentReminderSentAt` in `src/lib/payment-reminders.ts`, cron `GET /api/cron/payment-reminders`)
+- Payment-nudge emails for orders still on Awaiting payment after two hours — sent once per order (`paymentReminderSentAt` in `src/lib/payment-reminders.ts`, daily cron `GET /api/cron/payment-reminders` at 10:00 PHT; Hobby cannot run hourly)
 - Cancellation confirmation emails when an order moves to Cancelled (`orderCancelledEmail` in `src/lib/email-templates.ts`)
 - SKU codes are now system-generated (brand+name+size, with a numeric suffix on collision) instead of admin-typed, and shown read-only on both the "Add a SKU" and existing-SKU forms — `generateSkuCode` in `src/actions/admin-catalog-actions.ts`
 - Retail-provenance decant SKUs can now be priced independently of the product's reference formula — a manual Cost price/Retail price pair on the SKU, instead of always being scaled from the reference size (`resyncSkuPricesForProduct` skips Retail decants so a "Save product" never overwrites their independent price)
@@ -13,6 +13,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 ### Changed
+- Payment-reminder cron moved from hourly to once a day at 10:00 PHT (`0 2 * * *`) so Hobby-plan Vercel deploys are not rejected
 - SKU lists and size pickers sort smallest millilitre first, then A–Z by label (3ml before 10ml) in `compareSkuOrder`
 - Shop card and search prices always show centavos (₱1,234.00), matching the selected-variant price so the amount doesn't jump when a size is picked
 - FAQ, About, How to pay, Policies, shop subtitle, cart/checkout hints, and admin helper copy realigned to current rules: testers are sold, decants are In-house or Retail, fulfillment is per listing, complimentary testers are delivery-only
