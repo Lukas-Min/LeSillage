@@ -1,4 +1,5 @@
 import type { PricingMode } from "@/db/schema";
+import { ceilToNearestPesos } from "./money";
 
 export interface PricingInputs {
   costPriceCentavos: number;
@@ -37,6 +38,10 @@ export function computeRetailPrice({
  * input) scaled by size — e.g. a 2,000-centavo reference for a 100ml
  * bottle prices a 10ml decant at 2000/100*10 = 200. Sizeless SKUs
  * (sizeMl null/0, or sourceMl unset) just take the reference price as-is.
+ *
+ * A scaled (per-size) price is then rounded UP to the nearest ₱5 so decant
+ * prices always end in a clean 0 or 5, rather than the raw ₱56.55-style
+ * fraction the size ratio produces.
  */
 export function computeSkuRetailPrice({
   referenceRetailPriceCentavos,
@@ -48,7 +53,8 @@ export function computeSkuRetailPrice({
   sizeMl: number | null | undefined;
 }): number {
   if (!sourceMl || !sizeMl) return referenceRetailPriceCentavos;
-  return Math.round((referenceRetailPriceCentavos / sourceMl) * sizeMl);
+  const scaled = (referenceRetailPriceCentavos / sourceMl) * sizeMl;
+  return ceilToNearestPesos(scaled, 5);
 }
 
 export function pricingInputLabel(mode: PricingMode): string {

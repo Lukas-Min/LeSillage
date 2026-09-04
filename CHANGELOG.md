@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Decant SKU prices now round UP to the nearest ₱5 instead of landing on raw fractional-centavo values (e.g. ₱56.55 → ₱60, ₱119.44 → ₱120). `computeSkuRetailPrice` (`src/domain/pricing.ts`) applies the new `ceilToNearestPesos` helper to the per-size scaled price; full-bottle SKUs (which don't scale by size) are unaffected. Resynced all existing decant SKUs with `scripts/resync-decant-sku-prices.ts`
 - Renamed the `male`/`female` gender values to `men`/`women` throughout (`src/domain/gender.ts`, the shop's Gender filter, and the pricelist import scripts); `unisex` is unchanged. Migrated existing catalog data with `scripts/rename-gender-values.ts` (17 `male` → `men`, 18 `female` → `women`)
 ### Fixed
 - Every admin money input (product cost price, product discount amount, site-wide/promo-code discount amount, free-shipping threshold, delivery fee, promo code minimum spend) was silently read as raw centavos — typing "3500" meant to enter ₱3,500 actually saved ₱35.00. These fields now accept pesos directly (add a period for centavos, e.g. "3500.50"), converted to centavos server-side via `toCentavos()`; existing stored values now display divided back down to pesos. Percent-type fields (markup %, percentage discounts) are unaffected — only currency amounts were misread

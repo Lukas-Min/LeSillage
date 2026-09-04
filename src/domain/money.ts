@@ -10,6 +10,12 @@ export function fromCentavos(centavos: number): number {
   return centavos / PHP_PER_PESO;
 }
 
+/** Rounds up to the nearest whole multiple of `stepPesos` pesos (e.g. step=5 turns ₱56.55 into ₱60). */
+export function ceilToNearestPesos(centavos: number, stepPesos: number): number {
+  const step = toCentavos(stepPesos);
+  return Math.ceil(centavos / step) * step;
+}
+
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
