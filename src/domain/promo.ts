@@ -71,13 +71,12 @@ export function pickTester(
   purchasedBrands: Set<string>,
   random: () => number = Math.random,
 ): TesterAssignment {
-  const matchingFamily = candidates.filter(
-    (c) => c.stock > 0 && c.family && purchasedFamilies.has(c.family),
-  );
-  const familyPool = matchingFamily.length > 0 ? matchingFamily : candidates.filter(
-    (c) => c.stock > 0 && purchasedBrands.has(c.brand),
-  );
-  const pool = familyPool.length > 0 ? familyPool : candidates.filter((c) => c.stock > 0);
+  const inStock = candidates.filter((c) => c.stock > 0);
+  const matchingFamily = inStock.filter((c) => c.family && purchasedFamilies.has(c.family));
+  const pool =
+    matchingFamily.length > 0
+      ? matchingFamily
+      : inStock.filter((c) => purchasedBrands.has(c.brand));
 
   if (pool.length === 0) {
     return { result: "PENDING", skuId: null };

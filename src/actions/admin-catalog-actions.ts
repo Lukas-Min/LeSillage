@@ -242,6 +242,7 @@ export async function upsertSku(formData: FormData) {
     await db()
       .select({
         brand: products.brand,
+        family: products.family,
         name: products.name,
         type: products.type,
         costPrice: products.costPrice,
@@ -301,6 +302,8 @@ export async function upsertSku(formData: FormData) {
     fulfillment: parsed.fulfillment as Fulfillment,
     stock: parsed.stock,
     isTester: parsed.isTester,
+    testerFamily: parsed.isTester ? (product.family ?? null) : null,
+    testerBrand: parsed.isTester ? product.brand : null,
     isActive: parsed.isActive,
     updatedAt: new Date(),
   };

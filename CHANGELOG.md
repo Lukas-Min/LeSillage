@@ -25,6 +25,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Order status badges and action buttons (list and detail page) resized to match the rest of the app; the status badge no longer looks like a solid black button
 - Order detail page: removed the separately-labeled "Actions" card — Confirm/Reject now sit right below the header, right-aligned; removed the page's own breadcrumb (the admin layout already renders one, which was showing twice)
 ### Fixed
+- Eligible tester-bonus orders stay `PENDING` when the pool is empty or a reserve races, instead of being flipped to `SKIPPED`; matching uses the tester product's family then brand (`pickTester` in `src/domain/promo.ts`) and `upsertSku` now writes `testerFamily`/`testerBrand`
+- Size picker groups tester SKUs separately from a same-size/same-provenance bottle so they are not unlabeled duplicates, and catalog "from" prices ignore leftover ₱0 SKUs
+- Seed demo testers are now priced full-bottle SKUs in the promo pool, not ₱0 2ml rows on decant products
 - Signed-out visits to `/checkout/payment?orderNumber=` now return to that same payment page after sign-in instead of a generic checkout
 - Product detail page crashed ("Attempted to call findSelectedVariant() from the server but findSelectedVariant is on the client") — the size-picker's shared option types and lookup function lived in a `"use client"` file, which a Server Component can't call directly; moved them to a plain shared module, `src/domain/variant-options.ts`
 - Order detail page: two adjacent items showed a doubled border line between them (a `last:` Tailwind selector was matching "last child of the whole card," not "last item in the list")

@@ -75,6 +75,11 @@ describe("pickTester", () => {
     expect(result.result).toBe("PENDING");
     expect(result.skuId).toBeNull();
   });
+
+  it("returns PENDING when in-stock testers do not match family or brand", () => {
+    const result = pickTester(candidates, new Set(["Gourmand"]), new Set(["Other House"]), () => 0);
+    expect(result).toEqual({ result: "PENDING", skuId: null });
+  });
 });
 
 describe("isTesterBonusEligible", () => {

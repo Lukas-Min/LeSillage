@@ -23,7 +23,7 @@ import {
 } from "@/db/schema";
 import { priceCart } from "@/domain/cart";
 import { generateOrderNumber } from "@/domain/order-number";
-import { isTesterBonusEligible } from "@/domain/promo";
+import { isTesterBonusEligible, pickTester } from "@/domain/promo";
 import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
 import { checkPromoCodeEligibility } from "@/domain/promo-code";
 import { assertTransition } from "@/domain/order-state";
@@ -625,7 +625,6 @@ async function reserveStockWithinTx(
   orderRow: typeof orders.$inferSelect,
   items: (typeof orderItems.$inferSelect)[],
 ): Promise<void> {
-  {
     for (const item of items) {
       // A RETAIL decant is reserved like a full-bottle SKU (below, by its
       // own unit stock) — only an IN_HOUSE decant draws from the shared ml
@@ -685,63 +684,46 @@ async function reserveStockWithinTx(
       });
     }
 
-    if (orderRow.promoTesterResult === "PENDING") {
-      const purchased = items.filter((it) => it.fulfillment === "ON_HAND");
-      if (purchased.length === 0) {
-        await tx.update(orders).set({ promoTesterResult: "SKIPPED" }).where(eq(orders.id, orderId));
-        return;
-      }
-      const purchasedProducts = await tx
-        .select({
-          skuId: skus.id,
-          brand: products.brand,
-          family: products.family,
-        })
-        .from(skus)
-        .innerJoin(products, eq(products.id, skus.productId))
-        .where(inArray(skus.id, purchased.map((it) => it.skuId)));
-      const purchasedFamilies = new Set<string>();
-      const purchasedBrands = new Set<string>();
-      for (const p of purchasedProducts) {
-        if (p.brand) purchasedBrands.add(p.brand);
-        if (p.family) purchasedFamilies.add(p.family);
-      }
-      const candidates = await tx
-        .select({
-          id: skus.id,
-          family: skus.testerFamily,
-          brand: skus.testerBrand,
-        })
-        .from(skus)
-        .where(and(eq(skus.isTester, true), eq(skus.isActive, true), sql`${skus.stock} > 0`));
-      const pickFamily = candidates.filter((c) => c.family && purchasedFamilies.has(c.family));
-      const pool =
-        pickFamily.length > 0
-          ? pickFamily
-          : candidates.filter((c) => purchasedBrands.has(c.brand ?? ""));
-      const finalPool = pool.length > 0 ? pool : candidates;
-      if (finalPool.length === 0) {
-        await tx.update(orders).set({ promoTesterResult: "SKIPPED" }).where(eq(orders.id, orderId));
-        return;
-      }
-      const chosen = finalPool[Math.floor(Math.random() * finalPool.length)];
-      const ok = await tryReserveTesterSku(tx, chosen.id);
-      if (!ok) {
-        await tx.update(orders).set({ promoTesterResult: "SKIPPED" }).where(eq(orders.id, orderId));
-        return;
-      }
-      await tx.insert(stockMovements).values({
-        skuId: chosen.id,
-        delta: -1,
-        reason: "TESTER_ASSIGNED",
-        orderId,
-      });
-      await tx
-        .update(orders)
-        .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: chosen.id })
-        .where(eq(orders.id, orderId));
+    if (orderRow.promoTesterResult !== "PENDING" || items.length === 0) return;
+
+    const purchasedProducts = await tx
+      .select({
+        brand: products.brand,
+        family: products.family,
+      })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(inArray(skus.id, items.map((it) => it.skuId)));
+    const purchasedFamilies = new Set<string>();
+    const purchasedBrands = new Set<string>();
+    for (const p of purchasedProducts) {
+      if (p.brand) purchasedBrands.add(p.brand);
+      if (p.family) purchasedFamilies.add(p.family);
     }
-  }
+    const candidates = await tx
+      .select({
+        skuId: skus.id,
+        family: products.family,
+        brand: products.brand,
+        stock: skus.stock,
+      })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(and(eq(skus.isTester, true), eq(skus.isActive, true), sql`${skus.stock} > 0`));
+    const assignment = pickTester(candidates, purchasedFamilies, purchasedBrands);
+    if (assignment.result !== "ASSIGNED" || !assignment.skuId) return;
+    const ok = await tryReserveTesterSku(tx, assignment.skuId);
+    if (!ok) return;
+    await tx.insert(stockMovements).values({
+      skuId: assignment.skuId,
+      delta: -1,
+      reason: "TESTER_ASSIGNED",
+      orderId,
+    });
+    await tx
+      .update(orders)
+      .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: assignment.skuId })
+      .where(eq(orders.id, orderId));
 }
 
 export async function releaseStockForOrder(orderId: string): Promise<void> {

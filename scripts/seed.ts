@@ -203,6 +203,32 @@ async function seedFragrances() {
       isTester: false,
     });
 
+    if (index < 2) {
+      const testerRetailPrice = computeSkuRetailPrice({
+        referenceRetailPriceCentavos: fullBottleReference,
+        sourceMl: 100,
+        sizeMl: 100,
+      });
+      skuRows.push({
+        productId: fullBottleProduct.id,
+        sku: `${brandSlug}-${nameSlug}-100-T`,
+        label: "100ml Tester",
+        sizeMl: 100,
+        condition: "SEALED",
+        provenance: "TESTER",
+        packaging: "BOTTLE_ONLY",
+        costPrice: 0,
+        pricingMode: "DIRECT",
+        pricingInput: testerRetailPrice,
+        retailPrice: testerRetailPrice,
+        fulfillment: "ON_HAND",
+        stock: randomInt(3, 8),
+        isTester: true,
+        testerFamily: family,
+        testerBrand: entry.brand || null,
+      });
+    }
+
     const decantCostPrice = costPerMlCentavos * 100;
     const decantMarkup = 30;
     const decantReference = computeRetailPrice({
@@ -250,27 +276,6 @@ async function seedFragrances() {
         fulfillment: "ON_HAND",
         stock: 0,
         isTester: false,
-      });
-    }
-
-    if (index < 2) {
-      skuRows.push({
-        productId: decantProduct.id,
-        sku: `${brandSlug}-${nameSlug}-T2`,
-        label: "2ml Tester",
-        sizeMl: 2,
-        condition: "FEW_SPRAYS_MISSING",
-        provenance: "TESTER",
-        packaging: "BOTTLE_ONLY",
-        costPrice: 0,
-        pricingMode: "DIRECT",
-        pricingInput: 0,
-        retailPrice: 0,
-        fulfillment: "ON_HAND",
-        stock: randomInt(3, 8),
-        isTester: true,
-        testerFamily: family,
-        testerBrand: entry.brand || null,
       });
     }
 

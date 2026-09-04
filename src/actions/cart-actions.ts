@@ -180,6 +180,7 @@ export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOpt
         packaging: skus.packaging,
         fulfillment: skus.fulfillment,
         stock: skus.stock,
+        isTester: skus.isTester,
       })
       .from(skus)
       .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true))),

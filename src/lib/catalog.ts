@@ -85,6 +85,7 @@ interface SkuRow {
   packaging: (typeof skus.$inferSelect)["packaging"];
   sizeMl: number | null;
   isActive: boolean;
+  isTester: boolean;
 }
 
 /**
@@ -106,16 +107,30 @@ function decantVariantFulfillment(
   return decantFulfillment({ remainingMl, sizeMl: variant.sizeMl ?? DECANT_SIZES_ML[0], thresholdMl });
 }
 
+function sizePickerGroupLabel(sizeMl: number, provenance: Provenance, isTester: boolean): string {
+  const provenanceLabel = labelForProvenance(provenance);
+  if (isTester && provenance !== "TESTER") {
+    return `${sizeMl}ML · ${provenanceLabel} · Tester`;
+  }
+  return `${sizeMl}ML · ${provenanceLabel}`;
+}
+
+function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[] {
+  const positive = variants.filter((v) => v.retailPrice > 0);
+  return positive.length > 0 ? positive : variants;
+}
+
 /**
  * Turns a product's raw SKU rows into priced, fulfillment-aware
- * `SizePickerOption[]` — grouped by size+provenance (provenance is always
- * baked into the group's label, e.g. "10ML · Retail", never left implicit),
- * with condition/packaging exposed as a secondary `subOptions` picker only
- * when a group actually has more than one SKU to distinguish. Shared by the
- * shop grid (`loadCatalogCards`), the PDP, and the cart drawer's "Customize"
- * picker (`getSiblingSkuOptions`, src/actions/cart-actions.ts) — pure (no DB
- * access) so each call site fetches `variants`/`discounts` however best
- * fits its own query shape.
+ * `SizePickerOption[]` — grouped by size+provenance+tester so a promo-pool
+ * tester sharing size and provenance with a regular bottle is its own button
+ * (e.g. "100ML · Retail · Tester"), never an unlabeled duplicate sub-option.
+ * Provenance is always baked into the group's label. Condition/packaging
+ * become a secondary `subOptions` picker only when a group has more than one
+ * SKU to distinguish. Shared by the shop grid (`loadCatalogCards`), the PDP,
+ * and the cart drawer's "Customize" picker (`getSiblingSkuOptions`) — pure
+ * (no DB access) so each call site fetches `variants`/`discounts` however
+ * best fits its own query shape.
  */
 export function buildVariantOptions(
   variants: Array<{
@@ -127,6 +142,7 @@ export function buildVariantOptions(
     condition: Condition;
     provenance: Provenance;
     packaging: Packaging;
+    isTester?: boolean;
   }>,
   discounts: ProductDiscount[],
   opts: { isDecant: boolean; remainingMl: number; thresholdMl: number },
@@ -138,12 +154,11 @@ export function buildVariantOptions(
       const fulfillment = opts.isDecant
         ? decantVariantFulfillment(v, opts.remainingMl, opts.thresholdMl)
         : v.fulfillment;
-      // A RETAIL/full-bottle-style unit is a real physical unit with its own
-      // stock and can genuinely sell out; an IN_HOUSE decant can't — running
-      // low just tips it into PRE_ORDER via the shared ml pool.
       const soldOut = (!opts.isDecant || v.provenance === "RETAIL") && fulfillment === "ON_HAND" && v.stock <= 0;
+      const isTester = Boolean(v.isTester);
       return {
         ...v,
+        isTester,
         fulfillment,
         soldOut,
         originalCentavos: v.retailPrice,
@@ -154,7 +169,7 @@ export function buildVariantOptions(
 
   const groups = new Map<string, typeof enriched>();
   for (const v of enriched) {
-    const key = `${v.sizeMl}::${v.provenance}`;
+    const key = `${v.sizeMl}::${v.provenance}::${v.isTester ? "1" : "0"}`;
     const arr = groups.get(key);
     if (arr) arr.push(v);
     else groups.set(key, [v]);
@@ -188,7 +203,7 @@ export function buildVariantOptions(
         : undefined;
     options.push({
       sizeMl: defaultMember.sizeMl!,
-      label: `${defaultMember.sizeMl}ML · ${labelForProvenance(defaultMember.provenance)}`,
+      label: sizePickerGroupLabel(defaultMember.sizeMl!, defaultMember.provenance, defaultMember.isTester),
       skuId: defaultMember.skuId,
       fulfillment: defaultMember.fulfillment,
       condition: defaultMember.condition,
@@ -265,6 +280,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         packaging: skus.packaging,
         sizeMl: skus.sizeMl,
         isActive: skus.isActive,
+        isTester: skus.isTester,
       })
       .from(skus)
       .where(and(eq(skus.isActive, true), inArray(skus.productId, productIds))),
@@ -313,10 +329,12 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     const destination = pickDestinationSku(product.type, variants, filter.sizeMl);
     if (!destination) continue;
     const priced = variants.map((variant) => priceVariant(variant, discounts));
-    const minOriginal = Math.min(...priced.map((p) => p.original));
-    const maxOriginal = Math.max(...priced.map((p) => p.original));
-    const minDiscounted = Math.min(...priced.map((p) => p.discounted));
-    const maxDiscounted = Math.max(...priced.map((p) => p.discounted));
+    const range = priced.filter((p) => p.original > 0);
+    const rangeSource = range.length > 0 ? range : priced;
+    const minOriginal = Math.min(...rangeSource.map((p) => p.original));
+    const maxOriginal = Math.max(...rangeSource.map((p) => p.original));
+    const minDiscounted = Math.min(...rangeSource.map((p) => p.discounted));
+    const maxDiscounted = Math.max(...rangeSource.map((p) => p.discounted));
     const hasDiscount = priced.some((p) => p.discounted < p.original);
     const destFulfillment =
       product.type === "DECANT"
@@ -455,19 +473,20 @@ function pickDestinationSku(
   variants: SkuRow[],
   preferredSizeMl?: number,
 ): SkuRow | undefined {
+  const pool = pricedForDisplay(variants);
   if (type === "DECANT") {
     if (preferredSizeMl) {
-      const match = variants.find((v) => v.sizeMl === preferredSizeMl);
+      const match = pool.find((v) => v.sizeMl === preferredSizeMl);
       if (match) return match;
     }
-    const three = variants.find((v) => v.sizeMl === 3);
+    const three = pool.find((v) => v.sizeMl === 3);
     if (three) return three;
-    return [...variants].sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))[0];
+    return [...pool].sort((a, b) => (a.sizeMl ?? 0) - (b.sizeMl ?? 0))[0];
   }
-  const onHand = variants
+  const onHand = pool
     .filter((v) => v.fulfillment === "ON_HAND" && v.stock > 0)
     .sort((a, b) => a.retailPrice - b.retailPrice);
-  return onHand[0] ?? variants.sort((a, b) => a.retailPrice - b.retailPrice)[0];
+  return onHand[0] ?? [...pool].sort((a, b) => a.retailPrice - b.retailPrice)[0];
 }
 
 function priceVariant(variant: SkuRow, discounts: ProductDiscount[]) {
@@ -546,7 +565,7 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
   const results: SearchResultCard[] = [];
   for (const product of matches) {
     if (results.length >= SEARCH_RESULT_LIMIT) break;
-    const variants = skusByProduct.get(product.id) ?? [];
+    const variants = pricedForDisplay(skusByProduct.get(product.id) ?? []);
     if (variants.length === 0) continue;
     const discounts = withSiteWideDiscount(discountsByProduct.get(product.id) ?? [], product.id, siteWideDiscount);
     const discounted = variants.map((v) => applyDiscount(v.retailPrice, bestDiscount(discounts, v.retailPrice)).discountedUnitCentavos);
