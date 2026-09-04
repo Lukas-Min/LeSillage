@@ -1,5 +1,16 @@
 import { Package, Sparkles, Truck, Wallet } from "lucide-react";
 
+// One sentence per shelf, shared by the FAQ entry below and each
+// /collections/<category> page header — so the two can't drift apart.
+export const FRAGRANCE_CATEGORY_BLURBS = {
+  NICHE:
+    "small independent perfume houses. Smaller batches, more unusual compositions, and usually a higher price per ml.",
+  DESIGNER:
+    "fragrances from fashion and beauty labels like Dior, YSL, or Versace. Widely recognised, easy to wear, and the most familiar names on the shelf.",
+  MIDDLE_EASTERN:
+    "houses from the Gulf, such as Lattafa, Armaf, and Rasasi. Known for rich oud, amber, and spice, strong lasting power, and very fair prices.",
+} as const;
+
 export type FaqAnswer =
   | string
   | {
@@ -28,12 +39,24 @@ export const FAQ_GROUPS = [
       {
         q: "What's the difference between Retail and In-house on a decant?",
         a: {
-          lead: "Both are decants — just sourced two different ways:",
+          lead: "Both are decants — the difference is who bottled them:",
           bullets: [
-            "In-house — poured to order from a bottle we own. Stays available as long as that bottle has enough left.",
-            "Retail — a pre-made decant we bought as its own unit, with its own stock. Can sell out on its own.",
+            "In-house — we poured it ourselves, to order, from a full bottle we own. Available as long as that bottle has enough left.",
+            "Retail — bottled by the perfume house itself and sourced directly from them, not poured by us. It arrives sealed as its own unit, so it has its own stock and can sell out.",
           ],
           note: "If both exist at the same size, you'll see two buttons to pick from — e.g. 10ML · Retail and 10ML · In-house.",
+        } satisfies FaqAnswer,
+      },
+      {
+        q: "What do Niche, Designer, and Middle Eastern mean?",
+        a: {
+          lead: "They're the three shelves we sort the catalog into, by the kind of house a fragrance comes from:",
+          bullets: [
+            `Niche — ${FRAGRANCE_CATEGORY_BLURBS.NICHE}`,
+            `Designer — ${FRAGRANCE_CATEGORY_BLURBS.DESIGNER}`,
+            `Middle Eastern — ${FRAGRANCE_CATEGORY_BLURBS.MIDDLE_EASTERN}`,
+          ],
+          note: "It's about the house, not the scent itself — you'll find fresh, sweet, and woody fragrances on all three shelves.",
         } satisfies FaqAnswer,
       },
       {
