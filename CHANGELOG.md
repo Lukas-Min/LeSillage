@@ -16,6 +16,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - `/shop`'s toolbar (fragrance count + Filter/Sort buttons) now has its own loading skeleton (`ShopToolbarSkeleton` in `src/components/store/loading.tsx`) instead of vanishing to blank space while results load
 - Repo PR template (`.github/pull_request_template.md`): Ticket, Summary, Changes (fixes only), Feature (new features only), Acceptance, Testing, Scope
 ### Changed
+- `/shop`'s subtitle no longer crams on-hand/pre-order, Retail vs In-house, and tester-availability explanations into one sentence (`SHOP_CATALOG_SUBTITLE` in `src/lib/faq-copy.ts`) — those are already covered per-listing (stock badge, size-picker provenance) and in the FAQ
+- Checkout's helper line under the page title no longer restates the delivery fee and tester-promo threshold (already shown live and precisely by the delivery/pickup summary in `CheckoutForm`) — trimmed to just the currency note (`src/app/(store)/checkout/page.tsx`, `checkout/loading.tsx`)
 - Every `Skeleton` placeholder (product cards, admin tables, this) now sweeps a soft shimmer highlight instead of a flat pulse — one shared `.skeleton-shine` rule in `globals.css`, so every existing loading state picks it up automatically
 - Payment-reminder cron moved from hourly to once a day at 10:00 PHT (`0 2 * * *`) so Hobby-plan Vercel deploys are not rejected
 - SKU lists and size pickers sort smallest millilitre first, then A–Z by label (3ml before 10ml) in `compareSkuOrder`

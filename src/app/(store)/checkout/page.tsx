@@ -90,9 +90,7 @@ export default async function CheckoutPage({
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
       <h1 className="font-serif-display text-2xl">Checkout</h1>
-      <p className="text-sm text-muted-foreground">
-        All amounts in Philippine pesos (₱). Delivery default ₱120, pickup free. A delivered order with ₱2,000 of discounted decants unlocks free delivery and a complimentary tester.
-      </p>
+      <p className="text-sm text-muted-foreground">All amounts shown are in Philippine pesos (₱).</p>
       <CheckoutForm
         defaultName={userRow?.name ?? session.user.name ?? ""}
         defaultEmail={session.user.email ?? ""}
