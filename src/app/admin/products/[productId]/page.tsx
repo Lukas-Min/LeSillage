@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { products, skus, productDiscounts, productImages, orders, orderItems } from "@/db/schema";
+import { products, skus, productDiscounts, productImages, orders, orderItems, promoSettings } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import {
 } from "@/actions/admin-catalog-actions";
 import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
+import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +53,13 @@ export default async function AdminProductDetailPage({
   const { productId } = await params;
   const product = (await db().select().from(products).where(eq(products.id, productId)))[0];
   if (!product) return notFound();
-  const [skuList, discountList, imageList] = await Promise.all([
+  const [skuList, discountList, imageList, promoRow] = await Promise.all([
     db().select().from(skus).where(eq(skus.productId, productId)).orderBy(asc(skus.label)),
     db().select().from(productDiscounts).where(eq(productDiscounts.productId, productId)),
     db().select().from(productImages).where(eq(productImages.productId, productId)),
+    db().select().from(promoSettings),
   ]);
+  const decantThresholdMl = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   let pendingPreOrderMl = 0;
   if (product.type === "DECANT" && skuList.length > 0) {
     const pendingRows = await db()
@@ -221,15 +224,40 @@ export default async function AdminProductDetailPage({
                 <Field label="Size (ml)" htmlFor={`sku-size-${sku.id}`}>
                   <Input id={`sku-size-${sku.id}`} name="sizeMl" type="number" defaultValue={sku.sizeMl ?? ""} />
                 </Field>
-                <Field label="Fulfillment" htmlFor={`sku-fulfillment-${sku.id}`}>
-                  <select id={`sku-fulfillment-${sku.id}`} name="fulfillment" defaultValue={sku.fulfillment} className={selectClass}>
-                    <option value="ON_HAND">On hand</option>
-                    <option value="PRE_ORDER">Pre-order</option>
-                  </select>
-                </Field>
-                <Field label="Stock" htmlFor={`sku-stock-${sku.id}`}>
-                  <Input id={`sku-stock-${sku.id}`} name="stock" type="number" defaultValue={sku.stock} />
-                </Field>
+                {product.type === "DECANT" ? (
+                  <>
+                    <input type="hidden" name="fulfillment" value={sku.fulfillment} />
+                    <input type="hidden" name="stock" value={sku.stock} />
+                    <Field label="Availability" htmlFor={`sku-availability-${sku.id}`}>
+                      <p id={`sku-availability-${sku.id}`} className="flex h-11 items-center text-sm text-muted-foreground">
+                        {decantFulfillment({
+                          remainingMl: product.remainingMl ?? 0,
+                          sizeMl: sku.sizeMl ?? 0,
+                          thresholdMl: decantThresholdMl,
+                        }) === "ON_HAND"
+                          ? "On hand"
+                          : "Pre-order"}
+                      </p>
+                    </Field>
+                    <Field label="Stock" htmlFor={`sku-stock-note-${sku.id}`}>
+                      <p id={`sku-stock-note-${sku.id}`} className="flex h-11 items-center text-sm text-muted-foreground">
+                        From the {product.remainingMl ?? 0}ml pool above
+                      </p>
+                    </Field>
+                  </>
+                ) : (
+                  <>
+                    <Field label="Fulfillment" htmlFor={`sku-fulfillment-${sku.id}`}>
+                      <select id={`sku-fulfillment-${sku.id}`} name="fulfillment" defaultValue={sku.fulfillment} className={selectClass}>
+                        <option value="ON_HAND">On hand</option>
+                        <option value="PRE_ORDER">Pre-order</option>
+                      </select>
+                    </Field>
+                    <Field label="Stock" htmlFor={`sku-stock-${sku.id}`}>
+                      <Input id={`sku-stock-${sku.id}`} name="stock" type="number" defaultValue={sku.stock} />
+                    </Field>
+                  </>
+                )}
                 <Field label="Condition" htmlFor={`sku-condition-${sku.id}`}>
                   <select id={`sku-condition-${sku.id}`} name="condition" defaultValue={sku.condition} className={selectClass}>
                     <option value="BNIB">BNIB</option>
@@ -293,15 +321,29 @@ export default async function AdminProductDetailPage({
                 <Field label="Size (ml)" htmlFor="new-sku-size">
                   <Input id="new-sku-size" name="sizeMl" type="number" placeholder="e.g. 10 — price derives from the product formula above" />
                 </Field>
-                <Field label="Fulfillment" htmlFor="new-sku-fulfillment">
-                  <select id="new-sku-fulfillment" name="fulfillment" defaultValue="ON_HAND" className={selectClass}>
-                    <option value="ON_HAND">On hand</option>
-                    <option value="PRE_ORDER">Pre-order</option>
-                  </select>
-                </Field>
-                <Field label="Stock" htmlFor="new-sku-stock">
-                  <Input id="new-sku-stock" name="stock" type="number" defaultValue={0} />
-                </Field>
+                {product.type === "DECANT" ? (
+                  <>
+                    <input type="hidden" name="fulfillment" value="ON_HAND" />
+                    <input type="hidden" name="stock" value={0} />
+                    <Field label="Availability" htmlFor="new-sku-availability">
+                      <p id="new-sku-availability" className="flex h-11 items-center text-sm text-muted-foreground">
+                        Auto, from the ml pool above
+                      </p>
+                    </Field>
+                  </>
+                ) : (
+                  <>
+                    <Field label="Fulfillment" htmlFor="new-sku-fulfillment">
+                      <select id="new-sku-fulfillment" name="fulfillment" defaultValue="ON_HAND" className={selectClass}>
+                        <option value="ON_HAND">On hand</option>
+                        <option value="PRE_ORDER">Pre-order</option>
+                      </select>
+                    </Field>
+                    <Field label="Stock" htmlFor="new-sku-stock">
+                      <Input id="new-sku-stock" name="stock" type="number" defaultValue={0} />
+                    </Field>
+                  </>
+                )}
                 <Field label="Condition" htmlFor="new-sku-condition">
                   <select id="new-sku-condition" name="condition" defaultValue="SEALED" className={selectClass}>
                     <option value="BNIB">BNIB</option>

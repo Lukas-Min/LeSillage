@@ -23,7 +23,7 @@ import {
   type ProductType,
   type Provenance,
 } from "@/db/schema";
-import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
+import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain/pricing";
 import { toCentavos } from "@/domain/money";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
@@ -40,7 +40,7 @@ async function limitAdmin(adminId: string, key: string) {
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
 }
 
-/** Recomputes every SKU's retail price from the product's reference formula (costPrice/pricingMode/pricingInput, scaled by sourceMl -> sizeMl). */
+/** Recomputes every SKU's retail price AND cost price from the product's reference formula (costPrice/pricingMode/pricingInput, scaled by sourceMl -> sizeMl). Keeping cost in sync too is what makes the admin product list's "(cost ₱X)" actually reflect the real per-size cost basis instead of going stale. */
 async function resyncSkuPricesForProduct(
   productId: string,
   product: { costPrice: number; pricingMode: PricingMode; pricingInput: number; sourceMl: number | null },
@@ -57,7 +57,8 @@ async function resyncSkuPricesForProduct(
       sourceMl: product.sourceMl,
       sizeMl: sku.sizeMl,
     });
-    await db().update(skus).set({ retailPrice, updatedAt: new Date() }).where(eq(skus.id, sku.id));
+    const costPrice = scaleBySize({ referenceCentavos: product.costPrice, sourceMl: product.sourceMl, sizeMl: sku.sizeMl });
+    await db().update(skus).set({ retailPrice, costPrice, updatedAt: new Date() }).where(eq(skus.id, sku.id));
   }
   return referenceRetailPriceCentavos;
 }
@@ -197,6 +198,7 @@ export async function upsertSku(formData: FormData) {
     sourceMl: product.sourceMl,
     sizeMl: parsed.sizeMl ?? null,
   });
+  const costPrice = scaleBySize({ referenceCentavos: product.costPrice ?? 0, sourceMl: product.sourceMl, sizeMl: parsed.sizeMl ?? null });
   const values = {
     productId: parsed.productId,
     sku: parsed.sku,
@@ -205,7 +207,7 @@ export async function upsertSku(formData: FormData) {
     condition: parsed.condition as Condition,
     provenance: parsed.provenance as Provenance,
     packaging: parsed.packaging as Packaging,
-    costPrice: 0,
+    costPrice,
     pricingMode: "DIRECT" as PricingMode,
     pricingInput: retailPrice,
     retailPrice,

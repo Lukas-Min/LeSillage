@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- The admin product edit page showed an editable "Fulfillment" and "Stock" field per DECANT SKU that had no real effect — decant availability is always computed live from the product's shared `remainingMl` pool via `decantFulfillment()` (10ml+ pool and at-or-above that size → on hand, otherwise pre-order), never from the per-SKU columns; editing them there was a silent no-op that made it look like each size had its own stock count. Replaced with a read-only computed "Availability" status for decant SKUs (both existing SKUs and the "Add a SKU" form); the underlying columns are preserved via hidden inputs so saving doesn't disturb them
+- `sku.costPrice` for every decant SKU was stale — left over from the original pricelist import's Base-Full-Bottle-Price-per-size figure, unrelated to the corrected product-level cost basis, so the admin product list's "(cost ₱X)" showed almost no margin instead of the real ~30%. `resyncSkuPricesForProduct` (admin save) and `upsertSku` (new SKU) now also resync `costPrice` via the new `scaleBySize()` helper; re-synced all existing decant SKUs with the updated `scripts/resync-decant-sku-prices.ts`
 ### Changed
 - Decant SKU prices now round UP to the nearest ₱5 instead of landing on raw fractional-centavo values (e.g. ₱56.55 → ₱60, ₱119.44 → ₱120). `computeSkuRetailPrice` (`src/domain/pricing.ts`) applies the new `ceilToNearestPesos` helper to the per-size scaled price; full-bottle SKUs (which don't scale by size) are unaffected. Resynced all existing decant SKUs with `scripts/resync-decant-sku-prices.ts`
 - Renamed the `male`/`female` gender values to `men`/`women` throughout (`src/domain/gender.ts`, the shop's Gender filter, and the pricelist import scripts); `unisex` is unchanged. Migrated existing catalog data with `scripts/rename-gender-values.ts` (17 `male` → `men`, 18 `female` → `women`)

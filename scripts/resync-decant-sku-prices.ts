@@ -1,7 +1,17 @@
 /**
- * Recomputes every DECANT product's SKU retail prices from the product's
- * pricing formula (costPrice/pricingMode/pricingInput scaled by sourceMl ->
- * sizeMl), same as resyncSkuPricesForProduct in admin-catalog-actions.ts.
+ * Recomputes every DECANT product's SKU retail price AND cost price from the
+ * product's pricing formula (costPrice/pricingMode/pricingInput scaled by
+ * sourceMl -> sizeMl), same as resyncSkuPricesForProduct in
+ * admin-catalog-actions.ts plus a per-size cost resync it doesn't do.
+ *
+ * sku.costPrice was left stale by earlier passes (normalize-decant-markup.ts
+ * only ever touched retailPrice): it was still the ORIGINAL import's
+ * Base-Full-Bottle-Price-per-size figure, which is why the admin product
+ * list's "(cost ₱X)" looked almost identical to retail (near-0% margin)
+ * instead of reflecting the real ~30% markup — cost and retail were scaled
+ * from two different reference prices. Now both derive from the same
+ * product-level costPrice via scaleBySize, so cost is what retail was priced
+ * off of (retail then rounds up to the nearest ₱5 on top of that).
  *
  * Run after any change to computeSkuRetailPrice's rounding behavior (see
  * src/domain/pricing.ts) so already-stored prices pick up the new rule —
@@ -16,7 +26,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { eq } from "drizzle-orm";
-import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
+import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain/pricing";
 import { db } from "../src/db/client";
 import { products, skus } from "../src/db/schema";
 
@@ -38,9 +48,14 @@ async function main() {
         sourceMl: product.sourceMl,
         sizeMl: sku.sizeMl,
       });
-      if (retailPrice !== sku.retailPrice) {
-        await client.update(skus).set({ retailPrice, updatedAt: new Date() }).where(eq(skus.id, sku.id));
-        console.log(`    ${sku.sizeMl}ml: ${sku.retailPrice} -> ${retailPrice}`);
+      const costPrice = scaleBySize({
+        referenceCentavos: product.costPrice ?? 0,
+        sourceMl: product.sourceMl,
+        sizeMl: sku.sizeMl,
+      });
+      if (retailPrice !== sku.retailPrice || costPrice !== sku.costPrice) {
+        await client.update(skus).set({ retailPrice, costPrice, updatedAt: new Date() }).where(eq(skus.id, sku.id));
+        console.log(`    ${sku.sizeMl}ml: retail ${sku.retailPrice} -> ${retailPrice}, cost ${sku.costPrice} -> ${costPrice}`);
         changed += 1;
       }
     }

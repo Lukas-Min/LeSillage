@@ -33,15 +33,33 @@ export function computeRetailPrice({
 }
 
 /**
+ * Scales a per-reference-size amount (cost or price, in centavos) down to a
+ * SKU's actual size — e.g. a ₱2,000 / 100ml reference scales to ₱200 for a
+ * 10ml decant. Sizeless SKUs (sizeMl null/0, or sourceMl unset) just take
+ * the reference amount as-is.
+ */
+export function scaleBySize({
+  referenceCentavos,
+  sourceMl,
+  sizeMl,
+}: {
+  referenceCentavos: number;
+  sourceMl: number | null | undefined;
+  sizeMl: number | null | undefined;
+}): number {
+  if (!sourceMl || !sizeMl) return referenceCentavos;
+  return Math.round((referenceCentavos / sourceMl) * sizeMl);
+}
+
+/**
  * Every SKU's retail price derives from the product's single reference
  * price (computed via computeRetailPrice from the product's cost/mode/
- * input) scaled by size — e.g. a 2,000-centavo reference for a 100ml
- * bottle prices a 10ml decant at 2000/100*10 = 200. Sizeless SKUs
- * (sizeMl null/0, or sourceMl unset) just take the reference price as-is.
+ * input) scaled by size via scaleBySize.
  *
  * A scaled (per-size) price is then rounded UP to the nearest ₱5 so decant
  * prices always end in a clean 0 or 5, rather than the raw ₱56.55-style
- * fraction the size ratio produces.
+ * fraction the size ratio produces. Sizeless SKUs (sizeMl null/0, or
+ * sourceMl unset) just take the reference price as-is, unrounded.
  */
 export function computeSkuRetailPrice({
   referenceRetailPriceCentavos,
@@ -53,8 +71,7 @@ export function computeSkuRetailPrice({
   sizeMl: number | null | undefined;
 }): number {
   if (!sourceMl || !sizeMl) return referenceRetailPriceCentavos;
-  const scaled = (referenceRetailPriceCentavos / sourceMl) * sizeMl;
-  return ceilToNearestPesos(scaled, 5);
+  return ceilToNearestPesos(scaleBySize({ referenceCentavos: referenceRetailPriceCentavos, sourceMl, sizeMl }), 5);
 }
 
 export function pricingInputLabel(mode: PricingMode): string {
