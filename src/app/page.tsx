@@ -107,7 +107,6 @@ async function FlagshipPanel() {
           pyramid={flagship.notePyramid}
           imageUrl={flagship.imageUrl}
           imageAlt={flagship.imageAlt}
-          className="transition-transform duration-300 hover:-translate-y-1"
         />
       </div>
       <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">

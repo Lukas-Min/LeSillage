@@ -29,7 +29,7 @@ export function CompositionCanvas({
     return (
       <div
         className={cn(
-          "relative aspect-square w-full overflow-hidden border border-border bg-white p-4",
+          "group relative aspect-square w-full overflow-hidden border border-border bg-white p-4",
           className,
         )}
       >
@@ -39,7 +39,7 @@ export function CompositionCanvas({
           src={imageUrl}
           alt={imageAlt ?? `${brand} — ${name}`}
           onError={() => setImageFailed(true)}
-          className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.05]"
         />
       </div>
     );
@@ -47,7 +47,7 @@ export function CompositionCanvas({
   return (
     <div
       className={cn(
-        "relative flex aspect-square w-full flex-col justify-between border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] p-5 sm:p-6",
+        "group relative flex aspect-square w-full flex-col justify-between overflow-hidden border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] p-5 sm:p-6",
         className,
       )}
     >
@@ -90,7 +90,7 @@ function BottleGlyph() {
   return (
     <svg
       viewBox="0 0 64 96"
-      className="h-24 w-auto text-gold/50 transition-transform duration-500 ease-out group-hover:scale-[1.06] group-hover:text-gold/70"
+      className="h-24 w-auto text-gold/50 transition-transform duration-500 ease-out group-hover:scale-[1.05] group-hover:text-gold/70"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"

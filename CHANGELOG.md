@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- The 16 full-bottle products from `scripts/import-full-bottle-pricelist.ts` had a short auto-generated description reading "Name by Brand (Year)." — changed to "By Perfumer(s) (Year)." (e.g. "By Shyamala Maisondieu, Adriana Medina-Baez, Nadege le Garlantezec and Sonia Constant (2019)."), falling back to the brand only for the 4 entries with no credited perfumer. Re-ran the script to update the live descriptions (pricing untouched)
+- Product picture hover effects were inconsistent — the shop grid zoomed the photo in slightly on hover, the homepage flagship lifted the whole card instead, and the product detail page had no hover effect at all, with two different zoom amounts (1.03 vs 1.06) between the photo and the no-image fallback glyph. `CompositionCanvas` now carries its own `group` and hover-zoom (uniform 1.05 scale) internally, so every picture across the site (card, flagship, PDP) zooms in the same way regardless of how the caller wraps it
 ### Added
 - Product cards now show gender next to concentration in the subtitle (e.g. "Eau de Parfum · Women"), matching the product detail page — was only shown on the PDP before
 - Added Dolce & Gabbana — Devotion as a new DECANT product (`scripts/add-dg-devotion-decant.ts`), metadata sourced from its Fragrantica page. 50ml source bottle at a ₱2,250 discounted cost with a flat ₱3,000 FIXED markup (not a percentage) — reference retail ₱5,250 — so 3/5/10/30ml SKU prices (₱315/₱525/₱1,050/₱3,150) derive from that reference
