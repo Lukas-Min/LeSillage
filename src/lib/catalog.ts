@@ -22,7 +22,7 @@ import { labelForCondition, labelForPackaging, labelForProvenance } from "@/doma
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 import { compareSkuOrder, type SizePickerOption, type VariantSubOption } from "@/domain/variant-options";
 
-export const CATALOG_SORTS = ["featured", "rating", "price_asc", "price_desc"] as const;
+export const CATALOG_SORTS = ["featured", "rating", "price_asc", "price_desc", "name_asc"] as const;
 export type CatalogSort = (typeof CATALOG_SORTS)[number];
 
 export interface CatalogFilter {
@@ -460,6 +460,9 @@ function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardMod
       return sorted;
     case "rating":
       sorted.sort((a, b) => (b.ratingValue ?? -1) - (a.ratingValue ?? -1));
+      return sorted;
+    case "name_asc":
+      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
       return sorted;
     case "featured":
       return sorted;

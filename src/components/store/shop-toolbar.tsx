@@ -22,6 +22,7 @@ const SORT_LABELS: Record<CatalogSort, string> = {
   rating: "Most rated",
   price_asc: "Price: low to high",
   price_desc: "Price: high to low",
+  name_asc: "Name: A to Z",
 };
 
 const CATEGORY_LABELS: Record<FragranceCategory, string> = {

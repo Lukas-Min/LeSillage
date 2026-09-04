@@ -12,6 +12,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Decant SKUs gained a real Retail vs In-house provenance distinction: In-house (poured from a whole bottle) still uses the shared remaining-ml pool exactly as before; Retail (bought pre-made as a decant from the perfumery) now works like a full-bottle SKU with its own real Fulfillment/Stock, and can genuinely sell out. Migrated all 104 existing decant SKUs from the old generic "Retail" provenance to "In-house" so their live availability didn't change (`scripts/migrate-decant-provenance-to-in-house.ts`) — Retail is now reserved for new decant listings actually bought pre-made
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
+- "Name: A to Z" sort option on `/shop` (`name_asc` in `CATALOG_SORTS`, `src/lib/catalog.ts`)
 ### Changed
 - Payment-reminder cron moved from hourly to once a day at 10:00 PHT (`0 2 * * *`) so Hobby-plan Vercel deploys are not rejected
 - SKU lists and size pickers sort smallest millilitre first, then A–Z by label (3ml before 10ml) in `compareSkuOrder`
