@@ -1,6 +1,6 @@
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { PageHeader, SectionCard } from "@/components/ui/section";
-import { FAQ_GROUPS } from "@/lib/faq-copy";
+import { PageHeader } from "@/components/ui/section";
+import { FaqGroupList } from "@/components/store/faq-groups";
 
 export default function FaqPage() {
   return (
@@ -12,26 +12,7 @@ export default function FaqPage() {
           title="Frequently asked questions"
           subtitle="Ordering, payment, shipping, and everything in between."
         />
-        {FAQ_GROUPS.map((group) => (
-          <SectionCard
-            key={group.id}
-            eyebrow={group.title}
-            actions={
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
-                <group.icon className="h-4 w-4" />
-              </span>
-            }
-          >
-            <div className="space-y-4">
-              {group.items.map((item, index) => (
-                <div key={item.q} className={index > 0 ? "border-t border-border/60 pt-4" : ""}>
-                  <p className="font-serif-display text-base leading-tight">{item.q}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{item.a}</p>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        ))}
+        <FaqGroupList />
       </div>
     </main>
   );
