@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { addresses, users } from "@/db/schema";
-import { loadCartViewForBothMethods, resolveActiveCart } from "@/lib/cart";
+import { loadCartViewForBothMethods, loadDirectItemViewForBothMethods, resolveActiveCart } from "@/lib/cart";
 import { fetchProvinceOptions } from "@/lib/ph-locations";
 import { CheckoutForm } from "@/components/store/checkout-form";
 import { Button } from "@/components/ui/button";
@@ -12,22 +12,42 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ buyNow?: string }>;
+}) {
+  // Buy Now: "?buyNow=<skuId>:<quantity>" prices exactly that item with no
+  // cart involved at all — resolveActiveCart/loadCartViewForBothMethods are
+  // skipped entirely, so the cart is never read here.
+  const { buyNow } = await searchParams;
+  const [rawSkuId, rawQuantity] = buyNow?.split(":") ?? [];
+  const directItem =
+    rawSkuId && Number.isFinite(Number(rawQuantity)) && Number(rawQuantity) >= 1
+      ? { skuId: rawSkuId, quantity: Math.floor(Number(rawQuantity)) }
+      : null;
+
   const session = await auth();
   if (!session?.user) {
-    redirect("/sign-in?returnTo=/checkout");
+    // Preserve the buyNow target across sign-in so it isn't silently
+    // dropped in favor of an empty-cart checkout after the redirect back.
+    const returnTo = directItem ? `/checkout?buyNow=${encodeURIComponent(buyNow!)}` : "/checkout";
+    redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
   }
-  const { cart } = await resolveActiveCart();
+
   const userRows = await db()
     .select({ phone: users.phone, defaultAddressId: users.defaultAddressId, name: users.name })
     .from(users)
     .where(eq(users.id, session.user.id));
+  const userRow = userRows[0];
+
   const [cartView, savedAddresses, provinces] = await Promise.all([
-    loadCartViewForBothMethods(cart.id),
+    directItem
+      ? loadDirectItemViewForBothMethods(directItem.skuId, directItem.quantity)
+      : resolveActiveCart().then(({ cart }) => loadCartViewForBothMethods(cart.id)),
     db().select().from(addresses).where(eq(addresses.userId, session.user.id)),
     fetchProvinceOptions(),
   ]);
-  const userRow = userRows[0];
   // Deactivated-SKU lines ride along in `items` (see loadCartView) so the
   // drawer/cart page can show a "no longer available" notice — but they must
   // not count as real, purchasable items here or reach the order form.
@@ -37,7 +57,9 @@ export default async function CheckoutPage() {
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
         <h1 className="font-serif-display text-2xl">Checkout</h1>
-        <p className="mt-4 text-muted-foreground">Your cart is empty.</p>
+        <p className="mt-4 text-muted-foreground">
+          {directItem ? "This item is no longer available." : "Your cart is empty."}
+        </p>
         <Button asChild variant="gold" className="mt-4 rounded-md">
           <Link href="/shop">Browse the shop</Link>
         </Button>
@@ -62,6 +84,7 @@ export default async function CheckoutPage() {
         addresses={savedAddresses}
         defaultAddressId={userRow?.defaultAddressId ?? savedAddresses.find((a) => a.isDefault)?.id ?? null}
         provinces={provinces}
+        directItem={directItem ?? undefined}
       />
     </main>
   );

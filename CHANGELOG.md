@@ -3,7 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Added a "Buy now" button next to "Add to cart" on product cards and the product detail page (both decant and full bottle/partial) that skips the cart entirely — it routes straight to `/checkout?buyNow=<skuId>:<qty>`, which prices and orders exactly that one item without reading or clearing the customer's cart. `createOrderFromCart` gained an optional `directItems` input for this path; cart-sourced checkouts are unaffected
 ### Changed
+- The on-hand/pre-order ETA badge on the product detail page ("On hand · 1 to 2 days") was using the same compact `text-xs`/`h-5` sizing as small multi-badge rows on the product card, but stands alone there as the primary shipping-status info — enlarged it (and the condition/provenance/sold-out badges beside it) to `text-sm` with more padding
 - Every product-add path (the 4 one-off scripts, the full-bottle pricelist importer, the decant metadata backfill, and the live "Paste Fragrantica HTML" admin flow) now generates the same canonical description — "By &lt;perfumer(s)&gt; (&lt;year&gt;)." via new `formatFragranceDescription()` — instead of five different ad hoc formats (a full scraped paragraph in some, "Name by Brand (Year)." in others). Re-ran every affected script to fix the ~40 already-live products
 - Removed the duplicate account/admin navigation entry point: on mobile, the header's account icon and the bottom nav's "More" sheet showed the exact same menu; the header icon is now hidden on `/account`/`/admin` on mobile (desktop, which has no bottom nav, is unaffected)
 - Tapping a nav link inside the mobile "More" sheet or the header's account-preview panel now closes that sheet (previously only the hamburger menu did this) — `SidebarContent` takes a new `closeOnNavigate` prop

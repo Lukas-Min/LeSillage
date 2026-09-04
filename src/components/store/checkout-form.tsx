@@ -42,6 +42,7 @@ export function CheckoutForm({
   addresses,
   defaultAddressId,
   provinces,
+  directItem,
 }: {
   defaultName: string;
   defaultEmail: string;
@@ -52,6 +53,9 @@ export function CheckoutForm({
   addresses: SavedAddress[];
   defaultAddressId: string | null;
   provinces: PhProvinceOption[];
+  /** Buy Now: set when this checkout is for one direct item instead of the
+   *  cart — passed straight through to createCheckoutOrder untouched. */
+  directItem?: { skuId: string; quantity: number };
 }) {
   const router = useRouter();
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
@@ -178,6 +182,7 @@ export function CheckoutForm({
           notes: notes || null,
           acceptedTerms: true,
           promoCode: appliedPromoCode?.code ?? null,
+          directItem: directItem ?? null,
         });
         router.push(`/checkout/payment?orderNumber=${encodeURIComponent(result.orderNumber)}`);
       } catch (error) {

@@ -190,12 +190,12 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           ) : (
             <div className="order-6 flex flex-col gap-6">
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">
+                <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
                   {fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
                 </Badge>
-                <Badge variant="outline">{labelForCondition(row.condition)}</Badge>
-                <Badge variant="outline">{labelForProvenance(row.provenance)}</Badge>
-                {soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+                <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">{labelForCondition(row.condition)}</Badge>
+                <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">{labelForProvenance(row.provenance)}</Badge>
+                {soldOut ? <Badge variant="destructive" className="h-auto px-3 py-1.5 text-sm">Sold out</Badge> : null}
               </div>
 
               <SizeSection

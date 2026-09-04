@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
+import { BuyNowButton } from "@/components/store/buy-now-button";
 import { Price } from "@/components/store/price";
 import { SizePicker, type SizePickerOption } from "@/components/store/size-picker";
 
@@ -34,7 +35,7 @@ export function DecantBuyBox({
           specific physical bottle, but a decant is poured to order from a
           shared pool, so condition doesn't apply. */}
       <div className="flex flex-wrap gap-2">
-        <Badge variant="outline">
+        <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
           {selected.fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}
         </Badge>
       </div>
@@ -51,11 +52,14 @@ export function DecantBuyBox({
         quantity={quantity}
       />
 
-      <AddToCartButton
-        skuId={selected.skuId}
-        quantity={quantity}
-        onQuantityChange={setQuantity}
-      />
+      <div className="space-y-2">
+        <AddToCartButton
+          skuId={selected.skuId}
+          quantity={quantity}
+          onQuantityChange={setQuantity}
+        />
+        <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+      </div>
     </>
   );
 }

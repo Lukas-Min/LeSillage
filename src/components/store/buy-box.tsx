@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
+import { BuyNowButton } from "@/components/store/buy-now-button";
 import { Price } from "@/components/store/price";
 
 export function BuyBox({
@@ -29,7 +30,10 @@ export function BuyBox({
       {soldOut ? (
         <p className="text-sm text-destructive">Sold out — check back soon.</p>
       ) : (
-        <AddToCartButton skuId={skuId} quantity={quantity} onQuantityChange={setQuantity} />
+        <div className="space-y-2">
+          <AddToCartButton skuId={skuId} quantity={quantity} onQuantityChange={setQuantity} />
+          <BuyNowButton skuId={skuId} quantity={quantity} />
+        </div>
       )}
     </>
   );

@@ -28,7 +28,8 @@ import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals"
 import { checkPromoCodeEligibility } from "@/domain/promo-code";
 import { assertTransition } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
-import { loadPromoConfig, effectiveFulfillment } from "@/lib/cart";
+import { loadPromoConfig, effectiveFulfillment, resolveCartCap } from "@/lib/cart";
+import { clampQuantity } from "@/domain/money";
 import { withSiteWideDiscount } from "@/domain/discount";
 import { uploadPrivateImage } from "@/lib/blob";
 import { sendEmail } from "@/lib/email";
@@ -63,6 +64,10 @@ export interface CreateOrderInput {
   /** Raw customer input, normalized (trim + uppercase) before lookup — never
    *  trust a client-supplied discount amount, only the code string. */
   promoCode?: string | null;
+  /** Buy Now path: when set, the order is built from exactly these items
+   *  instead of the customer's persisted cart, and the cart is left
+   *  completely untouched (not read, not cleared). */
+  directItems?: { skuId: string; quantity: number }[];
 }
 
 export async function loadActiveCartForUser(userId: string) {
@@ -81,8 +86,17 @@ export async function loadActiveCartForUser(userId: string) {
 
 export async function createOrderFromCart(input: CreateOrderInput) {
   const client = db();
-  const { cart, items } = await loadActiveCartForUser(input.user.userId);
-  if (items.length === 0) throw new Error("Your cart is empty");
+  const usingDirectItems = Boolean(input.directItems && input.directItems.length > 0);
+  let cart: Awaited<ReturnType<typeof loadActiveCartForUser>>["cart"] | null = null;
+  let items: { skuId: string; quantity: number }[];
+  if (usingDirectItems) {
+    items = input.directItems!;
+  } else {
+    const loaded = await loadActiveCartForUser(input.user.userId);
+    cart = loaded.cart;
+    items = loaded.items;
+  }
+  if (items.length === 0) throw new Error(usingDirectItems ? "No item selected" : "Your cart is empty");
 
   const skuIds = items.map((it) => it.skuId);
   const skuRows = await client
@@ -103,6 +117,35 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     throw new Error("Some items in your cart are no longer available");
   }
 
+  const promoConfig = await loadPromoConfig();
+
+  // Cart quantities are already clamped to resolveCartCap at add-time
+  // (addOneToCart) — direct items skip the cart entirely and arrive
+  // untrusted from the client, so clamp them here the same way, right
+  // before they're priced.
+  if (usingDirectItems) {
+    items = items.map((item) => {
+      const found = skuRows.find((row) => row.sku.id === item.skuId);
+      if (!found) return item;
+      const fulfillment = effectiveFulfillment({
+        productType: found.productType,
+        skuFulfillment: found.sku.fulfillment,
+        sizeMl: found.sku.sizeMl,
+        remainingMl: found.remainingMl,
+        thresholdMl: promoConfig.decantPreOrderThresholdMl,
+      });
+      const cap = resolveCartCap({
+        productType: found.productType,
+        fulfillment,
+        sizeMl: found.sku.sizeMl,
+        remainingMl: found.remainingMl,
+        stock: found.sku.stock,
+      });
+      if (cap <= 0) throw new Error("This item is currently out of stock");
+      return { ...item, quantity: clampQuantity(item.quantity, cap) };
+    });
+  }
+
   const discounts = await client
     .select()
     .from(productDiscounts)
@@ -113,7 +156,6 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       ),
     );
 
-  const promoConfig = await loadPromoConfig();
   const isPickup = input.fulfillmentMethod === "PICKUP";
   let addressSnapshot = input.addressSnapshot ?? null;
   let recipientName = input.recipientName;
@@ -312,7 +354,10 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       }),
     );
 
-    await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+    // Buy Now never touched the cart in the first place — nothing to clear.
+    if (cart) {
+      await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+    }
 
     return { order: insertedOrder, totals };
   });

@@ -33,6 +33,9 @@ const checkoutSchema = z.object({
   savedAddressId: z.string().min(1).nullable().optional(),
   saveAddress: z.boolean().optional(),
   promoCode: z.string().max(40).nullable().optional(),
+  // Buy Now: present only when checkout is for one direct item, bypassing
+  // the cart entirely (see createOrderFromCart's directItems).
+  directItem: z.object({ skuId: z.string().min(1), quantity: z.number().int().min(1) }).nullable().optional(),
 });
 
 export async function createCheckoutOrder(input: unknown) {
@@ -66,6 +69,7 @@ export async function createCheckoutOrder(input: unknown) {
     savedAddressId: parsed.savedAddressId ?? null,
     saveAddress: parsed.saveAddress ?? false,
     promoCode: parsed.promoCode ?? null,
+    directItems: parsed.directItem ? [parsed.directItem] : undefined,
   });
   revalidatePath("/", "layout");
   return { orderId: result.order.id, orderNumber: result.order.orderNumber };

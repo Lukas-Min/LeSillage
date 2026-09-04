@@ -193,44 +193,28 @@ interface PricedCart {
   promoConfig: PromoConfig & { decantPreOrderThresholdMl: number };
 }
 
+type CombinedRow = {
+  skuId: string;
+  quantity: number;
+  sku: typeof skus.$inferSelect | null;
+  productType: ProductType | null;
+  productBrand: string | null;
+  productFamily: string | null;
+  productName: string | null;
+  remainingMl: number | null;
+};
+
 /**
- * The DB-fetching + pricing portion of loadCartView, split out so a caller
- * that needs totals for more than one fulfillment method (checkout, which
- * shows both delivery and pickup totals side by side) doesn't pay for the
- * query and pricing work twice — buildCartTotals's `priced` input doesn't
- * depend on fulfillmentMethod at all, only the totals math built from it
- * does. See loadCartView and loadCartViewForBothMethods below.
+ * Everything downstream of the DB fetch — shared by the cart path
+ * (loadPricedCart) and the Buy Now path (loadPricedDirectItem), which
+ * source `combined` differently (a cart's rows vs. a single explicit
+ * skuId/quantity pair) but price and shape it identically.
  */
-async function loadPricedCart(
-  cartId: string,
-  preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
-): Promise<PricedCart> {
+async function priceCombinedRows(
+  combined: CombinedRow[],
+  promoConfig: PromoConfig & { decantPreOrderThresholdMl: number },
+): Promise<{ lines: CartLineView[]; unavailableLines: CartLineView[]; priced: CartTotals }> {
   const client = db();
-  // Single JOIN instead of a plain cartItems select followed by a separate
-  // skus+products lookup keyed off its results — cuts a full sequential
-  // round trip off every cart read (this runs at the end of every cart
-  // mutation: add, remove, quantity change, size swap). Left-joined (not
-  // inner) so a cart item whose SKU row no longer exists at all still comes
-  // back as a row (sku/productType/etc. null) instead of silently
-  // disappearing — same resilience the old two-query version had via `found?.`.
-  const [combined, promoConfig] = await Promise.all([
-    client
-      .select({
-        skuId: cartItems.skuId,
-        quantity: cartItems.quantity,
-        sku: skus,
-        productType: products.type,
-        productBrand: products.brand,
-        productFamily: products.family,
-        productName: products.name,
-        remainingMl: products.remainingMl,
-      })
-      .from(cartItems)
-      .leftJoin(skus, eq(skus.id, cartItems.skuId))
-      .leftJoin(products, eq(products.id, skus.productId))
-      .where(eq(cartItems.cartId, cartId)),
-    preloadedPromoConfig ?? loadPromoConfig(),
-  ]);
   if (combined.length === 0) {
     return {
       lines: [],
@@ -245,7 +229,6 @@ async function loadPricedCart(
         purchasedFamilies: new Set(),
         decantSubtotalCentavos: 0,
       },
-      promoConfig,
     };
   }
   const productIds = Array.from(
@@ -333,6 +316,113 @@ async function loadPricedCart(
       },
     ];
   });
+  return { lines, unavailableLines, priced };
+}
+
+/**
+ * The DB-fetching + pricing portion of loadCartView, split out so a caller
+ * that needs totals for more than one fulfillment method (checkout, which
+ * shows both delivery and pickup totals side by side) doesn't pay for the
+ * query and pricing work twice — buildCartTotals's `priced` input doesn't
+ * depend on fulfillmentMethod at all, only the totals math built from it
+ * does. See loadCartView and loadCartViewForBothMethods below.
+ */
+async function loadPricedCart(
+  cartId: string,
+  preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
+): Promise<PricedCart> {
+  const client = db();
+  // Single JOIN instead of a plain cartItems select followed by a separate
+  // skus+products lookup keyed off its results — cuts a full sequential
+  // round trip off every cart read (this runs at the end of every cart
+  // mutation: add, remove, quantity change, size swap). Left-joined (not
+  // inner) so a cart item whose SKU row no longer exists at all still comes
+  // back as a row (sku/productType/etc. null) instead of silently
+  // disappearing — same resilience the old two-query version had via `found?.`.
+  const [combined, promoConfig] = await Promise.all([
+    client
+      .select({
+        skuId: cartItems.skuId,
+        quantity: cartItems.quantity,
+        sku: skus,
+        productType: products.type,
+        productBrand: products.brand,
+        productFamily: products.family,
+        productName: products.name,
+        remainingMl: products.remainingMl,
+      })
+      .from(cartItems)
+      .leftJoin(skus, eq(skus.id, cartItems.skuId))
+      .leftJoin(products, eq(products.id, skus.productId))
+      .where(eq(cartItems.cartId, cartId)),
+    preloadedPromoConfig ?? loadPromoConfig(),
+  ]);
+  const { lines, unavailableLines, priced } = await priceCombinedRows(combined, promoConfig);
+  return { lines, unavailableLines, priced, promoConfig };
+}
+
+/**
+ * The Buy Now path's equivalent of loadPricedCart: prices exactly one
+ * explicit skuId/quantity pair with no cart involved at all — the cart
+ * table is never read or written. Quantity is clamped server-side to the
+ * same cap the cart enforces at add-time (resolveCartCap), since here it
+ * arrives untrusted from a query string instead of already-clamped cart
+ * rows.
+ */
+async function loadPricedDirectItem(
+  skuId: string,
+  quantity: number,
+  preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
+): Promise<PricedCart> {
+  const client = db();
+  const [rows, promoConfig] = await Promise.all([
+    client
+      .select({
+        sku: skus,
+        productType: products.type,
+        productBrand: products.brand,
+        productFamily: products.family,
+        productName: products.name,
+        remainingMl: products.remainingMl,
+      })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(eq(skus.id, skuId)),
+    preloadedPromoConfig ?? loadPromoConfig(),
+  ]);
+  const row = rows[0];
+  let combined: CombinedRow[] = [];
+  if (row && row.sku.isActive) {
+    const fulfillment = effectiveFulfillment({
+      productType: row.productType,
+      skuFulfillment: row.sku.fulfillment,
+      sizeMl: row.sku.sizeMl,
+      remainingMl: row.remainingMl,
+      thresholdMl: promoConfig.decantPreOrderThresholdMl,
+    });
+    const cap = resolveCartCap({
+      productType: row.productType,
+      fulfillment,
+      sizeMl: row.sku.sizeMl,
+      remainingMl: row.remainingMl,
+      stock: row.sku.stock,
+    });
+    if (cap > 0) {
+      combined = [
+        {
+          skuId,
+          quantity: clampQuantity(quantity, cap),
+          sku: row.sku,
+          productType: row.productType,
+          productBrand: row.productBrand,
+          productFamily: row.productFamily,
+          productName: row.productName,
+          remainingMl: row.remainingMl,
+        },
+      ];
+    }
+  }
+  const { lines, unavailableLines, priced } = await priceCombinedRows(combined, promoConfig);
   return { lines, unavailableLines, priced, promoConfig };
 }
 
@@ -368,6 +458,29 @@ export async function loadCartViewForBothMethods(
   pickupTotals: CheckoutTotals;
 }> {
   const { lines, unavailableLines, priced, promoConfig } = await loadPricedCart(cartId, preloadedPromoConfig);
+  return {
+    items: [...lines, ...unavailableLines],
+    count: lines.reduce((sum, line) => sum + line.quantity, 0),
+    deliveryTotals: buildCartTotals(priced, promoConfig, "DELIVERY"),
+    pickupTotals: buildCartTotals(priced, promoConfig, "PICKUP"),
+  };
+}
+
+/**
+ * Buy Now's equivalent of loadCartViewForBothMethods: same shape, but for
+ * one explicit skuId/quantity pair instead of a persisted cart. The cart
+ * table is never touched by this call.
+ */
+export async function loadDirectItemViewForBothMethods(
+  skuId: string,
+  quantity: number,
+): Promise<{
+  items: CartLineView[];
+  count: number;
+  deliveryTotals: CheckoutTotals;
+  pickupTotals: CheckoutTotals;
+}> {
+  const { lines, unavailableLines, priced, promoConfig } = await loadPricedDirectItem(skuId, quantity);
   return {
     items: [...lines, ...unavailableLines],
     count: lines.reduce((sum, line) => sum + line.quantity, 0),

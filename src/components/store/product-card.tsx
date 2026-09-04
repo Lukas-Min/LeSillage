@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CatalogPrice, Price } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
+import { BuyNowButton } from "@/components/store/buy-now-button";
 import { SizePicker } from "@/components/store/size-picker";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
@@ -102,10 +103,16 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
           </div>
         </div>
       </Link>
-      <div className="px-4 pb-4">
+      <div className="grid grid-cols-2 gap-2 px-4 pb-4">
         <AddToCartButton
           skuId={activeSkuId}
           variant="compact"
+          soldOut={card.soldOut}
+          disabled={isDecant && !selectedSkuId}
+        />
+        <BuyNowButton
+          skuId={activeSkuId}
+          quantity={1}
           soldOut={card.soldOut}
           disabled={isDecant && !selectedSkuId}
         />
