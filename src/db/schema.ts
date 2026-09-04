@@ -590,6 +590,7 @@ export const orders = pgTable(
     }),
     statusReason: text("statusReason"),
     statusUpdatedAt: timestamp("statusUpdatedAt", { mode: "date" }).notNull().defaultNow(),
+    paymentReminderSentAt: timestamp("paymentReminderSentAt", { mode: "date" }),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },

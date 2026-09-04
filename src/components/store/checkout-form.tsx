@@ -123,10 +123,16 @@ export function CheckoutForm({
   }
 
   const deliveryHint = useMemo(() => {
-    if (fulfillmentMethod === "PICKUP") return "Pickup is always free and does not unlock delivery promos.";
-    if (totals.freeShipping) return "Free delivery unlocked from discounted decants.";
-    return `Add ${formatPHP(Math.max(0, 200000 - totals.decantSubtotalCentavos))} more in discounted decants for free delivery.`;
-  }, [fulfillmentMethod, totals.freeShipping, totals.decantSubtotalCentavos]);
+    if (fulfillmentMethod === "PICKUP") {
+      return "Pickup is free. The complimentary tester promo applies to delivered orders only.";
+    }
+    if (totals.freeShipping) {
+      return totals.testerBonusEligible
+        ? "Free delivery unlocked from discounted decants, plus a complimentary tester."
+        : "Free delivery unlocked from discounted decants.";
+    }
+    return `Add ${formatPHP(Math.max(0, 200000 - totals.decantSubtotalCentavos))} more in discounted decants for free delivery and a complimentary tester.`;
+  }, [fulfillmentMethod, totals.freeShipping, totals.testerBonusEligible, totals.decantSubtotalCentavos]);
 
   function applyAddress(id: string) {
     setSavedAddressId(id);

@@ -178,10 +178,11 @@ export default async function AdminProductDetailPage({
               />
             </Field>
             <p className="text-xs text-muted-foreground sm:col-span-2">
-              Reference retail price = cost price run through the formula above. Every SKU&apos;s price is derived from
-              it: reference price ÷ reference size × that SKU&apos;s size — e.g. a ₱2,000 / 100ml reference prices a
-              10ml decant at ₱200. A SKU without a size just uses the reference price directly. Cost price and the
-              Fixed/Direct markup are entered in pesos (add a period for centavos, e.g. 3500.50) — not centavos.
+              Reference retail price = cost price run through the formula above. In-house decant SKUs scale from
+              it (reference price ÷ reference size × that SKU&apos;s ml). A Retail decant has its own Cost/Retail
+              formula on the SKU and is not overwritten when you save the product. A SKU without a size uses the
+              reference price directly. Cost price and the Fixed/Direct markup are entered in pesos (add a period
+              for centavos, e.g. 3500.50) — not centavos.
             </p>
             <Field label="Description" htmlFor="p-description" className="sm:col-span-2">
               <Textarea id="p-description" name="description" defaultValue={product.description ?? ""} />
@@ -205,9 +206,10 @@ export default async function AdminProductDetailPage({
           ) : null}
           {product.type === "DECANT" ? (
             <p className="mt-3 text-xs text-muted-foreground">
-              Availability per size (3/5/10/30ml) is derived from this pool: on hand once the pool is at or above the
-              pre-order threshold and at or above that size, pre-order otherwise. Pool {product.remainingMl ?? 0}ml
-              remaining · {pendingPreOrderMl}ml pending in open pre-orders.
+              Availability per size (3/5/10/30ml) is derived from this pool for In-house decants: on hand once the
+              pool is at or above the pre-order threshold and at or above that size, pre-order otherwise. A Retail
+              decant ignores this pool and uses its own Fulfillment/Stock. Pool {product.remainingMl ?? 0}ml remaining
+              · {pendingPreOrderMl}ml pending in open pre-orders.
             </p>
           ) : null}
           <form id="delete-product-form" action={archiveOrDeleteProduct}>
@@ -321,13 +323,12 @@ export default async function AdminProductDetailPage({
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {product.type === "DECANT" ? (
-                    // Testers are a full-bottle/partial concept — a decant
-                    // isn't given away as a bonus unit, so this doesn't
-                    // apply. Preserved as a hidden field either way.
+                    // Decants aren't in the tester-bonus pool; keep the stored flag.
                     <input type="hidden" name="isTester" value={sku.isTester ? "on" : ""} />
                   ) : (
                     <label className="flex items-center gap-2 text-xs">
-                      <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Tester
+                      <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Tester{" "}
+                      <span className="font-normal text-muted-foreground">(still sold in the shop; also the promo pool)</span>
                     </label>
                   )}
                   <label className="flex items-center gap-2 text-xs">
@@ -412,7 +413,8 @@ export default async function AdminProductDetailPage({
                     <input type="hidden" name="isTester" value="" />
                   ) : (
                     <label className="flex items-center gap-2 text-xs">
-                      <input type="checkbox" name="isTester" /> Tester
+                      <input type="checkbox" name="isTester" /> Tester{" "}
+                      <span className="font-normal text-muted-foreground">(still sold in the shop; also the promo pool)</span>
                     </label>
                   )}
                   <label className="flex items-center gap-2 text-xs">

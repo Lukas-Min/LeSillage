@@ -29,7 +29,8 @@ export default function AdminPromoLoading() {
             <Label>Decant pre-order threshold (ml)</Label>
             <Skeleton className="h-11 w-full" />
             <p className="text-xs text-muted-foreground">
-              When remaining ml drops below this, every size on that fragrance becomes pre-order.
+              When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes
+              pre-order. Retail decants ignore this pool and use their own stock.
             </p>
           </div>
           <Skeleton className="h-5 w-64" />

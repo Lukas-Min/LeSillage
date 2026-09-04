@@ -32,6 +32,7 @@ export interface OrderEmailInput {
   testerAwarded?: { name: string } | null;
   pickupNotes?: string | null;
   orderedAt: Date;
+  payUrl?: string;
 }
 
 function etaLinesSummary(lines: EmailLine[], orderedAt: Date): string {
@@ -225,6 +226,34 @@ ${input.lines.map(formatLineForEmail).join("\n")}
 Delivery: ${deliveryLine(input)}
 
 Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.
+
+— Le Sillage`;
+  return { subject, text };
+}
+
+export function paymentReminderEmail(input: OrderEmailInput): { subject: string; text: string } {
+  const payLine = input.payUrl ? `\nPay here (sign in if asked): ${input.payUrl}\n` : "";
+  const subject = `Your order is one QR away — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+Order ${input.orderNumber} is still sitting pretty on our shelf, tapping a tiny glass foot. The only thing between you and that trail is payment — nothing else.
+
+Send ${formatPHP(input.totalCentavos)} via the QR on your payment page, then upload the receipt. We'll take it from there (and stop writing fan mail to an unpaid bottle).
+
+If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes.
+${payLine}
+— Le Sillage`;
+  return { subject, text };
+}
+
+export function orderCancelledEmail(input: OrderEmailInput): { subject: string; text: string } {
+  const reason = input.reason?.trim() ? `\nReason: ${input.reason.trim()}\n` : "";
+  const subject = `Order cancelled — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+We've cancelled order ${input.orderNumber}. Nothing's reserved, nothing's charged — the bottle goes back on the shelf.
+${reason}
+If this wasn't you, reply to this email and we'll sort it out.
 
 — Le Sillage`;
   return { subject, text };

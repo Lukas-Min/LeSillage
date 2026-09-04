@@ -2,7 +2,7 @@
 
 A retail perfume storefront and admin portal for Le Sillage, Manila. Built on Next.js 16 App Router with Drizzle ORM, Supabase Postgres (via the `postgres` driver — matching the LapTrip stack), Auth.js (Google + Facebook + email/password), Gmail SMTP, and Vercel Blob for storage.
 
-Le Sillage sells **full bottles (pre-order)**, **partials**, and **decants** with **on-hand** fulfillment. There is **no payment gateway**: customers pay via bank QR codes and upload a payment screenshot. Item, order, and delivery discounts (including admin-created promo codes) stack across those three types but never within one. Philippine delivery addresses use cascading Province → City → Barangay selects backed by PSGC data instead of freeform text.
+Le Sillage sells **full bottles**, **tester bottles**, **partials**, and **decants**. Each listing shows whether it is **on-hand** or **pre-order**. There is **no payment gateway**: customers pay via bank QR codes and upload a payment screenshot. Item, order, and delivery discounts (including admin-created promo codes) stack across those three types but never within one. Philippine delivery addresses use cascading Province → City → Barangay selects backed by PSGC data instead of freeform text.
 
 ## Mobile-first
 

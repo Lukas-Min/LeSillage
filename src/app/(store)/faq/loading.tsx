@@ -1,75 +1,8 @@
-import { Package, Sparkles, Truck, Wallet } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
+import { FAQ_GROUPS } from "@/lib/faq-copy";
 
-const FAQ_GROUPS = [
-  {
-    id: "ordering",
-    title: "Ordering",
-    icon: Package,
-    items: [
-      {
-        q: "What's the difference between a full bottle, a partial, and a decant?",
-        a: "A full bottle is sealed and unused. A partial is an opened bottle with a few sprays missing, priced to move. A decant is a smaller volume poured from a tester or a partial into its own vial — the way to try a fragrance without buying the whole bottle.",
-      },
-      {
-        q: "Do I need an account to order?",
-        a: "You can browse the shop and build your cart as a guest, but you'll need an account to check out, submit a payment receipt, and view your order history. Your cart carries over the moment you sign in.",
-      },
-      {
-        q: "How do I know what's happening with my order?",
-        a: "Every order moves through clear stages — Awaiting payment → Receipt submitted → Confirmed → Shipped → Completed — visible any time under Account → Orders. We also email you at each step.",
-      },
-    ],
-  },
-  {
-    id: "payment",
-    title: "Payment",
-    icon: Wallet,
-    items: [
-      {
-        q: "What payment methods do you accept?",
-        a: "Bank transfer, GCash, Maya, and other QR-based methods. We do not run a card or e-wallet gateway — you upload a receipt screenshot after placing your order, and we verify it manually.",
-      },
-      {
-        q: "Can I change or cancel my order?",
-        a: "Reach us at le.sillage.mnl@gmail.com before payment is verified — changes are easiest then. After verification, we can still cancel, but we'll ask for a reason and it may take a little longer to process.",
-      },
-    ],
-  },
-  {
-    id: "shipping",
-    title: "Shipping & pickup",
-    icon: Truck,
-    items: [
-      {
-        q: "Do you ship nationwide?",
-        a: "Yes, we ship anywhere in the Philippines via trusted couriers. On-hand items (partials and decants) ship within 1–2 days, and Metro Manila orders placed on a Saturday or Sunday can ship same-day. Full bottles are made to order and take 3–30 days.",
-      },
-      {
-        q: "Can I pick up instead of having it delivered?",
-        a: "Yes — pickup is free and by appointment. Choose Pickup at checkout and we'll coordinate a time once your payment is verified.",
-      },
-    ],
-  },
-  {
-    id: "promos",
-    title: "Promos & authenticity",
-    icon: Sparkles,
-    items: [
-      {
-        q: "How does the tester promo work?",
-        a: "Decant orders that total ₱2,000 or more (after any discounts) unlock free delivery and a complimentary tester drawn from a fragrance family matching your cart. Testers aren't sold separately — they're only given out as part of this promo.",
-      },
-      {
-        q: "Are your fragrances authentic?",
-        a: "Yes. Every bottle we carry, in every format, is sourced from authorised distributors — we don't deal in grey-market or counterfeit stock.",
-      },
-    ],
-  },
-] as const;
-
-// Fully static content (hardcoded groups array, no DB) — render it for real.
+// Fully static content — render the same groups as page.tsx.
 export default function FaqLoading() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">

@@ -11,6 +11,7 @@ import { labelForType } from "@/domain/product-type";
 import { concentration as CONCENTRATIONS, fragranceCategory as CATEGORIES } from "@/db/schema";
 import type { Concentration, FragranceCategory, ProductType } from "@/db/schema";
 import { GENDERS, type Gender } from "@/domain/gender";
+import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function ShopPage({
         <Eyebrow>The catalog</Eyebrow>
         <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">Shop</h1>
         <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Full bottles by pre-order. Partials and decants on hand.
+          {SHOP_CATALOG_SUBTITLE}
         </p>
       </header>
       <div className="mb-4 flex justify-center">

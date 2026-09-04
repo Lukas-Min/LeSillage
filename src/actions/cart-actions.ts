@@ -49,7 +49,7 @@ export async function addItemToCart(skuId: string, requestedQuantity: number): P
       .then((rows) => rows[0]),
   ]);
   if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
-  if (!found || !found.sku.isActive || found.sku.isTester) throw new Error("That item is unavailable");
+  if (!found || !found.sku.isActive) throw new Error("That item is unavailable");
   await addOneToCart(
     cart,
     { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
@@ -182,7 +182,7 @@ export async function getSiblingSkuOptions(skuId: string): Promise<SizePickerOpt
         stock: skus.stock,
       })
       .from(skus)
-      .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
+      .where(and(eq(skus.productId, current.productId), eq(skus.isActive, true))),
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, current.productId)),
     loadPromoConfig(),
   ]);
@@ -222,7 +222,7 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
     loadPromoConfig(),
   ]);
   if (!fromItem) throw new Error("Item not in cart");
-  if (!toFound || !toFound.sku.isActive || toFound.sku.isTester) throw new Error("That size is unavailable");
+  if (!toFound || !toFound.sku.isActive) throw new Error("That size is unavailable");
   const fulfillment = effectiveFulfillment({
     productType: toFound.productType,
     skuFulfillment: toFound.sku.fulfillment,

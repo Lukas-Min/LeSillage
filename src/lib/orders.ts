@@ -36,6 +36,7 @@ import { sendEmail } from "@/lib/email";
 import { getEnv } from "@/lib/env";
 import {
   adminReceiptNotification,
+  orderCancelledEmail,
   orderConfirmedEmail,
   orderCreatedPaymentEmail,
   orderShippedEmail,
@@ -936,6 +937,16 @@ export async function transitionOrderStatus(args: {
       orderId: args.orderId,
       recipient: context.email,
       template: "receipt_rejected",
+      status: r.ok ? "SENT" : "FAILED",
+      error: r.ok ? null : r.error ?? "unknown error",
+    });
+  }
+  if (args.next === "CANCELLED") {
+    const r = await sendEmail({ to: context.email, ...orderCancelledEmail(emailInput) });
+    await client.insert(notificationLog).values({
+      orderId: args.orderId,
+      recipient: context.email,
+      template: "order_cancelled",
       status: r.ok ? "SENT" : "FAILED",
       error: r.ok ? null : r.error ?? "unknown error",
     });

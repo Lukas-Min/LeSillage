@@ -118,6 +118,10 @@ export default async function PromoAdminPage({
                 />
                 Tester bonus enabled
               </label>
+              <p className="text-xs text-muted-foreground">
+                On a delivered order over the decant threshold, assigns one in-stock SKU marked Tester. Those SKUs stay
+                listed in the shop. Pickup never receives a complimentary tester.
+              </p>
               <div className="space-y-1">
                 <Label htmlFor="decantPreOrderThresholdMl">Decant pre-order threshold (ml)</Label>
                 <Input
@@ -127,7 +131,8 @@ export default async function PromoAdminPage({
                   defaultValue={row?.decantPreOrderThresholdMl ?? 10}
                 />
                 <p className="text-xs text-muted-foreground">
-                  When remaining ml drops below this, every size on that fragrance becomes pre-order.
+                  When remaining ml on an In-house decant drops below this, every In-house size on that fragrance
+                  becomes pre-order. Retail decants ignore this pool and use their own stock.
                 </p>
               </div>
               <label className="flex items-center gap-2 text-sm">

@@ -47,7 +47,7 @@ export function StoreFooter() {
             Le Sillage
           </Link>
           <p className="text-sm text-muted-foreground">
-            Curated retail perfume from independent and iconic houses. Full bottles, partials, and decants.
+            Curated retail perfume from independent and iconic houses. Full bottles, testers, partials, and decants.
           </p>
           <ul className="space-y-1 text-sm text-muted-foreground">
             {phone ? (

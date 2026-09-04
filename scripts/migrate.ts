@@ -574,6 +574,9 @@ async function main() {
   // Lets a signed-in customer's dark/light choice follow their account
   // across devices, not just live in one browser's localStorage.
   await db.execute(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "themePreference" text`);
+  await db.execute(
+    `ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "paymentReminderSentAt" timestamp`,
+  );
 
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
@@ -595,6 +598,7 @@ async function main() {
 // DROP TABLE IF EXISTS "promo_code_redemption";
 // DROP TABLE IF EXISTS "promo_code";
 // ALTER TABLE "user" DROP COLUMN IF EXISTS "themePreference";
+// ALTER TABLE "order" DROP COLUMN IF EXISTS "paymentReminderSentAt";
 
 main().catch((error) => {
   console.error(error);

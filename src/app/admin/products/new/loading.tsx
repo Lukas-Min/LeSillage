@@ -62,8 +62,10 @@ export default function AdminNewProductLoading() {
               <Input id="new-pricingInput" type="number" defaultValue={30} disabled />
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">
-              For decants, every size&apos;s retail price is derived from this: reference price ÷ source ml × that size&apos;s ml.
-              Cost price and the Fixed/Direct markup are entered in pesos (add a period for centavos) — not centavos.
+              For In-house decants, every size&apos;s retail price is derived from this: reference price ÷ source ml ×
+              that size&apos;s ml. A Retail decant is priced on the SKU instead, and is not overwritten when you save
+              the product. Cost price and the Fixed/Direct markup are entered in pesos (add a period for centavos) —
+              not centavos.
             </p>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" defaultChecked disabled />

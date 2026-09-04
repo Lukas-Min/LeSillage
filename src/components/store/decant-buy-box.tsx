@@ -26,9 +26,8 @@ export function DecantBuyBox({
 
   return (
     <>
-      {/* No condition badge here — "Sealed"/"A few sprays missing" describe a
-          specific physical bottle, but a decant is poured to order from a
-          shared pool, so condition doesn't apply. */}
+      {/* Condition is a full-bottle/partial concept. Retail and In-house
+          decants are distinguished on the size buttons themselves. */}
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
           {selected.fulfillment === "PRE_ORDER" ? "Pre-order · 3 to 30 days" : "On hand · 1 to 2 days"}

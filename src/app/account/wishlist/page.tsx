@@ -57,7 +57,6 @@ export default async function WishlistPage() {
         productId: skus.productId,
         retailPrice: skus.retailPrice,
         isActive: skus.isActive,
-        isTester: skus.isTester,
         stock: skus.stock,
       })
       .from(skus)

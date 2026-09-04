@@ -15,9 +15,14 @@ export default async function PaymentPage({
 }: {
   searchParams: Promise<{ orderNumber?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/sign-in?returnTo=/checkout");
   const { orderNumber } = await searchParams;
+  const session = await auth();
+  if (!session?.user) {
+    const returnTo = orderNumber
+      ? `/checkout/payment?orderNumber=${encodeURIComponent(orderNumber)}`
+      : "/checkout";
+    redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
+  }
   if (!orderNumber) redirect("/shop");
   const client = db();
   const order = (

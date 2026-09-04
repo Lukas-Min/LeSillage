@@ -2,6 +2,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 import { ShopFilters } from "@/components/store/shop-filters";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
+import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
 
 // The header/eyebrow/subtitle and shelf tabs are the same regardless of
 // which filters are selected, so they render for real here — `loading.tsx`
@@ -17,7 +18,7 @@ export default function ShopLoading() {
         <Eyebrow>The catalog</Eyebrow>
         <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">Shop</h1>
         <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Full bottles by pre-order. Partials and decants on hand.
+          {SHOP_CATALOG_SUBTITLE}
         </p>
       </header>
       <div className="mb-4 flex justify-center">

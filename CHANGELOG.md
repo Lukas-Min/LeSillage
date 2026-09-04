@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Hourly payment-nudge emails for orders still on Awaiting payment after two hours — sent once per order (`paymentReminderSentAt` in `src/lib/payment-reminders.ts`, cron `GET /api/cron/payment-reminders`)
+- Cancellation confirmation emails when an order moves to Cancelled (`orderCancelledEmail` in `src/lib/email-templates.ts`)
 - SKU codes are now system-generated (brand+name+size, with a numeric suffix on collision) instead of admin-typed, and shown read-only on both the "Add a SKU" and existing-SKU forms — `generateSkuCode` in `src/actions/admin-catalog-actions.ts`
 - Retail-provenance decant SKUs can now be priced independently of the product's reference formula — a manual Cost price/Retail price pair on the SKU, instead of always being scaled from the reference size (`resyncSkuPricesForProduct` skips Retail decants so a "Save product" never overwrites their independent price)
 - Admin product images can now be added by pasting a URL, not just uploading a file — one shared form, one Alt text field, for either path
@@ -11,6 +13,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - A decant size with both a Retail and an In-house SKU shows as two separate size-picker buttons (e.g. "10ML · Retail" / "10ML · In-house") instead of one ambiguous "10ML"
 - New admin `/admin/orders/[orderId]` detail page — orders list and the customer page now link into it instead of a filtered list view
 ### Changed
+- FAQ, About, How to pay, Policies, shop subtitle, cart/checkout hints, and admin helper copy realigned to current rules: testers are sold, decants are In-house or Retail, fulfillment is per listing, complimentary testers are delivery-only
+- Tester SKUs (`isTester`) stay in the shop, PDP, and cart like any other listing — the checkbox only marks them as eligible for the decant-promo free-tester draw, it no longer hides them
+- Removed `src/app/loading.tsx` — a root `loading.tsx` is the fallback for every route, so it flashed over `/shop`, `/faq`, etc. before those pages' own skeletons. Each route's `loading.tsx` (and the homepage's existing `FlagshipSkeleton` Suspense) is enough
 - Per-SKU "Archive or delete" moved from a full-width text button at the bottom of each SKU into a small destructive trash-icon button in the upper-right of that SKU's header row, next to its label (`ConfirmSubmitButton` gained `triggerSize`/`triggerAriaLabel` for icon-only triggers)
 - Size/provenance picker rebuilt as two tiers, for decants and full-bottle/partial products alike: the size button always names both size and provenance (e.g. "10ML · In-house"), and a secondary condition/packaging picker (BNIB/Sealed, With box/Bottle only) appears underneath only when that size+provenance actually has more than one SKU to distinguish — no separate condition/provenance badges anymore (`buildVariantOptions` in `src/lib/catalog.ts` replaces the old decant-only size builder)
 - Per-SKU "Archive or delete" now sits with its own SKU's fields instead of in a separate compiled list at the bottom of the SKUs card
@@ -20,6 +25,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Order status badges and action buttons (list and detail page) resized to match the rest of the app; the status badge no longer looks like a solid black button
 - Order detail page: removed the separately-labeled "Actions" card — Confirm/Reject now sit right below the header, right-aligned; removed the page's own breadcrumb (the admin layout already renders one, which was showing twice)
 ### Fixed
+- Signed-out visits to `/checkout/payment?orderNumber=` now return to that same payment page after sign-in instead of a generic checkout
 - Product detail page crashed ("Attempted to call findSelectedVariant() from the server but findSelectedVariant is on the client") — the size-picker's shared option types and lookup function lived in a `"use client"` file, which a Server Component can't call directly; moved them to a plain shared module, `src/domain/variant-options.ts`
 - Order detail page: two adjacent items showed a doubled border line between them (a `last:` Tailwind selector was matching "last child of the whole card," not "last item in the list")
 - Checkout's Province/City/Barangay selects (`PhAddressFields`) were still hardcoded to the old `h-8` height, 12px shorter than every neighboring field on the same form — missed by the earlier field-height sweep since it's a raw `<select>` outside the admin pages that sweep covered. Corrected to `h-11`

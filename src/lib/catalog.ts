@@ -267,7 +267,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         isActive: skus.isActive,
       })
       .from(skus)
-      .where(and(eq(skus.isActive, true), eq(skus.isTester, false), inArray(skus.productId, productIds))),
+      .where(and(eq(skus.isActive, true), inArray(skus.productId, productIds))),
     client
       .select({
         productId: productImages.productId,
@@ -377,7 +377,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
 /**
  * Total matching cards for `filter`, ignoring `limit`/`offset` — for
  * pagination. Mirrors loadCatalogCards's product/SKU matching (including the
- * per-product "at least one active, non-tester SKU" requirement) without its
+ * per-product "at least one active SKU" requirement) without its
  * image, discount, and pricing queries/computation, which a count doesn't need.
  */
 export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
@@ -416,7 +416,7 @@ export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "o
   const skuRows = await client
     .select({ productId: skus.productId, sizeMl: skus.sizeMl })
     .from(skus)
-    .where(and(eq(skus.isActive, true), eq(skus.isTester, false), inArray(skus.productId, productIds)));
+    .where(and(eq(skus.isActive, true), inArray(skus.productId, productIds)));
   const skusByProduct = groupBy(skuRows, (row) => row.productId);
 
   let count = 0;
@@ -531,7 +531,7 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
     client
       .select({ id: skus.id, productId: skus.productId, retailPrice: skus.retailPrice })
       .from(skus)
-      .where(and(eq(skus.isActive, true), eq(skus.isTester, false), inArray(skus.productId, productIds))),
+      .where(and(eq(skus.isActive, true), inArray(skus.productId, productIds))),
     client.select().from(productDiscounts).where(inArray(productDiscounts.productId, productIds)),
     client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
   ]);

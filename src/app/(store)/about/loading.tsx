@@ -1,28 +1,8 @@
-import { FlaskConical, MapPin, ShieldCheck } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
+import { ABOUT_PILLARS } from "@/lib/about-copy";
 
-const PILLARS = [
-  {
-    icon: FlaskConical,
-    title: "Poured from testers and partials",
-    body: "Decants come from sealed testers or opened partials, never bottled to order from someone's personal fragrance — so pricing stays honest without touching untouched retail stock.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Authorised distributors only",
-    body: "Every fragrance we carry, in every format, is sourced through authorised channels. No grey market.",
-  },
-  {
-    icon: MapPin,
-    title: "Manila-based, nationwide",
-    body: "Delivery anywhere in the Philippines, or pickup by appointment for local customers.",
-  },
-] as const;
-
-// This page has no data fetch at all — its body copy is hardcoded in
-// page.tsx, so this fallback just renders the exact same static content
-// immediately rather than showing any skeleton for it.
+// This page has no data fetch — render the same static content as page.tsx.
 export default function AboutLoading() {
   return (
     <main className="surface-grid">
@@ -36,7 +16,7 @@ export default function AboutLoading() {
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {PILLARS.map((pillar) => (
+            {ABOUT_PILLARS.map((pillar) => (
               <div
                 key={pillar.title}
                 className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center"
@@ -54,8 +34,8 @@ export default function AboutLoading() {
             <p className="text-sm leading-relaxed">
               We built Le Sillage around a simple idea: a great fragrance shouldn&apos;t require
               committing to a full bottle sight unseen — or paying niche prices just to find out a
-              scent isn&apos;t right for you. Full bottles, partials, and decants across niche,
-              designer, and Middle Eastern houses, all in one shelf.
+              scent isn&apos;t right for you. Full bottles, tester bottles, partials, and decants
+              across niche, designer, and Middle Eastern houses, all in one shelf.
             </p>
             <p className="text-sm leading-relaxed">
               We&apos;re small on purpose: every order is packed by hand, every payment receipt is

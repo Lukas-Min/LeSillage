@@ -7,8 +7,8 @@ export default function CheckoutLoading() {
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
       <h1 className="font-serif-display text-2xl">Checkout</h1>
       <p className="text-sm text-muted-foreground">
-        All amounts in Philippine pesos (₱). Delivery default ₱120, pickup free. Free delivery unlocks at ₱2,000 of
-        discounted decants.
+        All amounts in Philippine pesos (₱). Delivery default ₱120, pickup free. A delivered order with ₱2,000 of discounted
+        decants unlocks free delivery and a complimentary tester.
       </p>
       <div className="mt-6 space-y-6">
         <Skeleton className="h-32 w-full" />

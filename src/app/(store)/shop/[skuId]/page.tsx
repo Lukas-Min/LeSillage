@@ -54,7 +54,6 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         retailPrice: skus.retailPrice,
         fulfillment: skus.fulfillment,
         stock: skus.stock,
-        isTester: skus.isTester,
         isActive: skus.isActive,
         productActive: products.isActive,
       })
@@ -62,7 +61,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, skuId))
   )[0];
-  if (!row || row.isTester || !row.isActive || !row.productActive) return notFound();
+  if (!row || !row.isActive || !row.productActive) return notFound();
 
   const [discounts, siblings, promoRow, image] = await Promise.all([
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, row.productId)),
@@ -79,7 +78,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         stock: skus.stock,
       })
       .from(skus)
-      .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true), eq(skus.isTester, false))),
+      .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true))),
     client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
     client
       .select({ url: productImages.url, alt: productImages.alt })

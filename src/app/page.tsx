@@ -73,7 +73,7 @@ export default function Home() {
           title="From browsing to bottle, in three steps"
           contentClassName="grid grid-cols-1 gap-4 sm:grid-cols-3"
         >
-          <Step number="01" title="Browse the catalog" body="Use the shop or the shelves above to pick full bottles, partials, and decants." />
+          <Step number="01" title="Browse the catalog" body="Use the shop or the shelves above to pick full bottles, testers, partials, and decants." />
           <Step number="02" title="Place your order" body="Sign in, confirm delivery or pickup, and we email your QR codes." />
           <Step number="03" title="Upload payment receipt" body="Stock is reserved the moment your receipt is submitted." />
         </SectionCard>
