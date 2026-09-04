@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Product cards now show gender next to concentration in the subtitle (e.g. "Eau de Parfum · Women"), matching the product detail page — was only shown on the PDP before
 - Added Dolce & Gabbana — Devotion as a new DECANT product (`scripts/add-dg-devotion-decant.ts`), metadata sourced from its Fragrantica page. 50ml source bottle at a ₱2,250 discounted cost with a flat ₱3,000 FIXED markup (not a percentage) — reference retail ₱5,250 — so 3/5/10/30ml SKU prices (₱315/₱525/₱1,050/₱3,150) derive from that reference
 - Admin Products list now has type tabs (All/Decants/Full bottles/Partials, each with a live count) via `?type=` — previously every product type was dumped into one flat, unordered list with no way to isolate one type
 - Admin "New product" form gained a "Copy details from an existing product" dropdown that pre-fills Name/Brand/Family/Category/Concentration/Gender/Description/Notes from any existing product (e.g. copying a Decant's details when adding its Full Bottle) — no more re-typing or re-importing from Fragrantica for a fragrance already in the catalog. Also added the previously-missing Gender field to both the new-product and edit-product admin forms (`men`/`women`/`unisex`), since it existed in the schema but had no admin UI

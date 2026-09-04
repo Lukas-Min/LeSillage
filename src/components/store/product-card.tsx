@@ -10,11 +10,14 @@ import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { SizePicker } from "@/components/store/size-picker";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
+import { capitalizeFirst } from "@/lib/utils";
 import type { CatalogCardModel } from "@/lib/catalog";
 
 export function ProductCard({ card }: { card: CatalogCardModel }) {
   const concentration = concentrationLabel(card.concentration);
-  const subtitle = [card.family, concentration].filter(Boolean).join(" · ") || labelForType(card.type);
+  const genderLabel = card.gender ? capitalizeFirst(card.gender) : null;
+  const subtitle =
+    [card.family, concentration, genderLabel].filter(Boolean).join(" · ") || labelForType(card.type);
   const isDecant = card.type === "DECANT" && card.sizeOptions.length > 0;
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
   const selected = isDecant ? card.sizeOptions.find((o) => o.skuId === selectedSkuId) ?? null : null;
