@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { NotePyramid } from "@/lib/note-pyramid";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+const LIGHTBOX_ZOOM_SCALE = 1.5;
+
+/** Keeps a drag from panning the zoomed photo so far that its edge leaves a
+ *  gap inside the (fixed-size) lightbox — at `scale`, the photo overhangs
+ *  its box by `(scale - 1)` on each side, so panning past half of that in
+ *  either direction would expose empty space past the image's edge. */
+function clampPan(value: number, containerSize: number, scale: number): number {
+  const max = (containerSize * (scale - 1)) / 2;
+  return Math.min(max, Math.max(-max, value));
+}
 
 export function CompositionCanvas({
   brand,
@@ -33,6 +44,18 @@ export function CompositionCanvas({
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // Only used to drop the transform transition during an active drag, so
+  // panning tracks the pointer 1:1 instead of animating 300ms behind it —
+  // the transition still runs for the click-triggered zoom in/out.
+  const [dragging, setDragging] = useState(false);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+  // Tracks an in-progress drag between pointerdown and pointerup; also
+  // doubles as the "was this a drag, not a click" flag so releasing after a
+  // real drag doesn't also toggle the zoom level via the onClick handler.
+  const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(
+    null,
+  );
 
   if (imageUrl && !imageFailed) {
     const alt = imageAlt ?? `${brand} — ${name}`;
@@ -50,8 +73,22 @@ export function CompositionCanvas({
     );
 
     if (enableLightbox) {
+      const resetZoom = () => {
+        setZoomed(false);
+        setPan({ x: 0, y: 0 });
+      };
+
+      const applyPan = (dx: number, dy: number) => {
+        const box = lightboxRef.current;
+        if (!box) return;
+        setPan((prev) => ({
+          x: clampPan(prev.x + dx, box.clientWidth, LIGHTBOX_ZOOM_SCALE),
+          y: clampPan(prev.y + dy, box.clientHeight, LIGHTBOX_ZOOM_SCALE),
+        }));
+      };
+
       return (
-        <Dialog onOpenChange={(open) => !open && setZoomed(false)}>
+        <Dialog onOpenChange={(open) => !open && resetZoom()}>
           <DialogTrigger asChild>
             <button
               type="button"
@@ -65,6 +102,7 @@ export function CompositionCanvas({
             </button>
           </DialogTrigger>
           <DialogContent
+            ref={lightboxRef}
             className={cn(
               // The container's own size never changes with zoom — only the
               // photo inside it does. Sizing lives here rather than on the
@@ -79,25 +117,69 @@ export function CompositionCanvas({
               // be overridden at the same `sm:` variant to actually lose.
               "flex h-[80vh] w-[80vw] max-w-[92vw] items-center justify-center overflow-hidden border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-[92vw]",
             )}
+            onWheel={(e) => {
+              if (!zoomed) return;
+              e.preventDefault();
+              applyPan(-e.deltaX, -e.deltaY);
+            }}
           >
             <DialogTitle className="sr-only">{alt}</DialogTitle>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={alt}
-              onClick={() => setZoomed((prev) => !prev)}
+              onClick={() => {
+                // A drag ending on the image also fires a click; swallow
+                // that one so dragging to pan doesn't also toggle zoom off.
+                if (dragRef.current?.moved) {
+                  dragRef.current = null;
+                  return;
+                }
+                dragRef.current = null;
+                if (zoomed) {
+                  resetZoom();
+                } else {
+                  setZoomed(true);
+                }
+              }}
+              onPointerDown={(e) => {
+                if (!zoomed) return;
+                dragRef.current = { startX: e.clientX, startY: e.clientY, originX: pan.x, originY: pan.y, moved: false };
+                setDragging(true);
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                const drag = dragRef.current;
+                if (!drag) return;
+                const dx = e.clientX - drag.startX;
+                const dy = e.clientY - drag.startY;
+                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+                const box = lightboxRef.current;
+                if (!box) return;
+                setPan({
+                  x: clampPan(drag.originX + dx, box.clientWidth, LIGHTBOX_ZOOM_SCALE),
+                  y: clampPan(drag.originY + dy, box.clientHeight, LIGHTBOX_ZOOM_SCALE),
+                });
+              }}
+              onPointerUp={(e) => {
+                setDragging(false);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }}
+              draggable={false}
+              style={zoomed ? { transform: `translate(${pan.x}px, ${pan.y}px) scale(${LIGHTBOX_ZOOM_SCALE})` } : undefined}
               className={cn(
                 // object-contain, never object-cover — the bottle must
                 // never be cropped (see the earlier object-cover ->
                 // object-contain change on this component). Zoom scales the
-                // already-fitted photo up around its center; the container
-                // above clips whatever spills past its own 80vh/80vw box.
-                "h-full w-full rounded-lg bg-white object-contain transition-transform duration-300 ease-out",
-                // Bare scale-100/scale-150 never render in this project's
-                // Tailwind build (nothing else in the codebase uses them —
-                // every existing zoom effect already goes through the
-                // arbitrary-value form below, e.g. group-hover:scale-[1.05]).
-                zoomed ? "scale-[1.5] cursor-zoom-out" : "scale-[1] cursor-zoom-in",
+                // already-fitted photo up around its center (and, once
+                // zoomed, lets it be dragged or scrolled around); the
+                // container above clips whatever spills past its own
+                // 80vh/80vw box. The transition is dropped while actively
+                // dragging so panning tracks the pointer immediately instead
+                // of animating 300ms behind it.
+                "h-full w-full touch-none rounded-lg bg-white object-contain",
+                dragging ? "" : "transition-transform duration-300 ease-out",
+                zoomed ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in",
               )}
             />
           </DialogContent>
