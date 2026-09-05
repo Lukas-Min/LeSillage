@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- 16 new full-bottle Middle Eastern catalog listings (Retail/BNIB, `PRE_ORDER`, stock 0 pending admin count): Rasasi Hawas Black/Ice/Thunder/Kobra (100ml), Lattafa Art of Universe/Yara Candy/Asad Elixir (100ml), Rayhaan Nocturno Elixir (100ml), Afnan Supremacy Collector's Edition (100ml), Armaf Club De Nuit Untold/Maleka/Iconic/Intense Man EDT (105ml — verified against the 100ml default, this Armaf line ships at 105ml), Khadlaj Shiyaaka Snow (100ml), Arabiyat Prestige Marwa (100ml), Armaf Odyssey Mega (100ml, the smaller of its two bottle sizes) — added via a one-off script mirroring `upsertProduct`/`upsertSku`'s DIRECT-pricing path so admin edits won't drift the price
 - Payment-nudge emails for orders still on Awaiting payment after two hours — sent once per order (`paymentReminderSentAt` in `src/lib/payment-reminders.ts`, daily cron `GET /api/cron/payment-reminders` at 10:00 PHT; Hobby cannot run hourly)
 - Cancellation confirmation emails when an order moves to Cancelled (`orderCancelledEmail` in `src/lib/email-templates.ts`)
 - SKU codes are now system-generated (brand+name+size, with a numeric suffix on collision) instead of admin-typed, and shown read-only on both the "Add a SKU" and existing-SKU forms — `generateSkuCode` in `src/actions/admin-catalog-actions.ts`
