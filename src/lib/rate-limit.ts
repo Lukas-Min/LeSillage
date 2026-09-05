@@ -43,14 +43,17 @@ export async function rateLimit({
         count: sql`CASE WHEN ${stale} THEN 1 ELSE ${rateLimits.count} + 1 END`,
         windowStart: sql`CASE WHEN ${stale} THEN ${sql.param(now, rateLimits.windowStart)} ELSE ${rateLimits.windowStart} END`,
       },
+      // Skip the write entirely once a request is already over the cap
+      // within a live window — an over-limit client shouldn't get a fresh
+      // row lock and heap tuple for every request it sends.
+      setWhere: sql`${stale} OR ${rateLimits.count} < ${limit}`,
     })
     .returning({ count: rateLimits.count });
 
-  // The counter keeps climbing past the cap while the window is open, so a
-  // client that keeps hammering extends its own penalty. Clamping keeps the
-  // reported `remaining` identical to what the two-step version returned.
-  const count = row?.count ?? 1;
-  return { allowed: count <= limit, remaining: Math.max(0, limit - count) };
+  // No row comes back when the conflicting row was already over the cap and
+  // the window hasn't rolled — the WHERE above skipped the update.
+  if (!row) return { allowed: false, remaining: 0 };
+  return { allowed: row.count <= limit, remaining: Math.max(0, limit - row.count) };
 }
 
 export async function getRequestKey(prefix: string, scope?: string): Promise<string> {

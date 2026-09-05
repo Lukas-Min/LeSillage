@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { NotePyramid } from "@/lib/note-pyramid";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,6 +14,25 @@ const LIGHTBOX_ZOOM_SCALE = 1.5;
 function clampPan(value: number, containerSize: number, scale: number): number {
   const max = (containerSize * (scale - 1)) / 2;
   return Math.min(max, Math.max(-max, value));
+}
+
+/** The `<img>` is `object-contain`, so its actually-rendered photo is
+ *  smaller than its box on whichever axis the photo's aspect ratio doesn't
+ *  match the box's — clampPan must clamp against that rendered size, not
+ *  the box's own clientWidth/clientHeight, or panning can reveal empty
+ *  space past the photo's real edge on the letterboxed axis. */
+function containedSize(
+  boxWidth: number,
+  boxHeight: number,
+  naturalWidth: number,
+  naturalHeight: number,
+): { width: number; height: number } {
+  if (!naturalWidth || !naturalHeight) return { width: boxWidth, height: boxHeight };
+  const boxRatio = boxWidth / boxHeight;
+  const imageRatio = naturalWidth / naturalHeight;
+  return imageRatio > boxRatio
+    ? { width: boxWidth, height: boxWidth / imageRatio }
+    : { width: boxHeight * imageRatio, height: boxHeight };
 }
 
 export function CompositionCanvas({
@@ -49,13 +68,29 @@ export function CompositionCanvas({
   // panning tracks the pointer 1:1 instead of animating 300ms behind it —
   // the transition still runs for the click-triggered zoom in/out.
   const [dragging, setDragging] = useState(false);
-  const lightboxRef = useRef<HTMLDivElement>(null);
+  // A state (not a ref) so the wheel-listener effect below re-attaches every
+  // time the dialog opens — Radix unmounts DialogContent on close, so a ref
+  // alone would leave the effect's dependency array with nothing to react to.
+  const [lightboxEl, setLightboxEl] = useState<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   // Tracks an in-progress drag between pointerdown and pointerup; also
   // doubles as the "was this a drag, not a click" flag so releasing after a
   // real drag doesn't also toggle the zoom level via the onClick handler.
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(
     null,
   );
+
+  // React attaches its own onWheel handler as a passive listener, so calling
+  // preventDefault() from it can't stop the page from scrolling underneath —
+  // only a manually-attached, non-passive native listener can. This has to
+  // live outside the `enableLightbox`/`imageUrl` branches below (unconditional
+  // hook call), guarded internally instead.
+  useEffect(() => {
+    if (!lightboxEl || !zoomed) return;
+    const handleWheel = (e: WheelEvent) => e.preventDefault();
+    lightboxEl.addEventListener("wheel", handleWheel, { passive: false });
+    return () => lightboxEl.removeEventListener("wheel", handleWheel);
+  }, [lightboxEl, zoomed]);
 
   if (imageUrl && !imageFailed) {
     const alt = imageAlt ?? `${brand} — ${name}`;
@@ -76,14 +111,26 @@ export function CompositionCanvas({
       const resetZoom = () => {
         setZoomed(false);
         setPan({ x: 0, y: 0 });
+        // A drag can be interrupted (pointercancel, or the dialog closing
+        // mid-drag) without the pointerup/click that normally clears these,
+        // which would otherwise swallow the next click or leave the
+        // transition permanently disabled — see onPointerCancel below.
+        setDragging(false);
+        dragRef.current = null;
       };
 
       const applyPan = (dx: number, dy: number) => {
-        const box = lightboxRef.current;
+        const box = lightboxEl;
         if (!box) return;
+        const { width, height } = containedSize(
+          box.clientWidth,
+          box.clientHeight,
+          imgRef.current?.naturalWidth ?? 0,
+          imgRef.current?.naturalHeight ?? 0,
+        );
         setPan((prev) => ({
-          x: clampPan(prev.x + dx, box.clientWidth, LIGHTBOX_ZOOM_SCALE),
-          y: clampPan(prev.y + dy, box.clientHeight, LIGHTBOX_ZOOM_SCALE),
+          x: clampPan(prev.x + dx, width, LIGHTBOX_ZOOM_SCALE),
+          y: clampPan(prev.y + dy, height, LIGHTBOX_ZOOM_SCALE),
         }));
       };
 
@@ -102,7 +149,7 @@ export function CompositionCanvas({
             </button>
           </DialogTrigger>
           <DialogContent
-            ref={lightboxRef}
+            ref={setLightboxEl}
             className={cn(
               // The container's own size never changes with zoom — only the
               // photo inside it does. Sizing lives here rather than on the
@@ -118,14 +165,18 @@ export function CompositionCanvas({
               "flex h-[80vh] w-[80vw] max-w-[92vw] items-center justify-center overflow-hidden border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-[92vw]",
             )}
             onWheel={(e) => {
+              // The native, non-passive listener attached by the effect
+              // above is what actually stops the page scrolling — React's
+              // own onWheel is registered passive, so preventDefault() here
+              // would be a no-op. This handler only updates the pan.
               if (!zoomed) return;
-              e.preventDefault();
               applyPan(-e.deltaX, -e.deltaY);
             }}
           >
             <DialogTitle className="sr-only">{alt}</DialogTitle>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              ref={imgRef}
               src={imageUrl}
               alt={alt}
               onClick={() => {
@@ -154,12 +205,27 @@ export function CompositionCanvas({
                 const dx = e.clientX - drag.startX;
                 const dy = e.clientY - drag.startY;
                 if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
-                const box = lightboxRef.current;
+                const box = lightboxEl;
                 if (!box) return;
+                const { width, height } = containedSize(
+                  box.clientWidth,
+                  box.clientHeight,
+                  imgRef.current?.naturalWidth ?? 0,
+                  imgRef.current?.naturalHeight ?? 0,
+                );
                 setPan({
-                  x: clampPan(drag.originX + dx, box.clientWidth, LIGHTBOX_ZOOM_SCALE),
-                  y: clampPan(drag.originY + dy, box.clientHeight, LIGHTBOX_ZOOM_SCALE),
+                  x: clampPan(drag.originX + dx, width, LIGHTBOX_ZOOM_SCALE),
+                  y: clampPan(drag.originY + dy, height, LIGHTBOX_ZOOM_SCALE),
                 });
+              }}
+              onPointerCancel={(e) => {
+                // No click follows a cancelled gesture (unlike pointerup),
+                // so this is the only place a cancelled drag gets cleaned
+                // up — otherwise dragging stays stuck true and the next
+                // real click gets swallowed as if it ended a drag.
+                setDragging(false);
+                dragRef.current = null;
+                e.currentTarget.releasePointerCapture(e.pointerId);
               }}
               onPointerUp={(e) => {
                 setDragging(false);

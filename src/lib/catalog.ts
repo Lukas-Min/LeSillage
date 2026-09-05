@@ -129,15 +129,19 @@ function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[]
 
 /**
  * Turns a product's raw SKU rows into priced, fulfillment-aware
- * `SizePickerOption[]` — grouped by size+provenance, with `isTester` carried
- * through purely for the free-tester promo draw and never used to split
- * groups or label a button (a tester-eligible bottle is not a different
- * product to the customer). Provenance is always baked into the group's
- * label. Condition/packaging become a secondary `subOptions` picker only
- * when a group has more than one SKU to distinguish. Shared by the shop grid
- * (`loadCatalogCards`), the PDP, and the cart drawer's "Customize" picker
- * (`getSiblingSkuOptions`) — pure (no DB access) so each call site fetches
- * `variants`/`discounts` however best fits its own query shape.
+ * `SizePickerOption[]` — grouped by size+provenance+isTester, but `isTester`
+ * never appears in the label (a tester-eligible bottle is not a different
+ * product to the customer). The isTester segment stays in the grouping key
+ * so a promo-pool tester SKU never merges into the same button as an
+ * otherwise-identical regular SKU at a different price — that would let the
+ * tester silently become the group's default add-to-cart target, or produce
+ * two indistinguishable `subOptions` entries. Provenance is always baked
+ * into the group's label. Condition/packaging become a secondary
+ * `subOptions` picker only when a group has more than one SKU to
+ * distinguish. Shared by the shop grid (`loadCatalogCards`), the PDP, and
+ * the cart drawer's "Customize" picker (`getSiblingSkuOptions`) — pure (no
+ * DB access) so each call site fetches `variants`/`discounts` however best
+ * fits its own query shape.
  */
 export function buildVariantOptions(
   variants: Array<{
@@ -176,7 +180,7 @@ export function buildVariantOptions(
 
   const groups = new Map<string, typeof enriched>();
   for (const v of enriched) {
-    const key = `${v.sizeMl}::${v.provenance}`;
+    const key = `${v.sizeMl}::${v.provenance}::${v.isTester ? "1" : "0"}`;
     const arr = groups.get(key);
     if (arr) arr.push(v);
     else groups.set(key, [v]);

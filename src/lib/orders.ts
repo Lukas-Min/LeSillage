@@ -43,6 +43,7 @@ import {
   orderShippedEmail,
   receiptRejectedEmail,
   receiptSubmittedEmail,
+  type OrderEmailInput,
 } from "@/lib/email-templates";
 
 export interface CustomerContext {
@@ -481,6 +482,37 @@ export interface SubmitReceiptResult {
   error?: string;
 }
 
+// Shared by submitReceipt and transitionOrderStatus so the orderItems ->
+// email-line field mapping only needs to be maintained in one place.
+function toEmailLines(
+  rows: Array<
+    Pick<
+      typeof orderItems.$inferSelect,
+      | "productName"
+      | "skuLabel"
+      | "quantity"
+      | "originalUnitCentavos"
+      | "unitPriceCentavos"
+      | "discountCentavos"
+      | "lineTotalCentavos"
+      | "productType"
+      | "fulfillment"
+    >
+  >,
+) {
+  return rows.map((row) => ({
+    productName: row.productName,
+    skuLabel: row.skuLabel,
+    quantity: row.quantity,
+    originalUnitCentavos: row.originalUnitCentavos,
+    unitPriceCentavos: row.unitPriceCentavos,
+    discountCentavos: row.discountCentavos,
+    lineTotalCentavos: row.lineTotalCentavos,
+    productType: row.productType,
+    fulfillment: row.fulfillment,
+  }));
+}
+
 export async function submitReceipt(
   input: SubmitReceiptInput,
 ): Promise<SubmitReceiptResult> {
@@ -530,6 +562,7 @@ export async function submitReceipt(
   // Everything below only feeds the two notification emails; after() runs
   // it once the response is sent, so the upload no longer waits on SMTP.
   after(async () => {
+    try {
     const env = getEnv();
     const promo = (await client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")))[0];
     const emailInput = {
@@ -538,17 +571,7 @@ export async function submitReceipt(
       recipientName: orderRow.recipientName,
       email: orderRow.email,
       fulfillmentMethod: orderRow.fulfillmentMethod,
-      lines: itemRows.map((line) => ({
-        productName: line.productName,
-        skuLabel: line.skuLabel,
-        quantity: line.quantity,
-        originalUnitCentavos: line.originalUnitCentavos,
-        unitPriceCentavos: line.unitPriceCentavos,
-        discountCentavos: line.discountCentavos,
-        lineTotalCentavos: line.lineTotalCentavos,
-        productType: line.productType,
-        fulfillment: line.fulfillment,
-      })),
+      lines: toEmailLines(itemRows),
       subtotalCentavos: orderRow.subtotalCentavos,
       discountCentavos: orderRow.discountCentavos,
       deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
@@ -584,6 +607,9 @@ export async function submitReceipt(
         error: admin.ok ? null : admin.error ?? "unknown error",
       },
     ]);
+    } catch {
+      // Order/receipt are already committed; email failure must not surface here.
+    }
   });
 
   return { ok: true };
@@ -826,36 +852,17 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
   });
 }
 
-interface OrderEmailData {
-  orderNumber: string;
-  recipientName: string;
-  email: string;
-  fulfillmentMethod: FulfillmentMethod;
-  subtotalCentavos: number;
-  discountCentavos: number;
-  deliveryFeeCentavos: number;
-  totalCentavos: number;
-  createdAt: Date;
-  pickupNotes?: string | null;
-}
-
-async function loadOrderForEmail(orderId: string): Promise<OrderEmailData | null> {
-  const client = db();
-  const row = (await client.select().from(orders).where(eq(orders.id, orderId)))[0];
-  if (!row) return null;
-  return {
-    orderNumber: row.orderNumber,
-    recipientName: row.recipientName,
-    email: row.email,
-    fulfillmentMethod: row.fulfillmentMethod,
-    subtotalCentavos: row.subtotalCentavos,
-    discountCentavos: row.discountCentavos,
-    deliveryFeeCentavos: row.deliveryFeeCentavos,
-    totalCentavos: row.totalCentavos,
-    createdAt: row.createdAt,
-    pickupNotes: row.pickupNotes,
-  };
-}
+// One send + one notificationLog insert per terminal status that emails the
+// customer; statuses with no entry (e.g. RECEIPT_SUBMITTED, COMPLETED) send
+// nothing here.
+const STATUS_EMAIL_TEMPLATES: Partial<
+  Record<OrderStatus, { build: (input: OrderEmailInput) => { subject: string; text: string }; template: string }>
+> = {
+  REJECTED: { build: receiptRejectedEmail, template: "receipt_rejected" },
+  CANCELLED: { build: orderCancelledEmail, template: "order_cancelled" },
+  CONFIRMED: { build: orderConfirmedEmail, template: "order_confirmed" },
+  SHIPPED: { build: orderShippedEmail, template: "order_shipped" },
+};
 
 export async function transitionOrderStatus(args: {
   orderId: string;
@@ -894,77 +901,39 @@ export async function transitionOrderStatus(args: {
   // the customer email runs after the response so admin actions and
   // self-service cancels return as soon as the DB work is done.
   after(async () => {
-    const context = await loadOrderForEmail(args.orderId);
-    if (!context) return;
-    const items = await client
-      .select()
-      .from(orderItems)
-      .where(eq(orderItems.orderId, args.orderId));
-    const emailInput = {
-      orderNumber: context.orderNumber,
-      status: args.next,
-      recipientName: context.recipientName,
-      email: context.email,
-      fulfillmentMethod: context.fulfillmentMethod,
-      lines: items.map((it) => ({
-        productName: it.productName,
-        skuLabel: it.skuLabel,
-        quantity: it.quantity,
-        originalUnitCentavos: it.originalUnitCentavos,
-        unitPriceCentavos: it.unitPriceCentavos,
-        discountCentavos: it.discountCentavos,
-        lineTotalCentavos: it.lineTotalCentavos,
-        productType: it.productType,
-        fulfillment: it.fulfillment,
-      })),
-      subtotalCentavos: context.subtotalCentavos,
-      discountCentavos: context.discountCentavos,
-      deliveryFeeCentavos: context.deliveryFeeCentavos,
-      totalCentavos: context.totalCentavos,
-      orderedAt: context.createdAt,
-      reason: args.reason,
-      pickupNotes: context.pickupNotes,
-    };
+    try {
+      const entry = STATUS_EMAIL_TEMPLATES[args.next];
+      if (!entry) return;
+      const items = await client
+        .select()
+        .from(orderItems)
+        .where(eq(orderItems.orderId, args.orderId));
+      const emailInput: OrderEmailInput = {
+        orderNumber: orderRow.orderNumber,
+        status: args.next,
+        recipientName: orderRow.recipientName,
+        email: orderRow.email,
+        fulfillmentMethod: orderRow.fulfillmentMethod,
+        lines: toEmailLines(items),
+        subtotalCentavos: orderRow.subtotalCentavos,
+        discountCentavos: orderRow.discountCentavos,
+        deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
+        totalCentavos: orderRow.totalCentavos,
+        orderedAt: orderRow.createdAt,
+        reason: args.reason,
+        pickupNotes: orderRow.pickupNotes,
+      };
 
-    if (args.next === "REJECTED") {
-      const r = await sendEmail({ to: context.email, ...receiptRejectedEmail(emailInput) });
+      const r = await sendEmail({ to: orderRow.email, ...entry.build(emailInput) });
       await client.insert(notificationLog).values({
         orderId: args.orderId,
-        recipient: context.email,
-        template: "receipt_rejected",
+        recipient: orderRow.email,
+        template: entry.template,
         status: r.ok ? "SENT" : "FAILED",
         error: r.ok ? null : r.error ?? "unknown error",
       });
-    }
-    if (args.next === "CANCELLED") {
-      const r = await sendEmail({ to: context.email, ...orderCancelledEmail(emailInput) });
-      await client.insert(notificationLog).values({
-        orderId: args.orderId,
-        recipient: context.email,
-        template: "order_cancelled",
-        status: r.ok ? "SENT" : "FAILED",
-        error: r.ok ? null : r.error ?? "unknown error",
-      });
-    }
-    if (args.next === "CONFIRMED") {
-      const r = await sendEmail({ to: context.email, ...orderConfirmedEmail(emailInput) });
-      await client.insert(notificationLog).values({
-        orderId: args.orderId,
-        recipient: context.email,
-        template: "order_confirmed",
-        status: r.ok ? "SENT" : "FAILED",
-        error: r.ok ? null : r.error ?? "unknown error",
-      });
-    }
-    if (args.next === "SHIPPED") {
-      const r = await sendEmail({ to: context.email, ...orderShippedEmail(emailInput) });
-      await client.insert(notificationLog).values({
-        orderId: args.orderId,
-        recipient: context.email,
-        template: "order_shipped",
-        status: r.ok ? "SENT" : "FAILED",
-        error: r.ok ? null : r.error ?? "unknown error",
-      });
+    } catch {
+      // Status change already committed; email failure must not surface here.
     }
   });
 }

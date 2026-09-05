@@ -9,6 +9,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatPHP } from "@/domain/money";
 
 export const dynamic = "force-dynamic";
+// The receipt-upload action posted from this page sends email inside
+// after(); that work counts against the invocation's time budget, so leave
+// room for the SMTP timeouts (8s each) instead of the 10s default.
+export const maxDuration = 30;
 
 export default async function PaymentPage({
   searchParams,

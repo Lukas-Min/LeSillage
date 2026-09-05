@@ -4,14 +4,19 @@ import { getEnv } from "@/lib/env";
 import * as schema from "./schema";
 
 const globalForDb = globalThis as unknown as {
-  __leSillagePg?: ReturnType<typeof postgres>;
-  __leSillageDb?: ReturnType<typeof buildDb>;
+  __leSillageDb?: ReturnType<typeof drizzle<typeof schema>>;
 };
 
-function getSql() {
-  if (!globalForDb.__leSillagePg) {
+export function db() {
+  // Memoized once, on a single global slot: drizzle() rebuilds its query
+  // builder and relation maps on every call and db() is called several
+  // times per request, and re-running postgres() would rebuild the
+  // connection pool itself. One slot also means there's no half-initialized
+  // state to reach (a pool with no way back to it) if construction throws
+  // partway through.
+  if (!globalForDb.__leSillageDb) {
     const env = getEnv();
-    globalForDb.__leSillagePg = postgres(env.DATABASE_URL, {
+    const sql = postgres(env.DATABASE_URL, {
       // Supabase's transaction-mode pooler (port 6543) can't keep named
       // prepared statements across queries.
       prepare: false,
@@ -24,19 +29,8 @@ function getSql() {
       max_lifetime: 60 * 30,
       connect_timeout: 10,
     });
+    globalForDb.__leSillageDb = drizzle(sql, { schema });
   }
-  return globalForDb.__leSillagePg;
-}
-
-function buildDb() {
-  return drizzle(getSql(), { schema });
-}
-
-export function db() {
-  // Memoized next to the client: drizzle() rebuilds its query builder and
-  // relation maps on every call, and db() is called several times per
-  // request.
-  if (!globalForDb.__leSillageDb) globalForDb.__leSillageDb = buildDb();
   return globalForDb.__leSillageDb;
 }
 
