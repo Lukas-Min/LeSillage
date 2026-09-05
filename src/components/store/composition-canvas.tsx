@@ -66,18 +66,18 @@ export function CompositionCanvas({
           </DialogTrigger>
           <DialogContent
             className={cn(
-              // Sizing lives on DialogContent itself, not the <img> — Tailwind's
-              // preflight sets `img { max-width: 100% }`, which fights a
-              // percentage/vw width on the image when its parent is `w-fit`
-              // (the two sizes depend on each other). A definite-sized parent
-              // with an `h-full w-full` image sidesteps that entirely. The
+              // The container's own size never changes with zoom — only the
+              // photo inside it does. Sizing lives here rather than on the
+              // <img> because Tailwind's `img { max-width: 100% }` preflight
+              // rule fights a percentage/vw width set directly on the image
+              // when its parent is `w-fit` (the two sizes depend on each
+              // other); a definite-sized parent with an `h-full w-full`
+              // image sidesteps that. `overflow-hidden` clips the zoomed
+              // photo to this box instead of letting it spill past it. The
               // base DialogContent's own `sm:max-w-sm` sorts after a plain
               // `max-w-[…]` utility at the `sm` breakpoint and up, so it must
               // be overridden at the same `sm:` variant to actually lose.
-              "flex items-center justify-center border-none bg-transparent p-0 shadow-none ring-0 transition-[height,width] duration-300 ease-out",
-              zoomed
-                ? "h-[95vh] w-[95vw] max-w-[95vw] sm:max-w-[95vw]"
-                : "h-[80vh] w-[80vw] max-w-[92vw] sm:max-w-[92vw]",
+              "flex h-[80vh] w-[80vw] max-w-[92vw] items-center justify-center overflow-hidden border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-[92vw]",
             )}
           >
             <DialogTitle className="sr-only">{alt}</DialogTitle>
@@ -89,9 +89,15 @@ export function CompositionCanvas({
               className={cn(
                 // object-contain, never object-cover — the bottle must
                 // never be cropped (see the earlier object-cover ->
-                // object-contain change on this component).
-                "h-full w-full rounded-lg bg-white object-contain",
-                zoomed ? "cursor-zoom-out" : "cursor-zoom-in",
+                // object-contain change on this component). Zoom scales the
+                // already-fitted photo up around its center; the container
+                // above clips whatever spills past its own 80vh/80vw box.
+                "h-full w-full rounded-lg bg-white object-contain transition-transform duration-300 ease-out",
+                // Bare scale-100/scale-150 never render in this project's
+                // Tailwind build (nothing else in the codebase uses them —
+                // every existing zoom effect already goes through the
+                // arbitrary-value form below, e.g. group-hover:scale-[1.05]).
+                zoomed ? "scale-[1.5] cursor-zoom-out" : "scale-[1] cursor-zoom-in",
               )}
             />
           </DialogContent>
