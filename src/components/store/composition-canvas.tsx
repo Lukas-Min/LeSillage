@@ -32,6 +32,7 @@ export function CompositionCanvas({
   enableLightbox?: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
 
   if (imageUrl && !imageFailed) {
     const alt = imageAlt ?? `${brand} — ${name}`;
@@ -50,7 +51,7 @@ export function CompositionCanvas({
 
     if (enableLightbox) {
       return (
-        <Dialog>
+        <Dialog onOpenChange={(open) => !open && setZoomed(false)}>
           <DialogTrigger asChild>
             <button
               type="button"
@@ -63,10 +64,36 @@ export function CompositionCanvas({
               {photo}
             </button>
           </DialogTrigger>
-          <DialogContent className="w-fit max-w-[92vw] border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-3xl">
+          <DialogContent
+            className={cn(
+              // Sizing lives on DialogContent itself, not the <img> — Tailwind's
+              // preflight sets `img { max-width: 100% }`, which fights a
+              // percentage/vw width on the image when its parent is `w-fit`
+              // (the two sizes depend on each other). A definite-sized parent
+              // with an `h-full w-full` image sidesteps that entirely. The
+              // base DialogContent's own `sm:max-w-sm` sorts after a plain
+              // `max-w-[…]` utility at the `sm` breakpoint and up, so it must
+              // be overridden at the same `sm:` variant to actually lose.
+              "flex items-center justify-center border-none bg-transparent p-0 shadow-none ring-0 transition-[height,width] duration-300 ease-out",
+              zoomed
+                ? "h-[95vh] w-[95vw] max-w-[95vw] sm:max-w-[95vw]"
+                : "h-[80vh] w-[80vw] max-w-[92vw] sm:max-w-[92vw]",
+            )}
+          >
             <DialogTitle className="sr-only">{alt}</DialogTitle>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt={alt} className="max-h-[85vh] w-full rounded-lg bg-white object-contain" />
+            <img
+              src={imageUrl}
+              alt={alt}
+              onClick={() => setZoomed((prev) => !prev)}
+              className={cn(
+                // object-contain, never object-cover — the bottle must
+                // never be cropped (see the earlier object-cover ->
+                // object-contain change on this component).
+                "h-full w-full rounded-lg bg-white object-contain",
+                zoomed ? "cursor-zoom-out" : "cursor-zoom-in",
+              )}
+            />
           </DialogContent>
         </Dialog>
       );
