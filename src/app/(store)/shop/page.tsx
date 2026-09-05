@@ -37,7 +37,7 @@ export default async function ShopPage({
   const category = parseEnum(params.category, [...CATEGORIES]) as FragranceCategory | undefined;
   const concentration = parseEnum(params.concentration, [...CONCENTRATIONS]) as Concentration | undefined;
   const gender = parseEnum(params.gender, GENDERS) as Gender | undefined;
-  const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "featured";
+  const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "name_asc";
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
   return (
@@ -98,7 +98,7 @@ async function ShopResults({
     if (category) params.set("category", category);
     if (concentration) params.set("concentration", concentration);
     if (gender) params.set("gender", gender);
-    if (sort !== "featured") params.set("sort", sort);
+    if (sort !== "name_asc") params.set("sort", sort);
     if (target > 1) params.set("page", String(target));
     const query = params.toString();
     return query ? `/shop?${query}` : "/shop";

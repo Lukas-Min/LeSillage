@@ -18,7 +18,7 @@ import { CONCENTRATION_LABELS } from "@/domain/concentration";
 import { GENDERS, GENDER_LABELS, type Gender } from "@/domain/gender";
 
 const SORT_LABELS: Record<CatalogSort, string> = {
-  featured: "Featured",
+  newest: "Newest",
   rating: "Most rated",
   discount_desc: "Biggest discount",
   price_asc: "Price: low to high",
@@ -147,7 +147,7 @@ export function ShopToolbar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuRadioGroup value={activeSort} onValueChange={(value) => navigate({ sort: value === "featured" ? null : value })}>
+            <DropdownMenuRadioGroup value={activeSort} onValueChange={(value) => navigate({ sort: value === "name_asc" ? null : value })}>
               {(Object.keys(SORT_LABELS) as CatalogSort[]).map((key) => (
                 <DropdownMenuRadioItem key={key} value={key}>
                   {SORT_LABELS[key]}

@@ -23,7 +23,7 @@ import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 import { compareSkuOrder, type SizePickerOption, type VariantSubOption } from "@/domain/variant-options";
 
 export const CATALOG_SORTS = [
-  "featured",
+  "newest",
   "rating",
   "discount_desc",
   "price_asc",
@@ -115,12 +115,11 @@ function decantVariantFulfillment(
   return decantFulfillment({ remainingMl, sizeMl: variant.sizeMl ?? DECANT_SIZES_ML[0], thresholdMl });
 }
 
-function sizePickerGroupLabel(sizeMl: number, provenance: Provenance, isTester: boolean): string {
-  const provenanceLabel = labelForProvenance(provenance);
-  if (isTester && provenance !== "TESTER") {
-    return `${sizeMl}ML · ${provenanceLabel} · Tester`;
-  }
-  return `${sizeMl}ML · ${provenanceLabel}`;
+// isTester is purely a backend eligibility flag for the free-tester promo
+// draw (src/domain/promo.ts pickTester) — it does not change what the
+// customer is buying, so it must never surface as a label or badge here.
+function sizePickerGroupLabel(sizeMl: number, provenance: Provenance): string {
+  return `${sizeMl}ML · ${labelForProvenance(provenance)}`;
 }
 
 function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[] {
@@ -130,15 +129,15 @@ function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[]
 
 /**
  * Turns a product's raw SKU rows into priced, fulfillment-aware
- * `SizePickerOption[]` — grouped by size+provenance+tester so a promo-pool
- * tester sharing size and provenance with a regular bottle is its own button
- * (e.g. "100ML · Retail · Tester"), never an unlabeled duplicate sub-option.
- * Provenance is always baked into the group's label. Condition/packaging
- * become a secondary `subOptions` picker only when a group has more than one
- * SKU to distinguish. Shared by the shop grid (`loadCatalogCards`), the PDP,
- * and the cart drawer's "Customize" picker (`getSiblingSkuOptions`) — pure
- * (no DB access) so each call site fetches `variants`/`discounts` however
- * best fits its own query shape.
+ * `SizePickerOption[]` — grouped by size+provenance, with `isTester` carried
+ * through purely for the free-tester promo draw and never used to split
+ * groups or label a button (a tester-eligible bottle is not a different
+ * product to the customer). Provenance is always baked into the group's
+ * label. Condition/packaging become a secondary `subOptions` picker only
+ * when a group has more than one SKU to distinguish. Shared by the shop grid
+ * (`loadCatalogCards`), the PDP, and the cart drawer's "Customize" picker
+ * (`getSiblingSkuOptions`) — pure (no DB access) so each call site fetches
+ * `variants`/`discounts` however best fits its own query shape.
  */
 export function buildVariantOptions(
   variants: Array<{
@@ -177,7 +176,7 @@ export function buildVariantOptions(
 
   const groups = new Map<string, typeof enriched>();
   for (const v of enriched) {
-    const key = `${v.sizeMl}::${v.provenance}::${v.isTester ? "1" : "0"}`;
+    const key = `${v.sizeMl}::${v.provenance}`;
     const arr = groups.get(key);
     if (arr) arr.push(v);
     else groups.set(key, [v]);
@@ -213,7 +212,7 @@ export function buildVariantOptions(
         : undefined;
     options.push({
       sizeMl: defaultMember.sizeMl!,
-      label: sizePickerGroupLabel(defaultMember.sizeMl!, defaultMember.provenance, defaultMember.isTester),
+      label: sizePickerGroupLabel(defaultMember.sizeMl!, defaultMember.provenance),
       skuId: defaultMember.skuId,
       fulfillment: defaultMember.fulfillment,
       condition: defaultMember.condition,
@@ -396,7 +395,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       sizeOptions,
     });
   }
-  const sorted = sortCards(cards, filter.sort ?? "featured");
+  const sorted = sortCards(cards, filter.sort ?? "newest");
   if (!filter.limit) return sorted;
   const start = filter.offset ?? 0;
   return sorted.slice(start, start + filter.limit);
@@ -478,7 +477,7 @@ function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardMod
     case "name_desc":
       sorted.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: "base" }));
       return sorted;
-    case "featured":
+    case "newest":
       return sorted;
     default: {
       const exhaustive: never = sort;

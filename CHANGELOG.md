@@ -4,6 +4,11 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Real Fragrantica photos and metadata (notes, main accords, perfumer, release year, and rating where Fragrantica shows one) for the 16 new full-bottle listings, matching the convention `scripts/add-full-bottles-batch-2.ts` already used — each product's `fragranticaUrl`/`product_image` row set, image host already allow-listed (`fimgs.net`)
+### Changed
+- `/shop`'s default sort is now "Name: A to Z" instead of "Featured"; the old Featured/createdAt-DESC option is relabeled "Newest" (`CATALOG_SORTS`, `SORT_LABELS`) rather than removed, since it's still a distinct, useful order
+- Odyssey Mega and Shiyaaka Snow (the two new full-bottle listings) repriced to ₱1,800 and ₱1,900
+- Size-picker buttons no longer append "· Tester" for an `isTester` SKU — that flag only marks a unit's eligibility for the one-per-order free-tester draw (`src/domain/promo.ts` `pickTester`) and was never meant to be a customer-visible distinction; a tester-eligible bottle now groups and displays identically to any other bottle of the same size/provenance (`buildVariantOptions` in `src/lib/catalog.ts`)
 - 16 new full-bottle Middle Eastern catalog listings (Retail/BNIB, `PRE_ORDER`, stock 0 pending admin count): Rasasi Hawas Black/Ice/Thunder/Kobra (100ml), Lattafa Art of Universe/Yara Candy/Asad Elixir (100ml), Rayhaan Nocturno Elixir (100ml), Afnan Supremacy Collector's Edition (100ml), Armaf Club De Nuit Untold/Maleka/Iconic/Intense Man EDT (105ml — verified against the 100ml default, this Armaf line ships at 105ml), Khadlaj Shiyaaka Snow (100ml), Arabiyat Prestige Marwa (100ml), Armaf Odyssey Mega (100ml, the smaller of its two bottle sizes) — added via a one-off script mirroring `upsertProduct`/`upsertSku`'s DIRECT-pricing path so admin edits won't drift the price
 - Payment-nudge emails for orders still on Awaiting payment after two hours — sent once per order (`paymentReminderSentAt` in `src/lib/payment-reminders.ts`, daily cron `GET /api/cron/payment-reminders` at 10:00 PHT; Hobby cannot run hourly)
 - Cancellation confirmation emails when an order moves to Cancelled (`orderCancelledEmail` in `src/lib/email-templates.ts`)
