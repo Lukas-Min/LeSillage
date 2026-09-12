@@ -74,7 +74,6 @@ export async function saveFragranticaImport(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const brand = String(formData.get("brand") ?? "").trim();
   if (!name || !brand) throw new Error("Name and brand are required");
-  const family = String(formData.get("family") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
   const releaseYear = parseIntOptional(formData.get("releaseYear"));
   const gender = String(formData.get("gender") ?? "").trim() || null;
@@ -124,7 +123,6 @@ export async function saveFragranticaImport(formData: FormData) {
     concentration,
     name: merged.name ?? name,
     brand: merged.brand ?? brand,
-    family,
     // Canonical short-form description ("By <perfumer(s)> (<year>)."), not
     // the scraped/pasted paragraph — kept consistent with every other way a
     // product enters the catalog (see formatFragranceDescription).

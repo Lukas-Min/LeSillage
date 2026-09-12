@@ -33,7 +33,6 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         productId: products.id,
         name: products.name,
         brand: products.brand,
-        family: products.family,
         fragranceCategory: products.fragranceCategory,
         concentration: products.concentration,
         gender: products.gender,

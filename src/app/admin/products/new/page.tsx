@@ -31,7 +31,7 @@ export default async function NewProductPage({
           .then((rows) => rows[0])
       : Promise.resolve(undefined),
   ]);
-  // Family/Category/Concentration/Gender/Description/Notes are fragrance-level
+  // Category/Concentration/Gender/Description/Notes are fragrance-level
   // facts, identical across a fragrance's Decant/Full bottle/Partial rows —
   // collapse those into one entry per brand+name so the same fragrance isn't
   // listed 2-3 times with no meaningful difference between the choices.
@@ -72,7 +72,7 @@ export default async function NewProductPage({
               </Button>
             </form>
             <p className="mt-2 text-xs text-muted-foreground">
-              Fills in Name/Brand/Family/Category/Concentration/Gender/Description/Notes below — useful when adding
+              Fills in Name/Brand/Category/Concentration/Gender/Description/Notes below — useful when adding
               e.g. the Full Bottle of a fragrance you already have as a Decant. You still set type, size, and price
               yourself.
             </p>
@@ -87,8 +87,6 @@ export default async function NewProductPage({
               <Input id="name" name="name" defaultValue={copySource?.name ?? ""} required />
             </div>
             <Input name="brand" placeholder="Brand" defaultValue={copySource?.brand ?? ""} required />
-            {/* Not user-editable — carried over only via "Copy details from". */}
-            <input type="hidden" name="family" value={copySource?.family ?? ""} />
             <select name="type" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="DECANT">
               <option value="DECANT">Decant</option>
               <option value="FULL_BOTTLE">Full bottle</option>

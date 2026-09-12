@@ -19,7 +19,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
   const concentration = concentrationLabel(card.concentration);
   const genderLabel = card.gender ? capitalizeFirst(card.gender) : null;
   const subtitle =
-    [card.family, concentration, genderLabel].filter(Boolean).join(" · ") || labelForType(card.type);
+    [concentration, genderLabel].filter(Boolean).join(" · ") || labelForType(card.type);
   const isDecant = card.type === "DECANT";
   const hasSizeOptions = card.sizeOptions.length > 0;
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);

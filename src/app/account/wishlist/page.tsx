@@ -23,7 +23,6 @@ export default async function WishlistPage() {
       productId: products.id,
       name: products.name,
       brand: products.brand,
-      family: products.family,
       type: products.type,
     })
     .from(wishlists)
@@ -109,7 +108,7 @@ export default async function WishlistPage() {
                   <div className="min-w-0 space-y-0.5">
                     <p className="truncate font-serif-display text-base leading-tight">{row.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {row.brand} · {row.family ?? "—"}
+                      {row.brand}
                     </p>
                     <div className="flex flex-wrap gap-1 pt-1">
                       <Badge variant="outline">{row.type.replace("_", " ").toLowerCase()}</Badge>

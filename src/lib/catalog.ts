@@ -54,7 +54,6 @@ export interface CatalogCardModel {
   skuId: string;
   name: string;
   brand: string;
-  family: string | null;
   description: string | null;
   type: ProductType;
   fragranceCategory: FragranceCategory;
@@ -253,7 +252,6 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     const search = or(
       ilike(products.name, term),
       ilike(products.brand, term),
-      ilike(products.family, term),
     );
     if (search) conditions.push(search);
   }
@@ -263,7 +261,6 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       id: products.id,
       name: products.name,
       brand: products.brand,
-      family: products.family,
       description: products.description,
       type: products.type,
       fragranceCategory: products.fragranceCategory,
@@ -377,7 +374,6 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       skuId: destination.skuId,
       name: product.name,
       brand: product.brand,
-      family: product.family,
       description: product.description,
       type: product.type,
       fragranceCategory: product.fragranceCategory,
@@ -432,7 +428,6 @@ export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "o
     const search = or(
       ilike(products.name, term),
       ilike(products.brand, term),
-      ilike(products.family, term),
     );
     if (search) conditions.push(search);
   }
@@ -560,7 +555,7 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
     .where(
       and(
         eq(products.isActive, true),
-        or(ilike(products.name, needle), ilike(products.brand, needle), ilike(products.family, needle)),
+        or(ilike(products.name, needle), ilike(products.brand, needle)),
       ),
     )
     .orderBy(desc(products.createdAt))

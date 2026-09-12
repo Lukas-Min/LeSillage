@@ -108,7 +108,6 @@ async function main() {
       "fragranceCategory" text NOT NULL DEFAULT 'NICHE',
       "name" text NOT NULL,
       "brand" text NOT NULL,
-      "family" text,
       "description" text,
       "notes" text,
       "isActive" boolean NOT NULL DEFAULT true,
@@ -141,7 +140,6 @@ async function main() {
       "fulfillment" text NOT NULL,
       "stock" integer NOT NULL DEFAULT 0,
       "isTester" boolean NOT NULL DEFAULT false,
-      "testerFamily" text,
       "testerBrand" text,
       "isActive" boolean NOT NULL DEFAULT true,
       "createdAt" timestamp NOT NULL DEFAULT now(),
@@ -578,6 +576,12 @@ async function main() {
     `ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "paymentReminderSentAt" timestamp`,
   );
 
+  // Fragrance family removed — testers match by brand only.
+  await db.execute(`ALTER TABLE "product" DROP COLUMN IF EXISTS "family"`);
+  await db.execute(`ALTER TABLE "sku" DROP COLUMN IF EXISTS "testerFamily"`);
+  await db.execute(`DELETE FROM "option_value" WHERE "listKey" = 'fragrance_family'`);
+  await db.execute(`DELETE FROM "option_list" WHERE "key" = 'fragrance_family'`);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -599,6 +603,8 @@ async function main() {
 // DROP TABLE IF EXISTS "promo_code";
 // ALTER TABLE "user" DROP COLUMN IF EXISTS "themePreference";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "paymentReminderSentAt";
+// ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "family" text;
+// ALTER TABLE "sku" ADD COLUMN IF NOT EXISTS "testerFamily" text;
 
 main().catch((error) => {
   console.error(error);

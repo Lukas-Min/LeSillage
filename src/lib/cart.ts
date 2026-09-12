@@ -218,7 +218,6 @@ type CombinedRow = {
   sku: typeof skus.$inferSelect | null;
   productType: ProductType | null;
   productBrand: string | null;
-  productFamily: string | null;
   productName: string | null;
   remainingMl: number | null;
 };
@@ -245,7 +244,6 @@ async function priceCombinedRows(
         deliveryFeeCentavos: 0,
         totalCentavos: 0,
         purchasedBrands: new Set(),
-        purchasedFamilies: new Set(),
         decantSubtotalCentavos: 0,
       },
     };
@@ -277,7 +275,6 @@ async function priceCombinedRows(
         quantity: row.quantity,
         productType,
         productBrand: row.productBrand!,
-        productFamily: row.productFamily,
         discounts: withSiteWideDiscount(
           discounts.filter((d) => d.productId === row.sku!.productId),
           row.sku!.productId,
@@ -368,7 +365,6 @@ async function loadPricedCart(
         sku: skus,
         productType: products.type,
         productBrand: products.brand,
-        productFamily: products.family,
         productName: products.name,
         remainingMl: products.remainingMl,
       })
@@ -402,7 +398,6 @@ async function loadPricedDirectItem(
         sku: skus,
         productType: products.type,
         productBrand: products.brand,
-        productFamily: products.family,
         productName: products.name,
         remainingMl: products.remainingMl,
       })
@@ -438,7 +433,6 @@ async function loadPricedDirectItem(
           sku: row.sku,
           productType: row.productType,
           productBrand: row.productBrand,
-          productFamily: row.productFamily,
           productName: row.productName,
           remainingMl: row.remainingMl,
         },

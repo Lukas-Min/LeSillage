@@ -48,7 +48,7 @@ export default async function ProductsAdminPage({
   if (query) {
     const q = query.toLowerCase();
     filtered = filtered.filter(
-      (p) => p.brand.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || (p.family ?? "").toLowerCase().includes(q),
+      (p) => p.brand.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
     );
   }
   // Always alphabetical, A first — by brand, then name within a brand.
@@ -162,7 +162,7 @@ export default async function ProductsAdminPage({
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {product.brand} · {product.family ?? "—"} · {labelForType(product.type)} · {product.fragranceCategory}
+                  {product.brand} · {labelForType(product.type)} · {product.fragranceCategory}
                   {product.type === "DECANT" ? ` · ${product.remainingMl ?? 0}ml left` : ""}
                 </p>
                 <ul className="mt-2 space-y-1">

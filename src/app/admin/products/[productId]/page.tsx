@@ -96,10 +96,6 @@ export default async function AdminProductDetailPage({
             <Field label="Brand" htmlFor="p-brand">
               <Input id="p-brand" name="brand" defaultValue={product.brand} required />
             </Field>
-            {/* Family is sourced from the Fragrantica import, not hand-typed —
-                kept as a hidden field so saving the rest of the form doesn't
-                blow it away, per the user: not editable here. */}
-            <input type="hidden" name="family" value={product.family ?? ""} />
             <Field label="Gender" htmlFor="p-gender">
               <select id="p-gender" name="gender" defaultValue={product.gender ?? ""} className={selectClass}>
                 <option value="">Not set</option>

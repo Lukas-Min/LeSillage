@@ -155,7 +155,6 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       fulfillment: "ON_HAND",
       stock: 5,
       isTester: false,
-      testerFamily: null,
       testerBrand: null,
       isActive: true,
       createdAt: now,

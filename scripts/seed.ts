@@ -74,7 +74,6 @@ interface SeedSkuInput {
   fulfillment: "PRE_ORDER" | "ON_HAND";
   stock: number;
   isTester: boolean;
-  testerFamily?: string | null;
   testerBrand?: string | null;
 }
 
@@ -132,15 +131,12 @@ async function seedFragrances() {
     const brandSlug = slugify(entry.brand || "BRAND");
     const nameSlug = slugify(entry.name || "SCENT");
     const costPerMlCentavos = randomInt(3000, 9000);
-    const family: string | null = null;
-
     // No live data source for notes/accords/description/images anymore —
     // fill those in per product via the admin edit page if a richer demo is
     // needed.
     const sharedFields = {
       brand: entry.brand || "Unknown house",
       name: entry.name || "Untitled",
-      family,
       description: null,
       notePyramid: undefined,
       accords: null,
@@ -224,7 +220,6 @@ async function seedFragrances() {
         fulfillment: "ON_HAND",
         stock: randomInt(3, 8),
         isTester: true,
-        testerFamily: family,
         testerBrand: entry.brand || null,
       });
     }
@@ -353,7 +348,6 @@ async function main() {
 
   await client.insert(optionLists).values([
     { key: "fragrance_category", description: "Homepage and catalog shelves" },
-    { key: "fragrance_family", description: "Tester grouping for the decant promo" },
     { key: "condition", description: "Product condition states" },
     { key: "provenance", description: "Retail vs tester" },
     { key: "packaging", description: "Box vs bottle-only" },
@@ -373,10 +367,6 @@ async function main() {
       label: "Middle Eastern",
       position: 2,
     },
-    { listKey: "fragrance_family", value: "Woody", label: "Woody", position: 0 },
-    { listKey: "fragrance_family", value: "Aquatic", label: "Aquatic", position: 1 },
-    { listKey: "fragrance_family", value: "Oriental", label: "Oriental", position: 2 },
-    { listKey: "fragrance_family", value: "Floral", label: "Floral", position: 3 },
     { listKey: "condition", value: "BNIB", label: "Brand New in Box", position: 0 },
     { listKey: "condition", value: "SEALED", label: "Sealed", position: 1 },
     {

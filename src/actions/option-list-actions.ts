@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   optionValues,
@@ -32,14 +32,6 @@ async function isOptionInUse(listKey: string, value: string): Promise<boolean> {
       .select({ id: products.id })
       .from(products)
       .where(eq(products.fragranceCategory, value as FragranceCategory))
-      .limit(1);
-    return r.length > 0;
-  }
-  if (listKey === "fragrance_family") {
-    const r = await client
-      .select({ id: products.id })
-      .from(products)
-      .where(and(eq(products.family, value)))
       .limit(1);
     return r.length > 0;
   }

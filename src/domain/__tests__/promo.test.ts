@@ -40,35 +40,19 @@ describe("promo thresholds", () => {
 
 describe("pickTester", () => {
   const candidates = [
-    { skuId: "wood-match", family: "Woody", brand: "Maison Ivre", stock: 3 },
-    { skuId: "aquatic-match", family: "Aquatic", brand: "Casa Luz", stock: 1 },
-    { skuId: "unrelated", family: "Floral", brand: "Bloom", stock: 5 },
+    { skuId: "wood-match", brand: "Maison Ivre", stock: 3 },
+    { skuId: "aquatic-match", brand: "Casa Luz", stock: 1 },
+    { skuId: "unrelated", brand: "Bloom", stock: 5 },
   ];
 
-  it("prefers matching fragrance family", () => {
-    const result = pickTester(
-      candidates,
-      new Set(["Woody"]),
-      new Set(),
-      () => 0,
-    );
-    expect(result).toEqual({ result: "ASSIGNED", skuId: "wood-match" });
-  });
-
-  it("falls back to matching brand", () => {
-    const result = pickTester(
-      candidates,
-      new Set(),
-      new Set(["Casa Luz"]),
-      () => 0,
-    );
+  it("assigns a tester matching a purchased brand", () => {
+    const result = pickTester(candidates, new Set(["Casa Luz"]), () => 0);
     expect(result).toEqual({ result: "ASSIGNED", skuId: "aquatic-match" });
   });
 
   it("returns PENDING when nothing in stock matches", () => {
     const result = pickTester(
       candidates.map((c) => ({ ...c, stock: 0 })),
-      new Set(["Woody"]),
       new Set(["Maison Ivre"]),
       () => 0,
     );
@@ -76,8 +60,8 @@ describe("pickTester", () => {
     expect(result.skuId).toBeNull();
   });
 
-  it("returns PENDING when in-stock testers do not match family or brand", () => {
-    const result = pickTester(candidates, new Set(["Gourmand"]), new Set(["Other House"]), () => 0);
+  it("returns PENDING when in-stock testers do not match brand", () => {
+    const result = pickTester(candidates, new Set(["Other House"]), () => 0);
     expect(result).toEqual({ result: "PENDING", skuId: null });
   });
 });

@@ -19,7 +19,7 @@ You verify correctness of the pricing, promo, discount, promo-code, stock, and o
 - Promo-code eligibility (min spend, `firstOrderOnly`, `onePerCustomer`, `maxRedemptions`, `startsAt`/`endsAt`, `isActive`) is re-validated server-side at order creation from the live cart — never trusted from a client-submitted discount amount.
 - The promo code's redemption-count increment and its `promoCodeRedemptions` insert happen in the same DB transaction as the order insert, with the code row locked (`SELECT ... FOR UPDATE`) so two concurrent checkouts can't both exceed a redemption cap.
 - Decant promo triggers when the discounted decant merchandise subtotal reaches ₱2,000; other categories must not trigger it.
-- Tester assignment prefers matching fragrance family, then purchased brand, before any random pick; when no compatible tester is in stock, the promo result is `PENDING` not random substitution.
+- Tester assignment matches purchased brand only; when no compatible tester is in stock, the promo result is `PENDING` not random substitution.
 - ETA logic: PRE_ORDER 3–30 days; ON_HAND same-day when order day is Sat/Sun, else 1–2 days; mixed orders must surface both windows.
 - Order state transitions follow `AWAITING_PAYMENT → RECEIPT_SUBMITTED → CONFIRMED → SHIPPED → COMPLETED`, with reason-required `REJECTED`/`CANCELLED`. Switch statements over the status enum must use a `never` default.
 - ON_HAND stock decrement and tester allocation must occur in one DB transaction; rejection or cancellation must restore stock exactly once — including a `CONFIRMED → CANCELLED` transition, which reserves stock the same as `RECEIPT_SUBMITTED → CANCELLED` does.

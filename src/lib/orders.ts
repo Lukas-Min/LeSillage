@@ -107,7 +107,6 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       sku: skus,
       productType: products.type,
       productBrand: products.brand,
-      productFamily: products.family,
       productId: products.id,
       productName: products.name,
       productCategory: products.fragranceCategory,
@@ -207,7 +206,6 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         quantity: item.quantity,
         productType: found.productType,
         productBrand: found.productBrand,
-        productFamily: found.productFamily,
         discounts: withSiteWideDiscount(
           discounts.filter((d) => d.productId === found.sku.productId),
           found.sku.productId,
@@ -724,28 +722,24 @@ async function reserveStockWithinTx(
     const purchasedProducts = await tx
       .select({
         brand: products.brand,
-        family: products.family,
       })
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(inArray(skus.id, items.map((it) => it.skuId)));
-    const purchasedFamilies = new Set<string>();
     const purchasedBrands = new Set<string>();
     for (const p of purchasedProducts) {
       if (p.brand) purchasedBrands.add(p.brand);
-      if (p.family) purchasedFamilies.add(p.family);
     }
     const candidates = await tx
       .select({
         skuId: skus.id,
-        family: products.family,
         brand: products.brand,
         stock: skus.stock,
       })
       .from(skus)
       .innerJoin(products, eq(products.id, skus.productId))
       .where(and(eq(skus.isTester, true), eq(skus.isActive, true), sql`${skus.stock} > 0`));
-    const assignment = pickTester(candidates, purchasedFamilies, purchasedBrands);
+    const assignment = pickTester(candidates, purchasedBrands);
     if (assignment.result !== "ASSIGNED" || !assignment.skuId) return;
     const ok = await tryReserveTesterSku(tx, assignment.skuId);
     if (!ok) return;

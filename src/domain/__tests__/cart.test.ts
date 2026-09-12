@@ -20,7 +20,6 @@ function makeSku(overrides: Partial<Sku> = {}): Sku {
     fulfillment: "ON_HAND",
     stock: 5,
     isTester: false,
-    testerFamily: null,
     testerBrand: null,
     isActive: true,
     createdAt: now,
@@ -57,7 +56,6 @@ function buildItem(sku: Sku, overrides: Partial<CartSkuInput> = {}): CartSkuInpu
     quantity: 1,
     productType: "DECANT",
     productBrand: "Maison Ivre",
-    productFamily: "Woody",
     ...overrides,
   };
 }

@@ -1,42 +1,49 @@
 /**
- * One-off add/update of "Dolce & Gabbana — Devotion Pour Homme" (Eau de
- * Parfum) as a DECANT product, sourced from:
- * https://www.fragrantica.com/perfume/Dolce-Gabbana/Devotion-Pour-Homme-101353.html
+ * One-off add of "Yves Saint Laurent — Libre" (Eau de Parfum) as a DECANT
+ * product, sourced from its Fragrantica page:
+ * https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-56077.html
  *
- * Originally seeded as the women's Devotion (Fragrantica 84951). Re-running
- * this script retargets that existing DECANT row to the men's EDP.
+ * Distinct from the existing Libre Eau de Toilette DECANT and from the
+ * Libre full-bottle listing. Name stays "Libre" (concentration lives on
+ * the product row), matching the full-bottle catalog.
  *
  * Pricing follows the standard product-level formula (see src/domain/pricing.ts):
- * costPrice = discounted price paid for the 50ml source bottle (₱2,250).
- * pricingMode = FIXED, pricingInput = a flat ₱3,000 markup on top of cost
- * (not a percentage) — reference retail = ₱2,250 + ₱3,000 = ₱5,250.
+ * costPrice = ₱5,500 paid for the 90ml source bottle. pricingMode = PERCENTAGE,
+ * pricingInput = 30 (30% markup) — reference retail = ₱7,150.
  * Every decant SKU (3/5/10/30ml) derives its retail price AND cost price from
  * that reference, scaled by sourceMl -> sizeMl (scaleBySize/computeSkuRetailPrice).
+ * sourceMl stays 90 (bottle capacity, for the cost formula). remainingMl starts
+ * at 0 — the source bottle is not on hand yet, so IN_HOUSE SKUs display as
+ * pre-order via decantFulfillment() (SKU fulfillment/stock are inert).
  *
- * Usage: npx tsx scripts/add-dg-devotion-decant.ts
- * Safe to re-run: upserts by (brand, name, type DECANT) including the old
- * women's "Devotion" name, and by (productId, sizeMl).
+ * Usage: npx tsx scripts/add-libre-edp-decant.ts
+ * Safe to re-run: upserts by (brand, name, type DECANT) and by (productId, sizeMl).
  */
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike } from "drizzle-orm";
 import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain/pricing";
 import { db } from "../src/db/client";
 import { products, skus, productImages } from "../src/db/schema";
-import { DECANT_SIZES_ML } from "../src/domain/decant";
+import { DECANT_SIZES_ML } from "@/domain/decant";
 import { formatFragranceDescription } from "@/domain/product-type";
 
-const BRAND = "Dolce & Gabbana";
-const NAME = "Devotion Pour Homme";
-const LEGACY_NAME = "Devotion";
-const SOURCE_ML = 50;
-const COST_PRICE_PHP = 2250;
-const FIXED_MARKUP_PHP = 3000;
-const IMAGE_URL = "https://fimgs.net/mdimg/perfume-thumbs/375x500.101353.jpg";
-const FRAGRANTICA_URL = "https://www.fragrantica.com/perfume/Dolce-Gabbana/Devotion-Pour-Homme-101353.html";
-const PERFUMERS = ["Olivier Cresp"];
-const RELEASE_YEAR = 2025;
+const BRAND = "Yves Saint Laurent";
+const NAME = "Libre";
+const SOURCE_ML = 90;
+const REMAINING_ML = 0; // bottle not on hand yet; IN_HOUSE display uses remainingMl
+const COST_PRICE_PHP = 5500;
+const MARKUP_PERCENT = 30;
+const IMAGE_URL = "https://fimgs.net/mdimg/perfume-thumbs/375x500.56077.jpg";
+const FRAGRANTICA_URL = "https://www.fragrantica.com/perfume/Yves-Saint-Laurent/Libre-56077.html";
+const PERFUMERS = ["Anne Flipo", "Carlos Benaïm"];
+const RELEASE_YEAR = 2019;
+const NOTE_PYRAMID = {
+  top: ["Lavender", "Mandarin Orange", "Black Currant", "Petitgrain"],
+  middle: ["Lavender", "Orange Blossom", "Jasmine"],
+  base: ["Madagascar Vanilla", "Musk", "Cedar", "Ambergris"],
+};
 
 function slug(value: string) {
   return value
@@ -59,56 +66,59 @@ async function main() {
     concentration: "EAU_DE_PARFUM" as const,
     name: NAME,
     brand: BRAND,
-    gender: "men",
+    gender: "women",
     releaseYear: RELEASE_YEAR,
     perfumers: PERFUMERS,
-    notePyramid: {
-      top: ["Lemon"],
-      middle: ["Coffee"],
-      base: ["Patchouli"],
-    },
-    notes: "Top: Lemon | Middle: Coffee | Base: Patchouli",
-    accords: ["coffee", "warm spicy", "citrus", "patchouli", "woody"].map((name) => ({ name })),
+    notePyramid: NOTE_PYRAMID,
+    notes: [
+      `Top: ${NOTE_PYRAMID.top.join(", ")}`,
+      `Middle: ${NOTE_PYRAMID.middle.join(", ")}`,
+      `Base: ${NOTE_PYRAMID.base.join(", ")}`,
+    ].join(" | "),
+    accords: [
+      { name: "white floral", strength: 100 },
+      { name: "citrus", strength: 73 },
+      { name: "lavender", strength: 65 },
+      { name: "vanilla", strength: 49 },
+      { name: "aromatic", strength: 39 },
+      { name: "sweet", strength: 36 },
+      { name: "powdery", strength: 33 },
+      { name: "animalic", strength: 32 },
+    ],
     description: formatFragranceDescription({ brand: BRAND, perfumers: PERFUMERS, releaseYear: RELEASE_YEAR }),
-    ratingValue: "3.34",
-    ratingCount: 1633,
-    reviewsCount: 299,
+    ratingValue: "3.92",
+    ratingCount: 22371,
     fragranticaUrl: FRAGRANTICA_URL,
     sourceMl: SOURCE_ML,
     costPrice,
-    pricingMode: "FIXED" as const,
-    pricingInput: php(FIXED_MARKUP_PHP),
+    pricingMode: "PERCENTAGE" as const,
+    pricingInput: MARKUP_PERCENT,
     isActive: true,
   };
 
   const [existing] = await client
     .select({ id: products.id })
     .from(products)
-    .where(
-      and(
-        ilike(products.brand, BRAND),
-        eq(products.type, "DECANT"),
-        or(ilike(products.name, NAME), ilike(products.name, LEGACY_NAME)),
-      ),
-    )
+    .where(and(ilike(products.brand, BRAND), ilike(products.name, NAME), eq(products.type, "DECANT")))
     .limit(1);
 
   let productId: string;
   if (existing) {
     productId = existing.id;
+    // remainingMl deliberately NOT overwritten on re-run — see import-decant-pricelist.ts.
     await client.update(products).set({ ...productValues, updatedAt: new Date() }).where(eq(products.id, productId));
   } else {
     const [inserted] = await client
       .insert(products)
-      .values({ ...productValues, remainingMl: SOURCE_ML })
+      .values({ ...productValues, remainingMl: REMAINING_ML })
       .returning({ id: products.id });
     productId = inserted.id;
   }
 
   const referenceRetailPriceCentavos = computeRetailPrice({
     costPriceCentavos: costPrice,
-    mode: "FIXED",
-    input: php(FIXED_MARKUP_PHP),
+    mode: "PERCENTAGE",
+    input: MARKUP_PERCENT,
   });
 
   const brandSlug = slug(BRAND);
@@ -129,6 +139,9 @@ async function main() {
         .set({
           sku: skuCode,
           label: `${sizeMl}ml Decant`,
+          retailPrice,
+          costPrice: costForSize,
+          pricingInput: retailPrice,
           updatedAt: new Date(),
         })
         .where(eq(skus.id, existingSku.id));

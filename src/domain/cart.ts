@@ -11,7 +11,6 @@ export interface CartSkuInput {
   quantity: number;
   productType: ProductType;
   productBrand?: string | null;
-  productFamily?: string | null;
   discounts?: ProductDiscount[];
 }
 
@@ -20,7 +19,6 @@ export interface PricedLine {
   productType: ProductType;
   fulfillment: Fulfillment;
   brand: string | null;
-  family: string | null;
   quantity: number;
   unitPriceCentavos: number;
   discountedUnitCentavos: number;
@@ -35,7 +33,6 @@ export interface CartTotals {
   deliveryFeeCentavos: number;
   totalCentavos: number;
   purchasedBrands: Set<string>;
-  purchasedFamilies: Set<string>;
   decantSubtotalCentavos: number;
 }
 
@@ -54,7 +51,6 @@ export function priceCart(
   let totalDiscountCentavos = 0;
   let decantSubtotal = 0;
   const purchasedBrands = new Set<string>();
-  const purchasedFamilies = new Set<string>();
 
   for (const item of items) {
     if (item.quantity <= 0) continue;
@@ -71,7 +67,6 @@ export function priceCart(
       productType: item.productType,
       fulfillment: item.sku.fulfillment,
       brand: item.productBrand ?? null,
-      family: item.productFamily ?? null,
       quantity: item.quantity,
       unitPriceCentavos,
       discountedUnitCentavos,
@@ -84,7 +79,6 @@ export function priceCart(
       decantSubtotal += lineSubtotal;
     }
     if (item.productBrand) purchasedBrands.add(item.productBrand);
-    if (item.productFamily) purchasedFamilies.add(item.productFamily);
   }
 
   const deliveryFeeCentavos = options.freeShipping ? 0 : options.deliveryFeeCentavos;
@@ -97,7 +91,6 @@ export function priceCart(
     deliveryFeeCentavos,
     totalCentavos,
     purchasedBrands,
-    purchasedFamilies,
     decantSubtotalCentavos: decantSubtotal,
   };
 }
