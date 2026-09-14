@@ -30,6 +30,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { PromoMarquee } from "@/components/store/promo-marquee";
 
 const PRIMARY_LINKS = [
   { href: "/shop", label: "Shop" },
@@ -123,6 +124,9 @@ export function StoreHeader() {
           )}
         </div>
       </div>
+      {/* Part of the navbar, under the nav row — so it stays put with the
+          sticky header instead of scrolling away with the page. */}
+      <PromoMarquee />
     </header>
   );
 }

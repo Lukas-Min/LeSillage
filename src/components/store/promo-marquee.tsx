@@ -3,16 +3,28 @@
 import { usePathname } from "next/navigation";
 
 /**
- * Copy for the announcement bar. Kept accurate to the live promo rules:
- * WELCOME10 is an ORDER-scope 10% code (merchandise only — delivery is still
- * charged) with onePerCustomer set and firstOrderOnly off, and the ₱2,000
- * decant threshold unlocks free delivery plus a tester on delivered orders.
- * If any of those settings change in /admin/promo, change these lines too.
+ * Announcement copy. Benefit first, plain language, no fine print — but every
+ * line has to stay true to the live promo settings, because this is the first
+ * thing a customer reads:
+ *   - WELCOME10 is ORDER-scope 10% (fragrances only, delivery still charged),
+ *     minSpendCentavos null (hence "no minimum spend") and onePerCustomer on.
+ *   - ₱2,000 of discounted decants unlocks free delivery plus a tester, on
+ *     delivered orders only.
+ * If any of that changes in /admin/promo, change these lines with it.
  */
-const ITEMS = [
-  "Use code WELCOME10 for 10% off every fragrance",
-  "One use per customer · applies to fragrances, not delivery",
-  "₱2,000 of decants unlocks free delivery and a complimentary tester",
+const ITEMS: { key: string; node: React.ReactNode }[] = [
+  {
+    key: "welcome",
+    node: (
+      <>
+        Enjoy 10% off your fragrances with code{" "}
+        <strong className="font-semibold tracking-[0.08em]">WELCOME10</strong>
+      </>
+    ),
+  },
+  { key: "terms", node: "No minimum spend · one use per customer" },
+  { key: "delivery", node: "Free delivery and a complimentary tester on ₱2,000 of decants" },
+  { key: "brand", node: "Decants, partials and full bottles — find your signature scent" },
 ];
 
 /**
@@ -30,7 +42,7 @@ export function PromoMarquee() {
   return (
     <aside
       aria-label="Store promotions"
-      className="marquee overflow-hidden border-b border-gold/40 bg-gold text-gold-foreground"
+      className="marquee overflow-hidden bg-gold text-gold-foreground"
     >
       <div className="marquee-track flex w-max">
         {[0, 1].map((track) => (
@@ -43,10 +55,10 @@ export function PromoMarquee() {
           >
             {ITEMS.map((item) => (
               <li
-                key={item}
+                key={item.key}
                 className="flex items-center whitespace-nowrap py-1.5 text-[11px] tracking-wide sm:text-xs"
               >
-                {item}
+                {item.node}
                 <span aria-hidden className="px-4 opacity-60">
                   ◆
                 </span>
