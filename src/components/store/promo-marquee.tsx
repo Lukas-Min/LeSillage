@@ -15,15 +15,22 @@ import { usePathname } from "next/navigation";
 const ITEMS: { key: string; node: React.ReactNode }[] = [
   {
     key: "welcome",
+    // The code and its terms are one offer, so they read as one line. The
+    // explicit margin on the code is belt-and-braces next to the real space:
+    // at this size the two were running together as "codeWELCOME10".
     node: (
       <>
         Enjoy 10% off your fragrances with code{" "}
-        <strong className="font-semibold tracking-[0.08em]">WELCOME10</strong>
+        <strong className="mx-0.5 font-semibold tracking-[0.08em]">WELCOME10</strong>
+        <span className="opacity-50">{" · "}</span>
+        no minimum spend, one use per customer
       </>
     ),
   },
-  { key: "terms", node: "No minimum spend · one use per customer" },
-  { key: "delivery", node: "Free delivery and a complimentary tester on ₱2,000 of decants" },
+  { key: "delivery", node: "Free delivery on ₱2,000 of decants" },
+  // Reads right after the delivery line above — a marquee scrolls in order, so
+  // "Plus" always follows the ₱2,000 condition it depends on.
+  { key: "tester", node: "Plus a complimentary tester, matched to your order" },
   { key: "brand", node: "Decants, partials and full bottles — find your signature scent" },
 ];
 
@@ -59,8 +66,8 @@ export function PromoMarquee() {
                 className="flex items-center whitespace-nowrap py-1.5 text-[11px] tracking-wide sm:text-xs"
               >
                 {item.node}
-                <span aria-hidden className="px-4 opacity-60">
-                  ◆
+                <span aria-hidden className="px-3 opacity-60">
+                  {" ◆ "}
                 </span>
               </li>
             ))}
