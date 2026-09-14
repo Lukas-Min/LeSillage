@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { PromoCodeForm } from "@/components/admin/promo-code-form";
+import { PromoCodesSkeleton, PromoSettingsSkeleton } from "@/components/admin/promo-skeletons";
 import { updatePromoSettings } from "@/actions/admin-actions";
 import {
   createPromoCode,
@@ -46,11 +48,6 @@ export default async function PromoAdminPage({
   const { tab: tabParam } = await searchParams;
   const activeTab = tabParam === "codes" ? "codes" : "settings";
 
-  const [row, codes] = await Promise.all([
-    db().select().from(promoSettings).where(eq(promoSettings.id, "singleton")).then((rows) => rows[0]),
-    db().select().from(promoCodes).orderBy(desc(promoCodes.createdAt)),
-  ]);
-
   return (
     <div className="space-y-4">
       <h1 className="font-serif-display text-2xl">Promo & delivery</h1>
@@ -71,7 +68,24 @@ export default async function PromoAdminPage({
         ))}
       </div>
 
-      {activeTab === "settings" ? (
+      {/* Each tab fetches inside its own boundary, keyed to the tab: switching
+          tabs is a query-string navigation on the same route, which loading.tsx
+          does not retrigger. */}
+      <Suspense
+        key={activeTab}
+        fallback={activeTab === "codes" ? <PromoCodesSkeleton /> : <PromoSettingsSkeleton />}
+      >
+        {activeTab === "codes" ? <CodesTab /> : <SettingsTab />}
+      </Suspense>
+    </div>
+  );
+}
+
+async function SettingsTab() {
+  const row = (
+    await db().select().from(promoSettings).where(eq(promoSettings.id, "singleton"))
+  )[0];
+  return (
         <Card>
           <CardContent className="p-4">
             <form action={updatePromoSettings} className="space-y-3">
@@ -174,7 +188,12 @@ export default async function PromoAdminPage({
             </form>
           </CardContent>
         </Card>
-      ) : (
+  );
+}
+
+async function CodesTab() {
+  const codes = await db().select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
+  return (
         <>
           <Card>
             <CardHeader>
@@ -262,7 +281,5 @@ export default async function PromoAdminPage({
             </CardContent>
           </Card>
         </>
-      )}
-    </div>
   );
 }
