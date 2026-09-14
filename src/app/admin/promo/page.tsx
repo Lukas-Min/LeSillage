@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { PromoCodeForm } from "@/components/admin/promo-code-form";
 import { updatePromoSettings } from "@/actions/admin-actions";
 import {
   createPromoCode,
@@ -24,25 +25,6 @@ const TABS = [
   { value: "settings", label: "Settings" },
   { value: "codes", label: "Promo codes" },
 ] as const;
-
-function Field({
-  label,
-  htmlFor,
-  className,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={cn("space-y-1", className)}>
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-    </div>
-  );
-}
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
@@ -244,97 +226,26 @@ export default async function PromoAdminPage({
                       <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">
                         Edit <span className="ml-1 font-mono">{code.code}</span>
                       </summary>
-                      <form action={updatePromoCode} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <input type="hidden" name="id" value={code.id} />
-                        {/* What the form prefilled, so the action can tell an untouched
-                            field from a real edit — it keeps a date's stored time-of-day
-                            and rejects a type switch that left the amount in the old unit. */}
-                        <input type="hidden" name="previousType" value={code.type} />
-                        <input
-                          type="hidden"
-                          name="previousAmount"
-                          value={code.type === "FIXED" ? fromCentavos(code.amount) : code.amount}
+                      <div className="mt-3">
+                        <PromoCodeForm
+                          action={updatePromoCode}
+                          mode="edit"
+                          values={{
+                            id: code.id,
+                            code: code.code,
+                            scope: code.scope,
+                            type: code.type,
+                            amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
+                            minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
+                            maxRedemptions: code.maxRedemptions ?? "",
+                            startsAt: toDateInput(code.startsAt),
+                            endsAt: toDateInput(code.endsAt),
+                            firstOrderOnly: code.firstOrderOnly,
+                            onePerCustomer: code.onePerCustomer,
+                            redemptionCount: code.redemptionCount,
+                          }}
                         />
-                        <input type="hidden" name="previousStartsAt" value={toDateInput(code.startsAt)} />
-                        <input type="hidden" name="previousEndsAt" value={toDateInput(code.endsAt)} />
-                        <Field label="Code" htmlFor={`edit-code-${code.id}`}>
-                          <Input
-                            id={`edit-code-${code.id}`}
-                            name="code"
-                            defaultValue={code.code}
-                            required
-                            minLength={3}
-                            maxLength={40}
-                            className="uppercase"
-                          />
-                        </Field>
-                        <Field label="Discounts" htmlFor={`edit-scope-${code.id}`}>
-                          <select id={`edit-scope-${code.id}`} name="scope" className={selectClass} defaultValue={code.scope}>
-                            <option value="ORDER">Order subtotal</option>
-                            <option value="DELIVERY">Delivery fee</option>
-                          </select>
-                        </Field>
-                        <Field label="Type" htmlFor={`edit-type-${code.id}`}>
-                          <select id={`edit-type-${code.id}`} name="type" className={selectClass} defaultValue={code.type}>
-                            <option value="PERCENTAGE">Percentage</option>
-                            <option value="FIXED">Fixed ₱ off</option>
-                          </select>
-                        </Field>
-                        <Field label="Amount (% or ₱)" htmlFor={`edit-amount-${code.id}`}>
-                          <Input
-                            id={`edit-amount-${code.id}`}
-                            name="amount"
-                            type="number"
-                            step="0.01"
-                            required
-                            min={1}
-                            defaultValue={code.type === "FIXED" ? fromCentavos(code.amount) : code.amount}
-                          />
-                        </Field>
-                        <Field label="Minimum spend (₱, optional)" htmlFor={`edit-minSpend-${code.id}`}>
-                          <Input
-                            id={`edit-minSpend-${code.id}`}
-                            name="minSpendCentavos"
-                            type="number"
-                            step="0.01"
-                            min={0}
-                            placeholder="e.g. 2000"
-                            defaultValue={code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos)}
-                          />
-                        </Field>
-                        <Field label="Max redemptions (optional)" htmlFor={`edit-maxRedemptions-${code.id}`}>
-                          <Input
-                            id={`edit-maxRedemptions-${code.id}`}
-                            name="maxRedemptions"
-                            type="number"
-                            min={1}
-                            placeholder="Unlimited"
-                            defaultValue={code.maxRedemptions ?? ""}
-                          />
-                        </Field>
-                        <Field label="Starts (optional)" htmlFor={`edit-startsAt-${code.id}`}>
-                          <Input id={`edit-startsAt-${code.id}`} name="startsAt" type="date" defaultValue={toDateInput(code.startsAt)} />
-                        </Field>
-                        <Field label="Ends (optional)" htmlFor={`edit-endsAt-${code.id}`}>
-                          <Input id={`edit-endsAt-${code.id}`} name="endsAt" type="date" defaultValue={toDateInput(code.endsAt)} />
-                        </Field>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="checkbox" name="firstOrderOnly" defaultChecked={code.firstOrderOnly} />
-                          First order only
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input type="checkbox" name="onePerCustomer" defaultChecked={code.onePerCustomer} />
-                          Once per customer
-                        </label>
-                        <p className="text-xs text-muted-foreground sm:col-span-2">
-                          Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is
-                          always pesos. Active/inactive stays with the button above, and the {code.redemptionCount}{" "}
-                          redemption(s) already recorded are never changed here.
-                        </p>
-                        <div className="sm:col-span-2">
-                          <SubmitButton>Save changes</SubmitButton>
-                        </div>
-                      </form>
+                      </div>
                     </details>
                   </div>
                 ))
@@ -347,52 +258,7 @@ export default async function PromoAdminPage({
               <CardTitle className="text-base">New code</CardTitle>
             </CardHeader>
             <CardContent>
-              <form action={createPromoCode} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Code" htmlFor="code">
-                  <Input id="code" name="code" placeholder="WELCOME10" required minLength={3} maxLength={40} className="uppercase" />
-                </Field>
-                <Field label="Discounts" htmlFor="scope">
-                  <select id="scope" name="scope" className={selectClass} defaultValue="ORDER">
-                    <option value="ORDER">Order subtotal</option>
-                    <option value="DELIVERY">Delivery fee</option>
-                  </select>
-                </Field>
-                <Field label="Type" htmlFor="type">
-                  <select id="type" name="type" className={selectClass} defaultValue="PERCENTAGE">
-                    <option value="PERCENTAGE">Percentage</option>
-                    <option value="FIXED">Fixed ₱ off</option>
-                  </select>
-                </Field>
-                <Field label="Amount (% or ₱)" htmlFor="amount">
-                  <Input id="amount" name="amount" type="number" step="0.01" required min={1} />
-                </Field>
-                <Field label="Minimum spend (₱, optional)" htmlFor="minSpendCentavos">
-                  <Input id="minSpendCentavos" name="minSpendCentavos" type="number" step="0.01" min={0} placeholder="e.g. 2000" />
-                </Field>
-                <Field label="Max redemptions (optional)" htmlFor="maxRedemptions">
-                  <Input id="maxRedemptions" name="maxRedemptions" type="number" min={1} placeholder="Unlimited" />
-                </Field>
-                <Field label="Starts (optional)" htmlFor="startsAt">
-                  <Input id="startsAt" name="startsAt" type="date" />
-                </Field>
-                <Field label="Ends (optional)" htmlFor="endsAt">
-                  <Input id="endsAt" name="endsAt" type="date" />
-                </Field>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="firstOrderOnly" />
-                  First order only
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="onePerCustomer" />
-                  Once per customer
-                </label>
-                <p className="text-xs text-muted-foreground sm:col-span-2">
-                  Amount and minimum spend are entered in pesos for a Fixed/₱ discount (add a period for centavos) — not centavos.
-                </p>
-                <div className="sm:col-span-2">
-                  <SubmitButton>Create code</SubmitButton>
-                </div>
-              </form>
+              <PromoCodeForm action={createPromoCode} mode="create" />
             </CardContent>
           </Card>
         </>

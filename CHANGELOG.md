@@ -24,6 +24,10 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ### Removed
 - Fragrance family dropped from products, SKUs, admin option lists, catalog search, and shop-card subtitles — complimentary testers now match by brand only (`scripts/migrate.ts` drops `product.family`, `sku.testerFamily`, and the `fragrance_family` option list)
 ### Fixed
+- A rejected promo-code save no longer throws away everything the admin typed: `createPromoCode`/`updatePromoCode` return `{ savedAt, error }` instead of throwing, and the shared `PromoCodeForm` client island shows the reason next to the fields with the form still filled in (a thrown Server Action error is redacted to a React #441 digest in production, and the error boundary would unmount the form)
+- Added an admin-scoped `error.tsx`, so an unexpected admin failure no longer falls through to the storefront's "Back home" page mid-task
+- The promo-code amount field now matches how the value is stored: whole numbers only for a Percentage discount (the server rounds, so the browser no longer accepts 7.5 and silently save 8) and capped at 100, with the label switching between % and ₱
+- A ₱0 minimum spend is now stored as "no minimum", matching how the codes list already described it
 - Creating, activating or deleting a promo code revalidated `/admin/promo-codes`, which is now only a redirect stub, instead of `/admin/promo` where the list actually lives - so the codes list could keep showing stale values after a change
 - Escaped a stray apostrophe in the admin promo settings helper text that was failing the `react/no-unescaped-entities` lint rule
 - `/checkout/payment` now exports `maxDuration = 30` — it hosts the receipt upload, whose `after()` email work could previously exceed Vercel's 10s default and silently drop both the emails and their notification-log rows

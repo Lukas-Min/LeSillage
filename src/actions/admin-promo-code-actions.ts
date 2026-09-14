@@ -49,13 +49,45 @@ function readCodeFields(formData: FormData) {
   };
 }
 
+/**
+ * Both promo-code forms report expected rejections this way instead of
+ * throwing. A thrown Server Action error has its message replaced by a React
+ * #441 digest in production, and the resulting error boundary would unmount
+ * the form and discard everything the admin had typed — see the same
+ * treatment on the customer side in src/actions/promo-code-actions.ts.
+ */
+export interface PromoCodeFormState {
+  /** Stamped on every successful save, so a repeat success still re-triggers. */
+  savedAt: number;
+  error: string | null;
+}
+
+function failed(error: string): PromoCodeFormState {
+  return { savedAt: 0, error };
+}
+
+function saved(): PromoCodeFormState {
+  return { savedAt: Date.now(), error: null };
+}
+
+/** Zod messages are terse but precise, and this form's only audience is an admin. */
+function describeIssues(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue) return "Something in this form isn't valid.";
+  const field = issue.path.join(".");
+  return field ? `Check "${field}": ${issue.message}` : issue.message;
+}
+
 function parseDate(value: string | undefined): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export async function createPromoCode(formData: FormData) {
+export async function createPromoCode(
+  _prev: PromoCodeFormState,
+  formData: FormData,
+): Promise<PromoCodeFormState> {
   const admin = await requireAdmin();
   const decision = await rateLimit({
     bucket: "PASSWORD",
@@ -63,17 +95,26 @@ export async function createPromoCode(formData: FormData) {
     limit: 30,
     windowMs: 60_000,
   });
-  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
+  if (!decision.allowed) return failed("Too many requests. Please slow down.");
 
-  const parsed = createSchema.parse(readCodeFields(formData));
+  const result = createSchema.safeParse(readCodeFields(formData));
+  if (!result.success) return failed(describeIssues(result.error));
+  const parsed = result.data;
   if (parsed.type === "PERCENTAGE" && parsed.amount > 100) {
-    throw new Error("Percentage discounts can't exceed 100%");
+    return failed("Percentage discounts can't exceed 100%");
   }
   const amount = parsed.type === "FIXED" ? toCentavos(parsed.amount) : Math.round(parsed.amount);
-  const minSpendCentavos = parsed.minSpendCentavos !== undefined ? toCentavos(parsed.minSpendCentavos) : undefined;
+  // A ₱0 minimum is the same thing as no minimum, and the codes list already
+  // renders 0 as "no minimum" — store it that way so the two agree.
+  const minSpendCentavos = parsed.minSpendCentavos ? toCentavos(parsed.minSpendCentavos) : null;
+  const startsAt = parseDate(parsed.startsAt);
+  const endsAt = parseDate(parsed.endsAt);
+  if (startsAt && endsAt && endsAt < startsAt) {
+    return failed("This code would end before it starts — check the start and end dates");
+  }
 
   const existing = (await db().select({ id: promoCodes.id }).from(promoCodes).where(eq(promoCodes.code, parsed.code)))[0];
-  if (existing) throw new Error(`Code "${parsed.code}" already exists`);
+  if (existing) return failed(`Code "${parsed.code}" already exists`);
 
   const created = await db()
     .insert(promoCodes)
@@ -82,12 +123,12 @@ export async function createPromoCode(formData: FormData) {
       type: parsed.type,
       amount,
       scope: parsed.scope,
-      minSpendCentavos: minSpendCentavos ?? null,
+      minSpendCentavos,
       firstOrderOnly: parsed.firstOrderOnly,
       onePerCustomer: parsed.onePerCustomer,
       maxRedemptions: parsed.maxRedemptions ?? null,
-      startsAt: parseDate(parsed.startsAt),
-      endsAt: parseDate(parsed.endsAt),
+      startsAt,
+      endsAt,
       isActive: true,
     })
     .returning({ id: promoCodes.id });
@@ -100,9 +141,13 @@ export async function createPromoCode(formData: FormData) {
     metadata: { code: parsed.code, type: parsed.type, amount, scope: parsed.scope },
   });
   revalidatePath("/admin/promo");
+  return saved();
 }
 
-export async function updatePromoCode(formData: FormData) {
+export async function updatePromoCode(
+  _prev: PromoCodeFormState,
+  formData: FormData,
+): Promise<PromoCodeFormState> {
   const admin = await requireAdmin();
   const decision = await rateLimit({
     bucket: "PASSWORD",
@@ -110,11 +155,13 @@ export async function updatePromoCode(formData: FormData) {
     limit: 30,
     windowMs: 60_000,
   });
-  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
+  if (!decision.allowed) return failed("Too many requests. Please slow down.");
 
-  const parsed = updateSchema.parse({ id: formData.get("id"), ...readCodeFields(formData) });
+  const result = updateSchema.safeParse({ id: formData.get("id"), ...readCodeFields(formData) });
+  if (!result.success) return failed(describeIssues(result.error));
+  const parsed = result.data;
   if (parsed.type === "PERCENTAGE" && parsed.amount > 100) {
-    throw new Error("Percentage discounts can't exceed 100%");
+    return failed("Percentage discounts can't exceed 100%");
   }
 
   const current = (
@@ -131,16 +178,16 @@ export async function updatePromoCode(formData: FormData) {
       .from(promoCodes)
       .where(eq(promoCodes.id, parsed.id))
   )[0];
-  if (!current) throw new Error("Promo code not found");
+  if (!current) return failed("Promo code not found");
 
   // Switching PERCENTAGE <-> FIXED re-reads the same number in a different
   // unit — a ₱50 fixed code (prefilled as "50") silently becomes 50% off, and
-  // the >100 guard above never sees it. The form posts what it prefilled, so
-  // an unchanged amount alongside a changed type is a mistake, not an intent.
+  // the >100 guard above never sees it. The form clears the amount on a type
+  // switch; this is the server-side half of that, for a stale or hand-built post.
   const previousType = formData.get("previousType");
   const previousAmount = formData.get("previousAmount");
   if (typeof previousType === "string" && previousType !== parsed.type && String(parsed.amount) === previousAmount) {
-    throw new Error(
+    return failed(
       `This code changed from ${previousType} to ${parsed.type} but the amount is still ${previousAmount} — re-enter it in the new unit (a plain percent, or pesos for a fixed ₱ discount).`,
     );
   }
@@ -151,25 +198,25 @@ export async function updatePromoCode(formData: FormData) {
     // carry every past redemption onto the new name (and free the old name to
     // be redeemed again). Same reasoning as the delete guard below.
     if (current.redemptionCount > 0) {
-      throw new Error(
+      return failed(
         `"${current.code}" has already been redeemed ${current.redemptionCount} time(s) — renaming it would carry those redemptions onto the new code. Create a separate code instead.`,
       );
     }
     const clash = (
       await db().select({ id: promoCodes.id }).from(promoCodes).where(eq(promoCodes.code, parsed.code))
     )[0];
-    if (clash) throw new Error(`Code "${parsed.code}" already exists`);
+    if (clash) return failed(`Code "${parsed.code}" already exists`);
   }
   // A cap under what customers have already redeemed would read as exhausted
   // forever, and those redemptions can't be taken back.
   if (parsed.maxRedemptions !== undefined && parsed.maxRedemptions < current.redemptionCount) {
-    throw new Error(
+    return failed(
       `This code has already been redeemed ${current.redemptionCount} time(s) — the cap can't be lower than that`,
     );
   }
 
   const amount = parsed.type === "FIXED" ? toCentavos(parsed.amount) : Math.round(parsed.amount);
-  const minSpendCentavos = parsed.minSpendCentavos !== undefined ? toCentavos(parsed.minSpendCentavos) : null;
+  const minSpendCentavos = parsed.minSpendCentavos ? toCentavos(parsed.minSpendCentavos) : null;
 
   // A date input only carries a day, so re-saving an untouched field would
   // flatten any stored time-of-day to UTC midnight — enough to expire an
@@ -183,10 +230,10 @@ export async function updatePromoCode(formData: FormData) {
     ? current.endsAt
     : parseDate(parsed.endsAt);
   if (startsAt && endsAt && endsAt < startsAt) {
-    throw new Error("This code would end before it starts — check the start and end dates");
+    return failed("This code would end before it starts — check the start and end dates");
   }
 
-  await db()
+  const written = await db()
     .update(promoCodes)
     .set({
       code: parsed.code,
@@ -203,7 +250,10 @@ export async function updatePromoCode(formData: FormData) {
       // the Activate/Deactivate button's job, and the count is ledger data that
       // must keep matching the promo_code_redemption rows.
     })
-    .where(eq(promoCodes.id, parsed.id));
+    .where(eq(promoCodes.id, parsed.id))
+    .returning({ id: promoCodes.id });
+  // The row can be deleted between the read above and this write.
+  if (written.length === 0) return failed("Promo code not found");
 
   await auditLogSubject({
     actor: admin.id,
@@ -228,6 +278,7 @@ export async function updatePromoCode(formData: FormData) {
     },
   });
   revalidatePath("/admin/promo");
+  return saved();
 }
 
 export async function togglePromoCodeActive(formData: FormData) {
