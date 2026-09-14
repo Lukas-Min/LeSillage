@@ -271,4 +271,26 @@
       animation: none;
     }
   }
+
+  /* Announcement bar. The track holds two identical copies of the list, so
+     translating it by exactly -50% lands the second copy where the first
+     started and the loop closes with no visible jump. */
+  .marquee-track {
+    animation: marquee-scroll 32s linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+  @keyframes marquee-scroll {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Parked at the start, so the first (and most important) line stays legible. */
+    .marquee-track {
+      animation: none;
+    }
+  }
 }

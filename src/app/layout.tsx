@@ -3,6 +3,7 @@ import { Geist, Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 import { StoreHeader } from "@/components/store/store-header";
+import { PromoMarquee } from "@/components/store/promo-marquee";
 import { StoreFooter } from "@/components/store/store-footer";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex flex-col bg-background text-foreground">
         <Providers>
           <div className="flex min-h-dvh flex-col">
+            <PromoMarquee />
             <StoreHeader />
             <div className="flex flex-1 flex-col">{children}</div>
           </div>
