@@ -1,12 +1,13 @@
 "use server";
 
 import { and, count, eq, notInArray } from "drizzle-orm";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, promoCodes, promoCodeRedemptions } from "@/db/schema";
 import { calculatePromoCodeDiscount, checkPromoCodeEligibility } from "@/domain/promo-code";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
-import { loadCartViewForBothMethods, resolveActiveCart } from "@/lib/cart";
+import { loadCartViewForBothMethods, loadDirectItemViewForBothMethods, resolveActiveCart } from "@/lib/cart";
 
 export interface PromoCodePreview {
   code: string;
@@ -16,6 +17,20 @@ export interface PromoCodePreview {
 }
 
 /**
+ * Expected rejections ("Invalid promo code", "Minimum spend of ₱… required")
+ * travel back as `{ ok: false, error }` instead of being thrown: Next.js
+ * replaces the message of any error thrown out of a Server Action in
+ * production with generic React #441 boilerplate, so a thrown rejection
+ * would reach the checkout form unreadable. Only unexpected failures (DB
+ * down) still throw.
+ */
+export type PromoCodePreviewResult = { ok: true; preview: PromoCodePreview } | { ok: false; error: string };
+
+// Same shape createCheckoutOrder accepts for its Buy Now item, so the
+// preview is priced against exactly what the order will be.
+const directItemSchema = z.object({ skuId: z.string().min(1), quantity: z.number().int().min(1) });
+
+/**
  * Checkout's "Apply" button calls this to show the customer what a code is
  * worth before they submit — it does NOT redeem anything. The authoritative
  * check happens again, transactionally, inside createOrderFromCart
@@ -23,32 +38,45 @@ export interface PromoCodePreview {
  * qualifying between preview and submit (redemption cap hit by someone
  * else, code deactivated) is still caught there. Never trust this preview's
  * numbers for the actual charge.
+ *
+ * `directItem` is the Buy Now case: the preview prices that one item, never
+ * the customer's (possibly empty, possibly unrelated) cart — mirroring the
+ * `directItems` branch of createOrderFromCart.
  */
 export async function previewPromoCode(
   rawCode: string,
   fulfillmentMethod: "DELIVERY" | "PICKUP",
-): Promise<PromoCodePreview> {
+  directItem: { skuId: string; quantity: number } | null = null,
+): Promise<PromoCodePreviewResult> {
   const session = await auth();
-  if (!session?.user?.id) throw new Error("Please sign in to use a promo code");
+  if (!session?.user?.id) return { ok: false, error: "Please sign in to use a promo code" };
   const decision = await rateLimit({
     bucket: "CHECKOUT",
     key: await getRequestKey("promo-preview", session.user.id),
     limit: 20,
     windowMs: 60_000,
   });
-  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
 
   const normalizedCode = rawCode.trim().toUpperCase();
-  if (!normalizedCode) throw new Error("Enter a code");
+  if (!normalizedCode) return { ok: false, error: "Enter a code" };
+
+  const parsedDirectItem = directItem ? directItemSchema.safeParse(directItem) : null;
+  if (parsedDirectItem && !parsedDirectItem.success) {
+    return { ok: false, error: "This item is no longer available" };
+  }
 
   const client = db();
   const [codeRow] = await client.select().from(promoCodes).where(eq(promoCodes.code, normalizedCode));
-  if (!codeRow) throw new Error("Invalid promo code");
+  if (!codeRow) return { ok: false, error: "Invalid promo code" };
 
-  const { cart } = await resolveActiveCart();
-  const view = await loadCartViewForBothMethods(cart.id);
+  const view = parsedDirectItem
+    ? await loadDirectItemViewForBothMethods(parsedDirectItem.data.skuId, parsedDirectItem.data.quantity)
+    : await resolveActiveCart().then(({ cart }) => loadCartViewForBothMethods(cart.id));
   const totals = fulfillmentMethod === "PICKUP" ? view.pickupTotals : view.deliveryTotals;
-  if (totals.merchandiseSubtotalCentavos <= 0) throw new Error("Your bag is empty");
+  if (totals.merchandiseSubtotalCentavos <= 0) {
+    return { ok: false, error: parsedDirectItem ? "This item is no longer available" : "Your bag is empty" };
+  }
 
   const [priorOrderCount, priorRedemption] = await Promise.all([
     client
@@ -70,15 +98,18 @@ export async function previewPromoCode(
     isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
     hasPriorRedemption: priorRedemption.length > 0,
   });
-  if (!eligibility.ok) throw new Error(eligibility.error);
+  if (!eligibility.ok) return { ok: false, error: eligibility.error };
 
   const baseCentavos = codeRow.scope === "ORDER" ? totals.merchandiseSubtotalCentavos : totals.deliveryFeeCentavos;
   const discountCentavos = calculatePromoCodeDiscount(codeRow.type, codeRow.amount, baseCentavos);
 
   return {
-    code: codeRow.code,
-    scope: codeRow.scope,
-    orderDiscountCentavos: codeRow.scope === "ORDER" ? discountCentavos : 0,
-    deliveryDiscountCentavos: codeRow.scope === "DELIVERY" ? discountCentavos : 0,
+    ok: true,
+    preview: {
+      code: codeRow.code,
+      scope: codeRow.scope,
+      orderDiscountCentavos: codeRow.scope === "ORDER" ? discountCentavos : 0,
+      deliveryDiscountCentavos: codeRow.scope === "DELIVERY" ? discountCentavos : 0,
+    },
   };
 }

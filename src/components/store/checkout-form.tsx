@@ -95,11 +95,19 @@ export function CheckoutForm({
     setPromoCodeError(null);
     startPromoCodeTransition(async () => {
       try {
-        const result = await previewPromoCode(code, fulfillmentMethod);
-        setAppliedPromoCode(result);
-      } catch (error) {
+        const result = await previewPromoCode(code, fulfillmentMethod, directItem ?? null);
+        if (result.ok) {
+          setAppliedPromoCode(result.preview);
+        } else {
+          setAppliedPromoCode(null);
+          setPromoCodeError(result.error);
+        }
+      } catch {
+        // Only unexpected failures throw — and in production Next.js swaps
+        // a thrown Server Action error's message for React #441 boilerplate,
+        // so never show `error.message` here.
         setAppliedPromoCode(null);
-        setPromoCodeError(error instanceof Error ? error.message : "Invalid promo code");
+        setPromoCodeError("We couldn't check that code right now. Please try again.");
       }
     });
   }
@@ -115,11 +123,11 @@ export function CheckoutForm({
     // A DELIVERY-scope code's discount depends on the delivery fee, which
     // goes to zero on pickup (and back on delivery) — clear it so a stale
     // preview isn't shown; an ORDER-scope code doesn't depend on
-    // fulfillment method, so it's left applied.
-    if (appliedPromoCode?.scope === "DELIVERY") {
-      setAppliedPromoCode(null);
-      setPromoCodeError(null);
-    }
+    // fulfillment method, so it's left applied. Any rejection message is
+    // dropped either way: "nothing to discount — delivery is already free"
+    // stops being true the moment the customer switches back to delivery.
+    if (appliedPromoCode?.scope === "DELIVERY") setAppliedPromoCode(null);
+    setPromoCodeError(null);
   }
 
   const deliveryHint = useMemo(() => {
@@ -190,9 +198,25 @@ export function CheckoutForm({
           promoCode: appliedPromoCode?.code ?? null,
           directItem: directItem ?? null,
         });
+        if (!result.ok) {
+          if (result.field === "promoCode") {
+            // The code stopped qualifying between preview and submit (cap
+            // hit by someone else, deactivated…): drop the chip and the
+            // discounted total, and put the reason next to the code field
+            // — the input still holds the code — so a retry doesn't fail
+            // identically until the customer works out that "Remove" is
+            // the fix.
+            setAppliedPromoCode(null);
+            setPromoCodeError(result.error);
+          }
+          toast.error(result.error);
+          return;
+        }
         router.push(`/checkout/payment?orderNumber=${encodeURIComponent(result.orderNumber)}`);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Checkout failed");
+      } catch {
+        // Same as applyPromoCode: a thrown error here is unexpected and its
+        // message is redacted in production, so show a plain fallback.
+        toast.error("Checkout failed. Please try again.");
       }
     });
   };
@@ -225,7 +249,14 @@ export function CheckoutForm({
         <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor="name">Recipient name</Label>
-            <Input id="name" value={name} onChange={(event) => setName(event.target.value)} required minLength={2} />
+            <Input
+              id="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+              minLength={2}
+              maxLength={120}
+            />
           </div>
           <div className="space-y-1">
             <Label htmlFor="email">Email</Label>
@@ -309,6 +340,7 @@ export function CheckoutForm({
               value={pickupNotes}
               onChange={(event) => setPickupNotes(event.target.value)}
               rows={3}
+              maxLength={280}
               placeholder="Anything we should know about your pickup?"
             />
           </CardContent>
@@ -345,13 +377,19 @@ export function CheckoutForm({
                 onChange={(event) => setPromoCodeInput(event.target.value.toUpperCase())}
                 placeholder="e.g. WELCOME10"
                 className="uppercase"
+                aria-invalid={Boolean(promoCodeError)}
+                aria-describedby={promoCodeError ? "promoCode-error" : undefined}
               />
               <Button type="button" variant="outline" onClick={applyPromoCode} disabled={promoCodePending || !promoCodeInput.trim()}>
                 {promoCodePending ? "Checking…" : "Apply"}
               </Button>
             </div>
           )}
-          {promoCodeError ? <p className="text-xs text-destructive">{promoCodeError}</p> : null}
+          {promoCodeError ? (
+            <p id="promoCode-error" role="alert" className="text-xs text-destructive">
+              {promoCodeError}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
       <Card>
@@ -432,7 +470,15 @@ export function CheckoutForm({
         </CardContent>
       </Card>
       <div className="flex justify-end">
-        <Button type="submit" variant="gold" size="lg" className="h-11 rounded-md" disabled={isPending || !accepted}>
+        <Button
+          type="submit"
+          variant="gold"
+          size="lg"
+          className="h-11 rounded-md"
+          // Also held while a promo preview is in flight: submitting then
+          // would send promoCode: null and silently drop the discount.
+          disabled={isPending || promoCodePending || !accepted}
+        >
           {isPending ? "Placing order…" : "Place order"}
         </Button>
       </div>

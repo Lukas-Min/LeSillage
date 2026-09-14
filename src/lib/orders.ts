@@ -46,6 +46,32 @@ import {
   type OrderEmailInput,
 } from "@/lib/email-templates";
 
+/**
+ * A rejection the customer is meant to read — empty bag, item sold out,
+ * invalid promo code, minimum spend not met — as opposed to an unexpected
+ * failure (DB down, integrity issue). Server Actions catch this and hand it
+ * back as `{ ok: false, error }` rather than letting it propagate: Next.js
+ * strips the message off any error *thrown* out of a Server Action in
+ * production (the browser only gets React error #441 plus a digest), so a
+ * thrown rejection would reach the checkout form as boilerplate instead of
+ * "Invalid promo code".
+ */
+export class CheckoutError extends Error {
+  /** Set when the rejection is about one specific checkout field the form
+   *  can mark inline (today only the promo code, so a code that stopped
+   *  qualifying between preview and submit clears its chip instead of
+   *  leaving a stale discount on screen). */
+  readonly field?: CheckoutErrorField;
+
+  constructor(message: string, field?: CheckoutErrorField) {
+    super(message);
+    this.name = "CheckoutError";
+    this.field = field;
+  }
+}
+
+export type CheckoutErrorField = "promoCode";
+
 export interface CustomerContext {
   userId: string;
   email: string;
@@ -99,7 +125,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     cart = loaded.cart;
     items = loaded.items;
   }
-  if (items.length === 0) throw new Error(usingDirectItems ? "No item selected" : "Your cart is empty");
+  if (items.length === 0) throw new CheckoutError(usingDirectItems ? "No item selected" : "Your cart is empty");
 
   const skuIds = items.map((it) => it.skuId);
   const skuRows = await client
@@ -119,7 +145,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     // Buy Now link was generated/bookmarked — can't still be ordered.
     .where(and(inArray(skus.id, skuIds), eq(skus.isActive, true)));
   if (skuRows.length !== items.length) {
-    throw new Error(
+    throw new CheckoutError(
       usingDirectItems ? "This item is no longer available" : "Some items in your cart are no longer available",
     );
   }
@@ -150,7 +176,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         stock: found.sku.stock,
         provenance: found.sku.provenance,
       });
-      if (cap <= 0) throw new Error("This item is currently out of stock");
+      if (cap <= 0) throw new CheckoutError("This item is currently out of stock");
       return { ...item, quantity: clampQuantity(item.quantity, cap) };
     });
   }
@@ -176,7 +202,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         .from(addresses)
         .where(and(eq(addresses.id, input.savedAddressId), eq(addresses.userId, input.user.userId)))
     )[0];
-    if (!saved) throw new Error("Saved address not found");
+    if (!saved) throw new CheckoutError("Saved address not found");
     addressSnapshot = {
       region: saved.region,
       province: saved.province,
@@ -252,7 +278,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         .from(promoCodes)
         .where(eq(promoCodes.code, normalizedCode))
         .for("update");
-      if (!codeRow) throw new Error("Invalid promo code");
+      if (!codeRow) throw new CheckoutError("Invalid promo code", "promoCode");
       const [priorOrderCount, priorRedemption] = await Promise.all([
         tx
           .select({ value: count() })
@@ -286,7 +312,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
         hasPriorRedemption: priorRedemption.length > 0,
       });
-      if (!eligibility.ok) throw new Error(eligibility.error);
+      if (!eligibility.ok) throw new CheckoutError(eligibility.error, "promoCode");
       lockedCode = codeRow;
       activePromoCode = { scope: codeRow.scope, type: codeRow.type, amount: codeRow.amount };
     }
@@ -372,35 +398,41 @@ export async function createOrderFromCart(input: CreateOrderInput) {
   });
 
   if (input.saveAddress && !isPickup && addressSnapshot) {
-    const existing = Number(
-      (
-        await client
-          .select({ value: count() })
-          .from(addresses)
-          .where(eq(addresses.userId, input.user.userId))
-      )[0]?.value ?? 0,
-    );
-    if (existing < 5) {
-      const snap = addressSnapshot as {
-        region: string;
-        province: string;
-        city: string;
-        barangay: string;
-        postalCode: string;
-        street: string;
-      };
-      await client.insert(addresses).values({
-        userId: input.user.userId,
-        recipientName,
-        phone: e164Phone,
-        region: snap.region,
-        province: snap.province,
-        city: snap.city,
-        barangay: snap.barangay,
-        postalCode: snap.postalCode,
-        street: snap.street,
-        isDefault: existing === 0,
-      });
+    try {
+      const existing = Number(
+        (
+          await client
+            .select({ value: count() })
+            .from(addresses)
+            .where(eq(addresses.userId, input.user.userId))
+        )[0]?.value ?? 0,
+      );
+      if (existing < 5) {
+        const snap = addressSnapshot as {
+          region: string;
+          province: string;
+          city: string;
+          barangay: string;
+          postalCode: string;
+          street: string;
+        };
+        await client.insert(addresses).values({
+          userId: input.user.userId,
+          recipientName,
+          phone: e164Phone,
+          region: snap.region,
+          province: snap.province,
+          city: snap.city,
+          barangay: snap.barangay,
+          postalCode: snap.postalCode,
+          street: snap.street,
+          isDefault: existing === 0,
+        });
+      }
+    } catch {
+      // Order is already committed (and the cart cleared / the promo code
+      // redeemed); a failed address bookmark must not report the checkout
+      // as failed and invite a retry that would place a second order.
     }
   }
 
