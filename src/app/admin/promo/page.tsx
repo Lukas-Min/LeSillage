@@ -9,7 +9,12 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { updatePromoSettings } from "@/actions/admin-actions";
-import { createPromoCode, deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-code-actions";
+import {
+  createPromoCode,
+  deletePromoCode,
+  togglePromoCodeActive,
+  updatePromoCode,
+} from "@/actions/admin-promo-code-actions";
 import { fromCentavos, formatPHP } from "@/domain/money";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +48,12 @@ const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
 function amountLabel(type: "PERCENTAGE" | "FIXED", amount: number) {
   return type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
+}
+
+/** `<input type="date">` wants yyyy-mm-dd; parseDate in the action turns that
+ *  back into a Date, so a code edited here round-trips to the day it shows. */
+function toDateInput(value: Date | null) {
+  return value ? value.toISOString().slice(0, 10) : "";
 }
 
 export default async function PromoAdminPage({
@@ -173,7 +184,7 @@ export default async function PromoAdminPage({
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Competes with each product's own discount — whichever saves the customer more wins, they never stack.
+                Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack.
                 Free-shipping threshold, delivery fee, and a Fixed discount amount are entered in pesos (add a period
                 for centavos) — not centavos.
               </p>
@@ -192,42 +203,139 @@ export default async function PromoAdminPage({
                 <p className="text-muted-foreground">No promo codes yet.</p>
               ) : (
                 codes.map((code) => (
-                  <div
-                    key={code.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-                  >
-                    <div className="space-y-1">
-                      <p className="font-mono font-medium">{code.code}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {amountLabel(code.type, code.amount)} off {code.scope === "ORDER" ? "order" : "delivery"}
-                        {code.minSpendCentavos ? ` · min spend ${formatPHP(code.minSpendCentavos)}` : ""}
-                        {code.firstOrderOnly ? " · first order only" : ""}
-                        {code.onePerCustomer ? " · once per customer" : ""}
-                        {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
-                        {code.startsAt ? ` · starts ${code.startsAt.toLocaleDateString()}` : ""}
-                        {code.endsAt ? ` · ends ${code.endsAt.toLocaleDateString()}` : ""}
-                      </p>
+                  <div key={code.id} className="space-y-3 rounded-lg border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="font-mono font-medium">{code.code}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {amountLabel(code.type, code.amount)} off {code.scope === "ORDER" ? "order" : "delivery"}
+                          {code.minSpendCentavos ? ` · min spend ${formatPHP(code.minSpendCentavos)}` : ""}
+                          {code.firstOrderOnly ? " · first order only" : ""}
+                          {code.onePerCustomer ? " · once per customer" : ""}
+                          {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
+                          {code.startsAt ? ` · starts ${code.startsAt.toLocaleDateString()}` : ""}
+                          {code.endsAt ? ` · ends ${code.endsAt.toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <form action={togglePromoCodeActive}>
+                          <input type="hidden" name="id" value={code.id} />
+                          <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
+                          <SubmitButton variant="outline">{code.isActive ? "Deactivate" : "Activate"}</SubmitButton>
+                        </form>
+                        {code.redemptionCount === 0 ? (
+                          <>
+                            <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
+                              <input type="hidden" name="id" value={code.id} />
+                            </form>
+                            <ConfirmSubmitButton
+                              formId={`delete-promo-${code.id}`}
+                              title="Delete this promo code?"
+                              description={`"${code.code}" has never been redeemed, so this is safe to remove permanently.`}
+                              triggerLabel="Delete"
+                            />
+                          </>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <form action={togglePromoCodeActive}>
+                    {/* Collapsed by default so a long list stays scannable on a
+                        phone; a plain <details> keeps this a Server Component. */}
+                    <details className="rounded-md border bg-secondary/40 p-3">
+                      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">
+                        Edit <span className="ml-1 font-mono">{code.code}</span>
+                      </summary>
+                      <form action={updatePromoCode} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <input type="hidden" name="id" value={code.id} />
-                        <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
-                        <SubmitButton variant="outline">{code.isActive ? "Deactivate" : "Activate"}</SubmitButton>
-                      </form>
-                      {code.redemptionCount === 0 ? (
-                        <>
-                          <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
-                            <input type="hidden" name="id" value={code.id} />
-                          </form>
-                          <ConfirmSubmitButton
-                            formId={`delete-promo-${code.id}`}
-                            title="Delete this promo code?"
-                            description={`"${code.code}" has never been redeemed, so this is safe to remove permanently.`}
-                            triggerLabel="Delete"
+                        {/* What the form prefilled, so the action can tell an untouched
+                            field from a real edit — it keeps a date's stored time-of-day
+                            and rejects a type switch that left the amount in the old unit. */}
+                        <input type="hidden" name="previousType" value={code.type} />
+                        <input
+                          type="hidden"
+                          name="previousAmount"
+                          value={code.type === "FIXED" ? fromCentavos(code.amount) : code.amount}
+                        />
+                        <input type="hidden" name="previousStartsAt" value={toDateInput(code.startsAt)} />
+                        <input type="hidden" name="previousEndsAt" value={toDateInput(code.endsAt)} />
+                        <Field label="Code" htmlFor={`edit-code-${code.id}`}>
+                          <Input
+                            id={`edit-code-${code.id}`}
+                            name="code"
+                            defaultValue={code.code}
+                            required
+                            minLength={3}
+                            maxLength={40}
+                            className="uppercase"
                           />
-                        </>
-                      ) : null}
-                    </div>
+                        </Field>
+                        <Field label="Discounts" htmlFor={`edit-scope-${code.id}`}>
+                          <select id={`edit-scope-${code.id}`} name="scope" className={selectClass} defaultValue={code.scope}>
+                            <option value="ORDER">Order subtotal</option>
+                            <option value="DELIVERY">Delivery fee</option>
+                          </select>
+                        </Field>
+                        <Field label="Type" htmlFor={`edit-type-${code.id}`}>
+                          <select id={`edit-type-${code.id}`} name="type" className={selectClass} defaultValue={code.type}>
+                            <option value="PERCENTAGE">Percentage</option>
+                            <option value="FIXED">Fixed ₱ off</option>
+                          </select>
+                        </Field>
+                        <Field label="Amount (% or ₱)" htmlFor={`edit-amount-${code.id}`}>
+                          <Input
+                            id={`edit-amount-${code.id}`}
+                            name="amount"
+                            type="number"
+                            step="0.01"
+                            required
+                            min={1}
+                            defaultValue={code.type === "FIXED" ? fromCentavos(code.amount) : code.amount}
+                          />
+                        </Field>
+                        <Field label="Minimum spend (₱, optional)" htmlFor={`edit-minSpend-${code.id}`}>
+                          <Input
+                            id={`edit-minSpend-${code.id}`}
+                            name="minSpendCentavos"
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            placeholder="e.g. 2000"
+                            defaultValue={code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos)}
+                          />
+                        </Field>
+                        <Field label="Max redemptions (optional)" htmlFor={`edit-maxRedemptions-${code.id}`}>
+                          <Input
+                            id={`edit-maxRedemptions-${code.id}`}
+                            name="maxRedemptions"
+                            type="number"
+                            min={1}
+                            placeholder="Unlimited"
+                            defaultValue={code.maxRedemptions ?? ""}
+                          />
+                        </Field>
+                        <Field label="Starts (optional)" htmlFor={`edit-startsAt-${code.id}`}>
+                          <Input id={`edit-startsAt-${code.id}`} name="startsAt" type="date" defaultValue={toDateInput(code.startsAt)} />
+                        </Field>
+                        <Field label="Ends (optional)" htmlFor={`edit-endsAt-${code.id}`}>
+                          <Input id={`edit-endsAt-${code.id}`} name="endsAt" type="date" defaultValue={toDateInput(code.endsAt)} />
+                        </Field>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" name="firstOrderOnly" defaultChecked={code.firstOrderOnly} />
+                          First order only
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" name="onePerCustomer" defaultChecked={code.onePerCustomer} />
+                          Once per customer
+                        </label>
+                        <p className="text-xs text-muted-foreground sm:col-span-2">
+                          Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is
+                          always pesos. Active/inactive stays with the button above, and the {code.redemptionCount}{" "}
+                          redemption(s) already recorded are never changed here.
+                        </p>
+                        <div className="sm:col-span-2">
+                          <SubmitButton>Save changes</SubmitButton>
+                        </div>
+                      </form>
+                    </details>
                   </div>
                 ))
               )}
