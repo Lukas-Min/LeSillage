@@ -58,7 +58,9 @@ const MENU_GROUPS = [
   },
 ] as const;
 
-export function StoreHeader() {
+/** `announcement` comes from the root layout (a Server Component) because this
+ *  header is a client component and cannot read the database itself. */
+export function StoreHeader({ announcement = [] }: { announcement?: string[] }) {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -126,7 +128,7 @@ export function StoreHeader() {
       </div>
       {/* Part of the navbar, under the nav row — so it stays put with the
           sticky header instead of scrolling away with the page. */}
-      <PromoMarquee />
+      <PromoMarquee messages={announcement} />
     </header>
   );
 }

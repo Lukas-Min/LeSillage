@@ -11,6 +11,8 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { PromoCodeForm } from "@/components/admin/promo-code-form";
 import { PromoCodesSkeleton, PromoSettingsSkeleton } from "@/components/admin/promo-skeletons";
+import { AnnouncementForm } from "@/components/admin/announcement-form";
+import { readAnnouncement } from "@/lib/announcement";
 import { updatePromoSettings } from "@/actions/admin-actions";
 import {
   createPromoCode,
@@ -82,10 +84,12 @@ export default async function PromoAdminPage({
 }
 
 async function SettingsTab() {
-  const row = (
-    await db().select().from(promoSettings).where(eq(promoSettings.id, "singleton"))
-  )[0];
+  const [row, announcement] = await Promise.all([
+    db().select().from(promoSettings).where(eq(promoSettings.id, "singleton")).then((rows) => rows[0]),
+    readAnnouncement(),
+  ]);
   return (
+    <>
         <Card>
           <CardContent className="p-4">
             <form action={updatePromoSettings} className="space-y-3">
@@ -188,6 +192,15 @@ async function SettingsTab() {
             </form>
           </CardContent>
         </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Announcement bar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AnnouncementForm enabled={announcement.enabled} messages={announcement.messages} />
+        </CardContent>
+      </Card>
+    </>
   );
 }
 

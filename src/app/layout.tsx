@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 import { StoreHeader } from "@/components/store/store-header";
 import { StoreFooter } from "@/components/store/store-footer";
+import { loadAnnouncement } from "@/lib/announcement";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,7 +37,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Cached (see loadAnnouncement), so reading it here does not make every
+  // prerendered route dynamic.
+  const announcement = await loadAnnouncement();
   return (
     <html
       lang="en"
@@ -46,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex flex-col bg-background text-foreground">
         <Providers>
           <div className="flex min-h-dvh flex-col">
-            <StoreHeader />
+            <StoreHeader announcement={announcement.enabled ? announcement.messages : []} />
             <div className="flex flex-1 flex-col">{children}</div>
           </div>
           <StoreFooter />

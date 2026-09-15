@@ -1,71 +1,106 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { marqueeCopies } from "@/domain/announcement";
 
-/**
- * Announcement copy. Benefit first, plain language, no fine print — but every
- * line has to stay true to the live promo settings, because this is the first
- * thing a customer reads:
- *   - WELCOME10 is ORDER-scope 10% (fragrances only, delivery still charged),
- *     minSpendCentavos null (hence "no minimum spend") and onePerCustomer on.
- *   - ₱2,000 of discounted decants unlocks free delivery plus a tester, on
- *     delivered orders only.
- * If any of that changes in /admin/promo, change these lines with it.
- */
-const ITEMS: { key: string; node: React.ReactNode }[] = [
-  {
-    key: "welcome",
-    // The code and its terms are one offer, so they read as one line. The
-    // explicit margin on the code is belt-and-braces next to the real space:
-    // at this size the two were running together as "codeWELCOME10".
-    node: (
-      <>
-        Enjoy 10% off your fragrances with code{" "}
-        <strong className="mx-0.5 font-semibold tracking-[0.08em]">WELCOME10</strong>
-        <span className="opacity-50">{" · "}</span>
-        no minimum spend, one use per customer
-      </>
+/** Scroll speed. Constant in pixels, so the bar reads at the same pace whether
+ *  it carries one short line or eight long ones. */
+const PIXELS_PER_SECOND = 55;
+
+/** A promo code: all caps, four or more characters, and containing a digit —
+ *  enough to catch WELCOME10 without emphasising ordinary words like ORDER. */
+const CODE_PATTERN = /^[A-Z][A-Z0-9]{3,}$/;
+
+function renderMessage(message: string) {
+  return message.split(/(\b[A-Z][A-Z0-9]{3,}\b)/g).map((part, index) =>
+    CODE_PATTERN.test(part) && /\d/.test(part) ? (
+      <strong key={index} className="mx-0.5 font-semibold tracking-[0.08em]">
+        {part}
+      </strong>
+    ) : (
+      part
     ),
-  },
-  { key: "delivery", node: "Free delivery on ₱2,000 of decants" },
-  // Reads right after the delivery line above — a marquee scrolls in order, so
-  // "Plus" always follows the ₱2,000 condition it depends on.
-  { key: "tester", node: "Plus a complimentary tester, matched to your order" },
-  { key: "brand", node: "Decants, partials and full bottles — find your signature scent" },
-];
+  );
+}
 
 /**
- * A permanently scrolling announcement bar that sits above the header, at the
- * very top of the page. Two identical tracks sit side by side and the pair is
- * translated by half its width, so the loop closes seamlessly instead of
- * snapping back. The animation is pure CSS (see globals.css); this is a client
- * component only so it can stay off the admin portal, which shares the root
- * layout with the storefront.
+ * The permanently scrolling announcement bar, rendered inside the sticky header.
+ *
+ * The track holds N identical copies of the message list and animates by
+ * exactly one copy's width (100/N percent of the track), which lands copy 2
+ * where copy 1 began — so the loop closes with no visible seam.
+ *
+ * N is measured rather than fixed: two copies only look infinite while one copy
+ * is at least as wide as the bar. On a wide screen (or with short messages) the
+ * pair runs out before the loop restarts and you see the blank tail, so the
+ * copies are recomputed from the real widths whenever either changes.
  */
-export function PromoMarquee() {
+export function PromoMarquee({ messages }: { messages: string[] }) {
   const pathname = usePathname();
-  if (pathname?.startsWith("/admin")) return null;
+  const barRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [loop, setLoop] = useState({ copies: 2, duration: 32 });
+
+  useEffect(() => {
+    const bar = barRef.current;
+    const list = listRef.current;
+    if (!bar || !list) return;
+
+    const measure = () => {
+      const listWidth = list.getBoundingClientRect().width;
+      // A collapsed or not-yet-laid-out bar would otherwise pin this to the
+      // two-copy minimum; the viewport is the better guess in that case.
+      const barWidth = bar.getBoundingClientRect().width || window.innerWidth;
+      if (listWidth < 1) return;
+      const copies = marqueeCopies(barWidth, listWidth);
+      const duration = Math.max(8, listWidth / PIXELS_PER_SECOND);
+      setLoop((current) =>
+        current.copies === copies && Math.abs(current.duration - duration) < 0.01 ? current : { copies, duration },
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [messages]);
+
+  // The admin portal shares the root layout with the storefront; a customer
+  // promo bar has no business above the admin tools.
+  if (pathname?.startsWith("/admin") || messages.length === 0) return null;
 
   return (
     <aside
+      ref={barRef}
       aria-label="Store promotions"
       className="marquee overflow-hidden bg-gold text-gold-foreground"
     >
-      <div className="marquee-track flex w-max">
-        {[0, 1].map((track) => (
+      <div
+        className="marquee-track flex w-max"
+        style={
+          {
+            "--marquee-shift": `${100 / loop.copies}%`,
+            "--marquee-duration": `${loop.duration.toFixed(2)}s`,
+          } as React.CSSProperties
+        }
+      >
+        {Array.from({ length: loop.copies }).map((_, copy) => (
           <ul
-            key={track}
+            key={copy}
+            ref={copy === 0 ? listRef : undefined}
             className="flex shrink-0 items-center"
-            // The second track exists only to make the loop seamless — it must
-            // not be read out twice.
-            aria-hidden={track === 1 ? true : undefined}
+            // Only the first copy carries the message for assistive tech; the
+            // rest exist purely to keep the loop seamless.
+            aria-hidden={copy > 0 ? true : undefined}
           >
-            {ITEMS.map((item) => (
+            {messages.map((message, index) => (
               <li
-                key={item.key}
+                key={`${copy}-${index}`}
                 className="flex items-center whitespace-nowrap py-1.5 text-[11px] tracking-wide sm:text-xs"
               >
-                {item.node}
+                {renderMessage(message)}
                 <span aria-hidden className="px-3 opacity-60">
                   {" ◆ "}
                 </span>
