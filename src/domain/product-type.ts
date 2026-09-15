@@ -68,6 +68,31 @@ export function labelForPackaging(p: Packaging): string {
   }
 }
 
+/**
+ * A full-bottle/partial SKU's condition and packaging collapse into one
+ * customer-facing choice: BNIB (new, still boxed — packaging is moot),
+ * FP ("full package": not brand-new, but still comes with the box), or
+ * BO (bottle only, no box). Distinguishing Sealed from A-few-sprays-missing
+ * was never a choice a customer actually needed to make; both now read as
+ * FP or BO, whichever packaging says. Decants never use this — it only
+ * means anything for FULL_BOTTLE/PARTIAL SKUs, same as condition/packaging
+ * themselves.
+ */
+export type ConditionPackagingChoice = "BNIB" | "FP" | "BO";
+
+/** Smallest-to-largest "how new is it" order — matches how the choices read
+ *  in conversation ("either BNIB, FP or BO") and keeps buttons stable. */
+export const CONDITION_PACKAGING_ORDER: readonly ConditionPackagingChoice[] = ["BNIB", "FP", "BO"];
+
+export function conditionPackagingChoice(condition: Condition, packaging: Packaging): ConditionPackagingChoice {
+  if (condition === "BNIB") return "BNIB";
+  return packaging === "WITH_BOX" ? "FP" : "BO";
+}
+
+export function labelForConditionPackaging(choice: ConditionPackagingChoice): string {
+  return choice;
+}
+
 /** "A" / "A and B" / "A, B and C" — matches Fragrantica's own "created by ..." phrasing. */
 export function joinPerfumers(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";

@@ -2,7 +2,7 @@ export const HOW_TO_PAY_STEPS = [
   {
     number: "01",
     title: "Place your order",
-    body: "Check out from your cart, or use Buy now on a listing to skip the cart. Choose delivery or pickup.",
+    body: "Check out from your cart, or use Buy now on a product page to skip the cart. Choose delivery or pickup.",
   },
   {
     number: "02",

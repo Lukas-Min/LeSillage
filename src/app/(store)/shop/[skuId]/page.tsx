@@ -273,10 +273,11 @@ function ProductTitleText({
  * Full-bottle/partial equivalent of DecantBuyBox's client-side size picker —
  * navigates to a different SKU's own page per choice instead of swapping
  * state client-side, since each SKU here already has its own PDP. Two
- * tiers, same grouping `buildVariantOptions` already did: a Link per
- * size+provenance group (label always includes provenance), plus a
- * secondary row of Links for condition/packaging sub-options — shown only
- * when the currently-active group actually has more than one.
+ * tiers, same grouping `buildVariantOptions` already did: a Condition row
+ * (BNIB/FP/BO — see ConditionPackagingChoice) shown first, then Size below
+ * it. Condition is always shown, even with only one real choice to offer —
+ * same "always populated" convention Size itself follows — so a plain BNIB
+ * full bottle shows one BNIB button, not nothing.
  */
 function VariantSection({
   options,
@@ -289,42 +290,47 @@ function VariantSection({
     (o) => o.skuId === currentSkuId || o.subOptions?.some((s) => s.skuId === currentSkuId),
   );
   return (
-    <div className="space-y-3">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <Link
-            key={option.skuId}
-            href={`/shop/${option.skuId}`}
-            className={cn(
-              "inline-flex h-11 min-w-[3.5rem] items-center justify-center border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
-              option === activeGroup
-                ? "border-foreground bg-foreground text-background"
-                : "border-border bg-background hover:bg-muted",
-            )}
-          >
-            {option.label}
-          </Link>
-        ))}
-      </div>
-      {activeGroup?.subOptions && activeGroup.subOptions.length > 1 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {activeGroup.subOptions.map((sub) => (
+    <div className="space-y-4">
+      {activeGroup?.subOptions && activeGroup.subOptions.length > 0 ? (
+        <div className="space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Condition</p>
+          <div className="flex flex-wrap gap-2">
+            {activeGroup.subOptions.map((sub) => (
+              <Link
+                key={sub.skuId}
+                href={`/shop/${sub.skuId}`}
+                className={cn(
+                  "inline-flex h-11 min-w-[3.5rem] items-center justify-center border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
+                  sub.skuId === currentSkuId
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-background hover:bg-muted",
+                )}
+              >
+                {sub.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div className="space-y-3">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
+        <div className="flex flex-wrap gap-2">
+          {options.map((option) => (
             <Link
-              key={sub.skuId}
-              href={`/shop/${sub.skuId}`}
+              key={option.skuId}
+              href={`/shop/${option.skuId}`}
               className={cn(
-                "inline-flex h-8 items-center justify-center rounded-md border px-3 text-[10px] uppercase tracking-[0.15em] transition-colors",
-                sub.skuId === currentSkuId
+                "inline-flex h-11 min-w-[3.5rem] items-center justify-center border px-4 text-xs uppercase tracking-[0.2em] transition-colors",
+                option === activeGroup
                   ? "border-foreground bg-foreground text-background"
                   : "border-border bg-background hover:bg-muted",
               )}
             >
-              {sub.label}
+              {option.label}
             </Link>
           ))}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

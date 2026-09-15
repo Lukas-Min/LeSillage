@@ -18,7 +18,15 @@ import {
 import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
 import type { SiteWideDiscountConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
-import { labelForCondition, labelForPackaging, labelForProvenance } from "@/domain/product-type";
+import {
+  CONDITION_PACKAGING_ORDER,
+  conditionPackagingChoice,
+  labelForCondition,
+  labelForConditionPackaging,
+  labelForPackaging,
+  labelForProvenance,
+  type ConditionPackagingChoice,
+} from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
 import { compareSkuOrder, type SizePickerOption, type VariantSubOption } from "@/domain/variant-options";
 
@@ -132,6 +140,56 @@ function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[]
   return positive.length > 0 ? positive : variants;
 }
 
+interface ConditionPackagingMember {
+  skuId: string;
+  condition: Condition;
+  packaging: Packaging;
+  fulfillment: Fulfillment;
+  soldOut: boolean;
+  originalCentavos: number;
+  discountedCentavos: number;
+  savedCentavos: number;
+}
+
+/**
+ * Groups a size+provenance group's raw SKUs into the customer-facing
+ * BNIB/FP/BO choice (see ConditionPackagingChoice in domain/product-type.ts)
+ * — always at least one entry, one per distinct choice actually present
+ * among `members`, in a fixed BNIB→FP→BO order (so a product offered only
+ * as BNIB shows one BNIB button, not a choice of nothing). Two SKUs that
+ * collapse to the same choice (e.g. Sealed and Few-sprays-missing both
+ * packaged WITH_BOX both read as "FP") merge into one button, picking a
+ * representative the same way the size tier above picks its own default:
+ * prefer an available (not sold out, on-hand) member, then any not-sold-out
+ * one, then just the cheapest.
+ */
+function buildConditionPackagingSubOptions(members: ConditionPackagingMember[]): VariantSubOption[] {
+  const byChoice = new Map<ConditionPackagingChoice, ConditionPackagingMember[]>();
+  for (const m of members) {
+    const choice = conditionPackagingChoice(m.condition, m.packaging);
+    const arr = byChoice.get(choice);
+    if (arr) arr.push(m);
+    else byChoice.set(choice, [m]);
+  }
+  return CONDITION_PACKAGING_ORDER.filter((choice) => byChoice.has(choice)).map((choice) => {
+    const group = byChoice.get(choice)!;
+    const byPrice = [...group].sort((a, b) => a.originalCentavos - b.originalCentavos);
+    const rep =
+      byPrice.find((m) => !m.soldOut && m.fulfillment === "ON_HAND") ?? byPrice.find((m) => !m.soldOut) ?? byPrice[0];
+    return {
+      skuId: rep.skuId,
+      condition: rep.condition,
+      packaging: rep.packaging,
+      label: labelForConditionPackaging(choice),
+      fulfillment: rep.fulfillment,
+      soldOut: rep.soldOut,
+      originalCentavos: rep.originalCentavos,
+      discountedCentavos: rep.discountedCentavos,
+      savedCentavos: rep.savedCentavos,
+    };
+  });
+}
+
 /**
  * Turns a product's raw SKU rows into priced, fulfillment-aware
  * `SizePickerOption[]` — grouped by size+provenance+isTester, but `isTester`
@@ -142,9 +200,11 @@ function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[]
  * tester silently become the group's default add-to-cart target, or produce
  * two indistinguishable `subOptions` entries. The group's label names its
  * provenance too, except In-house — the default for a decant, and so not
- * worth stating on every button — see `sizePickerGroupLabel` below.
- * Condition/packaging become a secondary `subOptions` picker only when a
- * group has more than one SKU to distinguish. Shared by the PDP and the
+ * worth stating on every button — see `sizePickerGroupLabel` below. For a
+ * full bottle/partial (never a decant), condition+packaging collapse into a
+ * secondary BNIB/FP/BO `subOptions` choice that's always present — even a
+ * single-choice product shows its one button — see
+ * `buildConditionPackagingSubOptions`. Shared by the PDP and the
  * cart drawer's "Customize" picker (`getSiblingSkuOptions`) — pure (no DB
  * access) so each call site fetches `variants`/`discounts` however best
  * fits its own query shape. `loadCatalogCards` (the shop grid) no longer
@@ -201,10 +261,19 @@ export function buildVariantOptions(
     const byPrice = [...members].sort((a, b) => a.originalCentavos - b.originalCentavos);
     const defaultMember =
       byPrice.find((m) => !m.soldOut && m.fulfillment === "ON_HAND") ?? byPrice.find((m) => !m.soldOut) ?? byPrice[0];
+    // A full bottle/partial always shows a BNIB/FP/BO choice, even with only
+    // one real choice to offer (every current full bottle is BNIB, for
+    // instance) — same "always populated" convention the size/provenance
+    // tier above already follows. Decants keep their own, unrelated, pre-
+    // existing behavior untouched: condition/packaging aren't admin-
+    // editable for a decant SKU (always whatever default they were created
+    // with), so this practically never fires, but it's left exactly as it
+    // was rather than assumed away.
     const distinctConditions = new Set(members.map((m) => m.condition));
     const distinctPackaging = new Set(members.map((m) => m.packaging));
-    const subOptions: VariantSubOption[] | undefined =
-      members.length > 1
+    const subOptions: VariantSubOption[] | undefined = !opts.isDecant
+      ? buildConditionPackagingSubOptions(members)
+      : members.length > 1
         ? members
             .map((m) => {
               const parts: string[] = [];

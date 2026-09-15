@@ -30,10 +30,22 @@ export const FAQ_GROUPS = [
         a: {
           lead: "Three ways to buy a fragrance:",
           bullets: [
-            "Full bottle — a complete, unused bottle, either retail packaging or a tester.",
+            "Full bottle — a complete bottle, either retail packaging or a tester. Most are brand new (BNIB); a few are opened but still complete, at a lower price.",
             "Partial — an opened bottle with a few sprays already used, at a lower price.",
             "Decant — a small pour from a bottle, so you can try a scent without buying the whole thing.",
           ],
+        } satisfies FaqAnswer,
+      },
+      {
+        q: "What do BNIB, FP, and BO mean on a full bottle or partial?",
+        a: {
+          lead: "They describe the exact same thing every listing shows above its size — how new it is, and whether the box comes with it:",
+          bullets: [
+            "BNIB — Brand New In Box: unopened, comes with everything it shipped with.",
+            "FP — Full Package: not brand new, but still comes with the box.",
+            "BO — Bottle Only: just the bottle, no box.",
+          ],
+          note: "A partial is opened by definition, so it never shows BNIB — only FP or BO.",
         } satisfies FaqAnswer,
       },
       {
