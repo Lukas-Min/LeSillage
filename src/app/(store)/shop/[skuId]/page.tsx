@@ -335,6 +335,16 @@ function VariantSection({
   );
 }
 
+/**
+ * Some products carry up to 11 notes in a single tier, and note names as
+ * long as "Indonesian Patchouli Leaf" — a fixed 3-column grid can't safely
+ * hold that on a phone at any width; a lopsided tier (11 notes vs. 2) also
+ * reads as three columns of wildly different heights. Below `sm` this
+ * stacks Top/Heart/Base as three full-width, individually labeled sections
+ * instead of forcing them side by side; `sm:` and up keeps the original
+ * 3-column layout. `break-words` is kept on every note regardless of
+ * breakpoint as a second line of defence against a single long name.
+ */
 function CompositionContent({
   pyramid,
 }: {
@@ -347,30 +357,38 @@ function CompositionContent({
     <div className="space-y-4 border-t border-border/60 pt-4">
       <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Notes</p>
       <div className="space-y-3">
-        <div className="grid grid-cols-3 gap-2 border-b border-border/40 pb-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <div className="hidden border-b border-border/40 pb-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:grid sm:grid-cols-3 sm:gap-2">
           <span className="text-center">Top</span>
           <span className="text-center">Heart</span>
           <span className="text-center">Base</span>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-sm leading-relaxed">
-          <NoteColumn notes={top} />
-          <NoteColumn notes={middle} />
-          <NoteColumn notes={base} />
+        <div className="grid grid-cols-1 gap-4 text-sm leading-relaxed sm:grid-cols-3 sm:gap-2 sm:gap-y-0">
+          <NoteColumn label="Top" notes={top} />
+          <NoteColumn label="Heart" notes={middle} />
+          <NoteColumn label="Base" notes={base} />
         </div>
       </div>
     </div>
   );
 }
 
-function NoteColumn({ notes }: { notes: string[] }) {
-  if (notes.length === 0) {
-    return <p className="text-center text-xs text-muted-foreground">—</p>;
-  }
+function NoteColumn({ label, notes }: { label: string; notes: string[] }) {
   return (
-    <div className="flex flex-col items-center gap-1 text-center text-sm text-foreground">
-      {notes.map((note, index) => (
-        <span key={`${note}-${index}`}>{note}</span>
-      ))}
+    <div className="space-y-2 sm:space-y-1">
+      {/* Only the mobile, stacked layout needs its own label — sm: and up
+          shares the header row above instead. */}
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:hidden">{label}</p>
+      {notes.length === 0 ? (
+        <p className="text-center text-xs text-muted-foreground">—</p>
+      ) : (
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center sm:flex-col sm:flex-nowrap sm:gap-1">
+          {notes.map((note, index) => (
+            <span key={`${note}-${index}`} className="break-words text-foreground">
+              {note}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

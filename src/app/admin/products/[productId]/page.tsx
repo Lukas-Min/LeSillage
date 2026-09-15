@@ -360,9 +360,12 @@ export default async function AdminProductDetailPage({
                   <>
                     <input type="hidden" name="condition" value="SEALED" />
                     <input type="hidden" name="packaging" value="BOTTLE_ONLY" />
+                    {/* In-house is being phased out for new listings — a
+                        new decant SKU now defaults to (and can only be)
+                        Retail; see decant-sku-fields.tsx. */}
                     <DecantSkuFields
                       idPrefix="new-sku"
-                      initialProvenance="IN_HOUSE"
+                      initialProvenance="RETAIL"
                       fulfillment="ON_HAND"
                       stock={0}
                       costPrice={0}
