@@ -105,7 +105,11 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
           })}
         </nav>
         <div className="flex items-center gap-1">
-          <ThemeToggle />
+          {/* Below 576px the shop grid is down to a single column (see
+              catalog-grid.tsx) — that's the same "very small" cutoff this
+              moves the toggle into the hamburger menu at, so the two track
+              together off one breakpoint. */}
+          <ThemeToggle className="hidden min-[576px]:inline-flex" />
           <SearchOverlay />
           <CartDrawer mounted={mounted} />
           {!mounted || status === "loading" ? (
@@ -150,6 +154,13 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-5 overflow-y-auto px-4 pb-4">
+          {/* Only below 576px — from there up, the header's own icon button
+              (hidden min-[576px]:inline-flex above) already covers this, and
+              showing both would be a confusing duplicate control. */}
+          <div className="space-y-1.5 min-[576px]:hidden">
+            <p className="px-3 text-[10px] uppercase tracking-[0.3em] text-gold">Preferences</p>
+            <ThemeToggle showLabel />
+          </div>
           {MENU_GROUPS.map((group) => (
             <div key={group.title} className="space-y-1.5">
               <p className="px-3 text-[10px] uppercase tracking-[0.3em] text-gold">{group.title}</p>

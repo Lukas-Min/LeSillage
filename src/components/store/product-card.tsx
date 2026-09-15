@@ -1,44 +1,26 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CatalogPrice, Price } from "@/components/store/price";
+import { Button } from "@/components/ui/button";
+import { CatalogPrice } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
-import { AddToCartButton } from "@/components/store/add-to-cart-button";
-import { BuyNowButton } from "@/components/store/buy-now-button";
-import { SizePicker } from "@/components/store/size-picker";
-import { findSelectedVariant } from "@/domain/variant-options";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
 import { capitalizeFirst } from "@/lib/utils";
 import type { CatalogCardModel } from "@/lib/catalog";
 
+/**
+ * No client-side state left (no size picker, no add-to-cart/buy-now — a
+ * shop-grid card is browse-only, "View" is the only action, and the PDP is
+ * where a size actually gets picked and bought) — so this renders fully on
+ * the server. Only `CompositionCanvas` below is a client component, and a
+ * Server Component can render one of those directly.
+ */
 export function ProductCard({ card }: { card: CatalogCardModel }) {
   const concentration = concentrationLabel(card.concentration);
   const genderLabel = card.gender ? capitalizeFirst(card.gender) : null;
   const subtitle =
     [concentration, genderLabel].filter(Boolean).join(" · ") || labelForType(card.type);
-  const isDecant = card.type === "DECANT";
-  const hasSizeOptions = card.sizeOptions.length > 0;
-  const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
-  const selected = hasSizeOptions ? findSelectedVariant(card.sizeOptions, selectedSkuId) : null;
-  // A decant has no single "default" size — the customer must pick one. A
-  // full bottle/partial with multiple SKUs already has a sensible default
-  // (card.skuId, picked by pickDestinationSku in lib/catalog.ts), so picking
-  // a size there is an optional override, not a requirement.
-  const activeSkuId = isDecant ? (selectedSkuId ?? "") : (selectedSkuId ?? card.skuId);
-  const requireSizeSelection = isDecant && hasSizeOptions && !selectedSkuId;
-  // Add to cart and Buy now sit side by side — without this, clicking either
-  // one with no size picked showed its own identical "Please select a size"
-  // message, so both appeared stacked under the two-column button row.
-  const [sizeWarningAttempted, setSizeWarningAttempted] = useState(false);
-  const showSizeWarning = sizeWarningAttempted && requireSizeSelection;
-  // The card's own soldOut is only about its default destination SKU — once
-  // a specific size is picked (e.g. a sold-out RETAIL-provenance decant
-  // size), that size's own status takes over.
-  const effectiveSoldOut = selected ? Boolean(selected.soldOut) : card.soldOut;
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link href={card.href} className="flex flex-1 flex-col">
@@ -76,64 +58,27 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               <Badge variant={card.fulfillment === "PRE_ORDER" ? "outline" : "secondary"}>
                 {card.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
               </Badge>
-              {effectiveSoldOut ? <Badge variant="destructive">Sold out</Badge> : null}
+              {card.hasRetailDecant ? <Badge variant="outline">Retail</Badge> : null}
+              {card.soldOut ? <Badge variant="destructive">Sold out</Badge> : null}
             </div>
-            {/* Condition and provenance ("Retail"/"Tester"/"In-house") used
-                to be separate badges here — now folded into the size
-                options below instead (always "{size}ML · {provenance}",
-                plus a secondary condition/packaging picker when a size
-                actually has more than one SKU to distinguish). */}
-            {hasSizeOptions ? (
-              <SizePicker
-                density="compact"
-                options={card.sizeOptions}
-                selectedSkuId={selectedSkuId}
-                onSelect={setSelectedSkuId}
-              />
-            ) : null}
             <div className="border-t border-border/60 pt-3">
-              {selected ? (
-                <Price
-                  originalCentavos={selected.originalCentavos}
-                  discountedCentavos={selected.discountedCentavos}
-                  savedCentavos={selected.savedCentavos}
-                  className="block text-right"
-                />
-              ) : (
-                <CatalogPrice
-                  minOriginalCentavos={card.minOriginalCentavos}
-                  maxOriginalCentavos={card.maxOriginalCentavos}
-                  minDiscountedCentavos={card.minDiscountedCentavos}
-                  maxDiscountedCentavos={card.maxDiscountedCentavos}
-                  savePercent={card.savePercent}
-                  align="right"
-                  showSaveBadge={false}
-                />
-              )}
+              <CatalogPrice
+                minOriginalCentavos={card.minOriginalCentavos}
+                maxOriginalCentavos={card.maxOriginalCentavos}
+                minDiscountedCentavos={card.minDiscountedCentavos}
+                maxDiscountedCentavos={card.maxDiscountedCentavos}
+                savePercent={card.savePercent}
+                align="right"
+                showSaveBadge={false}
+              />
             </div>
           </div>
         </div>
       </Link>
       <div className="px-4 pb-4">
-        <div className="grid grid-cols-2 gap-2">
-          <AddToCartButton
-            skuId={activeSkuId}
-            variant="compact"
-            soldOut={effectiveSoldOut}
-            disabled={requireSizeSelection}
-            hideRequireSelectionMessage
-            onRequireSelection={() => setSizeWarningAttempted(true)}
-          />
-          <BuyNowButton
-            skuId={activeSkuId}
-            quantity={1}
-            soldOut={effectiveSoldOut}
-            disabled={requireSizeSelection}
-            hideRequireSelectionMessage
-            onRequireSelection={() => setSizeWarningAttempted(true)}
-          />
-        </div>
-        {showSizeWarning ? <p className="mt-1 text-xs text-destructive">Please select a size</p> : null}
+        <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
+          <Link href={card.href}>View</Link>
+        </Button>
       </div>
     </article>
   );

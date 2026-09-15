@@ -72,13 +72,13 @@ export interface CatalogCardModel {
   maxDiscountedCentavos: number;
   hasDiscount: boolean;
   savePercent: number | null;
-  /** Every real size+provenance this product offers, for the shop-grid
-   *  picker — always populated (even for a single-SKU product, so the size
-   *  and provenance are always visible via this instead of a separate
-   *  badge). A group's own `subOptions` carries condition/packaging
-   *  alternatives within that size+provenance, only when there's more than
-   *  one — see buildVariantOptions. */
-  sizeOptions: SizePickerOption[];
+  /** A decant with at least one retail-provenance (bought pre-made from the
+   *  perfumery, own stock) size — the shop-grid card badges this; In-house
+   *  is the default and not worth flagging. Always false for a full
+   *  bottle/partial. The PDP and cart drawer build their own full
+   *  `SizePickerOption[]` per size+provenance independently (via
+   *  `buildVariantOptions`) rather than reading it off this card model. */
+  hasRetailDecant: boolean;
 }
 
 interface SkuRow {
@@ -117,7 +117,13 @@ function decantVariantFulfillment(
 // isTester is purely a backend eligibility flag for the free-tester promo
 // draw (src/domain/promo.ts pickTester) — it does not change what the
 // customer is buying, so it must never surface as a label or badge here.
+// IN_HOUSE is the implied default for a decant (what every decant SKU was
+// before the Retail/In-house split existed) — naming it on every button is
+// noise. RETAIL (a decant bought pre-made, with its own stock) and TESTER
+// (a full-bottle/partial bought as tester stock) are the exceptions worth
+// naming, so only those two ever get a "· {provenance}" suffix.
 function sizePickerGroupLabel(sizeMl: number, provenance: Provenance): string {
+  if (provenance === "IN_HOUSE") return `${sizeMl}ML`;
   return `${sizeMl}ML · ${labelForProvenance(provenance)}`;
 }
 
@@ -134,13 +140,18 @@ function pricedForDisplay<T extends { retailPrice: number }>(variants: T[]): T[]
  * so a promo-pool tester SKU never merges into the same button as an
  * otherwise-identical regular SKU at a different price — that would let the
  * tester silently become the group's default add-to-cart target, or produce
- * two indistinguishable `subOptions` entries. Provenance is always baked
- * into the group's label. Condition/packaging become a secondary
- * `subOptions` picker only when a group has more than one SKU to
- * distinguish. Shared by the shop grid (`loadCatalogCards`), the PDP, and
- * the cart drawer's "Customize" picker (`getSiblingSkuOptions`) — pure (no
- * DB access) so each call site fetches `variants`/`discounts` however best
- * fits its own query shape.
+ * two indistinguishable `subOptions` entries. The group's label names its
+ * provenance too, except In-house — the default for a decant, and so not
+ * worth stating on every button — see `sizePickerGroupLabel` below.
+ * Condition/packaging become a secondary `subOptions` picker only when a
+ * group has more than one SKU to distinguish. Shared by the PDP and the
+ * cart drawer's "Customize" picker (`getSiblingSkuOptions`) — pure (no DB
+ * access) so each call site fetches `variants`/`discounts` however best
+ * fits its own query shape. `loadCatalogCards` (the shop grid) no longer
+ * calls this — the card has no size picker of its own any more, so it
+ * derives its one relevant boolean (`hasRetailDecant`) straight from the
+ * raw SKU rows instead of paying for the full grouped/priced/labeled
+ * structure this function builds.
  */
 export function buildVariantOptions(
   variants: Array<{
@@ -362,13 +373,13 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         ? Math.round(((minOriginal - minDiscounted) / minOriginal) * 100)
         : null;
     const image = imageByProduct.get(product.id);
-    // Always populated — even a single-SKU product gets one group, so its
-    // size+provenance stays visible via this instead of a separate badge.
-    const sizeOptions = buildVariantOptions(variants, discounts, {
-      isDecant: product.type === "DECANT",
-      remainingMl,
-      thresholdMl: threshold,
-    });
+    // Read straight off the raw SKU rows rather than through
+    // buildVariantOptions — the shop-grid card only needs this one boolean
+    // (no size picker here any more), so building the full priced, grouped,
+    // labeled SizePickerOption[] for every card would be pure waste; the PDP
+    // and cart drawer still call buildVariantOptions themselves, for their
+    // own actual pickers.
+    const hasRetailDecant = product.type === "DECANT" && variants.some((v) => v.provenance === "RETAIL");
     cards.push({
       productId: product.id,
       skuId: destination.skuId,
@@ -392,7 +403,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
       maxDiscountedCentavos: maxDiscounted,
       hasDiscount,
       savePercent,
-      sizeOptions,
+      hasRetailDecant,
     });
   }
   const sorted = sortCards(cards, filter.sort ?? "newest");

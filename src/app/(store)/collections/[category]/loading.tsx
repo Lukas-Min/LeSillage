@@ -13,7 +13,12 @@ export default function CollectionLoading() {
       <Skeleton className="mt-2 h-8 w-1/2" />
       <Skeleton className="mt-2 h-4 w-1/3" />
       <div className="mt-6">
-        <CatalogResultsSkeleton />
+        {/* This route has no pagination — loadCatalogCards runs unlimited
+            (src/components/store/shop-view.tsx), so a real category can be a
+            handful of items. CatalogResultsSkeleton's own default of 20 is
+            sized for /shop's PAGE_SIZE, which would badly over-provision
+            here; keep this route's smaller, pre-existing guess explicit. */}
+        <CatalogResultsSkeleton count={6} />
       </div>
     </main>
   );

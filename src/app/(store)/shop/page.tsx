@@ -16,7 +16,7 @@ import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
 export const dynamic = "force-dynamic";
 
 const VALID_TYPES: ProductType[] = ["DECANT", "FULL_BOTTLE", "PARTIAL"];
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 20;
 
 interface ShopSearchParams {
   type?: string;

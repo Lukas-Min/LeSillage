@@ -44,7 +44,7 @@ export const FAQ_GROUPS = [
             "In-house — we poured it ourselves, to order, from a full bottle we own. Available as long as that bottle has enough left.",
             "Retail — bottled by the perfume house itself and sourced directly from them, not poured by us. It arrives sealed as its own unit, so it has its own stock and can sell out.",
           ],
-          note: "If both exist at the same size, you'll see two buttons to pick from — e.g. 10ML · Retail and 10ML · In-house.",
+          note: "If both exist at the same size, you'll see two buttons to pick from — e.g. 10ML · Retail and a plain 10ML for the in-house pour (In-house is the default, so it's the one left unlabeled).",
         } satisfies FaqAnswer,
       },
       {

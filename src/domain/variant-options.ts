@@ -28,9 +28,11 @@ export interface VariantSubOption {
 /** One size+provenance group — never a placeholder for a size/provenance the product doesn't offer. */
 export interface SizePickerOption {
   sizeMl: number;
-  /** Always "{sizeMl}ML · {provenance label}" — provenance is never omitted,
-   *  even when a product has only one provenance, so a customer always knows
-   *  whether they're looking at e.g. a Retail or an In-house decant. */
+  /** "{sizeMl}ML", or "{sizeMl}ML · {provenance label}" when the provenance
+   *  is worth naming — In-house (a decant poured to order from a bottle we
+   *  own) is the implied default and never shown; Retail (a decant bought
+   *  pre-made, with its own stock) and Tester (a full-bottle/partial bought
+   *  as tester stock) both are. See sizePickerGroupLabel in lib/catalog.ts. */
   label: string;
   /** The default SKU for this group (first available one, or the group's
    *  only one) — what gets added to cart if the customer never opens the

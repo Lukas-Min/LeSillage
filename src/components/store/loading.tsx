@@ -1,8 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function CatalogCardsSkeleton({ count = 6 }: { count?: number }) {
+export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
+    <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, idx) => (
         <div key={idx} className="overflow-hidden rounded-md border border-border">
           <Skeleton className="aspect-square w-full rounded-none" />
@@ -12,15 +12,12 @@ export function CatalogCardsSkeleton({ count = 6 }: { count?: number }) {
               <Skeleton className="h-5 w-2/3" />
               <Skeleton className="h-3 w-1/4" />
             </div>
+            {/* Up to 3 real badges now (fulfillment, Retail, Sold out) — see
+                ProductCard — so this reserves the same worst-case width. */}
             <div className="flex flex-wrap gap-1.5">
               <Skeleton className="h-5 w-16 rounded-none" />
               <Skeleton className="h-5 w-14 rounded-none" />
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
-              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
-              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
-              <Skeleton className="h-9 min-w-[2.75rem] flex-1 rounded-none" />
+              <Skeleton className="h-5 w-16 rounded-none" />
             </div>
             <Skeleton className="ml-auto h-5 w-1/2" />
           </div>
@@ -67,7 +64,7 @@ export function ShopToolbarSkeleton() {
 }
 
 export function CatalogResultsSkeleton({
-  count = 6,
+  count = 20,
   showCount = true,
   toolbar = false,
 }: {

@@ -30,7 +30,11 @@ export function CatalogResults({
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
+        // Single column below 576px — a 2-column card's price range (e.g.
+        // "₱180.00 – ₱1,800.00" at font-serif-display text-2xl) needs that
+        // much width to stay on one line; narrower than that and it wraps.
+        // Scales up to 4 columns, the max, on large desktop.
+        <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
           {cards.map((card) => (
             <ProductCard key={card.productId} card={card} />
           ))}
