@@ -16,12 +16,15 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
   const [reason, setReason] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const confirm = (next: "RECEIPT_SUBMITTED" | "CONFIRMED" | "SHIPPED" | "COMPLETED") => {
+  // Each forward button maps to the action that performs exactly that
+  // transition: Confirm (RECEIPT_SUBMITTED → CONFIRMED) is adminConfirmReceipt,
+  // Mark shipped (CONFIRMED → SHIPPED) is adminMarkShipped.
+  const confirm = (next: "CONFIRMED" | "SHIPPED") => {
     startTransition(async () => {
       const formData = new FormData();
       formData.set("orderId", orderId);
-      formData.set("next", next);
-      const result = next === "RECEIPT_SUBMITTED" ? await adminConfirmReceipt(formData) : await adminMarkShipped(formData);
+      const result =
+        next === "CONFIRMED" ? await adminConfirmReceipt(formData) : await adminMarkShipped(formData);
       if (!result.ok) {
         toast.error(result.error);
         return;
