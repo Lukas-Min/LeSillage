@@ -260,8 +260,11 @@ export function PhAddressFields({
           id={`${idPrefix}-postal-code`}
           name={fieldNames?.postalCode}
           value={postalCode}
-          onChange={(event) => setPostalCode(event.target.value)}
+          onChange={(event) => setPostalCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
+          inputMode="numeric"
+          pattern="\d{4}"
           minLength={4}
+          maxLength={4}
           required
         />
       </div>

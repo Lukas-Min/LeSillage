@@ -22,12 +22,12 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
 
   function handleCancel() {
     startCancel(async () => {
-      try {
-        await cancelOrder(orderId);
-        toast.success("Order cancelled");
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Could not cancel order", { id: "cancel-order" });
+      const result = await cancelOrder(orderId);
+      if (!result.ok) {
+        toast.error(result.error, { id: "cancel-order" });
+        return;
       }
+      toast.success("Order cancelled");
     });
   }
 

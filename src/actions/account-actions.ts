@@ -1,24 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { signOut, requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import {
-  accounts,
   addresses,
-  carts,
-  cartItems,
   notificationLog,
   orders,
   products,
-  sessions,
   users,
   wishlists,
 } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
+import { eraseUserAccount } from "@/lib/account";
 import { phMobileRequiredSchema } from "@/domain/phone";
 import { isTerminal } from "@/domain/order-state";
 import { consumeVerificationCode, issueVerificationCode } from "@/lib/verification-code";
@@ -48,7 +45,7 @@ const addressSchema = z.object({
   province: z.string().min(1),
   city: z.string().min(1),
   barangay: z.string().min(1),
-  postalCode: z.string().min(4).max(10),
+  postalCode: z.string().regex(/^\d{4}$/, "Postal code must be 4 digits"),
   street: z.string().min(1),
   isDefault: z.boolean().optional(),
 });
@@ -398,31 +395,7 @@ export async function deleteAccount(formData: FormData) {
   if (openOrders.some((order) => !isTerminal(order.status))) {
     throw new Error("Complete or cancel open orders before deleting your account");
   }
-  await db().transaction(async (tx) => {
-    await tx
-      .update(users)
-      .set({
-        deletedAt: new Date(),
-        name: null,
-        email: `deleted+${user.id}@anonymized.le-sillage.invalid`,
-        phone: null,
-        image: null,
-        defaultAddressId: null,
-        marketingOptIn: false,
-        passwordHash: null,
-        sessionVersion: sql`${users.sessionVersion} + 1`,
-      })
-      .where(eq(users.id, user.id));
-    await tx.delete(accounts).where(eq(accounts.userId, user.id));
-    await tx.delete(sessions).where(eq(sessions.userId, user.id));
-    const userCarts = await tx.select({ id: carts.id }).from(carts).where(eq(carts.userId, user.id));
-    if (userCarts.length > 0) {
-      await tx.delete(cartItems).where(inArray(cartItems.cartId, userCarts.map((c) => c.id)));
-      await tx.delete(carts).where(eq(carts.userId, user.id));
-    }
-    await tx.delete(addresses).where(eq(addresses.userId, user.id));
-    await tx.delete(wishlists).where(eq(wishlists.userId, user.id));
-  });
+  await eraseUserAccount(user.id);
   await auditLogSubject({
     actor: user.id,
     action: "ACCOUNT_DELETE",
@@ -430,4 +403,43 @@ export async function deleteAccount(formData: FormData) {
     targetId: user.id,
   });
   await signOut({ redirectTo: "/" });
+}
+
+export type ArchiveAccountResult = { ok: true } | { ok: false; error: string };
+
+// Archiving is reversible (logging back in within 30 days un-archives — see
+// the `signIn` callback in src/auth.ts) so, unlike deleteAccount, it doesn't
+// block on open orders: nothing is erased yet. The 30-day sweep
+// (src/lib/archive-sweep.ts) is what needs to check for open orders before
+// actually erasing data.
+export async function archiveAccount(formData: FormData): Promise<ArchiveAccountResult> {
+  const user = await requireActiveCustomer();
+  await limitAccount(user.id, "archive");
+  const row = (
+    await db().select({ role: users.role, passwordHash: users.passwordHash }).from(users).where(eq(users.id, user.id))
+  )[0];
+  if (row?.role === "ADMIN") return { ok: false, error: "Admin accounts cannot be archived here" };
+  if (row?.passwordHash) {
+    const password = String(formData.get("password") ?? "");
+    const ok = await verifyPassword(password, row.passwordHash);
+    if (!ok) return { ok: false, error: "Incorrect password" };
+  } else {
+    // OAuth-only account, no password to check — fall back to the same
+    // REAUTH email-code flow deleteAccount already uses for everyone.
+    const code = String(formData.get("code") ?? "");
+    const verified = await consumeVerificationCode({ identifier: user.email, purpose: "REAUTH", code });
+    if (!verified.ok) return { ok: false, error: verified.error ?? "Invalid code" };
+  }
+  await db()
+    .update(users)
+    .set({ archivedAt: new Date(), sessionVersion: sql`${users.sessionVersion} + 1` })
+    .where(eq(users.id, user.id));
+  await auditLogSubject({
+    actor: user.id,
+    action: "ACCOUNT_ARCHIVE",
+    targetType: "user",
+    targetId: user.id,
+  });
+  await signOut({ redirectTo: "/" });
+  return { ok: true };
 }

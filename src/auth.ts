@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { getEnv } from "@/lib/env";
 import { verifyPassword } from "@/lib/password";
+import { auditLogSubject } from "@/lib/audit";
 
 const env = getEnv();
 const ADMIN_EMAIL = env.ADMIN_EMAIL.toLowerCase();
@@ -29,6 +30,7 @@ export const getUserAuthState = cache(async (userId: string) => {
         role: users.role,
         sessionVersion: users.sessionVersion,
         deletedAt: users.deletedAt,
+        archivedAt: users.archivedAt,
         emailVerified: users.emailVerified,
         themePreference: users.themePreference,
       })
@@ -128,6 +130,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!user.id) return true;
       const state = await getUserAuthState(user.id);
       if (state?.deletedAt) return false;
+      if (state?.archivedAt) {
+        // Logging back in is how an archived account cancels its own
+        // scheduled deletion — this fires for every provider (OAuth and
+        // Credentials alike both land here on a successful sign-in), so
+        // there's no separate hook needed in the Credentials authorize().
+        await db().update(users).set({ archivedAt: null }).where(eq(users.id, user.id));
+        await auditLogSubject({
+          actor: user.id,
+          action: "ACCOUNT_UNARCHIVE",
+          targetType: "user",
+          targetId: user.id,
+        });
+      }
       if (user.email) await promoteAdmin(user.email, user.id);
       return true;
     },

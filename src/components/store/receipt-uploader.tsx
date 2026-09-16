@@ -1,14 +1,29 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { submitPaymentReceipt } from "@/actions/order-actions";
+import { useCart } from "@/components/store/cart-context";
 
-export function ReceiptUploader({ orderId }: { orderId: string }) {
+export function ReceiptUploader({
+  orderId,
+  redirectOnSuccessTo,
+}: {
+  orderId: string;
+  /** When set, navigate here after a successful upload instead of staying
+   *  put (e.g. checkout's payment page sends the customer to /shop once
+   *  their order is fully placed and paid for). Omit to keep today's
+   *  behavior — used by the /account/orders/[orderId] re-upload flow, which
+   *  should stay on the order page. */
+  redirectOnSuccessTo?: string;
+}) {
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  const { refresh } = useCart();
   const [isPending, startTransition] = useTransition();
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -20,13 +35,17 @@ export function ReceiptUploader({ orderId }: { orderId: string }) {
           ref={formRef}
           action={(formData) =>
             startTransition(async () => {
-              try {
-                await submitPaymentReceipt(formData);
-                toast.success("Receipt uploaded — we will email once verified.");
-                formRef.current?.reset();
-                setPreview(null);
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Upload failed");
+              const result = await submitPaymentReceipt(formData);
+              if (!result.ok) {
+                toast.error(result.error);
+                return;
+              }
+              toast.success("Receipt uploaded — we will email once verified.");
+              formRef.current?.reset();
+              setPreview(null);
+              if (redirectOnSuccessTo) {
+                await refresh();
+                router.push(redirectOnSuccessTo);
               }
             })
           }

@@ -89,7 +89,7 @@ export default async function PaymentPage({
           )}
         </CardContent>
       </Card>
-      <ReceiptUploader orderId={order.id} />
+      <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
       <p className="mt-6 text-xs text-muted-foreground">
         Stock is reserved only after your receipt is verified. If an item goes out of stock while
         you are paying, we will reach out to confirm a substitution or refund.

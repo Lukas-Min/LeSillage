@@ -582,6 +582,11 @@ async function main() {
   await db.execute(`DELETE FROM "option_value" WHERE "listKey" = 'fragrance_family'`);
   await db.execute(`DELETE FROM "option_list" WHERE "key" = 'fragrance_family'`);
 
+  // Self-service account archiving: archivedAt set on archive, cleared on
+  // the next successful login, and a daily sweep permanently deletes any
+  // account still archived 30 days later.
+  await db.execute(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "archivedAt" timestamp`);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -605,6 +610,7 @@ async function main() {
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "paymentReminderSentAt";
 // ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "family" text;
 // ALTER TABLE "sku" ADD COLUMN IF NOT EXISTS "testerFamily" text;
+// ALTER TABLE "user" DROP COLUMN IF EXISTS "archivedAt";
 
 main().catch((error) => {
   console.error(error);

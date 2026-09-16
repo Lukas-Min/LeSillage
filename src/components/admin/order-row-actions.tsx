@@ -18,16 +18,15 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
 
   const confirm = (next: "RECEIPT_SUBMITTED" | "CONFIRMED" | "SHIPPED" | "COMPLETED") => {
     startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("orderId", orderId);
-        formData.set("next", next);
-        if (next === "RECEIPT_SUBMITTED") await adminConfirmReceipt(formData);
-        else await adminMarkShipped(formData);
-        toast.success(`Order ${next.toLowerCase()}`);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Action failed");
+      const formData = new FormData();
+      formData.set("orderId", orderId);
+      formData.set("next", next);
+      const result = next === "RECEIPT_SUBMITTED" ? await adminConfirmReceipt(formData) : await adminMarkShipped(formData);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
       }
+      toast.success(`Order ${next.toLowerCase()}`);
     });
   };
 
@@ -37,18 +36,18 @@ export function OrderRowActions({ orderId, status }: { orderId: string; status: 
       return;
     }
     startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("orderId", orderId);
-        formData.set("next", "REJECTED");
-        formData.set("reason", reason);
-        await adminTransitionOrder(formData);
-        toast.success("Order rejected");
-        setReason("");
-        setShowReason(null);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Action failed");
+      const formData = new FormData();
+      formData.set("orderId", orderId);
+      formData.set("next", "REJECTED");
+      formData.set("reason", reason);
+      const result = await adminTransitionOrder(formData);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
       }
+      toast.success("Order rejected");
+      setReason("");
+      setShowReason(null);
     });
   };
 

@@ -12,6 +12,7 @@ import {
   Heart,
   MapPin,
   Bell,
+  Archive,
   Trash2,
   LayoutDashboard,
   Package,
@@ -41,6 +42,10 @@ export const accountNavItems: AccountNavItem[] = [
   { href: "/account/wishlist", label: "Wishlist", icon: Heart },
   { href: "/account/notifications", label: "Notifications", icon: Bell },
   { href: "/account/delete", label: "Delete account", icon: Trash2, destructive: true },
+  // Appended after Delete account, not inserted earlier — customerPrimaryItems
+  // below indexes into this array by fixed position (0, 2, 4), which an
+  // earlier insertion would shift.
+  { href: "/account/archive", label: "Archive account", icon: Archive, destructive: true },
 ];
 
 export const adminNavItems: AccountNavItem[] = [

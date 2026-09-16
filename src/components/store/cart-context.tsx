@@ -54,6 +54,10 @@ interface CartContextValue {
   remove: (skuId: string) => Promise<void>;
   changeSize: (fromSkuId: string, toSkuId: string) => Promise<void>;
   clear: () => Promise<void>;
+  /** Re-fetches the cart from the server and updates this context — for a
+   *  call site that cleared the cart server-side itself (e.g. placing an
+   *  order) and needs the header badge/drawer to catch up immediately. */
+  refresh: () => Promise<void>;
   count: number;
   /** True until the cart's first real fetch from the server resolves — the
    *  provider starts from an empty local `view`, so consumers must not treat
@@ -166,6 +170,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setView(await clearCart());
   }, []);
 
+  // For call sites that just cleared the cart server-side themselves (e.g.
+  // placing an order) and need this context's badge/drawer to catch up —
+  // the provider otherwise only re-fetches on auth-status change, not on
+  // navigation.
+  const refresh = useCallback(async () => {
+    await refreshCartFromServer(setView);
+  }, []);
+
   const value = useMemo(
     () => ({
       items: view.items,
@@ -175,11 +187,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       remove,
       changeSize,
       clear,
+      refresh,
       count: view.count,
       loading,
       locked,
     }),
-    [view, add, setQuantity, remove, changeSize, clear, loading, locked],
+    [view, add, setQuantity, remove, changeSize, clear, refresh, loading, locked],
   );
   return (
     <CartContext.Provider value={value}>

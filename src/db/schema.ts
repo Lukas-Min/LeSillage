@@ -117,6 +117,8 @@ export const auditAction = [
   "OPTION_VALUE_CHANGE",
   "ACCOUNT_UPDATE",
   "ACCOUNT_DELETE",
+  "ACCOUNT_ARCHIVE",
+  "ACCOUNT_UNARCHIVE",
   "ADDRESS_CREATE",
   "ADDRESS_UPDATE",
   "ADDRESS_DELETE",
@@ -175,6 +177,10 @@ export const users = pgTable("user", {
   // in that browser's localStorage (see src/components/theme-toggle.tsx).
   themePreference: text("themePreference"),
   deletedAt: timestamp("deletedAt", { mode: "date" }),
+  // Set when the customer archives their own account; logging back in
+  // clears it (see the `signIn` callback in src/auth.ts). A daily sweep
+  // permanently deletes any account still archived 30 days later.
+  archivedAt: timestamp("archivedAt", { mode: "date" }),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
 });
 

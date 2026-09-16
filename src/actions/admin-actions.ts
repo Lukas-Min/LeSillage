@@ -98,7 +98,14 @@ const transitionSchema = z.object({
   reason: z.string().max(280).optional(),
 });
 
-export async function adminTransitionOrder(formData: FormData) {
+// Expected rejections (a stale/raced order state, a missing reason) come
+// back as `{ ok: false, error }` rather than being thrown — Next.js redacts
+// a thrown Server Action error's message in production, turning e.g.
+// "Invalid order transition" into React #441 boilerplate. Same pattern as
+// CheckoutResult in src/actions/order-actions.ts.
+export type OrderActionResult = { ok: true } | { ok: false; error: string };
+
+export async function adminTransitionOrder(formData: FormData): Promise<OrderActionResult> {
   const admin = await requireAdmin();
   const decision = await rateLimit({
     bucket: "PASSWORD",
@@ -106,25 +113,36 @@ export async function adminTransitionOrder(formData: FormData) {
     limit: 60,
     windowMs: 60_000,
   });
-  if (!decision.allowed) throw new Error("Too many requests. Please slow down.");
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
   const parsed = transitionSchema.parse({
     orderId: formData.get("orderId"),
     next: formData.get("next"),
     reason: formData.get("reason") ?? undefined,
   });
-  await transitionOrderStatus({
-    orderId: parsed.orderId,
-    next: parsed.next,
-    reason: parsed.reason ?? null,
-  });
+  try {
+    await transitionOrderStatus({
+      orderId: parsed.orderId,
+      next: parsed.next,
+      reason: parsed.reason ?? null,
+    });
+  } catch (error) {
+    if (error instanceof Error) return { ok: false, error: error.message };
+    throw error;
+  }
   revalidatePath("/admin/orders");
+  return { ok: true };
 }
 
-export async function adminMarkShipped(formData: FormData) {
+export async function adminMarkShipped(formData: FormData): Promise<OrderActionResult> {
   const admin = await requireAdmin();
   const orderId = formData.get("orderId");
-  if (typeof orderId !== "string") throw new Error("Order id required");
-  await transitionOrderStatus({ orderId, next: "SHIPPED" });
+  if (typeof orderId !== "string") return { ok: false, error: "Order id required" };
+  try {
+    await transitionOrderStatus({ orderId, next: "SHIPPED" });
+  } catch (error) {
+    if (error instanceof Error) return { ok: false, error: error.message };
+    throw error;
+  }
   revalidatePath("/admin/orders");
   auditLogSubject({
     actor: admin.id,
@@ -133,17 +151,23 @@ export async function adminMarkShipped(formData: FormData) {
     targetId: orderId,
     metadata: { to: "SHIPPED" },
   });
+  return { ok: true };
 }
 
-export async function adminConfirmReceipt(formData: FormData) {
+export async function adminConfirmReceipt(formData: FormData): Promise<OrderActionResult> {
   const admin = await requireAdmin();
   const orderId = formData.get("orderId");
-  if (typeof orderId !== "string") throw new Error("Order id required");
+  if (typeof orderId !== "string") return { ok: false, error: "Order id required" };
   const order = (await db().select().from(orders).where(eq(orders.id, orderId)))[0];
-  if (!order) throw new Error("Order not found");
-  if (order.status !== "RECEIPT_SUBMITTED") return;
+  if (!order) return { ok: false, error: "Order not found" };
+  if (order.status !== "RECEIPT_SUBMITTED") return { ok: true };
   const next = "CONFIRMED";
-  await transitionOrderStatus({ orderId, next });
+  try {
+    await transitionOrderStatus({ orderId, next });
+  } catch (error) {
+    if (error instanceof Error) return { ok: false, error: error.message };
+    throw error;
+  }
   revalidatePath("/admin/orders");
   auditLogSubject({
     actor: admin.id,
@@ -152,4 +176,5 @@ export async function adminConfirmReceipt(formData: FormData) {
     targetId: orderId,
     metadata: { to: next },
   });
+  return { ok: true };
 }

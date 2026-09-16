@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, orderItems } from "@/db/schema";
@@ -65,9 +65,15 @@ export default async function OrderDetailPage({
       />
 
       {order.statusReason ? (
-        <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {order.statusReason}
-        </p>
+        <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-destructive">
+              {order.status === "REJECTED" ? "Order rejected" : "Order cancelled"}
+            </p>
+            <p className="text-sm text-destructive/90">{order.statusReason}</p>
+          </div>
+        </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

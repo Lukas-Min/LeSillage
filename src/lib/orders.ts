@@ -878,6 +878,28 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
   });
 }
 
+// A promo code used on an order that never went through shouldn't be burned
+// for the customer — deleting the redemption row is enough on its own: the
+// checkout eligibility check only looks at whether a row exists (onePerCustomer)
+// and at redemptionCount (maxRedemptions), both read fresh at order time.
+export async function releasePromoCodeRedemption(orderId: string): Promise<void> {
+  const client = db();
+  await client.transaction(async (tx) => {
+    const redemption = (
+      await tx
+        .select({ id: promoCodeRedemptions.id, promoCodeId: promoCodeRedemptions.promoCodeId })
+        .from(promoCodeRedemptions)
+        .where(eq(promoCodeRedemptions.orderId, orderId))
+    )[0];
+    if (!redemption) return;
+    await tx.delete(promoCodeRedemptions).where(eq(promoCodeRedemptions.id, redemption.id));
+    await tx
+      .update(promoCodes)
+      .set({ redemptionCount: sql`GREATEST(0, ${promoCodes.redemptionCount} - 1)` })
+      .where(eq(promoCodes.id, redemption.promoCodeId));
+  });
+}
+
 // One send + one notificationLog insert per terminal status that emails the
 // customer; statuses with no entry (e.g. RECEIPT_SUBMITTED, COMPLETED) send
 // nothing here.
@@ -921,6 +943,7 @@ export async function transitionOrderStatus(args: {
     // reserved (e.g. cancelling from AWAITING_PAYMENT, before any receipt),
     // since it only acts on existing ORDER_RESERVED/ML_RESERVED movements.
     await releaseStockForOrder(args.orderId);
+    await releasePromoCodeRedemption(args.orderId);
   }
 
   // The status change is committed (and stock released, where relevant);
