@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { signIn } from "@/auth";
 import { db } from "@/db/client";
-import { promoSettings, orders } from "@/db/schema";
+import { promoSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
@@ -91,6 +91,8 @@ const transitionSchema = z.object({
     "RECEIPT_SUBMITTED",
     "CONFIRMED",
     "SHIPPED",
+    "DELIVERED",
+    "READY_FOR_PICKUP",
     "COMPLETED",
     "REJECTED",
     "CANCELLED",
@@ -105,6 +107,15 @@ const transitionSchema = z.object({
 // CheckoutResult in src/actions/order-actions.ts.
 export type OrderActionResult = { ok: true } | { ok: false; error: string };
 
+// The single admin-triggered order-transition action — every OrderRowActions
+// button (Confirm, Mark shipped, Mark ready for pickup, Mark delivered, Mark
+// completed, Reject, Cancel) posts here with its own fixed `next`, rather
+// than each button calling a different dedicated action and a client-side
+// ternary picking between them. That ternary is exactly what caused the
+// RECEIPT_SUBMITTED → SHIPPED bug: "Confirm" fell through to the wrong
+// action because the dispatch condition didn't match any value a button
+// actually sent. One action per transition target, chosen by the button
+// itself, can't misroute.
 export async function adminTransitionOrder(formData: FormData): Promise<OrderActionResult> {
   const admin = await requireAdmin();
   const decision = await rateLimit({
@@ -130,51 +141,12 @@ export async function adminTransitionOrder(formData: FormData): Promise<OrderAct
     throw error;
   }
   revalidatePath("/admin/orders");
-  return { ok: true };
-}
-
-export async function adminMarkShipped(formData: FormData): Promise<OrderActionResult> {
-  const admin = await requireAdmin();
-  const orderId = formData.get("orderId");
-  if (typeof orderId !== "string") return { ok: false, error: "Order id required" };
-  try {
-    await transitionOrderStatus({ orderId, next: "SHIPPED" });
-  } catch (error) {
-    if (error instanceof Error) return { ok: false, error: error.message };
-    throw error;
-  }
-  revalidatePath("/admin/orders");
   auditLogSubject({
     actor: admin.id,
     action: "ORDER_STATUS",
     targetType: "order",
-    targetId: orderId,
-    metadata: { to: "SHIPPED" },
-  });
-  return { ok: true };
-}
-
-export async function adminConfirmReceipt(formData: FormData): Promise<OrderActionResult> {
-  const admin = await requireAdmin();
-  const orderId = formData.get("orderId");
-  if (typeof orderId !== "string") return { ok: false, error: "Order id required" };
-  const order = (await db().select().from(orders).where(eq(orders.id, orderId)))[0];
-  if (!order) return { ok: false, error: "Order not found" };
-  if (order.status !== "RECEIPT_SUBMITTED") return { ok: true };
-  const next = "CONFIRMED";
-  try {
-    await transitionOrderStatus({ orderId, next });
-  } catch (error) {
-    if (error instanceof Error) return { ok: false, error: error.message };
-    throw error;
-  }
-  revalidatePath("/admin/orders");
-  auditLogSubject({
-    actor: admin.id,
-    action: "ORDER_STATUS",
-    targetType: "order",
-    targetId: orderId,
-    metadata: { to: next },
+    targetId: parsed.orderId,
+    metadata: { to: parsed.next, reason: parsed.reason ?? null },
   });
   return { ok: true };
 }

@@ -112,7 +112,11 @@ export default async function AdminOrdersPage({
               </a>
             ) : null}
             <div className="pointer-events-auto relative z-10">
-              <OrderRowActions orderId={order.id} status={order.status} />
+              <OrderRowActions
+                orderId={order.id}
+                status={order.status}
+                fulfillmentMethod={order.fulfillmentMethod}
+              />
             </div>
           </CardContent>
         </Card>

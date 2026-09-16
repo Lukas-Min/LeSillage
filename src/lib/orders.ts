@@ -40,6 +40,8 @@ import {
   orderCancelledEmail,
   orderConfirmedEmail,
   orderCreatedPaymentEmail,
+  orderDeliveredEmail,
+  orderReadyForPickupEmail,
   orderShippedEmail,
   receiptRejectedEmail,
   receiptSubmittedEmail,
@@ -900,9 +902,11 @@ export async function releasePromoCodeRedemption(orderId: string): Promise<void>
   });
 }
 
-// One send + one notificationLog insert per terminal status that emails the
+// One send + one notificationLog insert per status that emails the
 // customer; statuses with no entry (e.g. RECEIPT_SUBMITTED, COMPLETED) send
-// nothing here.
+// nothing here. COMPLETED has none deliberately — it's reached via the
+// customer's own action, the day-2 email's link, or the day-3 auto-complete
+// cron, none of which need a "we told you what you just told us" email.
 const STATUS_EMAIL_TEMPLATES: Partial<
   Record<OrderStatus, { build: (input: OrderEmailInput) => { subject: string; text: string }; template: string }>
 > = {
@@ -910,6 +914,8 @@ const STATUS_EMAIL_TEMPLATES: Partial<
   CANCELLED: { build: orderCancelledEmail, template: "order_cancelled" },
   CONFIRMED: { build: orderConfirmedEmail, template: "order_confirmed" },
   SHIPPED: { build: orderShippedEmail, template: "order_shipped" },
+  DELIVERED: { build: orderDeliveredEmail, template: "order_delivered" },
+  READY_FOR_PICKUP: { build: orderReadyForPickupEmail, template: "order_ready_for_pickup" },
 };
 
 export async function transitionOrderStatus(args: {
@@ -928,6 +934,20 @@ export async function transitionOrderStatus(args: {
     }
   }
 
+  // DELIVERED mints the token the day-2 follow-up email's one-tap "yes, I
+  // received it" link uses (src/app/(store)/order-confirm/[token]) and
+  // resets deliveryFollowupSentAt so a re-delivery (rare, but the state
+  // machine doesn't forbid SHIPPED -> DELIVERED more than once across
+  // orders) gets its own follow-up window. COMPLETED clears both — the
+  // token has done its job and a stale link should read as "already
+  // confirmed", not silently work forever.
+  const deliveryFields =
+    args.next === "DELIVERED"
+      ? { deliveryConfirmToken: crypto.randomUUID(), deliveryFollowupSentAt: null }
+      : args.next === "COMPLETED"
+        ? { deliveryConfirmToken: null, deliveryFollowupSentAt: null }
+        : {};
+
   await client
     .update(orders)
     .set({
@@ -935,6 +955,7 @@ export async function transitionOrderStatus(args: {
       statusReason: args.reason ?? null,
       statusUpdatedAt: new Date(),
       updatedAt: new Date(),
+      ...deliveryFields,
     })
     .where(eq(orders.id, args.orderId));
 

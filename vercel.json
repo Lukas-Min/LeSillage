@@ -12,6 +12,14 @@
     {
       "path": "/api/cron/archive-sweep",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/delivery-followups",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/delivery-auto-complete",
+      "schedule": "0 6 * * *"
     }
   ]
 }

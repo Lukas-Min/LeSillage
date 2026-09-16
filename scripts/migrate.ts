@@ -587,6 +587,19 @@ async function main() {
   // account still archived 30 days later.
   await db.execute(`ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "archivedAt" timestamp`);
 
+  // Delivery/pickup order lifecycle: DELIVERED (delivery only) and
+  // READY_FOR_PICKUP (pickup only) sit between the existing
+  // SHIPPED/CONFIRMED step and COMPLETED — no CHECK constraint on "status"
+  // to update, it's a plain text column. deliveryConfirmToken backs the
+  // one-tap "yes, I received it" link in the day-2 follow-up email;
+  // deliveryFollowupSentAt gates that email the same way
+  // paymentReminderSentAt gates the payment nudge.
+  await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "deliveryConfirmToken" text`);
+  await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "deliveryFollowupSentAt" timestamp`);
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "order_delivery_token_idx" ON "order" ("deliveryConfirmToken")`,
+  );
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -611,6 +624,9 @@ async function main() {
 // ALTER TABLE "product" ADD COLUMN IF NOT EXISTS "family" text;
 // ALTER TABLE "sku" ADD COLUMN IF NOT EXISTS "testerFamily" text;
 // ALTER TABLE "user" DROP COLUMN IF EXISTS "archivedAt";
+// DROP INDEX IF EXISTS "order_delivery_token_idx";
+// ALTER TABLE "order" DROP COLUMN IF EXISTS "deliveryConfirmToken";
+// ALTER TABLE "order" DROP COLUMN IF EXISTS "deliveryFollowupSentAt";
 
 main().catch((error) => {
   console.error(error);

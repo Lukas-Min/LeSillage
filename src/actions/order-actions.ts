@@ -16,7 +16,7 @@ import {
 import { addLinesToCart, loadPromoConfig, resolveActiveCart } from "@/lib/cart";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { phMobileRequiredSchema } from "@/domain/phone";
-import { canTransition, isTerminal } from "@/domain/order-state";
+import { canCustomerCancel, isTerminal } from "@/domain/order-state";
 
 const checkoutSchema = z.object({
   fulfillmentMethod: z.enum(["DELIVERY", "PICKUP"]),
@@ -143,10 +143,12 @@ export async function submitPaymentReceipt(formData: FormData): Promise<OrderAct
   return { ok: true };
 }
 
-// Customers can cancel their own order any time before it ships — the same
-// AWAITING_PAYMENT/RECEIPT_SUBMITTED/CONFIRMED -> CANCELLED transitions the
-// admin side allows (src/domain/order-state.ts), just self-service. Once an
-// order is SHIPPED it's already in transit and can't be pulled back.
+// Customers can cancel their own order any time before it ships — the
+// AWAITING_PAYMENT/RECEIPT_SUBMITTED/CONFIRMED -> CANCELLED transitions,
+// gated by canCustomerCancel (src/domain/order-state.ts) rather than the
+// broader canTransition: once an order is SHIPPED/DELIVERED it's already in
+// transit and can't be pulled back this way, and a READY_FOR_PICKUP no-show
+// cancellation is an admin call (OrderRowActions), not self-service.
 export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
   const session = await auth();
   if (!session?.user) return { ok: false, error: "Please sign in to cancel an order" };
@@ -165,7 +167,7 @@ export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
       .where(and(eq(orders.id, orderId), eq(orders.userId, session.user.id as string)))
   )[0];
   if (!order) return { ok: false, error: "Order not found" };
-  if (!canTransition(order.status, "CANCELLED")) {
+  if (!canCustomerCancel(order.status)) {
     return { ok: false, error: "This order can no longer be cancelled" };
   }
 
@@ -234,4 +236,72 @@ export async function reorderOrderItems(orderId: string): Promise<ReorderResult>
   // reasoning as the revalidatePath calls in src/actions/cart-actions.ts.
   revalidatePath("/checkout");
   return { ok: true, added: addedSkuIds.length, unavailable };
+}
+
+// Customer's own "I received it" button on a DELIVERED delivery order —
+// the self-service counterpart to the day-2 email's one-tap link
+// (confirmDeliveryByToken below) and the day-3 auto-complete cron. Admin can
+// also force this via adminTransitionOrder for a customer who confirms by
+// phone instead.
+export async function confirmOrderReceived(orderId: string): Promise<OrderActionResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: "Please sign in to confirm your order" };
+  const decision = await rateLimit({
+    bucket: "CHECKOUT",
+    key: await getRequestKey("confirm-received", session.user.id as string),
+    limit: 8,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
+
+  const order = (
+    await db()
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.userId, session.user.id as string)))
+  )[0];
+  if (!order) return { ok: false, error: "Order not found" };
+  if (order.status !== "DELIVERED") {
+    return { ok: false, error: "This order isn't awaiting a delivery confirmation" };
+  }
+
+  await transitionOrderStatus({ orderId, next: "COMPLETED" });
+  revalidatePath("/account/orders");
+  return { ok: true };
+}
+
+// Public, token-gated counterpart of confirmOrderReceived for the day-2
+// follow-up email's "Yes, I received it" button — deliberately no sign-in
+// (the customer is often on a phone, tapping straight from Gmail/Mail). The
+// token is an unguessable UUID minted only when an order becomes DELIVERED
+// (src/lib/orders.ts) and cleared again on COMPLETED, so a stale or reused
+// link simply stops resolving to anything actionable.
+export async function confirmDeliveryByToken(token: string): Promise<OrderActionResult> {
+  const decision = await rateLimit({
+    bucket: "LOOKUP",
+    key: await getRequestKey("delivery-confirm-token", token),
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
+
+  const order = (
+    await db()
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(eq(orders.deliveryConfirmToken, token))
+  )[0];
+  if (!order) return { ok: false, error: "This link is no longer valid." };
+  // Already completed (customer used the button in their account, or the
+  // auto-complete cron beat them to it) — treat a re-click as a success
+  // rather than an error, since the outcome the link promised already
+  // happened.
+  if (order.status === "COMPLETED") return { ok: true };
+  if (order.status !== "DELIVERED") {
+    return { ok: false, error: "This order can no longer be confirmed here." };
+  }
+
+  await transitionOrderStatus({ orderId: order.id, next: "COMPLETED" });
+  revalidatePath("/account/orders");
+  return { ok: true };
 }

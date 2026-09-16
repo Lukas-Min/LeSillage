@@ -33,6 +33,8 @@ export interface OrderEmailInput {
   pickupNotes?: string | null;
   orderedAt: Date;
   payUrl?: string;
+  deliveryConfirmUrl?: string;
+  contactUrl?: string;
 }
 
 function etaLinesSummary(lines: EmailLine[], orderedAt: Date): string {
@@ -119,6 +121,46 @@ export function orderShippedEmail(input: OrderEmailInput): { subject: string; te
 Order ${input.orderNumber} is on its way. We will message you again when it is marked delivered.
 
 ${input.fulfillmentMethod === "PICKUP" ? "Pickup details will follow in a separate email." : "Track your delivery via your courier updates."}
+
+— Le Sillage`;
+  return { subject, text };
+}
+
+export function orderDeliveredEmail(input: OrderEmailInput): { subject: string; text: string } {
+  const subject = `Delivered — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+Order ${input.orderNumber} has been marked delivered. We hope it arrived in perfect condition.
+
+Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.
+
+— Le Sillage`;
+  return { subject, text };
+}
+
+export function orderReadyForPickupEmail(input: OrderEmailInput): { subject: string; text: string } {
+  const subject = `Ready for pickup — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+Order ${input.orderNumber} is ready for you to collect.
+
+Pickup notes: ${input.pickupNotes ?? "TBD"}
+
+— Le Sillage`;
+  return { subject, text };
+}
+
+export function deliveryFollowupEmail(input: OrderEmailInput): { subject: string; text: string } {
+  const subject = `Did your order arrive OK? — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+A couple of days ago we marked order ${input.orderNumber} as delivered. Did it reach you safely?
+
+Yes, I received it: ${input.deliveryConfirmUrl}
+
+Not received it, or something's wrong? Visit ${input.contactUrl} or reply to this email and we'll sort it out.
+
+If we don't hear back, we'll mark this order complete automatically after three days from delivery.
 
 — Le Sillage`;
   return { subject, text };

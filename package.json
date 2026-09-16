@@ -15,7 +15,9 @@
     "db:set-admin-password": "tsx scripts/set-admin-password.ts",
     "payment-reminders": "tsx scripts/send-payment-reminders.ts",
     "auto-reject-orders": "tsx scripts/auto-reject-orders.ts",
-    "archive-sweep": "tsx scripts/archive-sweep.ts"
+    "archive-sweep": "tsx scripts/archive-sweep.ts",
+    "delivery-followups": "tsx scripts/send-delivery-followups.ts",
+    "delivery-auto-complete": "tsx scripts/auto-complete-delivered-orders.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

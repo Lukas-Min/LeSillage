@@ -66,7 +66,11 @@ export default async function AdminOrderDetailPage({
         </Badge>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <OrderRowActions orderId={order.id} status={order.status} />
+        <OrderRowActions
+          orderId={order.id}
+          status={order.status}
+          fulfillmentMethod={order.fulfillmentMethod}
+        />
       </div>
       {order.statusReason ? <p className="text-sm text-destructive">Reason: {order.statusReason}</p> : null}
 

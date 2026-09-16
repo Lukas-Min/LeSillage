@@ -46,11 +46,17 @@ export const concentration = [
 ] as const;
 export type Concentration = (typeof concentration)[number];
 
+// SHIPPED/DELIVERED are the delivery-order pair; READY_FOR_PICKUP is
+// pickup's single-step counterpart to that pair (nothing ships, so there's
+// no separate "in transit" state) — see src/domain/order-state.ts for the
+// transition table each fulfillment method actually uses.
 export const orderStatus = [
   "AWAITING_PAYMENT",
   "RECEIPT_SUBMITTED",
   "CONFIRMED",
   "SHIPPED",
+  "DELIVERED",
+  "READY_FOR_PICKUP",
   "COMPLETED",
   "REJECTED",
   "CANCELLED",
@@ -596,6 +602,15 @@ export const orders = pgTable(
     statusReason: text("statusReason"),
     statusUpdatedAt: timestamp("statusUpdatedAt", { mode: "date" }).notNull().defaultNow(),
     paymentReminderSentAt: timestamp("paymentReminderSentAt", { mode: "date" }),
+    // Set when the order enters DELIVERED, cleared on COMPLETED. Backs the
+    // public one-tap "Yes, I received it" link in the day-2 follow-up email
+    // (src/app/(store)/order-confirm/[token]) — a customer clicking it needs
+    // no sign-in, just this unguessable token.
+    deliveryConfirmToken: text("deliveryConfirmToken"),
+    // Gates the day-2 "did you receive it?" email the same way
+    // paymentReminderSentAt gates the payment nudge — set once sent, so the
+    // cron never double-sends it.
+    deliveryFollowupSentAt: timestamp("deliveryFollowupSentAt", { mode: "date" }),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
@@ -603,6 +618,7 @@ export const orders = pgTable(
     orderNumberIdx: uniqueIndex("order_number_idx").on(t.orderNumber),
     userIdx: index("order_user_idx").on(t.userId),
     statusIdx: index("order_status_idx").on(t.status),
+    deliveryTokenIdx: uniqueIndex("order_delivery_token_idx").on(t.deliveryConfirmToken),
   }),
 );
 

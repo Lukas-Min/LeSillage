@@ -11,7 +11,8 @@ import { Price } from "@/components/store/price";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
 import { CancelOrderButton } from "@/components/store/cancel-order-button";
 import { ReorderButton } from "@/components/store/reorder-button";
-import { describeStatus, canTransition, isTerminal } from "@/domain/order-state";
+import { ConfirmReceivedButton } from "@/components/store/confirm-received-button";
+import { describeStatus, canCustomerCancel, isTerminal } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
 import { computeEtaSummary } from "@/domain/eta";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,27 @@ export default async function OrderDetailPage({
   const eta = computeEtaSummary(
     items.map((it) => ({ fulfillment: it.fulfillment, orderedAt: order.createdAt })),
   );
+  // The timeline's middle steps branch on fulfillment method: a delivery
+  // order ships then gets marked delivered, while a pickup order gets one
+  // "ready for pickup" step instead — see src/domain/order-state.ts for why
+  // those are parallel, not sequential.
+  const timelineSteps =
+    order.fulfillmentMethod === "PICKUP"
+      ? [
+          { label: "Awaiting payment", status: "AWAITING_PAYMENT" as const },
+          { label: "Receipt submitted", status: "RECEIPT_SUBMITTED" as const },
+          { label: "Confirmed", status: "CONFIRMED" as const },
+          { label: "Ready for pickup", status: "READY_FOR_PICKUP" as const },
+          { label: "Completed", status: "COMPLETED" as const },
+        ]
+      : [
+          { label: "Awaiting payment", status: "AWAITING_PAYMENT" as const },
+          { label: "Receipt submitted", status: "RECEIPT_SUBMITTED" as const },
+          { label: "Confirmed", status: "CONFIRMED" as const },
+          { label: "Shipped", status: "SHIPPED" as const },
+          { label: "Delivered", status: "DELIVERED" as const },
+          { label: "Completed", status: "COMPLETED" as const },
+        ];
 
   return (
     <div className="space-y-6">
@@ -54,7 +76,8 @@ export default async function OrderDetailPage({
         actions={
           <>
             <OrderStatusPill status={order.status} />
-            {canTransition(order.status, "CANCELLED") ? <CancelOrderButton orderId={order.id} /> : null}
+            {order.status === "DELIVERED" ? <ConfirmReceivedButton orderId={order.id} /> : null}
+            {canCustomerCancel(order.status) ? <CancelOrderButton orderId={order.id} /> : null}
             {isTerminal(order.status) ? <ReorderButton orderId={order.id} /> : null}
             <Button asChild variant="outline" size="sm">
               <Link href="/account/orders">
@@ -143,13 +166,7 @@ export default async function OrderDetailPage({
             description="Updated by the team as your order moves through verification and shipping."
           >
             <ol className="space-y-2 text-sm">
-              {[
-                { label: "Awaiting payment", status: "AWAITING_PAYMENT" },
-                { label: "Receipt submitted", status: "RECEIPT_SUBMITTED" },
-                { label: "Confirmed", status: "CONFIRMED" },
-                { label: "Shipped", status: "SHIPPED" },
-                { label: "Completed", status: "COMPLETED" },
-              ].map((step) => (
+              {timelineSteps.map((step) => (
                 <li
                   key={step.status}
                   className={

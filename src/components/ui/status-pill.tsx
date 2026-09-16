@@ -30,6 +30,8 @@ const orderTones: Record<string, StatusPillProps["tone"]> = {
   RECEIPT_SUBMITTED: "info",
   CONFIRMED: "info",
   SHIPPED: "gold",
+  DELIVERED: "success",
+  READY_FOR_PICKUP: "gold",
   COMPLETED: "success",
   REJECTED: "danger",
   CANCELLED: "neutral",
