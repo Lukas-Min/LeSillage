@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/payment-reminders",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/auto-reject-orders",
+      "schedule": "0 3 * * *"
     }
   ]
 }
