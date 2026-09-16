@@ -6,7 +6,9 @@ import { db } from "@/db/client";
 import { orders } from "@/db/schema";
 import { PageHeader, SectionCard, EmptyState } from "@/components/ui/section";
 import { OrderStatusPill } from "@/components/ui/status-pill";
+import { ReorderButton } from "@/components/store/reorder-button";
 import { formatPHP } from "@/domain/money";
+import { isTerminal } from "@/domain/order-state";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -58,12 +60,18 @@ export default async function OrdersPage() {
                 <p className="text-xs text-muted-foreground">
                   Order ID <span className="font-mono">{order.id.slice(0, 8)}</span>
                 </p>
-                <Button asChild variant="ghost" size="sm" className="ml-auto">
-                  <Link href={`/account/orders/${order.id}`}>
-                    View details
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
+                {/* Grouped so that when the row wraps at phone widths both
+                    buttons move to the second line together, right-aligned,
+                    instead of Re-order stranding next to the order ID. */}
+                <div className="ml-auto flex items-center gap-2">
+                  {isTerminal(order.status) ? <ReorderButton orderId={order.id} /> : null}
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/account/orders/${order.id}`}>
+                      View details
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </SectionCard>
             </li>
           ))}

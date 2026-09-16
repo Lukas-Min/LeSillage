@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { orders } from "@/db/schema";
+import { orderItems, orders } from "@/db/schema";
 import {
   CheckoutError,
   createOrderFromCart,
@@ -13,9 +13,10 @@ import {
   transitionOrderStatus,
   type CheckoutErrorField,
 } from "@/lib/orders";
+import { addLinesToCart, loadPromoConfig, resolveActiveCart } from "@/lib/cart";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { phMobileRequiredSchema } from "@/domain/phone";
-import { canTransition } from "@/domain/order-state";
+import { canTransition, isTerminal } from "@/domain/order-state";
 
 const checkoutSchema = z.object({
   fulfillmentMethod: z.enum(["DELIVERY", "PICKUP"]),
@@ -171,4 +172,66 @@ export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
   await transitionOrderStatus({ orderId, next: "CANCELLED", reason: "Cancelled by customer" });
   revalidatePath("/account/orders");
   return { ok: true };
+}
+
+export type ReorderResult =
+  | { ok: true; added: number; unavailable: string[] }
+  | { ok: false; error: string };
+
+// "Re-order" on a finished order (COMPLETED/REJECTED/CANCELLED) puts its
+// lines back in the customer's bag at today's prices — it does not clone the
+// order or re-apply its promo code, since eligibility and stock are
+// re-evaluated at checkout like any other cart. A line whose SKU has since
+// been retired or sold out is skipped and named in `unavailable` so the UI
+// can say so; quantities are clamped to current stock by addLinesToCart.
+export async function reorderOrderItems(orderId: string): Promise<ReorderResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: "Please sign in to re-order" };
+  const decision = await rateLimit({
+    bucket: "CHECKOUT",
+    key: await getRequestKey("reorder", session.user.id as string),
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
+
+  const client = db();
+  const order = (
+    await client
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.userId, session.user.id as string)))
+  )[0];
+  if (!order) return { ok: false, error: "Order not found" };
+  if (!isTerminal(order.status)) {
+    return { ok: false, error: "This order is still in progress" };
+  }
+
+  const [items, { cart }, promoConfig] = await Promise.all([
+    client
+      .select({
+        skuId: orderItems.skuId,
+        quantity: orderItems.quantity,
+        productName: orderItems.productName,
+        skuLabel: orderItems.skuLabel,
+      })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id)),
+    resolveActiveCart(),
+    loadPromoConfig(),
+  ]);
+  if (items.length === 0) return { ok: false, error: "This order has no items to re-order" };
+
+  const { addedSkuIds, skippedSkuIds } = await addLinesToCart(
+    cart,
+    items.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
+    promoConfig.decantPreOrderThresholdMl,
+  );
+  const unavailable = items
+    .filter((item) => skippedSkuIds.includes(item.skuId))
+    .map((item) => `${item.productName} (${item.skuLabel})`);
+  // Checkout is the only route that reads the cart server-side — same
+  // reasoning as the revalidatePath calls in src/actions/cart-actions.ts.
+  revalidatePath("/checkout");
+  return { ok: true, added: addedSkuIds.length, unavailable };
 }

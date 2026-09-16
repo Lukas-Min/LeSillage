@@ -623,12 +623,21 @@ export async function resolveGuestCartConflict(strategy: "keep-account" | "use-g
   return loadCartView(userCart.id);
 }
 
-export async function importLegacyCartLines(lines: Array<{ skuId: string; quantity: number }>) {
-  const { cart } = await resolveActiveCart();
-  const promoConfig = await loadPromoConfig();
-  const client = db();
-  if (lines.length === 0) return loadCartView(cart.id);
-  const skuRows = await client
+/**
+ * Adds a batch of `{ skuId, quantity }` lines to `cart`, best-effort: a line
+ * whose SKU is missing, inactive, or out of stock is skipped rather than
+ * failing the batch, and the caller gets back which skuIds landed and which
+ * didn't so it can tell the customer. Quantities are clamped to each SKU's
+ * live cap by addOneToCart. Shared by the legacy localStorage import and the
+ * order-page "Re-order" action.
+ */
+export async function addLinesToCart(
+  cart: { id: string },
+  lines: Array<{ skuId: string; quantity: number }>,
+  thresholdMl: number,
+): Promise<{ addedSkuIds: string[]; skippedSkuIds: string[] }> {
+  if (lines.length === 0) return { addedSkuIds: [], skippedSkuIds: [] };
+  const skuRows = await db()
     .select({ sku: skus, productType: products.type, remainingMl: products.remainingMl })
     .from(skus)
     .innerJoin(products, eq(products.id, skus.productId))
@@ -636,21 +645,34 @@ export async function importLegacyCartLines(lines: Array<{ skuId: string; quanti
   // Same reasoning as mergeGuestCartIntoUser above — distinct skuIds, safe
   // to run concurrently rather than one sequential round trip per line, each
   // write caught individually so one failing item can't abort the rest.
-  await Promise.all(
+  const results = await Promise.all(
     lines.map(async (line) => {
       const found = skuRows.find((row) => row.sku.id === line.skuId);
-      if (!found || !found.sku.isActive) return;
+      if (!found || !found.sku.isActive) return { skuId: line.skuId, added: false };
       try {
         await addOneToCart(
           cart,
           { ...found.sku, productType: found.productType, remainingMl: found.remainingMl },
           line.quantity,
-          promoConfig.decantPreOrderThresholdMl,
+          thresholdMl,
         );
+        return { skuId: line.skuId, added: true };
       } catch {
-        // Best-effort import — leave this line behind rather than fail the batch.
+        // Out of stock (cap <= 0) — leave this line behind rather than fail the batch.
+        return { skuId: line.skuId, added: false };
       }
     }),
   );
+  return {
+    addedSkuIds: results.filter((r) => r.added).map((r) => r.skuId),
+    skippedSkuIds: results.filter((r) => !r.added).map((r) => r.skuId),
+  };
+}
+
+export async function importLegacyCartLines(lines: Array<{ skuId: string; quantity: number }>) {
+  const { cart } = await resolveActiveCart();
+  if (lines.length === 0) return loadCartView(cart.id);
+  const promoConfig = await loadPromoConfig();
+  await addLinesToCart(cart, lines, promoConfig.decantPreOrderThresholdMl);
   return loadCartView(cart.id);
 }
