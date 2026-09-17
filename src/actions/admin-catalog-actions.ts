@@ -392,6 +392,47 @@ export async function archiveOrDeleteProduct(formData: FormData) {
   revalidatePath("/admin/products");
 }
 
+/**
+ * The instant-save behind the "Free tester" checkbox (`TesterToggle`). Only a
+ * decant can be a tester — the same rule the SKU form applies by hiding the
+ * box on bottles — so a non-decant SKU is refused here too rather than
+ * trusting the client. Mirrors upsertSku's handling of `testerBrand`.
+ */
+export async function setSkuTester(input: {
+  skuId: string;
+  isTester: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+  const parsed = z.object({ skuId: z.string().min(1), isTester: z.boolean() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request" };
+  const row = (
+    await db()
+      .select({ productId: products.id, type: products.type, brand: products.brand })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(eq(skus.id, parsed.data.skuId))
+  )[0];
+  if (!row) return { ok: false, error: "SKU not found" };
+  if (row.type !== "DECANT") return { ok: false, error: "Only a decant can be a free tester" };
+  await db()
+    .update(skus)
+    .set({
+      isTester: parsed.data.isTester,
+      testerBrand: parsed.data.isTester ? row.brand : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(skus.id, parsed.data.skuId));
+  await auditLogSubject({
+    actor: admin.id,
+    action: "SKU_UPDATE",
+    targetType: "sku",
+    targetId: parsed.data.skuId,
+    metadata: { isTester: parsed.data.isTester },
+  });
+  revalidatePath(`/admin/products/${row.productId}`);
+  return { ok: true };
+}
+
 export async function archiveOrDeleteSku(formData: FormData) {
   const admin = await requireAdmin();
   const skuId = String(formData.get("skuId") ?? "");

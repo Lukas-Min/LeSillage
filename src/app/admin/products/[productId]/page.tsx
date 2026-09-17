@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { DecantSkuFields } from "@/components/admin/decant-sku-fields";
+import { TesterToggle } from "@/components/admin/tester-toggle";
 import {
   addProductImage,
   adjustDecantMl,
@@ -319,12 +320,7 @@ export default async function AdminProductDetailPage({
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {product.type === "DECANT" ? (
-                    <label className="flex items-center gap-2 text-xs">
-                      <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Free tester{" "}
-                      <span className="font-normal text-muted-foreground">
-                        (still sold in the shop; also handed out free with ₱2,000 of decants)
-                      </span>
-                    </label>
+                    <TesterToggle skuId={sku.id} initialChecked={sku.isTester} />
                   ) : (
                     // The free tester is a decant; a bottle or partial is never one.
                     <input type="hidden" name="isTester" value="" />
