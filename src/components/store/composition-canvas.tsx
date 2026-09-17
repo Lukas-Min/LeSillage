@@ -300,7 +300,7 @@ export function CompositionCanvas({
 
 function CornerLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-none bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
+    <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
       {children}
     </span>
   );

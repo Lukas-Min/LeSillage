@@ -93,12 +93,12 @@ async function FlagshipPanel() {
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
       <div className="relative mx-auto w-full max-w-xs">
         {flagship.ratingValue ? (
-          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-none bg-background/90 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-sm">
-            <Star className="h-3 w-3 fill-gold text-gold" aria-hidden="true" />
+          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium text-foreground shadow-sm backdrop-blur-sm">
+            <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden="true" />
             {flagship.ratingValue.toFixed(1)}
           </span>
         ) : null}
-        <span className="absolute left-2 bottom-2 z-10 inline-flex items-center rounded-none bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
+        <span className="absolute left-2 bottom-2 z-10 inline-flex items-center rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
           {labelForCategory(flagship.fragranceCategory)}
         </span>
         <CompositionCanvas
