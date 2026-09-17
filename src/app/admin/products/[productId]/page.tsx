@@ -285,12 +285,22 @@ export default async function AdminProductDetailPage({
                   </>
                 ) : (
                   <>
-                    <Field label="Fulfillment" htmlFor={`sku-fulfillment-${sku.id}`}>
-                      <select id={`sku-fulfillment-${sku.id}`} name="fulfillment" defaultValue={sku.fulfillment} className={selectClass}>
-                        <option value="ON_HAND">On hand</option>
-                        <option value="PRE_ORDER">Pre-order</option>
-                      </select>
-                    </Field>
+                    {product.type === "FULL_BOTTLE" ? (
+                      // No admin-set Fulfillment for a full bottle any more —
+                      // it's derived live from Stock + "Available for
+                      // pre-order" below (see resolveBottleAvailability), the
+                      // same way a decant's is hidden and derived from its ml
+                      // pool. The stored column is preserved via this hidden
+                      // input purely so saving other fields doesn't null it.
+                      <input type="hidden" name="fulfillment" value={sku.fulfillment} />
+                    ) : (
+                      <Field label="Fulfillment" htmlFor={`sku-fulfillment-${sku.id}`}>
+                        <select id={`sku-fulfillment-${sku.id}`} name="fulfillment" defaultValue={sku.fulfillment} className={selectClass}>
+                          <option value="ON_HAND">On hand</option>
+                          <option value="PRE_ORDER">Pre-order</option>
+                        </select>
+                      </Field>
+                    )}
                     <Field label="Stock" htmlFor={`sku-stock-${sku.id}`}>
                       <Input id={`sku-stock-${sku.id}`} name="stock" type="number" defaultValue={sku.stock} />
                     </Field>
@@ -316,6 +326,14 @@ export default async function AdminProductDetailPage({
                   </>
                 )}
               </div>
+              {product.type === "FULL_BOTTLE" ? (
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" name="availableForPreOrder" defaultChecked={sku.availableForPreOrder} /> Available for pre-order{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (once Stock reaches 0, keep selling this size as a pre-order instead of hiding it from the shop)
+                  </span>
+                </label>
+              ) : null}
               <p className="text-xs text-muted-foreground">Computed retail price: {formatPHP(sku.retailPrice)}</p>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
@@ -373,12 +391,18 @@ export default async function AdminProductDetailPage({
                   </>
                 ) : (
                   <>
-                    <Field label="Fulfillment" htmlFor="new-sku-fulfillment">
-                      <select id="new-sku-fulfillment" name="fulfillment" defaultValue="ON_HAND" className={selectClass}>
-                        <option value="ON_HAND">On hand</option>
-                        <option value="PRE_ORDER">Pre-order</option>
-                      </select>
-                    </Field>
+                    {product.type === "FULL_BOTTLE" ? (
+                      // See the existing-SKU form above: a full bottle's
+                      // fulfillment is derived, not admin-set.
+                      <input type="hidden" name="fulfillment" value="ON_HAND" />
+                    ) : (
+                      <Field label="Fulfillment" htmlFor="new-sku-fulfillment">
+                        <select id="new-sku-fulfillment" name="fulfillment" defaultValue="ON_HAND" className={selectClass}>
+                          <option value="ON_HAND">On hand</option>
+                          <option value="PRE_ORDER">Pre-order</option>
+                        </select>
+                      </Field>
+                    )}
                     <Field label="Stock" htmlFor="new-sku-stock">
                       <Input id="new-sku-stock" name="stock" type="number" defaultValue={0} />
                     </Field>
@@ -404,6 +428,14 @@ export default async function AdminProductDetailPage({
                   </>
                 )}
               </div>
+              {product.type === "FULL_BOTTLE" ? (
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" name="availableForPreOrder" /> Available for pre-order{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (once Stock reaches 0, keep selling this size as a pre-order instead of hiding it from the shop)
+                  </span>
+                </label>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {product.type === "DECANT" ? (

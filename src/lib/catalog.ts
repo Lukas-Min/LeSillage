@@ -18,6 +18,7 @@ import {
 import { applyDiscount, bestDiscount, isDiscountActive, withSiteWideDiscount } from "@/domain/discount";
 import type { SiteWideDiscountConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { resolveBottleAvailability } from "@/domain/product-type";
 import {
   CONDITION_PACKAGING_ORDER,
   conditionPackagingChoice,
@@ -106,6 +107,7 @@ interface SkuRow {
   sizeMl: number | null;
   isActive: boolean;
   isTester: boolean;
+  availableForPreOrder: boolean;
 }
 
 /**
@@ -231,9 +233,11 @@ export function buildVariantOptions(
     provenance: Provenance;
     packaging: Packaging;
     isTester?: boolean;
+    /** FULL_BOTTLE only — see resolveBottleAvailability. */
+    availableForPreOrder?: boolean;
   }>,
   discounts: ProductDiscount[],
-  opts: { isDecant: boolean; remainingMl: number; thresholdMl: number },
+  opts: { isDecant: boolean; remainingMl: number; thresholdMl: number; isFullBottle?: boolean },
 ): SizePickerOption[] {
   const enriched = variants
     .filter((v) => v.sizeMl != null)
@@ -246,9 +250,16 @@ export function buildVariantOptions(
       const activeDiscounts = discounts.filter((d) => isDiscountActive(d));
       const winner = bestDiscount(activeDiscounts, v.retailPrice);
       const applied = applyDiscount(v.retailPrice, winner);
+      // A FULL_BOTTLE's fulfillment/visibility is derived live from stock
+      // plus its pre-order toggle (never from its stored fulfillment column,
+      // which is now vestigial for this product type — see
+      // resolveBottleAvailability); PARTIAL keeps the admin-set column as-is.
+      const bottleAvailability = opts.isFullBottle
+        ? resolveBottleAvailability({ stock: v.stock, availableForPreOrder: v.availableForPreOrder ?? false })
+        : null;
       const fulfillment = opts.isDecant
         ? decantVariantFulfillment(v, opts.remainingMl, opts.thresholdMl)
-        : v.fulfillment;
+        : (bottleAvailability?.fulfillment ?? v.fulfillment);
       const soldOut = (!opts.isDecant || v.provenance === "RETAIL") && fulfillment === "ON_HAND" && v.stock <= 0;
       const isTester = Boolean(v.isTester);
       return {
@@ -256,12 +267,18 @@ export function buildVariantOptions(
         isTester,
         fulfillment,
         soldOut,
+        visible: bottleAvailability?.visible ?? true,
         originalCentavos: v.retailPrice,
         discountedCentavos: applied.discountedUnitCentavos,
         savedCentavos: applied.perUnitDiscountCentavos,
         discounts: activeDiscounts.map((d): VariantDiscount => ({ type: d.type, amount: d.amount })),
       };
-    });
+    })
+    // A FULL_BOTTLE with no stock and no pre-order opt-in has nothing to
+    // sell — it's excluded entirely rather than shown "sold out", unlike a
+    // decant or partial (which can always at least show sold-out for the
+    // rare in-stock-elsewhere case). See resolveBottleAvailability.
+    .filter((v) => v.visible);
 
   const groups = new Map<string, typeof enriched>();
   for (const v of enriched) {
@@ -388,6 +405,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
         sizeMl: skus.sizeMl,
         isActive: skus.isActive,
         isTester: skus.isTester,
+        availableForPreOrder: skus.availableForPreOrder,
       })
       .from(skus)
       .where(and(eq(skus.isActive, true), inArray(skus.productId, productIds))),
@@ -423,7 +441,13 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
   const cards: CatalogCardModel[] = [];
   for (const product of productRows) {
     const variants = (skusByProduct.get(product.id) ?? []).filter((variant) => {
-      if (filter.sizeMl && product.type === "DECANT") return variant.sizeMl === filter.sizeMl;
+      if (filter.sizeMl && product.type === "DECANT" && variant.sizeMl !== filter.sizeMl) return false;
+      // A FULL_BOTTLE SKU with no stock and no pre-order opt-in has nothing
+      // to sell — excluded from the shop entirely rather than shown "sold
+      // out". See resolveBottleAvailability.
+      if (product.type === "FULL_BOTTLE") {
+        return resolveBottleAvailability({ stock: variant.stock, availableForPreOrder: variant.availableForPreOrder }).visible;
+      }
       return true;
     });
     if (variants.length === 0) continue;
@@ -446,7 +470,10 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
     const destFulfillment =
       product.type === "DECANT"
         ? decantVariantFulfillment(destination, remainingMl, threshold)
-        : destination.fulfillment;
+        : product.type === "FULL_BOTTLE"
+          ? resolveBottleAvailability({ stock: destination.stock, availableForPreOrder: destination.availableForPreOrder })
+              .fulfillment
+          : destination.fulfillment;
     // A RETAIL decant is a distinct physical unit with its own stock, like a
     // full bottle — it can genuinely sell out. An IN_HOUSE decant can't:
     // running low just tips it into PRE_ORDER via the shared ml pool.

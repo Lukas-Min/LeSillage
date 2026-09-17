@@ -76,6 +76,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         fulfillment: skus.fulfillment,
         stock: skus.stock,
         isTester: skus.isTester,
+        availableForPreOrder: skus.availableForPreOrder,
       })
       .from(skus)
       .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true))),
@@ -100,12 +101,18 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
     isDecant,
     remainingMl,
     thresholdMl: threshold,
+    isFullBottle: row.type === "FULL_BOTTLE",
   });
   // The current URL's SKU, resolved through the same size+provenance
   // grouping the picker uses — so the fulfillment badge, sold-out state, and
   // BuyBox's price all agree with whichever button/sub-option is showing as
   // selected, instead of being computed separately.
-  const currentVariant = findSelectedVariant(variantOptions, row.skuId)!;
+  // A FULL_BOTTLE SKU that's out of stock and not taking pre-orders is
+  // excluded from variantOptions entirely (see buildVariantOptions) — a
+  // stale link/bookmark to it 404s exactly like a deactivated SKU already
+  // does above, rather than crashing on a missing variant.
+  const currentVariant = findSelectedVariant(variantOptions, row.skuId);
+  if (!currentVariant) return notFound();
   const fulfillment = currentVariant.fulfillment;
   const soldOut = Boolean(currentVariant.soldOut);
   const accords = productAccords(row.accords);
@@ -117,7 +124,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const topSeasons = topSeasonLabels(row.seasonBreakout);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-8 sm:pt-6 sm:pb-12">
+    <main className="w-full px-4 pt-4 pb-8 sm:pt-6 sm:pb-12">
       <Breadcrumbs
         items={[
           { label: "Home", href: "/" },

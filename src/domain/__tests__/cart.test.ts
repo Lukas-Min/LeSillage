@@ -19,6 +19,7 @@ function makeSku(overrides: Partial<Sku> = {}): Sku {
     pricingInput: 50,
     fulfillment: "ON_HAND",
     stock: 5,
+    availableForPreOrder: false,
     isTester: false,
     testerBrand: null,
     isActive: true,

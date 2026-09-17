@@ -29,6 +29,7 @@ import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { uploadPublicImage } from "@/lib/blob";
 import { clampRemainingMl } from "@/domain/decant";
+import { resolveBottleAvailability } from "@/domain/product-type";
 
 function skuSlugPart(value: string): string {
   return value
@@ -205,6 +206,9 @@ const skuSchema = z.object({
   packaging: z.enum(["WITH_BOX", "BOTTLE_ONLY"]),
   fulfillment: z.enum(["PRE_ORDER", "ON_HAND"]),
   stock: z.coerce.number().int().min(0),
+  // FULL_BOTTLE only — see resolveBottleAvailability; meaningless (and
+  // forced false below) for PARTIAL/DECANT.
+  availableForPreOrder: z.boolean(),
   isTester: z.boolean(),
   isActive: z.boolean(),
   // Only present (and only honored) for a RETAIL-provenance decant SKU — see
@@ -229,6 +233,7 @@ export async function upsertSku(formData: FormData) {
     packaging: formData.get("packaging"),
     fulfillment: formData.get("fulfillment"),
     stock: formData.get("stock"),
+    availableForPreOrder: formData.get("availableForPreOrder") === "on",
     isTester: formData.get("isTester") === "on",
     isActive: formData.get("isActive") === "on",
     manualCostPrice: formData.get("manualCostPrice") || undefined,
@@ -284,6 +289,16 @@ export async function upsertSku(formData: FormData) {
     pricingMode = "DIRECT";
     pricingInput = retailPrice;
   }
+  // A full bottle has no admin-set Fulfillment any more — it's derived live
+  // from Stock + this toggle wherever it's read (resolveBottleAvailability),
+  // but the stored column is kept in sync here too so a direct DB read
+  // doesn't show a stale value. PARTIAL/DECANT never honor the toggle: it's
+  // forced false so it can't linger from a product-type change.
+  const isFullBottle = product.type === "FULL_BOTTLE";
+  const availableForPreOrder = isFullBottle ? parsed.availableForPreOrder : false;
+  const fulfillment = isFullBottle
+    ? resolveBottleAvailability({ stock: parsed.stock, availableForPreOrder }).fulfillment
+    : (parsed.fulfillment as Fulfillment);
   const values = {
     productId: parsed.productId,
     label: parsed.label,
@@ -295,8 +310,9 @@ export async function upsertSku(formData: FormData) {
     pricingMode,
     pricingInput,
     retailPrice,
-    fulfillment: parsed.fulfillment as Fulfillment,
+    fulfillment,
     stock: parsed.stock,
+    availableForPreOrder,
     isTester: parsed.isTester,
     testerBrand: parsed.isTester ? product.brand : null,
     isActive: parsed.isActive,

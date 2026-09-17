@@ -139,6 +139,7 @@ async function main() {
       "pricingInput" integer NOT NULL DEFAULT 0,
       "fulfillment" text NOT NULL,
       "stock" integer NOT NULL DEFAULT 0,
+      "availableForPreOrder" boolean NOT NULL DEFAULT false,
       "isTester" boolean NOT NULL DEFAULT false,
       "testerBrand" text,
       "isActive" boolean NOT NULL DEFAULT true,
@@ -600,6 +601,22 @@ async function main() {
     `CREATE UNIQUE INDEX IF NOT EXISTS "order_delivery_token_idx" ON "order" ("deliveryConfirmToken")`,
   );
 
+  // A FULL_BOTTLE SKU's fulfillment/visibility is now derived live from its
+  // own stock plus this toggle (resolveBottleAvailability), instead of an
+  // admin-set Fulfillment dropdown — see src/domain/product-type.ts. Backfill
+  // preserves today's site behavior across the cutover: a full bottle
+  // already marked PRE_ORDER keeps taking orders while empty instead of
+  // silently disappearing from the shop the moment this migration runs.
+  await db.execute(`ALTER TABLE "sku" ADD COLUMN IF NOT EXISTS "availableForPreOrder" boolean NOT NULL DEFAULT false`);
+  await db.execute(`
+    UPDATE "sku" SET "availableForPreOrder" = true
+    FROM "product" p
+    WHERE "sku"."productId" = p."id"
+      AND p."type" = 'FULL_BOTTLE'
+      AND "sku"."fulfillment" = 'PRE_ORDER'
+      AND "sku"."availableForPreOrder" = false
+  `);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -627,6 +644,7 @@ async function main() {
 // DROP INDEX IF EXISTS "order_delivery_token_idx";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "deliveryConfirmToken";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "deliveryFollowupSentAt";
+// ALTER TABLE "sku" DROP COLUMN IF EXISTS "availableForPreOrder";
 
 main().catch((error) => {
   console.error(error);

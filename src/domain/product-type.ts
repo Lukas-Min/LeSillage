@@ -1,4 +1,42 @@
-import type { Condition, FragranceCategory, Packaging, ProductType, Provenance } from "@/db/schema";
+import type { Condition, Fulfillment, FragranceCategory, Packaging, ProductType, Provenance } from "@/db/schema";
+
+export interface BottleAvailability {
+  /** false when this SKU should not appear on the storefront at all — no
+   *  stock on hand and not opted into taking pre-orders while empty. */
+  visible: boolean;
+  /** Meaningful only when `visible` — derived live from stock, mirroring how
+   *  an IN_HOUSE decant's fulfillment is derived live from its ml pool
+   *  (`decantFulfillment` in `src/domain/decant.ts`) rather than trusted off
+   *  a stored column. */
+  fulfillment: Fulfillment;
+  /** The cart cap: 0 when not visible (nothing to add), the real stock count
+   *  when ON_HAND, or 99 when PRE_ORDER — matching the existing convention
+   *  that a pre-order is a future restock, not bounded by today's count. */
+  cap: number;
+}
+
+/**
+ * A FULL_BOTTLE SKU's fulfillment and storefront visibility are derived live
+ * from its own `stock` and the admin's "available for pre-order" toggle —
+ * there's no admin-set Fulfillment dropdown for this product type any more
+ * (mirrors how an IN_HOUSE decant's Fulfillment/Stock fields are hidden and
+ * computed from its shared ml pool instead — see `decantFulfillment`):
+ *
+ *   - Any stock on hand always means ON_HAND, regardless of the toggle.
+ *   - An empty shelf falls through to the toggle: PRE_ORDER if the admin
+ *     opted in, otherwise the SKU is hidden until restocked rather than
+ *     shown "sold out" — a full bottle can't be poured to order the way a
+ *     decant can, so there's nothing useful to sell while it's empty unless
+ *     the admin explicitly says pre-orders are being taken.
+ */
+export function resolveBottleAvailability(args: {
+  stock: number;
+  availableForPreOrder: boolean;
+}): BottleAvailability {
+  if (args.stock > 0) return { visible: true, fulfillment: "ON_HAND", cap: args.stock };
+  if (args.availableForPreOrder) return { visible: true, fulfillment: "PRE_ORDER", cap: 99 };
+  return { visible: false, fulfillment: "PRE_ORDER", cap: 0 };
+}
 
 export function labelForType(type: ProductType): string {
   switch (type) {

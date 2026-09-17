@@ -172,8 +172,10 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       skuFulfillment: found.sku.fulfillment,
       sizeMl: found.sku.sizeMl,
       remainingMl: found.remainingMl,
+      stock: found.sku.stock,
       thresholdMl: promoConfig.decantPreOrderThresholdMl,
       provenance: found.sku.provenance,
+      availableForPreOrder: found.sku.availableForPreOrder,
     });
     const cap = resolveCartCap({
       productType: found.productType,
@@ -182,6 +184,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       remainingMl: found.remainingMl,
       stock: found.sku.stock,
       provenance: found.sku.provenance,
+      availableForPreOrder: found.sku.availableForPreOrder,
     });
     if (cap <= 0) throw new CheckoutError("This item is currently out of stock");
     return { ...item, quantity: clampQuantity(item.quantity, cap) };
@@ -230,8 +233,10 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         skuFulfillment: found.sku.fulfillment,
         sizeMl: found.sku.sizeMl,
         remainingMl: found.remainingMl,
+        stock: found.sku.stock,
         thresholdMl: promoConfig.decantPreOrderThresholdMl,
         provenance: found.sku.provenance,
+        availableForPreOrder: found.sku.availableForPreOrder,
       });
       return {
         sku: { ...found.sku, fulfillment },

@@ -412,6 +412,15 @@ export const skus = pgTable(
     pricingInput: integer("pricingInput").notNull().default(0),
     fulfillment: text("fulfillment").$type<Fulfillment>().notNull(),
     stock: integer("stock").notNull().default(0),
+    // FULL_BOTTLE only: whether this SKU keeps taking orders as a pre-order
+    // once its own stock runs out, instead of disappearing from the shop.
+    // Meaningless (and always false) for PARTIAL/DECANT — see
+    // resolveBottleAvailability in src/domain/product-type.ts, which derives
+    // the SKU's real fulfillment/visibility live from this plus `stock`
+    // rather than trusting `fulfillment` above, exactly like an IN_HOUSE
+    // decant derives its own from the shared ml pool instead of trusting its
+    // stored fulfillment/stock columns.
+    availableForPreOrder: boolean("availableForPreOrder").notNull().default(false),
     isTester: boolean("isTester").notNull().default(false),
     testerBrand: text("testerBrand"),
     isActive: boolean("isActive").notNull().default(true),

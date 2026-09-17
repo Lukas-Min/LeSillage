@@ -20,6 +20,7 @@ import { buildCartTotals, type CheckoutTotals } from "@/domain/checkout-totals";
 import { clampQuantity } from "@/domain/money";
 import { DEFAULT_PROMO_CONFIG, type PromoConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
+import { resolveBottleAvailability } from "@/domain/product-type";
 
 export const GUEST_CART_COOKIE = "le-sillage-guest-cart";
 
@@ -132,6 +133,8 @@ export function resolveCartCap(args: {
    *  Only an IN_HOUSE decant (poured to order from a whole bottle) draws
    *  from the shared remainingMl pool below. */
   provenance?: Provenance;
+  /** FULL_BOTTLE only — see resolveBottleAvailability. */
+  availableForPreOrder?: boolean;
 }): number {
   if (args.productType === "DECANT" && args.provenance !== "RETAIL") {
     if (args.fulfillment !== "ON_HAND") return 99;
@@ -140,6 +143,9 @@ export function resolveCartCap(args: {
     const size = args.sizeMl ?? DECANT_SIZES_ML[0];
     if (size <= 0) return 0;
     return Math.max(0, Math.floor((args.remainingMl ?? 0) / size));
+  }
+  if (args.productType === "FULL_BOTTLE") {
+    return resolveBottleAvailability({ stock: args.stock, availableForPreOrder: args.availableForPreOrder ?? false }).cap;
   }
   if (args.fulfillment === "PRE_ORDER") return 99;
   return Math.max(0, args.stock);
@@ -154,7 +160,14 @@ export function effectiveFulfillment(args: {
   /** See resolveCartCap — a RETAIL decant SKU uses its own fulfillment
    *  column directly instead of the shared-pool calculation. */
   provenance?: Provenance;
+  /** FULL_BOTTLE only — see resolveBottleAvailability. */
+  stock?: number;
+  availableForPreOrder?: boolean;
 }): Fulfillment {
+  if (args.productType === "FULL_BOTTLE") {
+    return resolveBottleAvailability({ stock: args.stock ?? 0, availableForPreOrder: args.availableForPreOrder ?? false })
+      .fulfillment;
+  }
   if (args.productType !== "DECANT" || args.provenance === "RETAIL") return args.skuFulfillment;
   return decantFulfillment({
     remainingMl: args.remainingMl ?? 0,
@@ -176,8 +189,10 @@ export async function addOneToCart(
     skuFulfillment: sku.fulfillment,
     sizeMl: sku.sizeMl,
     remainingMl: sku.remainingMl ?? null,
+    stock: sku.stock,
     thresholdMl,
     provenance: sku.provenance,
+    availableForPreOrder: sku.availableForPreOrder,
   });
   const cap = resolveCartCap({
     productType,
@@ -186,6 +201,7 @@ export async function addOneToCart(
     remainingMl: sku.remainingMl,
     stock: sku.stock,
     provenance: sku.provenance,
+    availableForPreOrder: sku.availableForPreOrder,
   });
   if (cap <= 0) throw new Error("This item is currently out of stock");
   const clamped = clampQuantity(quantity, cap);
@@ -266,8 +282,10 @@ async function priceCombinedRows(
       skuFulfillment: row.sku.fulfillment,
       sizeMl: row.sku.sizeMl,
       remainingMl: row.remainingMl,
+      stock: row.sku.stock,
       thresholdMl: promoConfig.decantPreOrderThresholdMl,
       provenance: row.sku.provenance,
+      availableForPreOrder: row.sku.availableForPreOrder,
     });
     return [
       {
@@ -296,6 +314,7 @@ async function priceCombinedRows(
       remainingMl: found?.remainingMl,
       stock: found?.sku?.stock ?? 0,
       provenance: found?.sku?.provenance,
+      availableForPreOrder: found?.sku?.availableForPreOrder,
     });
     return {
       skuId: line.skuId,
@@ -414,8 +433,10 @@ async function loadPricedDirectItem(
       skuFulfillment: row.sku.fulfillment,
       sizeMl: row.sku.sizeMl,
       remainingMl: row.remainingMl,
+      stock: row.sku.stock,
       thresholdMl: promoConfig.decantPreOrderThresholdMl,
       provenance: row.sku.provenance,
+      availableForPreOrder: row.sku.availableForPreOrder,
     });
     const cap = resolveCartCap({
       productType: row.productType,
@@ -424,6 +445,7 @@ async function loadPricedDirectItem(
       remainingMl: row.remainingMl,
       stock: row.sku.stock,
       provenance: row.sku.provenance,
+      availableForPreOrder: row.sku.availableForPreOrder,
     });
     if (cap > 0) {
       combined = [
