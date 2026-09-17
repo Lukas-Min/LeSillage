@@ -88,6 +88,10 @@ export const stockMovementReason = [
   "ORDER_FULFILLED",
   "TESTER_ASSIGNED",
   "TESTER_RELEASED",
+  // An in-house decant given as the free tester is poured from the product's
+  // ml pool, so its reservation is in millilitres like ML_RESERVED, not units.
+  "TESTER_ML_ASSIGNED",
+  "TESTER_ML_RELEASED",
   "ML_RESERVED",
   "ML_RELEASED",
   "ML_ADJUST",
@@ -119,6 +123,7 @@ export const auditAction = [
   "QR_DELETE",
   "PRODUCT_FRAGELLA_IMPORT",
   "ORDER_STATUS",
+  "ORDER_TESTER_ASSIGN",
   "ORDER_NOTE",
   "OPTION_VALUE_CHANGE",
   "ACCOUNT_UPDATE",

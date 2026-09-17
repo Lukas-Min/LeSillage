@@ -21,13 +21,14 @@ import {
   type FulfillmentMethod,
   type OrderStatus,
   type PromoCode,
+  type Provenance,
 } from "@/db/schema";
 import { priceCart } from "@/domain/cart";
 import { generateOrderNumber } from "@/domain/order-number";
-import { isTesterBonusEligible, pickTester } from "@/domain/promo";
+import { isTesterBonusEligible, pickTester, testerUnitsAvailable } from "@/domain/promo";
 import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
 import { checkPromoCodeEligibility } from "@/domain/promo-code";
-import { assertTransition } from "@/domain/order-state";
+import { assertTransition, confirmBlockedReason } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment, resolveCartCap } from "@/lib/cart";
 import { clampQuantity } from "@/domain/money";
@@ -569,7 +570,12 @@ export async function submitReceipt(
   after(async () => {
     try {
     const env = getEnv();
-    const promo = (await client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")))[0];
+    const [promo, fresh] = await Promise.all([
+      client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")).then((r) => r[0]),
+      // orderRow predates the transaction; the tester auto-pick inside it may
+      // have set promoTesterSkuId since.
+      client.select({ promoTesterSkuId: orders.promoTesterSkuId }).from(orders).where(eq(orders.id, orderRow.id)).then((r) => r[0]),
+    ]);
     const emailInput = {
       orderNumber: orderRow.orderNumber,
       status: "RECEIPT_SUBMITTED" as OrderStatus,
@@ -577,6 +583,7 @@ export async function submitReceipt(
       email: orderRow.email,
       fulfillmentMethod: orderRow.fulfillmentMethod,
       lines: await toEmailLines(itemRows),
+      testerAwarded: await loadTesterAwarded(fresh?.promoTesterSkuId ?? null),
       subtotalCentavos: orderRow.subtotalCentavos,
       discountCentavos: orderRow.discountCentavos,
       deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
@@ -643,6 +650,187 @@ async function tryReserveTesterSku(
     .where(and(eq(skus.id, skuId), gte(skus.stock, 1), eq(skus.isTester, true), eq(skus.isActive, true)))
     .returning({ stock: skus.stock });
   return updated.length > 0;
+}
+
+// ---------------------------------------------------------------- Free tester
+
+type Tx = Pick<ReturnType<typeof db>, "select" | "update" | "insert">;
+
+/** One tester SKU the auto-pick or the admin may set aside for an order. */
+export interface TesterOption {
+  skuId: string;
+  productId: string;
+  productName: string;
+  label: string;
+  brand: string;
+  provenance: Provenance;
+  sizeMl: number | null;
+  /** Units it can hand out right now — pours left in the pool for an in-house
+   *  decant, unit stock for a retail one. Zero means listed but unavailable. */
+  unitsAvailable: number;
+}
+
+/**
+ * Every active decant SKU flagged as a tester. A tester is a decant — the
+ * complimentary pour that comes with ₱2,000 of decants — so availability
+ * follows the same provenance split the cart uses (`testerUnitsAvailable`).
+ * Shared by the auto-pick at receipt time and the admin's picker.
+ */
+export async function loadTesterOptions(tx: Pick<ReturnType<typeof db>, "select"> = db()): Promise<TesterOption[]> {
+  const rows = await tx
+    .select({
+      skuId: skus.id,
+      productId: products.id,
+      productName: products.name,
+      label: skus.label,
+      brand: products.brand,
+      provenance: skus.provenance,
+      sizeMl: skus.sizeMl,
+      stock: skus.stock,
+      remainingMl: products.remainingMl,
+    })
+    .from(skus)
+    .innerJoin(products, eq(products.id, skus.productId))
+    .where(and(eq(skus.isTester, true), eq(skus.isActive, true), eq(products.type, "DECANT")));
+  return rows.map((row) => ({
+    skuId: row.skuId,
+    productId: row.productId,
+    productName: row.productName,
+    label: row.label,
+    brand: row.brand,
+    provenance: row.provenance,
+    sizeMl: row.sizeMl,
+    unitsAvailable: testerUnitsAvailable(row),
+  }));
+}
+
+/**
+ * Set one unit of a tester aside for an order. Branches on provenance exactly
+ * like `reserveStockWithinTx`: an IN_HOUSE decant takes `sizeMl` from the
+ * product's pool (TESTER_ML_ASSIGNED), a RETAIL one takes a unit of stock
+ * (TESTER_ASSIGNED). Both are conditional updates, so two orders racing for
+ * the last pour can't both succeed. Returns false when nothing was left.
+ */
+async function reserveTesterUnit(
+  tx: Tx,
+  orderId: string,
+  option: Pick<TesterOption, "skuId" | "productId" | "provenance" | "sizeMl">,
+): Promise<boolean> {
+  if (option.provenance === "IN_HOUSE") {
+    const ml = option.sizeMl ?? 0;
+    if (ml <= 0) return false;
+    const updated = await tx
+      .update(products)
+      .set({ remainingMl: sql`${products.remainingMl} - ${ml}` })
+      .where(and(eq(products.id, option.productId), gte(products.remainingMl, ml)))
+      .returning({ id: products.id });
+    if (updated.length === 0) return false;
+    await tx.insert(stockMovements).values({ skuId: option.skuId, delta: -ml, reason: "TESTER_ML_ASSIGNED", orderId });
+    return true;
+  }
+  if (!(await tryReserveTesterSku(tx, option.skuId))) return false;
+  await tx.insert(stockMovements).values({ skuId: option.skuId, delta: -1, reason: "TESTER_ASSIGNED", orderId });
+  return true;
+}
+
+/**
+ * Hand back whatever tester this order has set aside — ml or a unit,
+ * whichever kind of movement reserved it. Counted per SKU rather than
+ * keyed, so an order whose tester was swapped A → B → A (three
+ * reservations, two releases) still gives back exactly the one it holds.
+ */
+async function releaseTesterWithinTx(tx: Tx, orderId: string): Promise<void> {
+  const movements = await tx
+    .select()
+    .from(stockMovements)
+    .where(
+      and(
+        eq(stockMovements.orderId, orderId),
+        inArray(stockMovements.reason, ["TESTER_ASSIGNED", "TESTER_ML_ASSIGNED", "TESTER_RELEASED", "TESTER_ML_RELEASED"]),
+      ),
+    );
+  // Net units still held, per reservation shape (sku + signed delta).
+  const held = new Map<string, { skuId: string; delta: number; isMl: boolean; count: number }>();
+  for (const m of movements) {
+    const isMl = m.reason === "TESTER_ML_ASSIGNED" || m.reason === "TESTER_ML_RELEASED";
+    const isAssign = m.reason === "TESTER_ASSIGNED" || m.reason === "TESTER_ML_ASSIGNED";
+    const delta = isAssign ? m.delta : -m.delta;
+    const key = `${isMl ? "ml" : "unit"}:${m.skuId}:${delta}`;
+    const entry = held.get(key) ?? { skuId: m.skuId, delta, isMl, count: 0 };
+    entry.count += isAssign ? 1 : -1;
+    held.set(key, entry);
+  }
+  for (const entry of held.values()) {
+    for (let i = 0; i < entry.count; i += 1) {
+      if (entry.isMl) {
+        const sku = (await tx.select({ productId: skus.productId }).from(skus).where(eq(skus.id, entry.skuId)))[0];
+        if (sku) {
+          await tx
+            .update(products)
+            .set({ remainingMl: sql`${products.remainingMl} - ${entry.delta}` })
+            .where(eq(products.id, sku.productId));
+        }
+      } else {
+        await tx
+          .update(skus)
+          .set({ stock: sql`${skus.stock} - ${entry.delta}` })
+          .where(eq(skus.id, entry.skuId));
+      }
+      await tx.insert(stockMovements).values({
+        skuId: entry.skuId,
+        delta: -entry.delta,
+        reason: entry.isMl ? "TESTER_ML_RELEASED" : "TESTER_RELEASED",
+        orderId,
+      });
+    }
+  }
+}
+
+/**
+ * Admin picks (or swaps) the free tester for an order that earned one. The
+ * previous pick is handed back and the new one set aside in one transaction,
+ * with the order row locked so two admins can't both "win". Allowed while the
+ * order is awaiting confirmation or being prepared — the customer has to be
+ * told which tester is coming before it ships.
+ */
+export async function assignTesterToOrder(args: { orderId: string; skuId: string }): Promise<void> {
+  const client = db();
+  await client.transaction(async (tx) => {
+    const orderRow = (await tx.select().from(orders).where(eq(orders.id, args.orderId)).for("update"))[0];
+    if (!orderRow) throw new Error("Order not found");
+    if (orderRow.status !== "RECEIPT_SUBMITTED" && orderRow.status !== "CONFIRMED") {
+      throw new Error("A tester can only be chosen while the order is awaiting confirmation or being prepared");
+    }
+    if (orderRow.promoTesterResult !== "PENDING" && orderRow.promoTesterResult !== "ASSIGNED") {
+      throw new Error("This order did not earn a free tester");
+    }
+    if (orderRow.promoTesterSkuId === args.skuId) return;
+    const option = (await loadTesterOptions(tx)).find((o) => o.skuId === args.skuId);
+    if (!option) throw new Error("That SKU is not an active tester");
+    // Release first so swapping between two sizes of the same bottle can't
+    // fail on millilitres this very order is holding.
+    await releaseTesterWithinTx(tx, args.orderId);
+    if (!(await reserveTesterUnit(tx, args.orderId, option))) {
+      throw new Error(`${option.productName} (${option.label}) just ran out — pick another tester`);
+    }
+    await tx
+      .update(orders)
+      .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: option.skuId, updatedAt: new Date() })
+      .where(eq(orders.id, args.orderId));
+  });
+}
+
+/** "Layton (3ml)" for the customer emails, or null when nothing is set aside. */
+async function loadTesterAwarded(skuId: string | null): Promise<{ name: string } | null> {
+  if (!skuId) return null;
+  const row = (
+    await db()
+      .select({ name: products.name, label: skus.label })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(eq(skus.id, skuId))
+  )[0];
+  return row ? { name: `${row.name} (${row.label})` } : null;
 }
 
 export async function reserveStockForOrder(orderId: string): Promise<void> {
@@ -737,28 +925,19 @@ async function reserveStockWithinTx(
     for (const p of purchasedProducts) {
       if (p.brand) purchasedBrands.add(p.brand);
     }
-    const candidates = await tx
-      .select({
-        skuId: skus.id,
-        brand: products.brand,
-        stock: skus.stock,
-      })
-      .from(skus)
-      .innerJoin(products, eq(products.id, skus.productId))
-      .where(and(eq(skus.isTester, true), eq(skus.isActive, true), sql`${skus.stock} > 0`));
-    const assignment = pickTester(candidates, purchasedBrands);
-    if (assignment.result !== "ASSIGNED" || !assignment.skuId) return;
-    const ok = await tryReserveTesterSku(tx, assignment.skuId);
-    if (!ok) return;
-    await tx.insert(stockMovements).values({
-      skuId: assignment.skuId,
-      delta: -1,
-      reason: "TESTER_ASSIGNED",
-      orderId,
-    });
+    // Brand-matched auto-pick; anything it can't place stays PENDING for the
+    // admin to choose by hand (never SKIPPED, never an unrelated brand).
+    const options = await loadTesterOptions(tx);
+    const assignment = pickTester(
+      options.map((o) => ({ skuId: o.skuId, brand: o.brand, stock: o.unitsAvailable })),
+      purchasedBrands,
+    );
+    const chosen = options.find((o) => o.skuId === assignment.skuId);
+    if (assignment.result !== "ASSIGNED" || !chosen) return;
+    if (!(await reserveTesterUnit(tx, orderId, chosen))) return;
     await tx
       .update(orders)
-      .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: assignment.skuId })
+      .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: chosen.skuId })
       .where(eq(orders.id, orderId));
 }
 
@@ -824,32 +1003,7 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
       }
     }
 
-    const tester = await tx
-      .select()
-      .from(stockMovements)
-      .where(and(eq(stockMovements.orderId, orderId), eq(stockMovements.reason, "TESTER_ASSIGNED")));
-    const testerReleased = new Set<string>();
-    const existingTesterReleases = await tx
-      .select()
-      .from(stockMovements)
-      .where(and(eq(stockMovements.orderId, orderId), eq(stockMovements.reason, "TESTER_RELEASED")));
-    for (const m of existingTesterReleases) {
-      testerReleased.add(`${m.skuId}:${-m.delta}`);
-    }
-    for (const movement of tester) {
-      const key = `${movement.skuId}:${movement.delta}`;
-      if (testerReleased.has(key)) continue;
-      await tx
-        .update(skus)
-        .set({ stock: sql`${skus.stock} - ${movement.delta}` })
-        .where(eq(skus.id, movement.skuId));
-      await tx.insert(stockMovements).values({
-        skuId: movement.skuId,
-        delta: -movement.delta,
-        reason: "TESTER_RELEASED",
-        orderId,
-      });
-    }
+    await releaseTesterWithinTx(tx, orderId);
   });
 }
 
@@ -906,6 +1060,10 @@ export async function transitionOrderStatus(args: {
       throw new Error("A reason is required to reject or cancel an order");
     }
   }
+  // Same rule the admin UI shows as a disabled Confirm button — enforced here
+  // so it holds for any caller, not just that button.
+  const blocked = confirmBlockedReason({ next: args.next, promoTesterResult: orderRow.promoTesterResult });
+  if (blocked) throw new Error(blocked);
 
   // DELIVERED mints the token the day-2 follow-up email's one-tap "yes, I
   // received it" link uses (src/app/(store)/order-confirm/[token]) and
@@ -965,6 +1123,7 @@ export async function transitionOrderStatus(args: {
         orderedAt: orderRow.createdAt,
         reason: args.reason,
         pickupNotes: orderRow.pickupNotes,
+        testerAwarded: args.next === "CONFIRMED" ? await loadTesterAwarded(orderRow.promoTesterSkuId) : null,
       };
 
       const r = await sendEmail({ to: orderRow.email, ...entry.build(emailInput) });

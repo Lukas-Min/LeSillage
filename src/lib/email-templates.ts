@@ -193,13 +193,14 @@ You can upload a new receipt from your account page. If you believe this is a mi
 
 export function orderConfirmedEmail(input: OrderEmailInput): OrderEmail {
   const eta = etaLinesSummary(input.lines, input.orderedAt);
+  const tester = input.testerAwarded ? `\nFree tester: ${input.testerAwarded.name}\n` : "";
   const subject = `Payment verified — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
 We verified your payment for order ${input.orderNumber}. We are preparing it now.
 
 Estimated arrival: ${eta}
-${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ?? "TBD"}\n` : ""}
+${tester}${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ?? "TBD"}\n` : ""}
 — Le Sillage`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
@@ -207,7 +208,11 @@ ${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ??
     title: "Payment verified",
     greeting: greeting(input),
     intro: [`We verified your payment for order ${input.orderNumber}. We are preparing it now.`],
-    facts: [{ label: "Estimated arrival", value: eta }, ...pickupFact(input)],
+    facts: [
+      { label: "Estimated arrival", value: eta },
+      ...(input.testerAwarded ? [{ label: "Free tester", value: input.testerAwarded.name }] : []),
+      ...pickupFact(input),
+    ],
     items: input.lines,
     cta: { label: "View your order", url: accountOrdersUrl() },
   });

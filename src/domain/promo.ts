@@ -64,6 +64,26 @@ export interface TesterCandidate {
   stock: number;
 }
 
+/**
+ * How many free-tester units a tester SKU can hand out right now. A tester is
+ * a decant, so this follows the same provenance split as the cart: an
+ * IN_HOUSE decant is poured from the product's shared ml pool (one unit per
+ * `sizeMl`), a RETAIL one is a distinct pre-made unit with its own stock.
+ */
+export function testerUnitsAvailable(sku: {
+  provenance: string;
+  stock: number;
+  sizeMl: number | null;
+  remainingMl: number | null;
+}): number {
+  if (sku.provenance === "IN_HOUSE") {
+    const size = sku.sizeMl ?? 0;
+    if (size <= 0) return 0;
+    return Math.floor(Math.max(0, sku.remainingMl ?? 0) / size);
+  }
+  return Math.max(0, sku.stock);
+}
+
 export function pickTester(
   candidates: TesterCandidate[],
   purchasedBrands: Set<string>,

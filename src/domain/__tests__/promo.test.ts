@@ -3,6 +3,7 @@ import {
   isFreeShippingEligible,
   isTesterBonusEligible,
   pickTester,
+  testerUnitsAvailable,
 } from "../promo";
 
 describe("promo thresholds", () => {
@@ -78,5 +79,19 @@ describe("isTesterBonusEligible", () => {
         { productType: "DECANT", discountedLineTotalCentavos: 200000 },
       ]),
     ).toBe(true);
+  });
+});
+
+describe("testerUnitsAvailable", () => {
+  it("counts an in-house decant tester in whole pours from the ml pool", () => {
+    expect(testerUnitsAvailable({ provenance: "IN_HOUSE", stock: 0, sizeMl: 3, remainingMl: 10 })).toBe(3);
+    expect(testerUnitsAvailable({ provenance: "IN_HOUSE", stock: 99, sizeMl: 3, remainingMl: 2 })).toBe(0);
+    expect(testerUnitsAvailable({ provenance: "IN_HOUSE", stock: 99, sizeMl: 0, remainingMl: 50 })).toBe(0);
+    expect(testerUnitsAvailable({ provenance: "IN_HOUSE", stock: 0, sizeMl: 2, remainingMl: null })).toBe(0);
+  });
+
+  it("uses unit stock for a retail decant tester", () => {
+    expect(testerUnitsAvailable({ provenance: "RETAIL", stock: 4, sizeMl: 5, remainingMl: 0 })).toBe(4);
+    expect(testerUnitsAvailable({ provenance: "RETAIL", stock: -1, sizeMl: 5, remainingMl: 100 })).toBe(0);
   });
 });

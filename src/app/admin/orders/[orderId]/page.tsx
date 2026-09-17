@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { orders, orderItems, receipts, users, skus } from "@/db/schema";
+import { orders, orderItems, receipts, users, skus, products } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { describeStatus } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
+import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
+import { loadTesterOptions } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -33,7 +35,12 @@ export default async function AdminOrderDetailPage({
   const order = (await db().select().from(orders).where(eq(orders.id, orderId)))[0];
   if (!order) return notFound();
 
-  const [items, customer, receiptRows, testerSku] = await Promise.all([
+  // The tester can be picked or swapped until the order leaves preparation.
+  const testerPickable =
+    (order.promoTesterResult === "PENDING" || order.promoTesterResult === "ASSIGNED") &&
+    (order.status === "RECEIPT_SUBMITTED" || order.status === "CONFIRMED");
+
+  const [items, customer, receiptRows, testerSku, testerOptions] = await Promise.all([
     db().select().from(orderItems).where(eq(orderItems.orderId, orderId)),
     db()
       .select({ id: users.id, email: users.email, name: users.name, phone: users.phone })
@@ -47,12 +54,46 @@ export default async function AdminOrderDetailPage({
       .orderBy(desc(receipts.submittedAt)),
     order.promoTesterSkuId
       ? db()
-          .select({ label: skus.label, productId: skus.productId })
+          .select({ label: skus.label, productId: skus.productId, productName: products.name })
           .from(skus)
+          .innerJoin(products, eq(products.id, skus.productId))
           .where(eq(skus.id, order.promoTesterSkuId))
           .then((r) => r[0])
       : Promise.resolve(undefined),
+    testerPickable ? loadTesterOptions() : Promise.resolve([]),
   ]);
+
+  // Brands in the order, so the picker can lead with the testers the
+  // auto-pick would have chosen had they been in stock.
+  const purchasedBrands = new Set<string>(
+    testerPickable && items.length > 0
+      ? (
+          await db()
+            .select({ brand: products.brand })
+            .from(skus)
+            .innerJoin(products, eq(products.id, skus.productId))
+            .where(inArray(skus.id, items.map((it) => it.skuId)))
+        ).map((r) => r.brand)
+      : [],
+  );
+  const pickerOptions: TesterPickerOption[] = testerOptions
+    .map((o) => ({
+      skuId: o.skuId,
+      label: `${o.productName} · ${o.label}`,
+      matchesOrder: purchasedBrands.has(o.brand),
+      unitsAvailable: o.unitsAvailable,
+    }))
+    .sort((a, b) => Number(b.matchesOrder) - Number(a.matchesOrder) || a.label.localeCompare(b.label));
+  // A tester un-flagged after it was assigned still has to appear as the
+  // current pick, or the select would show nothing selected.
+  if (order.promoTesterSkuId && testerSku && !pickerOptions.some((o) => o.skuId === order.promoTesterSkuId)) {
+    pickerOptions.unshift({
+      skuId: order.promoTesterSkuId,
+      label: `${testerSku.productName} · ${testerSku.label}`,
+      matchesOrder: false,
+      unitsAvailable: 0,
+    });
+  }
 
   const address = (order.addressSnapshot ?? null) as AddressSnapshot | null;
   const latestReceipt = receiptRows[0];
@@ -70,6 +111,7 @@ export default async function AdminOrderDetailPage({
           orderId={order.id}
           status={order.status}
           fulfillmentMethod={order.fulfillmentMethod}
+          promoTesterResult={order.promoTesterResult}
         />
       </div>
       {order.statusReason ? <p className="text-sm text-destructive">Reason: {order.statusReason}</p> : null}
@@ -187,19 +229,35 @@ export default async function AdminOrderDetailPage({
           <CardHeader>
             <CardTitle className="text-base">Tester bonus</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm">
+          <CardContent className="space-y-3 text-sm">
             {order.promoTesterResult === "ASSIGNED" && testerSku ? (
               <p>
-                Assigned: {testerSku.label}{" "}
+                Assigned: {testerSku.productName} · {testerSku.label}{" "}
                 <Link href={`/admin/products/${testerSku.productId}`} className="underline underline-offset-4 hover:text-foreground">
                   (view product)
                 </Link>
               </p>
-            ) : (
-              <p className="text-muted-foreground">
-                {order.promoTesterResult === "PENDING" ? "Pending — no matching tester was in stock yet." : "Skipped."}
+            ) : order.promoTesterResult === "PENDING" ? (
+              <p className="text-amber-600">
+                This order earned a free tester, but nothing from a brand in the order was available to hand out
+                automatically. {testerPickable ? "Choose one below — Confirm stays locked until you do." : "It was never assigned."}
               </p>
+            ) : (
+              <p className="text-muted-foreground">Skipped.</p>
             )}
+            {testerPickable ? (
+              pickerOptions.length > 0 ? (
+                <TesterPicker orderId={order.id} options={pickerOptions} currentSkuId={order.promoTesterSkuId} />
+              ) : (
+                <p className="text-muted-foreground">
+                  No decant is flagged as a tester yet. Tick “Free tester” on a decant SKU under{" "}
+                  <Link href="/admin/products" className="underline underline-offset-4 hover:text-foreground">
+                    Products
+                  </Link>{" "}
+                  to build the pool.
+                </p>
+              )
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

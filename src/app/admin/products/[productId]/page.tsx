@@ -319,13 +319,15 @@ export default async function AdminProductDetailPage({
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {product.type === "DECANT" ? (
-                    // Decants aren't in the tester-bonus pool; keep the stored flag.
-                    <input type="hidden" name="isTester" value={sku.isTester ? "on" : ""} />
-                  ) : (
                     <label className="flex items-center gap-2 text-xs">
-                      <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Tester{" "}
-                      <span className="font-normal text-muted-foreground">(still sold in the shop; also the promo pool)</span>
+                      <input type="checkbox" name="isTester" defaultChecked={sku.isTester} /> Free tester{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (still sold in the shop; also handed out free with ₱2,000 of decants)
+                      </span>
                     </label>
+                  ) : (
+                    // The free tester is a decant; a bottle or partial is never one.
+                    <input type="hidden" name="isTester" value="" />
                   )}
                   <label className="flex items-center gap-2 text-xs">
                     <input type="checkbox" name="isActive" defaultChecked={sku.isActive} /> Active
@@ -409,12 +411,14 @@ export default async function AdminProductDetailPage({
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {product.type === "DECANT" ? (
-                    <input type="hidden" name="isTester" value="" />
-                  ) : (
                     <label className="flex items-center gap-2 text-xs">
-                      <input type="checkbox" name="isTester" /> Tester{" "}
-                      <span className="font-normal text-muted-foreground">(still sold in the shop; also the promo pool)</span>
+                      <input type="checkbox" name="isTester" /> Free tester{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (still sold in the shop; also handed out free with ₱2,000 of decants)
+                      </span>
                     </label>
+                  ) : (
+                    <input type="hidden" name="isTester" value="" />
                   )}
                   <label className="flex items-center gap-2 text-xs">
                     <input type="checkbox" name="isActive" defaultChecked /> Active

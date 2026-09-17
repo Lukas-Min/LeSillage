@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { adminTransitionOrder } from "@/actions/admin-actions";
-import { canTransition } from "@/domain/order-state";
-import type { FulfillmentMethod, OrderStatus } from "@/db/schema";
+import { canTransition, confirmBlockedReason } from "@/domain/order-state";
+import type { FulfillmentMethod, OrderStatus, TesterResult } from "@/db/schema";
 
 // Forward transitions this component can offer, keyed by the current status
 // — CONFIRMED branches on fulfillmentMethod since a delivery order ships
@@ -39,10 +39,14 @@ export function OrderRowActions({
   orderId,
   status,
   fulfillmentMethod,
+  promoTesterResult,
 }: {
   orderId: string;
   status: OrderStatus;
   fulfillmentMethod: FulfillmentMethod;
+  /** Confirm is held while this is PENDING — the order earned a free tester
+   *  nobody has picked yet (`confirmBlockedReason`). */
+  promoTesterResult: TesterResult | null;
 }) {
   const [showReason, setShowReason] = useState<"REJECTED" | "CANCELLED" | null>(null);
   const [reason, setReason] = useState("");
@@ -84,6 +88,7 @@ export function OrderRowActions({
   };
 
   const forward = nextForwardStep(status, fulfillmentMethod);
+  const blocked = forward ? confirmBlockedReason({ next: forward.next, promoTesterResult }) : null;
   // Once verification is past (SHIPPED/DELIVERED/READY_FOR_PICKUP onward),
   // rejecting no longer makes sense — that's what the no-show Cancel below
   // is for on the pickup side.
@@ -95,11 +100,13 @@ export function OrderRowActions({
 
   return (
     <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
+      {blocked ? <p className="text-xs text-amber-600 sm:max-w-xs sm:text-right">{blocked}</p> : null}
       {forward ? (
         <Button
           onClick={() => advance(forward.next, `Order ${forward.next.toLowerCase().replace(/_/g, " ")}`)}
-          disabled={isPending}
+          disabled={isPending || Boolean(blocked)}
           aria-busy={isPending}
+          title={blocked ?? undefined}
         >
           {forward.label}
         </Button>

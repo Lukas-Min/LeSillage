@@ -116,6 +116,7 @@ export default async function AdminOrdersPage({
                 orderId={order.id}
                 status={order.status}
                 fulfillmentMethod={order.fulfillmentMethod}
+                promoTesterResult={order.promoTesterResult}
               />
             </div>
           </CardContent>

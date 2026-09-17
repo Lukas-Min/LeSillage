@@ -1,4 +1,4 @@
-import type { OrderStatus } from "@/db/schema";
+import type { OrderStatus, TesterResult } from "@/db/schema";
 
 // Delivery orders: AWAITING_PAYMENT -> RECEIPT_SUBMITTED -> CONFIRMED ->
 // SHIPPED -> DELIVERED -> COMPLETED.
@@ -82,4 +82,21 @@ export function describeStatus(status: OrderStatus): string {
       throw new Error(`Unknown status: ${String(exhaustive)}`);
     }
   }
+}
+
+/**
+ * Why "Confirm" is refused for an order whose free tester hasn't been chosen.
+ *
+ * A qualifying order leaves receipt submission as PENDING when no brand-matched
+ * tester was available to auto-assign; the admin has to pick one (any tester,
+ * matching or not) before the order can move on, so a customer is never
+ * confirmed with a promised tester that nobody has set aside. SKIPPED orders
+ * never earned one and ASSIGNED ones already have theirs — neither is blocked.
+ */
+export function confirmBlockedReason(args: {
+  next: OrderStatus;
+  promoTesterResult: TesterResult | null;
+}): string | null {
+  if (args.next !== "CONFIRMED" || args.promoTesterResult !== "PENDING") return null;
+  return "This order earned a free tester — pick one in the Tester bonus card before confirming.";
 }

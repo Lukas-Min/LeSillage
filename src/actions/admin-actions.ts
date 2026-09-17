@@ -7,7 +7,7 @@ import { promoSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
-import { transitionOrderStatus } from "@/lib/orders";
+import { assignTesterToOrder, transitionOrderStatus } from "@/lib/orders";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { toCentavos } from "@/domain/money";
@@ -116,6 +116,45 @@ export type OrderActionResult = { ok: true } | { ok: false; error: string };
 // action because the dispatch condition didn't match any value a button
 // actually sent. One action per transition target, chosen by the button
 // itself, can't misroute.
+const assignTesterSchema = z.object({
+  orderId: z.string().min(1),
+  skuId: z.string().min(1),
+});
+
+/** Admin picks (or swaps) the free tester an order earned — see
+ *  `assignTesterToOrder` for the stock handling and the status window. */
+export async function adminAssignTester(formData: FormData): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  const decision = await rateLimit({
+    bucket: "PASSWORD",
+    key: await getRequestKey("order-tester", admin.id),
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
+  const parsed = assignTesterSchema.safeParse({
+    orderId: formData.get("orderId"),
+    skuId: formData.get("skuId"),
+  });
+  if (!parsed.success) return { ok: false, error: "Pick a tester first" };
+  try {
+    await assignTesterToOrder(parsed.data);
+  } catch (error) {
+    if (error instanceof Error) return { ok: false, error: error.message };
+    throw error;
+  }
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${parsed.data.orderId}`);
+  auditLogSubject({
+    actor: admin.id,
+    action: "ORDER_TESTER_ASSIGN",
+    targetType: "order",
+    targetId: parsed.data.orderId,
+    metadata: { skuId: parsed.data.skuId },
+  });
+  return { ok: true };
+}
+
 export async function adminTransitionOrder(formData: FormData): Promise<OrderActionResult> {
   const admin = await requireAdmin();
   const decision = await rateLimit({

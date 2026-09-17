@@ -3,6 +3,7 @@ import {
   assertTransition,
   canCustomerCancel,
   canTransition,
+  confirmBlockedReason,
   describeStatus,
   isTerminal,
   requiresReason,
@@ -80,5 +81,19 @@ describe("order state transitions", () => {
   it("assertTransition throws on invalid", () => {
     expect(() => assertTransition("AWAITING_PAYMENT", "SHIPPED")).toThrow();
     expect(() => assertTransition("SHIPPED", "COMPLETED")).toThrow();
+  });
+});
+
+describe("confirmBlockedReason", () => {
+  it("blocks Confirm only while a promised tester is still unpicked", () => {
+    expect(confirmBlockedReason({ next: "CONFIRMED", promoTesterResult: "PENDING" })).toMatch(/free tester/);
+    expect(confirmBlockedReason({ next: "CONFIRMED", promoTesterResult: "ASSIGNED" })).toBeNull();
+    expect(confirmBlockedReason({ next: "CONFIRMED", promoTesterResult: "SKIPPED" })).toBeNull();
+    expect(confirmBlockedReason({ next: "CONFIRMED", promoTesterResult: null })).toBeNull();
+  });
+
+  it("never blocks any other transition", () => {
+    expect(confirmBlockedReason({ next: "REJECTED", promoTesterResult: "PENDING" })).toBeNull();
+    expect(confirmBlockedReason({ next: "SHIPPED", promoTesterResult: "PENDING" })).toBeNull();
   });
 });
