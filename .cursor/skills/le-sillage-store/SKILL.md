@@ -59,3 +59,7 @@ Every layout, typography, navigation, and interactive component must be built an
 ## Documentation
 
 Append a single bullet to `CHANGELOG.md` for every change.
+
+## Code review checkpoints
+
+`code-review/CHECKPOINT.md` holds the last-reviewed commit SHA; a review scopes to `git diff <that-sha>...HEAD` instead of the whole tree (full baseline only when no checkpoint exists yet, or a full re-audit / specific PR-branch-path target was asked for), and always appends an entry to `code-review/LOG.md` and advances the checkpoint when it finishes — even with zero findings. Full rule and rationale in the repo's `CLAUDE.md` under "Code review checkpoints (hard rule)".

@@ -73,6 +73,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for every change, including schema, business 
 - `src/domain/` — pricing, discounts, promo codes, decant promo, ETA, cart/checkout totals, order-state (pure)
 - `src/actions/` — Server Actions
 - `src/lib/` — env, blob, email, auth, rate limits, PH location lookups (`ph-locations.ts`)
+- `code-review/` — code-review checkpoint and log (not a test suite); see below
 
 ## Testing
 

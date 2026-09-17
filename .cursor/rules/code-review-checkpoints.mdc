@@ -1,0 +1,25 @@
+---
+description: Scope code reviews to changes since the last checkpoint instead of the whole codebase, and log every review run.
+globs: **/*
+alwaysApply: true
+---
+
+# Code Review Checkpoints
+
+This repo tracks code-review coverage in `code-review/` (`code-review/README.md`) so a review never re-scans the whole codebase — and re-burns tokens re-checking code already reviewed and found clean — when only recent changes need it. This applies whenever the repo is opened for review work, whether invoked by name (a code-review command) or an ad hoc "review this" / "check for issues" request — not only when a review is explicitly named.
+
+## How to apply
+
+1. Before starting, read `code-review/CHECKPOINT.md` for the last-reviewed commit SHA.
+2. Scope the review to `git diff <that-sha>...HEAD` — the changes since the checkpoint — instead of the whole codebase.
+3. After finishing, append an entry to `code-review/LOG.md` (date, commit range, effort level, areas covered, findings with a status) and update `CHECKPOINT.md` to the new HEAD SHA. Do this even with zero findings, so the checkpoint always advances.
+
+## Exceptions (full-codebase scope wins)
+
+- No checkpoint exists yet: full baseline, and say so in the log entry.
+- The user explicitly asks for a full re-audit.
+- A specific PR/branch/path was named as the review target: that target's own scope wins over the checkpoint.
+
+## Why
+
+A small repo's code review is billed and effortful; re-reviewing code that was already reviewed and found clean wastes both time and tokens. The checkpoint plus log gives every future review (by any agent, in any session) the exact starting line instead of rediscovering it.
