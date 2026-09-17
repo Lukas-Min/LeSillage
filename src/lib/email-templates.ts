@@ -56,9 +56,14 @@ function etaLinesSummary(lines: EmailLine[], orderedAt: Date): string {
 }
 
 function formatLineForEmail(line: EmailLine): string {
-  const saving = line.discountCentavos ?? 0;
-  if (saving > 0 && line.originalUnitCentavos && line.originalUnitCentavos > line.unitPriceCentavos) {
-    return `- ${line.productName} (${line.skuLabel}) × ${line.quantity} — ~~${formatPHP(line.originalUnitCentavos)}~~ ${formatPHP(line.unitPriceCentavos * line.quantity)} (saved ${formatPHP(saving * line.quantity)})`;
+  // lineTotalCentavos is the authoritative, DB-stored line total;
+  // unitPriceCentavos is only a rounded-per-unit derivative of it and
+  // multiplying it back out by quantity can drift a centavo from the real
+  // total. The original total and saved amount are both derived from that
+  // one authoritative total instead, so original - saved always equals it.
+  const originalTotal = line.originalUnitCentavos !== undefined ? line.originalUnitCentavos * line.quantity : undefined;
+  if (originalTotal !== undefined && originalTotal > line.lineTotalCentavos) {
+    return `- ${line.productName} (${line.skuLabel}) × ${line.quantity} — ~~${formatPHP(originalTotal)}~~ ${formatPHP(line.lineTotalCentavos)} (saved ${formatPHP(originalTotal - line.lineTotalCentavos)})`;
   }
   return `- ${line.productName} (${line.skuLabel}) × ${line.quantity} — ${formatPHP(line.lineTotalCentavos)}`;
 }

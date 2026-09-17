@@ -4,18 +4,21 @@ import { useState } from "react";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { BuyNowButton } from "@/components/store/buy-now-button";
 import { Price } from "@/components/store/price";
+import type { VariantDiscount } from "@/domain/variant-options";
 
 export function BuyBox({
   skuId,
   originalCentavos,
   discountedCentavos,
   savedCentavos,
+  discounts,
   soldOut,
 }: {
   skuId: string;
   originalCentavos: number;
   discountedCentavos: number;
   savedCentavos: number;
+  discounts?: VariantDiscount[];
   soldOut: boolean;
 }) {
   const [quantity, setQuantity] = useState(1);
@@ -26,6 +29,7 @@ export function BuyBox({
         discountedCentavos={discountedCentavos}
         savedCentavos={savedCentavos}
         quantity={quantity}
+        discounts={discounts}
       />
       {soldOut ? (
         <p className="text-sm text-destructive">Sold out — check back soon.</p>

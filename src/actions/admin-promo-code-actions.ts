@@ -78,10 +78,24 @@ function describeIssues(error: z.ZodError): string {
   return field ? `Check "${field}": ${issue.message}` : issue.message;
 }
 
-function parseDate(value: string | undefined): Date | null {
+// Philippine Time is UTC+8 year-round (no DST). A bare <input type="date">
+// value ("2024-12-25") has no timezone of its own — new Date(value) parses
+// it as UTC midnight, i.e. 8:00 AM PHT, so an admin's end date expired 8
+// hours early (and a start date activated 8 hours late) relative to what
+// "Dec 25" actually means in Manila. Anchoring explicitly to +08:00 fixes
+// that; see toDateInput in src/app/admin/promo/page.tsx for the matching
+// reverse conversion that keeps the form round-tripping the day it shows.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function parseDate(value: string | undefined, boundary: "start" | "end"): Date | null {
   if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const startOfDayPht = new Date(`${value}T00:00:00+08:00`);
+  if (Number.isNaN(startOfDayPht.getTime())) return null;
+  // "Ends on Dec 25" means valid through the end of that day in Manila —
+  // stored as the exclusive upper bound, the start of the following day, so
+  // the endsAt < now check in domain/promo-code.ts only trips once Dec 25
+  // (PHT) has fully elapsed rather than 8 hours into it.
+  return boundary === "end" ? new Date(startOfDayPht.getTime() + ONE_DAY_MS) : startOfDayPht;
 }
 
 export async function createPromoCode(
@@ -107,8 +121,8 @@ export async function createPromoCode(
   // A ₱0 minimum is the same thing as no minimum, and the codes list already
   // renders 0 as "no minimum" — store it that way so the two agree.
   const minSpendCentavos = parsed.minSpendCentavos ? toCentavos(parsed.minSpendCentavos) : null;
-  const startsAt = parseDate(parsed.startsAt);
-  const endsAt = parseDate(parsed.endsAt);
+  const startsAt = parseDate(parsed.startsAt, "start");
+  const endsAt = parseDate(parsed.endsAt, "end");
   if (startsAt && endsAt && endsAt < startsAt) {
     return failed("This code would end before it starts — check the start and end dates");
   }
@@ -225,10 +239,10 @@ export async function updatePromoCode(
     (submitted ?? "") === (typeof previous === "string" ? previous : "");
   const startsAt = unchanged(parsed.startsAt, formData.get("previousStartsAt"))
     ? current.startsAt
-    : parseDate(parsed.startsAt);
+    : parseDate(parsed.startsAt, "start");
   const endsAt = unchanged(parsed.endsAt, formData.get("previousEndsAt"))
     ? current.endsAt
-    : parseDate(parsed.endsAt);
+    : parseDate(parsed.endsAt, "end");
   if (startsAt && endsAt && endsAt < startsAt) {
     return failed("This code would end before it starts — check the start and end dates");
   }

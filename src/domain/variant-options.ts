@@ -1,4 +1,19 @@
-import type { Condition, Fulfillment, Packaging, Provenance } from "@/db/schema";
+import type { Condition, DiscountType, Fulfillment, Packaging, Provenance } from "@/db/schema";
+
+/** One currently-active discount candidate for a variant — already filtered
+ *  for "is it active right now" server-side (see `isDiscountActive`), but
+ *  deliberately not yet reduced to a single winner: which discount actually
+ *  saves the customer more can depend on quantity (a FIXED amount is capped,
+ *  a PERCENTAGE scales linearly), and the display can't know the real
+ *  quantity until the customer picks one. `discountedCentavos`/
+ *  `savedCentavos` below are only the qty-1 preview; a live quantity
+ *  selector re-derives the true winner and line total via
+ *  `pickHighestSaving`/`applyLineDiscount` (src/domain/discount.ts) from
+ *  this list instead of naively multiplying the qty-1 preview. */
+export interface VariantDiscount {
+  type: DiscountType;
+  amount: number;
+}
 
 /**
  * Shared shapes + pure logic for the size/provenance variant picker
@@ -23,6 +38,7 @@ export interface VariantSubOption {
   originalCentavos: number;
   discountedCentavos: number;
   savedCentavos: number;
+  discounts: VariantDiscount[];
 }
 
 /** One size+provenance group — never a placeholder for a size/provenance the product doesn't offer. */
@@ -46,6 +62,7 @@ export interface SizePickerOption {
   originalCentavos: number;
   discountedCentavos: number;
   savedCentavos: number;
+  discounts: VariantDiscount[];
   /** Only present (length > 1) when this size+provenance has more than one
    *  SKU differing by condition/packaging — a secondary picker renders below
    *  the size row so the customer can refine within the group. Never shown
@@ -92,6 +109,7 @@ export function findSelectedVariant(
         originalCentavos: sub.originalCentavos,
         discountedCentavos: sub.discountedCentavos,
         savedCentavos: sub.savedCentavos,
+        discounts: sub.discounts,
       };
     }
   }

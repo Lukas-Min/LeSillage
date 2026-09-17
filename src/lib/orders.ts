@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { and, count, eq, gte, inArray, notInArray, sql } from "drizzle-orm";
+import { and, count, eq, exists, gte, inArray, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   carts,
@@ -157,34 +157,35 @@ export async function createOrderFromCart(input: CreateOrderInput) {
 
   const promoConfig = await loadPromoConfig();
 
-  // Cart quantities are already clamped to resolveCartCap at add-time
-  // (addOneToCart) — direct items skip the cart entirely and arrive
-  // untrusted from the client, so clamp them here the same way, right
-  // before they're priced.
-  if (usingDirectItems) {
-    items = items.map((item) => {
-      const found = skuRows.find((row) => row.sku.id === item.skuId);
-      if (!found) return item;
-      const fulfillment = effectiveFulfillment({
-        productType: found.productType,
-        skuFulfillment: found.sku.fulfillment,
-        sizeMl: found.sku.sizeMl,
-        remainingMl: found.remainingMl,
-        thresholdMl: promoConfig.decantPreOrderThresholdMl,
-        provenance: found.sku.provenance,
-      });
-      const cap = resolveCartCap({
-        productType: found.productType,
-        fulfillment,
-        sizeMl: found.sku.sizeMl,
-        remainingMl: found.remainingMl,
-        stock: found.sku.stock,
-        provenance: found.sku.provenance,
-      });
-      if (cap <= 0) throw new CheckoutError("This item is currently out of stock");
-      return { ...item, quantity: clampQuantity(item.quantity, cap) };
+  // Cart quantities are clamped to resolveCartCap at add-time (addOneToCart),
+  // but stock can move between then and checkout (another customer's receipt
+  // reserving the last units) — re-clamp against live stock/cap for every
+  // item here, not just direct items, so a sold-out item is caught now
+  // rather than only surfacing later at receipt-submit time. Direct items
+  // skip the cart entirely and arrive untrusted from the client, so they
+  // need this regardless.
+  items = items.map((item) => {
+    const found = skuRows.find((row) => row.sku.id === item.skuId);
+    if (!found) return item;
+    const fulfillment = effectiveFulfillment({
+      productType: found.productType,
+      skuFulfillment: found.sku.fulfillment,
+      sizeMl: found.sku.sizeMl,
+      remainingMl: found.remainingMl,
+      thresholdMl: promoConfig.decantPreOrderThresholdMl,
+      provenance: found.sku.provenance,
     });
-  }
+    const cap = resolveCartCap({
+      productType: found.productType,
+      fulfillment,
+      sizeMl: found.sku.sizeMl,
+      remainingMl: found.remainingMl,
+      stock: found.sku.stock,
+      provenance: found.sku.provenance,
+    });
+    if (cap <= 0) throw new CheckoutError("This item is currently out of stock");
+    return { ...item, quantity: clampQuantity(item.quantity, cap) };
+  });
 
   const discounts = await client
     .select()
@@ -273,6 +274,46 @@ export async function createOrderFromCart(input: CreateOrderInput) {
   // the code string comes from the client, everything else is re-derived
   // here from freshly-loaded state.
   const { order, totals } = await client.transaction(async (tx) => {
+    // priced/testerEligible above were computed from a snapshot of retailPrice
+    // and discounts read before this transaction opened — the only thing
+    // that snapshot fed into is this order's stored totals and the promo
+    // code's min-spend eligibility below, neither of which re-verified it
+    // against live data. Lock the SKU rows now (holding the lock for the
+    // rest of this transaction closes the price side entirely; discounts
+    // aren't locked, so a comparison here narrows but doesn't fully close
+    // that side's window) and fail loudly — like "this item is no longer
+    // available" elsewhere in this function — rather than silently persist
+    // totals computed from prices/discounts that moved under the order.
+    const lockedSkuRows = await tx
+      .select({ id: skus.id, retailPrice: skus.retailPrice })
+      .from(skus)
+      .where(inArray(skus.id, skuIds))
+      .for("update");
+    const freshDiscounts = await tx
+      .select()
+      .from(productDiscounts)
+      .where(inArray(productDiscounts.productId, Array.from(new Set(skuRows.map((s) => s.sku.productId)))));
+    const priceChanged = lockedSkuRows.some((row) => {
+      const original = skuRows.find((r) => r.sku.id === row.id);
+      return !original || original.sku.retailPrice !== row.retailPrice;
+    });
+    const discountsChanged =
+      freshDiscounts.length !== discounts.length ||
+      freshDiscounts.some((fresh) => {
+        const original = discounts.find((d) => d.id === fresh.id);
+        return (
+          !original ||
+          original.amount !== fresh.amount ||
+          original.type !== fresh.type ||
+          original.isActive !== fresh.isActive ||
+          (original.startsAt?.getTime() ?? null) !== (fresh.startsAt?.getTime() ?? null) ||
+          (original.endsAt?.getTime() ?? null) !== (fresh.endsAt?.getTime() ?? null)
+        );
+      });
+    if (priceChanged || discountsChanged) {
+      throw new CheckoutError("Pricing changed while you were checking out — please review your order and try again");
+    }
+
     let activePromoCode: ActivePromoCode | null = null;
     let lockedCode: PromoCode | null = null;
     const rawCode = input.promoCode?.trim();
@@ -546,24 +587,35 @@ export async function submitReceipt(
   // Shared transaction: if stock reservation fails (e.g. sold out between
   // checkout and receipt upload), the receipt row rolls back too instead of
   // leaving an orphaned receipt on an order stuck at AWAITING_PAYMENT.
-  const itemRows = await client.transaction(async (tx) => {
-    await tx.insert(receipts).values({
-      orderId: orderRow.id,
-      blobUrl: uploaded.url,
-      note: input.note ?? null,
+  let itemRows: (typeof orderItems.$inferSelect)[];
+  try {
+    itemRows = await client.transaction(async (tx) => {
+      await tx.insert(receipts).values({
+        orderId: orderRow.id,
+        blobUrl: uploaded.url,
+        note: input.note ?? null,
+      });
+
+      const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderRow.id));
+      await reserveStockWithinTx(tx, orderRow.id, orderRow, items);
+
+      await tx
+        .update(orders)
+        .set({ status: "RECEIPT_SUBMITTED", updatedAt: new Date(), statusUpdatedAt: new Date() })
+        .where(eq(orders.id, orderRow.id));
+      // Handed to the emails below instead of re-selecting the same rows once
+      // the transaction has committed.
+      return items;
     });
-
-    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderRow.id));
-    await reserveStockWithinTx(tx, orderRow.id, orderRow, items);
-
-    await tx
-      .update(orders)
-      .set({ status: "RECEIPT_SUBMITTED", updatedAt: new Date(), statusUpdatedAt: new Date() })
-      .where(eq(orders.id, orderRow.id));
-    // Handed to the emails below instead of re-selecting the same rows once
-    // the transaction has committed.
-    return items;
-  });
+  } catch (error) {
+    // reserveStockWithinTx throws a bare Error when a sold-out item can't be
+    // reserved — a real, expected rejection (not a bug), so it must come
+    // back as { ok: false } like every other branch here instead of
+    // propagating: an uncaught throw out of the submitPaymentReceipt Server
+    // Action is redacted by Next.js in production, reaching the customer as
+    // a bare failure right after they were told to pay.
+    return { ok: false, error: error instanceof Error ? error.message : "Could not submit receipt" };
+  }
 
   // Everything below only feeds the two notification emails; after() runs
   // it once the response is sent, so the upload no longer waits on SMTP.
@@ -722,7 +774,18 @@ async function reserveTesterUnit(
     const updated = await tx
       .update(products)
       .set({ remainingMl: sql`${products.remainingMl} - ${ml}` })
-      .where(and(eq(products.id, option.productId), gte(products.remainingMl, ml)))
+      .where(
+        and(
+          eq(products.id, option.productId),
+          gte(products.remainingMl, ml),
+          // Re-checked atomically, matching the RETAIL branch's
+          // eq(skus.isTester, true) below: an admin can un-flag this SKU
+          // (setSkuTester) between loadTesterOptions' read and this write,
+          // and remainingMl alone wouldn't catch that this SKU is no longer
+          // meant to be given away.
+          exists(tx.select({ one: sql`1` }).from(skus).where(and(eq(skus.id, option.skuId), eq(skus.isTester, true)))),
+        ),
+      )
       .returning({ id: products.id });
     if (updated.length === 0) return false;
     await tx.insert(stockMovements).values({ skuId: option.skuId, delta: -ml, reason: "TESTER_ML_ASSIGNED", orderId });
@@ -944,6 +1007,13 @@ async function reserveStockWithinTx(
 export async function releaseStockForOrder(orderId: string): Promise<void> {
   const client = db();
   return client.transaction(async (tx) => {
+    // Locks the order row for the duration of this transaction so two
+    // concurrent calls for the same order (its only caller, transitionOrderStatus,
+    // is itself now serialized per-order — see its own row lock — but this
+    // guards releaseStockForOrder directly too, for any future caller) can't
+    // both read the same "nothing released yet" snapshot and both credit
+    // stock back a second time.
+    await tx.select({ id: orders.id }).from(orders).where(eq(orders.id, orderId)).for("update");
     const reserved = await tx
       .select()
       .from(stockMovements)
@@ -1051,44 +1121,56 @@ export async function transitionOrderStatus(args: {
   reason?: string | null;
 }): Promise<void> {
   const client = db();
-  const orderRow = (await client.select().from(orders).where(eq(orders.id, args.orderId)))[0];
-  if (!orderRow) throw new Error("Order not found");
-  assertTransition(orderRow.status, args.next);
+  // Read-validate-write in one transaction, with the order row locked for
+  // its duration: two transitions racing on the same order (e.g. a
+  // customer's Cancel and an admin's Confirm, both legal from
+  // RECEIPT_SUBMITTED) would otherwise both read the same starting status,
+  // both pass assertTransition, and whichever UPDATE lands last would
+  // silently win regardless of which one's side effects actually ran. The
+  // lock makes the second transition wait for the first to commit, then
+  // re-validate against the now-current (and for CANCELLED/REJECTED,
+  // terminal — see order-state.ts) status instead of a stale snapshot.
+  const orderRow = await client.transaction(async (tx) => {
+    const row = (await tx.select().from(orders).where(eq(orders.id, args.orderId)).for("update"))[0];
+    if (!row) throw new Error("Order not found");
+    assertTransition(row.status, args.next);
 
-  if (args.next === "REJECTED" || args.next === "CANCELLED") {
-    if (!args.reason || args.reason.trim().length === 0) {
-      throw new Error("A reason is required to reject or cancel an order");
+    if (args.next === "REJECTED" || args.next === "CANCELLED") {
+      if (!args.reason || args.reason.trim().length === 0) {
+        throw new Error("A reason is required to reject or cancel an order");
+      }
     }
-  }
-  // Same rule the admin UI shows as a disabled Confirm button — enforced here
-  // so it holds for any caller, not just that button.
-  const blocked = confirmBlockedReason({ next: args.next, promoTesterResult: orderRow.promoTesterResult });
-  if (blocked) throw new Error(blocked);
+    // Same rule the admin UI shows as a disabled Confirm button — enforced
+    // here so it holds for any caller, not just that button.
+    const blocked = confirmBlockedReason({ next: args.next, promoTesterResult: row.promoTesterResult });
+    if (blocked) throw new Error(blocked);
 
-  // DELIVERED mints the token the day-2 follow-up email's one-tap "yes, I
-  // received it" link uses (src/app/(store)/order-confirm/[token]) and
-  // resets deliveryFollowupSentAt so a re-delivery (rare, but the state
-  // machine doesn't forbid SHIPPED -> DELIVERED more than once across
-  // orders) gets its own follow-up window. COMPLETED clears both — the
-  // token has done its job and a stale link should read as "already
-  // confirmed", not silently work forever.
-  const deliveryFields =
-    args.next === "DELIVERED"
-      ? { deliveryConfirmToken: crypto.randomUUID(), deliveryFollowupSentAt: null }
-      : args.next === "COMPLETED"
-        ? { deliveryConfirmToken: null, deliveryFollowupSentAt: null }
-        : {};
+    // DELIVERED mints the token the day-2 follow-up email's one-tap "yes, I
+    // received it" link uses (src/app/(store)/order-confirm/[token]) and
+    // resets deliveryFollowupSentAt so a re-delivery (rare, but the state
+    // machine doesn't forbid SHIPPED -> DELIVERED more than once across
+    // orders) gets its own follow-up window. COMPLETED clears both — the
+    // token has done its job and a stale link should read as "already
+    // confirmed", not silently work forever.
+    const deliveryFields =
+      args.next === "DELIVERED"
+        ? { deliveryConfirmToken: crypto.randomUUID(), deliveryFollowupSentAt: null }
+        : args.next === "COMPLETED"
+          ? { deliveryConfirmToken: null, deliveryFollowupSentAt: null }
+          : {};
 
-  await client
-    .update(orders)
-    .set({
-      status: args.next,
-      statusReason: args.reason ?? null,
-      statusUpdatedAt: new Date(),
-      updatedAt: new Date(),
-      ...deliveryFields,
-    })
-    .where(eq(orders.id, args.orderId));
+    await tx
+      .update(orders)
+      .set({
+        status: args.next,
+        statusReason: args.reason ?? null,
+        statusUpdatedAt: new Date(),
+        updatedAt: new Date(),
+        ...deliveryFields,
+      })
+      .where(eq(orders.id, args.orderId));
+    return row;
+  });
 
   if (args.next === "REJECTED" || args.next === "CANCELLED") {
     // releaseStockForOrder is a no-op when the order never had stock

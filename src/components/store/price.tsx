@@ -1,10 +1,22 @@
+import { applyLineDiscount, pickHighestSaving } from "@/domain/discount";
 import { formatPHP, formatPHPRange } from "@/domain/money";
+import type { VariantDiscount } from "@/domain/variant-options";
 
 interface PriceProps {
   originalCentavos: number;
   discountedCentavos: number;
   savedCentavos?: number;
   quantity?: number;
+  /** Currently-active discount candidates for this variant (unreduced), so a
+   *  quantity greater than 1 re-picks the winner and recomputes the true
+   *  line total instead of naively multiplying the quantity-1 preview. A
+   *  FIXED discount is a flat amount off the whole line (applyLineDiscount),
+   *  not an even per-unit split, and which discount wins can itself change
+   *  with quantity (a capped FIXED amount vs. a linearly-scaling
+   *  PERCENTAGE) — see VariantDiscount's doc comment. Every value already
+   *  known to reflect the final line total for its quantity (a past order's
+   *  stored totals, or any quantity=1 display) can safely omit this. */
+  discounts?: VariantDiscount[];
   suffix?: string;
   className?: string;
 }
@@ -14,18 +26,22 @@ export function Price({
   discountedCentavos,
   savedCentavos = Math.max(0, originalCentavos - discountedCentavos),
   quantity = 1,
+  discounts = [],
   suffix,
   className,
 }: PriceProps) {
-  const hasDiscount = savedCentavos > 0 && discountedCentavos < originalCentavos;
+  const winner = pickHighestSaving(discounts, originalCentavos, quantity);
+  const line = winner ? applyLineDiscount(originalCentavos, quantity, winner) : null;
+  const nowCentavos = line ? line.lineSubtotalCentavos : discountedCentavos * quantity;
+  const totalSavedCentavos = line ? line.lineDiscountCentavos : savedCentavos * quantity;
+  const originalTotalCentavos = originalCentavos * quantity;
+  const hasDiscount = totalSavedCentavos > 0 && nowCentavos < originalTotalCentavos;
   const percent =
-    originalCentavos > 0 ? Math.round((savedCentavos / originalCentavos) * 100) : 0;
+    originalTotalCentavos > 0 ? Math.round((totalSavedCentavos / originalTotalCentavos) * 100) : 0;
   if (!hasDiscount) {
     return (
       <span className={className}>
-        <span className="font-serif-display text-2xl tracking-tight">
-          {formatPHP(discountedCentavos * quantity)}
-        </span>
+        <span className="font-serif-display text-2xl tracking-tight">{formatPHP(nowCentavos)}</span>
         {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}
       </span>
     );
@@ -34,14 +50,14 @@ export function Price({
     <span className={className}>
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="font-serif-display text-2xl tracking-tight" aria-label="Now">
-          {formatPHP(discountedCentavos * quantity)}
+          {formatPHP(nowCentavos)}
         </span>
         <s className="text-sm text-muted-foreground">
           <span className="sr-only">Original price</span>
-          {formatPHP(originalCentavos * quantity)}
+          {formatPHP(originalTotalCentavos)}
         </s>
         <span className="inline-flex items-center rounded-none bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold">
-          {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(savedCentavos * quantity)}`}
+          {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(totalSavedCentavos)}`}
         </span>
       </span>
       {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}

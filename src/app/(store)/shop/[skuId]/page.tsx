@@ -217,6 +217,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
                 originalCentavos={currentVariant.originalCentavos}
                 discountedCentavos={currentVariant.discountedCentavos}
                 savedCentavos={currentVariant.savedCentavos}
+                discounts={currentVariant.discounts}
                 soldOut={soldOut}
               />
             </div>

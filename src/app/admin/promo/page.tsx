@@ -36,10 +36,19 @@ function amountLabel(type: "PERCENTAGE" | "FIXED", amount: number) {
   return type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
 }
 
-/** `<input type="date">` wants yyyy-mm-dd; parseDate in the action turns that
- *  back into a Date, so a code edited here round-trips to the day it shows. */
-function toDateInput(value: Date | null) {
-  return value ? value.toISOString().slice(0, 10) : "";
+/** `<input type="date">` wants yyyy-mm-dd; `parseDate` in the action anchors
+ *  that to Philippine midnight (see its own comment for why), storing `endsAt`
+ *  as the *start of the following* PHT day so the code stays valid through
+ *  the whole day the admin picked. This undoes both — the PHT shift, and for
+ *  `endsAt` the extra day — so a code edited here round-trips to the exact
+ *  day it shows instead of drifting a day off in one direction or the other. */
+const PH_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function toDateInput(value: Date | null, boundary: "start" | "end") {
+  if (!value) return "";
+  const ms = value.getTime() + PH_UTC_OFFSET_MS - (boundary === "end" ? ONE_DAY_MS : 0);
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 export default async function PromoAdminPage({
@@ -270,8 +279,8 @@ async function CodesTab() {
                             amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
                             minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
                             maxRedemptions: code.maxRedemptions ?? "",
-                            startsAt: toDateInput(code.startsAt),
-                            endsAt: toDateInput(code.endsAt),
+                            startsAt: toDateInput(code.startsAt, "start"),
+                            endsAt: toDateInput(code.endsAt, "end"),
                             firstOrderOnly: code.firstOrderOnly,
                             onePerCustomer: code.onePerCustomer,
                             redemptionCount: code.redemptionCount,

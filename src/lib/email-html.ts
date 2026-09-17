@@ -96,14 +96,21 @@ function thumbnail(item: EmailHtmlItem): string {
 }
 
 function priceCell(item: EmailHtmlItem): string {
-  const saving = item.discountCentavos ?? 0;
-  const discounted = saving > 0 && item.originalUnitCentavos !== undefined && item.originalUnitCentavos > item.unitPriceCentavos;
-  const lineTotal = discounted ? item.unitPriceCentavos * item.quantity : item.lineTotalCentavos;
-  const rows = [`<div style="font-size:15px;color:${INK};white-space:nowrap">${formatPHP(lineTotal)}</div>`];
+  // item.lineTotalCentavos is the authoritative, DB-stored line total;
+  // unitPriceCentavos is only a rounded-per-unit derivative of it
+  // (Math.round(lineSubtotal / quantity) upstream) and multiplying it back
+  // out by quantity can drift a centavo from the real total. The original
+  // total and saved amount are both derived from the same authoritative
+  // total rather than from a separately-rounded per-unit/per-line figure, so
+  // original - saved always equals the total shown above.
+  const originalTotal =
+    item.originalUnitCentavos !== undefined ? item.originalUnitCentavos * item.quantity : undefined;
+  const discounted = originalTotal !== undefined && originalTotal > item.lineTotalCentavos;
+  const rows = [`<div style="font-size:15px;color:${INK};white-space:nowrap">${formatPHP(item.lineTotalCentavos)}</div>`];
   if (discounted) {
     rows.push(
-      `<div style="font-size:12px;color:${MUTED};text-decoration:line-through;white-space:nowrap">${formatPHP((item.originalUnitCentavos ?? 0) * item.quantity)}</div>`,
-      `<div style="font-size:12px;color:${GOLD};white-space:nowrap">Saved ${formatPHP(saving * item.quantity)}</div>`,
+      `<div style="font-size:12px;color:${MUTED};text-decoration:line-through;white-space:nowrap">${formatPHP(originalTotal)}</div>`,
+      `<div style="font-size:12px;color:${GOLD};white-space:nowrap">Saved ${formatPHP(originalTotal - item.lineTotalCentavos)}</div>`,
     );
   }
   return rows.join("");

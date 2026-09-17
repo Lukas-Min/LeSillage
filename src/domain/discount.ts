@@ -1,5 +1,14 @@
-import type { ProductDiscount } from "@/db/schema";
+import type { DiscountType, ProductDiscount } from "@/db/schema";
 import type { SiteWideDiscountConfig } from "./promo";
+
+/** The only two fields `applyDiscount`/`applyLineDiscount` actually read —
+ *  a full `ProductDiscount` satisfies this structurally, and so does a
+ *  trimmed `VariantDiscount` (src/domain/variant-options.ts) carried to the
+ *  client without its id/productId/isActive/startsAt/endsAt. */
+export interface DiscountAmount {
+  type: DiscountType;
+  amount: number;
+}
 
 export function isDiscountActive(discount: ProductDiscount, now: Date = new Date()): boolean {
   if (!discount.isActive) return false;
@@ -44,16 +53,32 @@ export function bestDiscount(
 ): ProductDiscount | null {
   const active = discounts.filter((d) => isDiscountActive(d, now));
   if (active.length === 0) return null;
-  return active.sort(
-    (a, b) =>
-      totalSavingsFor(b, unitPriceCentavos, quantity) -
-      totalSavingsFor(a, unitPriceCentavos, quantity),
+  return pickHighestSaving(active, unitPriceCentavos, quantity);
+}
+
+/**
+ * The part of `bestDiscount` that doesn't need the full `ProductDiscount`
+ * shape (id/productId/isActive/startsAt/endsAt) — just which type/amount
+ * wins for a given quantity. Exported so a client component holding only an
+ * already-active shortlist (e.g. `VariantDiscount[]`, carried down from a
+ * server-computed `bestDiscount` call) can re-pick the winner as the
+ * customer changes quantity, without re-deriving "is this discount active
+ * right now" on the client.
+ */
+export function pickHighestSaving<T extends { type: DiscountType; amount: number }>(
+  candidates: T[],
+  unitPriceCentavos: number,
+  quantity: number,
+): T | null {
+  if (candidates.length === 0) return null;
+  return [...candidates].sort(
+    (a, b) => totalSavingsFor(b, unitPriceCentavos, quantity) - totalSavingsFor(a, unitPriceCentavos, quantity),
   )[0];
 }
 
 // PERCENTAGE savings scale per unit; FIXED is a flat amount off the whole line.
 function totalSavingsFor(
-  discount: ProductDiscount,
+  discount: { type: DiscountType; amount: number },
   unitPriceCentavos: number,
   quantity: number,
 ): number {
@@ -65,7 +90,7 @@ function totalSavingsFor(
 
 export function applyDiscount(
   unitPriceCentavos: number,
-  discount: ProductDiscount | null,
+  discount: DiscountAmount | null,
 ): { discountedUnitCentavos: number; perUnitDiscountCentavos: number } {
   if (!discount) {
     return { discountedUnitCentavos: unitPriceCentavos, perUnitDiscountCentavos: 0 };
@@ -90,7 +115,7 @@ export function applyDiscount(
 export function applyLineDiscount(
   unitPriceCentavos: number,
   quantity: number,
-  discount: ProductDiscount | null,
+  discount: DiscountAmount | null,
 ): { lineSubtotalCentavos: number; lineDiscountCentavos: number } {
   const lineTotal = unitPriceCentavos * quantity;
   if (!discount) {

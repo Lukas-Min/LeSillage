@@ -117,11 +117,15 @@ export default async function OrderDetailPage({
                     {item.skuLabel} · × {item.quantity}
                   </p>
                 </div>
+                {/* item.discountCentavos/lineTotalCentavos are already
+                    whole-line totals (quantity baked in) — passed at
+                    quantity 1 (the default) so Price doesn't multiply them
+                    by quantity a second time. originalUnitCentavos is a true
+                    per-unit price, so it's scaled up to match. */}
                 <Price
-                  originalCentavos={item.originalUnitCentavos}
-                  discountedCentavos={item.unitPriceCentavos}
+                  originalCentavos={item.originalUnitCentavos * item.quantity}
+                  discountedCentavos={item.lineTotalCentavos}
                   savedCentavos={item.discountCentavos}
-                  quantity={item.quantity}
                 />
               </li>
             ))}

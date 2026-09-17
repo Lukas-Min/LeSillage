@@ -15,7 +15,7 @@ import {
   type ProductType,
   type Provenance,
 } from "@/db/schema";
-import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
+import { applyDiscount, bestDiscount, isDiscountActive, withSiteWideDiscount } from "@/domain/discount";
 import type { SiteWideDiscountConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import {
@@ -28,7 +28,12 @@ import {
   type ConditionPackagingChoice,
 } from "@/domain/product-type";
 import { normaliseNotePyramid, type NotePyramid } from "@/lib/note-pyramid";
-import { compareSkuOrder, type SizePickerOption, type VariantSubOption } from "@/domain/variant-options";
+import {
+  compareSkuOrder,
+  type SizePickerOption,
+  type VariantDiscount,
+  type VariantSubOption,
+} from "@/domain/variant-options";
 
 export const CATALOG_SORTS = [
   "newest",
@@ -149,6 +154,7 @@ interface ConditionPackagingMember {
   originalCentavos: number;
   discountedCentavos: number;
   savedCentavos: number;
+  discounts: VariantDiscount[];
 }
 
 /**
@@ -186,6 +192,7 @@ function buildConditionPackagingSubOptions(members: ConditionPackagingMember[]):
       originalCentavos: rep.originalCentavos,
       discountedCentavos: rep.discountedCentavos,
       savedCentavos: rep.savedCentavos,
+      discounts: rep.discounts,
     };
   });
 }
@@ -231,7 +238,14 @@ export function buildVariantOptions(
   const enriched = variants
     .filter((v) => v.sizeMl != null)
     .map((v) => {
-      const applied = applyDiscount(v.retailPrice, bestDiscount(discounts, v.retailPrice));
+      // Active-right-now candidates, unreduced — which one actually saves
+      // the customer more can depend on quantity (see VariantDiscount's doc
+      // comment), so the winner picked here (at quantity 1, for the initial
+      // display) isn't necessarily the one a live quantity selector should
+      // keep using once the customer picks a real quantity.
+      const activeDiscounts = discounts.filter((d) => isDiscountActive(d));
+      const winner = bestDiscount(activeDiscounts, v.retailPrice);
+      const applied = applyDiscount(v.retailPrice, winner);
       const fulfillment = opts.isDecant
         ? decantVariantFulfillment(v, opts.remainingMl, opts.thresholdMl)
         : v.fulfillment;
@@ -245,6 +259,7 @@ export function buildVariantOptions(
         originalCentavos: v.retailPrice,
         discountedCentavos: applied.discountedUnitCentavos,
         savedCentavos: applied.perUnitDiscountCentavos,
+        discounts: activeDiscounts.map((d): VariantDiscount => ({ type: d.type, amount: d.amount })),
       };
     });
 
@@ -289,6 +304,7 @@ export function buildVariantOptions(
                 originalCentavos: m.originalCentavos,
                 discountedCentavos: m.discountedCentavos,
                 savedCentavos: m.savedCentavos,
+                discounts: m.discounts,
               };
             })
             .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }))
@@ -305,6 +321,7 @@ export function buildVariantOptions(
       originalCentavos: defaultMember.originalCentavos,
       discountedCentavos: defaultMember.discountedCentavos,
       savedCentavos: defaultMember.savedCentavos,
+      discounts: defaultMember.discounts,
       subOptions,
     });
   }

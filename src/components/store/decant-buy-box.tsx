@@ -49,6 +49,7 @@ export function DecantBuyBox({
         discountedCentavos={selected.discountedCentavos}
         savedCentavos={selected.savedCentavos}
         quantity={quantity}
+        discounts={selected.discounts}
       />
 
       {selected.soldOut ? (
