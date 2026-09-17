@@ -83,13 +83,16 @@ function initialFor(name: string): string {
 }
 
 function thumbnail(item: EmailHtmlItem): string {
-  const box = `display:block;width:64px;height:64px;border-radius:10px;border:1px solid ${RULE};background:${CARD};`;
+  const box = `display:block;width:64px;border-radius:10px;border:1px solid ${RULE};background:${CARD};`;
   if (item.imageUrl) {
-    // alt is empty on purpose: the name sits right beside it, and a broken or
-    // blocked image should show a quiet box, not a second copy of the name.
-    return `<img src="${escapeHtml(item.imageUrl)}" width="64" height="64" alt="" style="${box}object-fit:cover;object-position:center">`;
+    // Width only. Product shots are mostly 375×500 portrait (Fragrantica
+    // thumbnails) and email clients have no object-fit, so a fixed 64×64 box
+    // would squash them; the height follows the image and the row grows a
+    // little instead. alt is empty on purpose: the name sits right beside it,
+    // and a blocked image should show a quiet box, not a second copy of it.
+    return `<img src="${escapeHtml(item.imageUrl)}" width="64" alt="" style="${box}height:auto">`;
   }
-  return `<div style="${box}text-align:center;line-height:64px;font-family:${FONT};font-size:24px;color:${GOLD}">${escapeHtml(initialFor(item.productName))}</div>`;
+  return `<div style="${box}height:64px;text-align:center;line-height:64px;font-family:${FONT};font-size:24px;color:${GOLD}">${escapeHtml(initialFor(item.productName))}</div>`;
 }
 
 function priceCell(item: EmailHtmlItem): string {

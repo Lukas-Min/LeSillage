@@ -25,7 +25,9 @@ describe("renderOrderEmailHtml", () => {
         { productName: "Baccarat Rouge 540", skuLabel: "5ML", quantity: 1, unitPriceCentavos: 60000, lineTotalCentavos: 60000, imageUrl: null },
       ],
     });
-    expect(html).toContain('<img src="https://x.public.blob.vercel-storage.com/maleka.jpg" width="64" height="64"');
+    expect(html).toContain('<img src="https://x.public.blob.vercel-storage.com/maleka.jpg" width="64" alt=""');
+    // No fixed height / object-fit: email clients would squash a portrait shot.
+    expect(html).not.toContain("object-fit");
     expect(html).toContain("Club de Nuit Maleka");
     expect(html).toContain("10ML · × 2");
     // No photo → a quiet initial box, never a broken image.
