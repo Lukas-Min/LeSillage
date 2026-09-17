@@ -66,3 +66,30 @@ export function marqueeCopies(barWidth: number, copyWidth: number): number {
   if (!Number.isFinite(barWidth) || !Number.isFinite(copyWidth) || copyWidth <= 0) return 2;
   return Math.max(2, Math.ceil(barWidth / copyWidth) + 1);
 }
+
+/**
+ * The widest desktop the server-rendered bar should already cover before
+ * hydration — a 34" ultrawide at 100% scaling. The CSS animation starts on
+ * first paint, well before React measures anything, so the HTML has to ship
+ * enough copies on its own or a wide screen sees the track run out until the
+ * client-side measurement catches up.
+ */
+export const SSR_MARQUEE_BAR_WIDTH = 3440;
+
+/** Padding + diamond separator after every message, in ems of the bar font. */
+const SEPARATOR_EM = 3.5;
+/**
+ * Average advance per character, in ems. The real figure for the bar's font
+ * is about 0.5; this is deliberately lower so the estimate errs towards
+ * *more* copies — an extra `<li>` or two is free, a gap is not.
+ */
+const GLYPH_EM = 0.45;
+
+/**
+ * A pre-hydration guess at one copy's width, from nothing but the text. Only
+ * ever used to seed the server render; `marqueeCopies` is re-run against
+ * measured widths as soon as the component mounts.
+ */
+export function estimateMarqueeCopyWidth(messages: string[], fontPx: number): number {
+  return messages.reduce((sum, message) => sum + (message.length * GLYPH_EM + SEPARATOR_EM) * fontPx, 0);
+}

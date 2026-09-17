@@ -2,11 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { marqueeCopies } from "@/domain/announcement";
+import { estimateMarqueeCopyWidth, marqueeCopies, SSR_MARQUEE_BAR_WIDTH } from "@/domain/announcement";
 
 /** Scroll speed. Constant in pixels, so the bar reads at the same pace whether
  *  it carries one short line or eight long ones. */
 const PIXELS_PER_SECOND = 55;
+
+/** The bar's desktop font size (`sm:text-[13px]` below) — what the
+ *  pre-hydration width estimate is calibrated against. */
+const FONT_PX = 13;
+
+function secondsFor(copyWidth: number): number {
+  return Math.max(8, copyWidth / PIXELS_PER_SECOND);
+}
+
+/**
+ * What the server renders before any measurement exists. Estimated from the
+ * text alone and sized for a wide monitor, because the CSS animation starts
+ * on first paint — a fixed two-copy default left a blank tail scrolling past
+ * on any desktop until hydration caught up.
+ */
+function initialLoop(messages: string[]): { copies: number; duration: number } {
+  const estimate = estimateMarqueeCopyWidth(messages, FONT_PX);
+  return { copies: marqueeCopies(SSR_MARQUEE_BAR_WIDTH, estimate), duration: secondsFor(estimate) };
+}
 
 /** A promo code: all caps, four or more characters, and containing a digit —
  *  enough to catch WELCOME10 without emphasising ordinary words like ORDER. */
@@ -34,13 +53,15 @@ function renderMessage(message: string) {
  * N is measured rather than fixed: two copies only look infinite while one copy
  * is at least as wide as the bar. On a wide screen (or with short messages) the
  * pair runs out before the loop restarts and you see the blank tail, so the
- * copies are recomputed from the real widths whenever either changes.
+ * copies are recomputed from the real widths whenever either changes. The
+ * server render seeds N from a text-length estimate (`initialLoop`) so that
+ * first paint is already covered while the client bundle is still loading.
  */
 export function PromoMarquee({ messages }: { messages: string[] }) {
   const pathname = usePathname();
   const barRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const [loop, setLoop] = useState({ copies: 2, duration: 32 });
+  const [loop, setLoop] = useState(() => initialLoop(messages));
 
   useEffect(() => {
     const bar = barRef.current;
@@ -54,7 +75,7 @@ export function PromoMarquee({ messages }: { messages: string[] }) {
       const barWidth = bar.getBoundingClientRect().width || window.innerWidth;
       if (listWidth < 1) return;
       const copies = marqueeCopies(barWidth, listWidth);
-      const duration = Math.max(8, listWidth / PIXELS_PER_SECOND);
+      const duration = secondsFor(listWidth);
       setLoop((current) =>
         current.copies === copies && Math.abs(current.duration - duration) < 0.01 ? current : { copies, duration },
       );
@@ -98,7 +119,7 @@ export function PromoMarquee({ messages }: { messages: string[] }) {
             {messages.map((message, index) => (
               <li
                 key={`${copy}-${index}`}
-                className="flex items-center whitespace-nowrap py-1.5 text-[11px] tracking-wide sm:text-xs"
+                className="flex items-center whitespace-nowrap py-2 text-xs tracking-wide sm:text-[13px]"
               >
                 {renderMessage(message)}
                 <span aria-hidden className="px-3 opacity-60">

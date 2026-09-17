@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ANNOUNCEMENT,
+  estimateMarqueeCopyWidth,
   marqueeCopies,
   parseAnnouncement,
+  SSR_MARQUEE_BAR_WIDTH,
 } from "@/domain/announcement";
 
 describe("marqueeCopies", () => {
@@ -40,6 +42,34 @@ describe("marqueeCopies", () => {
     expect(marqueeCopies(1920, 0)).toBe(2);
     expect(marqueeCopies(Number.NaN, 1429)).toBe(2);
     expect(marqueeCopies(1920, Number.POSITIVE_INFINITY)).toBe(2);
+  });
+});
+
+describe("estimateMarqueeCopyWidth", () => {
+  // The three live messages measured 1,066px at 12px in Chrome; the estimate
+  // must land under that so the server render errs towards extra copies.
+  const live = [
+    "Enjoy 10% off your first order with code WELCOME10 · no minimum spend",
+    "Free delivery on ₱2,000 of decants",
+    "Free complimentary tester for decant orders over ₱2,000",
+  ];
+
+  it("under-estimates the measured width rather than over-shooting it", () => {
+    const estimate = estimateMarqueeCopyWidth(live, 12);
+    expect(estimate).toBeLessThan(1066);
+    expect(estimate).toBeGreaterThan(800);
+  });
+
+  it("scales with the font size and is empty for no messages", () => {
+    expect(estimateMarqueeCopyWidth(live, 13)).toBeGreaterThan(estimateMarqueeCopyWidth(live, 12));
+    expect(estimateMarqueeCopyWidth([], 13)).toBe(0);
+  });
+
+  it("seeds enough copies for a wide monitor before hydration", () => {
+    // The regression from the screenshot: 1,900px wide, two copies, blank tail.
+    const copies = marqueeCopies(SSR_MARQUEE_BAR_WIDTH, estimateMarqueeCopyWidth(live, 13));
+    expect((copies - 1) * 1066).toBeGreaterThanOrEqual(1900);
+    expect((copies - 1) * 1066).toBeGreaterThanOrEqual(SSR_MARQUEE_BAR_WIDTH);
   });
 });
 

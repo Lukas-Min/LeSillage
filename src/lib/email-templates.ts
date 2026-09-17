@@ -2,8 +2,10 @@ import { describeStatus } from "@/domain/order-state";
 import { computeEtaSummary } from "@/domain/eta";
 import { formatPHP } from "@/domain/money";
 import type { Fulfillment, OrderStatus, ProductType } from "@/db/schema";
+import { getEnv } from "@/lib/env";
+import { renderOrderEmailHtml, type EmailFact, type EmailTotal } from "@/lib/email-html";
 
-interface EmailLine {
+export interface EmailLine {
   productName: string;
   skuLabel: string;
   quantity: number;
@@ -13,6 +15,16 @@ interface EmailLine {
   discountCentavos?: number;
   productType: ProductType;
   fulfillment: Fulfillment;
+  /** Primary product photo for the HTML version; the text version ignores it. */
+  imageUrl?: string | null;
+}
+
+/** Every order email ships both: `text` for plain-text clients and as the
+ *  fallback, `html` for the branded version with product photos. */
+export interface OrderEmail {
+  subject: string;
+  text: string;
+  html: string;
 }
 
 export interface OrderEmailInput {
@@ -60,7 +72,56 @@ function deliveryLine(input: OrderEmailInput): string {
   return `- ${formatPHP(input.deliveryFeeCentavos)}`;
 }
 
-export function receiptSubmittedEmail(input: OrderEmailInput): { subject: string; text: string } {
+function siteUrl(): string {
+  return getEnv().APP_URL.replace(/\/$/, "");
+}
+
+/** Same page `payment-reminders.ts` links to; built here so the templates that
+ *  never had a URL passed in (order created, receipt rejected) can still offer
+ *  a button. */
+function paymentPageUrl(orderNumber: string): string {
+  return `${siteUrl()}/checkout/payment?orderNumber=${encodeURIComponent(orderNumber)}`;
+}
+
+function accountOrdersUrl(): string {
+  return `${siteUrl()}/account/orders`;
+}
+
+function greeting(input: OrderEmailInput): string {
+  return `Hi ${input.recipientName},`;
+}
+
+function eyebrow(input: OrderEmailInput): string {
+  return `Order ${input.orderNumber}`;
+}
+
+function pickupFact(input: OrderEmailInput): EmailFact[] {
+  return input.fulfillmentMethod === "PICKUP" ? [{ label: "Pickup notes", value: input.pickupNotes ?? "TBD" }] : [];
+}
+
+/** Delivery row for the HTML totals — struck-through default fee plus the
+ *  reason when it was free, mirroring `deliveryLine` for the text version. */
+function deliveryTotal(input: OrderEmailInput): EmailTotal {
+  if (input.deliveryFeeCentavos === 0) {
+    const original = input.defaultDeliveryFeeCentavos ?? input.deliveryFeeCentavos;
+    return {
+      label: "Delivery",
+      value: "Free",
+      strike: original > 0 ? formatPHP(original) : undefined,
+      note: input.freeDeliveryReason ?? "Promo applied",
+    };
+  }
+  return { label: "Delivery", value: formatPHP(input.deliveryFeeCentavos) };
+}
+
+function orderTotals(input: OrderEmailInput, totalLabel: string): EmailTotal[] {
+  const rows: EmailTotal[] = [{ label: "Subtotal", value: formatPHP(input.subtotalCentavos) }, deliveryTotal(input)];
+  if (input.discountCentavos > 0) rows.push({ label: "You saved", value: formatPHP(input.discountCentavos) });
+  rows.push({ label: totalLabel, value: formatPHP(input.totalCentavos), strong: true });
+  return rows;
+}
+
+export function receiptSubmittedEmail(input: OrderEmailInput): OrderEmail {
   const eta = etaLinesSummary(input.lines, input.orderedAt);
   const tester = input.testerAwarded ? `\nFree tester: ${input.testerAwarded.name}\n` : "";
   const subject = `We received your receipt — ${input.orderNumber}`;
@@ -84,10 +145,27 @@ ${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ??
 If anything looks off, reply to this email and we will sort it out.
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "We received your receipt",
+    greeting: greeting(input),
+    intro: ["Thank you for your order with Le Sillage. We received your payment receipt and will verify it shortly."],
+    facts: [
+      { label: "Status", value: describeStatus(input.status) },
+      { label: "Estimated arrival", value: eta },
+      ...(input.testerAwarded ? [{ label: "Free tester", value: input.testerAwarded.name }] : []),
+      ...pickupFact(input),
+    ],
+    items: input.lines,
+    totals: orderTotals(input, "Total paid"),
+    cta: { label: "View your order", url: accountOrdersUrl() },
+    outro: ["If anything looks off, reply to this email and we will sort it out."],
+  });
+  return { subject, text, html };
 }
 
-export function receiptRejectedEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function receiptRejectedEmail(input: OrderEmailInput): OrderEmail {
   const subject = `Receipt needs another look — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
@@ -98,10 +176,22 @@ Reason: ${input.reason ?? "Not provided"}
 You can upload a new receipt from your account page. If you believe this is a mistake, reply to this email.
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Receipt needs another look",
+    greeting: greeting(input),
+    intro: [`We could not verify the payment receipt for order ${input.orderNumber}.`],
+    facts: [{ label: "Reason", value: input.reason ?? "Not provided" }],
+    items: input.lines,
+    totals: [{ label: "Total to pay", value: formatPHP(input.totalCentavos), strong: true }],
+    cta: { label: "Upload a new receipt", url: paymentPageUrl(input.orderNumber) },
+    outro: ["If you believe this is a mistake, reply to this email."],
+  });
+  return { subject, text, html };
 }
 
-export function orderConfirmedEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function orderConfirmedEmail(input: OrderEmailInput): OrderEmail {
   const eta = etaLinesSummary(input.lines, input.orderedAt);
   const subject = `Payment verified — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
@@ -111,10 +201,20 @@ We verified your payment for order ${input.orderNumber}. We are preparing it now
 Estimated arrival: ${eta}
 ${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ?? "TBD"}\n` : ""}
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Payment verified",
+    greeting: greeting(input),
+    intro: [`We verified your payment for order ${input.orderNumber}. We are preparing it now.`],
+    facts: [{ label: "Estimated arrival", value: eta }, ...pickupFact(input)],
+    items: input.lines,
+    cta: { label: "View your order", url: accountOrdersUrl() },
+  });
+  return { subject, text, html };
 }
 
-export function orderShippedEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function orderShippedEmail(input: OrderEmailInput): OrderEmail {
   const subject = `Your order has shipped — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
@@ -123,10 +223,24 @@ Order ${input.orderNumber} is on its way. We will message you again when it is m
 ${input.fulfillmentMethod === "PICKUP" ? "Pickup details will follow in a separate email." : "Track your delivery via your courier updates."}
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Your order has shipped",
+    greeting: greeting(input),
+    intro: [
+      `Order ${input.orderNumber} is on its way. We will message you again when it is marked delivered.`,
+      input.fulfillmentMethod === "PICKUP"
+        ? "Pickup details will follow in a separate email."
+        : "Track your delivery via your courier updates.",
+    ],
+    items: input.lines,
+    cta: { label: "View your order", url: accountOrdersUrl() },
+  });
+  return { subject, text, html };
 }
 
-export function orderDeliveredEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function orderDeliveredEmail(input: OrderEmailInput): OrderEmail {
   const subject = `Delivered — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
@@ -135,10 +249,22 @@ Order ${input.orderNumber} has been marked delivered. We hope it arrived in perf
 Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Delivered",
+    greeting: greeting(input),
+    intro: [`Order ${input.orderNumber} has been marked delivered. We hope it arrived in perfect condition.`],
+    items: input.lines,
+    cta: { label: "Mark as received", url: accountOrdersUrl() },
+    outro: [
+      "Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.",
+    ],
+  });
+  return { subject, text, html };
 }
 
-export function orderReadyForPickupEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function orderReadyForPickupEmail(input: OrderEmailInput): OrderEmail {
   const subject = `Ready for pickup — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
@@ -147,10 +273,20 @@ Order ${input.orderNumber} is ready for you to collect.
 Pickup notes: ${input.pickupNotes ?? "TBD"}
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Ready for pickup",
+    greeting: greeting(input),
+    intro: [`Order ${input.orderNumber} is ready for you to collect.`],
+    facts: [{ label: "Pickup notes", value: input.pickupNotes ?? "TBD" }],
+    items: input.lines,
+    cta: { label: "View your order", url: accountOrdersUrl() },
+  });
+  return { subject, text, html };
 }
 
-export function deliveryFollowupEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function deliveryFollowupEmail(input: OrderEmailInput): OrderEmail {
   const subject = `Did your order arrive OK? — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
@@ -163,10 +299,23 @@ Not received it, or something's wrong? Visit ${input.contactUrl} or reply to thi
 If we don't hear back, we'll mark this order complete automatically after three days from delivery.
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Did your order arrive OK?",
+    greeting: greeting(input),
+    intro: [`A couple of days ago we marked order ${input.orderNumber} as delivered. Did it reach you safely?`],
+    items: input.lines,
+    cta: input.deliveryConfirmUrl ? { label: "Yes, I received it", url: input.deliveryConfirmUrl } : undefined,
+    outro: [
+      `Not received it, or something's wrong? Visit ${input.contactUrl ?? `${siteUrl()}/contact`} or reply to this email and we'll sort it out.`,
+    ],
+    footnote: "If we don't hear back, we'll mark this order complete automatically after three days from delivery.",
+  });
+  return { subject, text, html };
 }
 
-export function adminReceiptNotification(input: OrderEmailInput): { subject: string; text: string } {
+export function adminReceiptNotification(input: OrderEmailInput): OrderEmail {
   const subject = `New receipt — ${input.orderNumber}`;
   const text = `Order ${input.orderNumber} for ${input.recipientName} (${input.email}) has submitted a receipt.
 
@@ -175,7 +324,21 @@ Method: ${input.fulfillmentMethod}
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 — Le Sillage admin`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "New receipt to verify",
+    greeting: "Hi team,",
+    intro: [`${input.recipientName} (${input.email}) has submitted a receipt for order ${input.orderNumber}.`],
+    facts: [
+      { label: "Method", value: input.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery" },
+      ...pickupFact(input),
+    ],
+    items: input.lines,
+    totals: orderTotals(input, "Total paid"),
+    cta: { label: "Open admin orders", url: `${siteUrl()}/admin/orders` },
+  });
+  return { subject, text, html };
 }
 
 function brandedCodeEmail(args: {
@@ -256,7 +419,7 @@ If this was not you, reply to this email immediately.
   };
 }
 
-export function orderCreatedPaymentEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function orderCreatedPaymentEmail(input: OrderEmailInput): OrderEmail {
   const subject = `Pay for order ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
@@ -270,10 +433,24 @@ Delivery: ${deliveryLine(input)}
 Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Your order is in — one step left",
+    greeting: greeting(input),
+    intro: [`Your order ${input.orderNumber} is waiting for payment.`],
+    facts: [{ label: "Status", value: describeStatus(input.status) }, ...pickupFact(input)],
+    items: input.lines,
+    totals: orderTotals(input, "Total to pay"),
+    cta: { label: "Pay now", url: input.payUrl ?? paymentPageUrl(input.orderNumber) },
+    outro: [
+      "Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.",
+    ],
+  });
+  return { subject, text, html };
 }
 
-export function paymentReminderEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function paymentReminderEmail(input: OrderEmailInput): OrderEmail {
   const payLine = input.payUrl ? `\nPay here (sign in if asked): ${input.payUrl}\n` : "";
   const subject = `Your order is one QR away — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
@@ -285,10 +462,25 @@ Send ${formatPHP(input.totalCentavos)} via the QR on your payment page, then upl
 If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes.
 ${payLine}
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Your order is one QR away",
+    greeting: greeting(input),
+    intro: [
+      `Order ${input.orderNumber} is still sitting pretty on our shelf, tapping a tiny glass foot. The only thing between you and that trail is payment — nothing else.`,
+      `Send ${formatPHP(input.totalCentavos)} via the QR on your payment page, then upload the receipt. We'll take it from there (and stop writing fan mail to an unpaid bottle).`,
+    ],
+    items: input.lines,
+    totals: [{ label: "Total to pay", value: formatPHP(input.totalCentavos), strong: true }],
+    cta: { label: "Pay now", url: input.payUrl ?? paymentPageUrl(input.orderNumber) },
+    outro: ["If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes."],
+    footnote: "Sign in if asked — the payment page is tied to your account.",
+  });
+  return { subject, text, html };
 }
 
-export function orderCancelledEmail(input: OrderEmailInput): { subject: string; text: string } {
+export function orderCancelledEmail(input: OrderEmailInput): OrderEmail {
   const reason = input.reason?.trim() ? `\nReason: ${input.reason.trim()}\n` : "";
   const subject = `Order cancelled — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
@@ -298,6 +490,16 @@ ${reason}
 If this wasn't you, reply to this email and we'll sort it out.
 
 — Le Sillage`;
-  return { subject, text };
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Order cancelled",
+    greeting: greeting(input),
+    intro: [`We've cancelled order ${input.orderNumber}. Nothing's reserved, nothing's charged — the bottle goes back on the shelf.`],
+    facts: input.reason?.trim() ? [{ label: "Reason", value: input.reason.trim() }] : undefined,
+    items: input.lines,
+    outro: ["If this wasn't you, reply to this email and we'll sort it out."],
+  });
+  return { subject, text, html };
 }
 

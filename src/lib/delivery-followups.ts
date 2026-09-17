@@ -7,6 +7,7 @@ import {
   isDueForDeliveryFollowup,
 } from "@/domain/delivery-followup";
 import { sendEmail } from "@/lib/email";
+import { toEmailLines } from "@/lib/order-email-lines";
 import { deliveryFollowupEmail } from "@/lib/email-templates";
 import { getEnv } from "@/lib/env";
 
@@ -94,17 +95,7 @@ export async function sendDueDeliveryFollowups(now = new Date()): Promise<Delive
         recipientName: order.recipientName,
         email: order.email,
         fulfillmentMethod: order.fulfillmentMethod,
-        lines: items.map((it) => ({
-          productName: it.productName,
-          skuLabel: it.skuLabel,
-          quantity: it.quantity,
-          originalUnitCentavos: it.originalUnitCentavos,
-          unitPriceCentavos: it.unitPriceCentavos,
-          discountCentavos: it.discountCentavos,
-          lineTotalCentavos: it.lineTotalCentavos,
-          productType: it.productType,
-          fulfillment: it.fulfillment,
-        })),
+        lines: await toEmailLines(items),
         subtotalCentavos: order.subtotalCentavos,
         discountCentavos: order.discountCentavos,
         deliveryFeeCentavos: order.deliveryFeeCentavos,

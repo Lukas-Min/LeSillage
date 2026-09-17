@@ -45,8 +45,10 @@ import {
   orderShippedEmail,
   receiptRejectedEmail,
   receiptSubmittedEmail,
+  type OrderEmail,
   type OrderEmailInput,
 } from "@/lib/email-templates";
+import { loadSkuImageMap, toEmailLines } from "@/lib/order-email-lines";
 
 /**
  * A rejection the customer is meant to read — empty bag, item sold out,
@@ -444,6 +446,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
   // transporter) used to sit on the critical path of every "Place order".
   after(async () => {
     try {
+      const images = await loadSkuImageMap(priced.lines.map((line) => line.skuId));
       const paymentEmail = await sendEmail({
         to: input.email,
         ...orderCreatedPaymentEmail({
@@ -464,6 +467,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
               lineTotalCentavos: line.lineSubtotalCentavos,
               productType: line.productType,
               fulfillment: line.fulfillment,
+              imageUrl: images.get(line.skuId) ?? null,
             };
           }),
           // Same convention as the stored order row (see the transaction
@@ -512,37 +516,6 @@ export interface SubmitReceiptInput {
 export interface SubmitReceiptResult {
   ok: boolean;
   error?: string;
-}
-
-// Shared by submitReceipt and transitionOrderStatus so the orderItems ->
-// email-line field mapping only needs to be maintained in one place.
-function toEmailLines(
-  rows: Array<
-    Pick<
-      typeof orderItems.$inferSelect,
-      | "productName"
-      | "skuLabel"
-      | "quantity"
-      | "originalUnitCentavos"
-      | "unitPriceCentavos"
-      | "discountCentavos"
-      | "lineTotalCentavos"
-      | "productType"
-      | "fulfillment"
-    >
-  >,
-) {
-  return rows.map((row) => ({
-    productName: row.productName,
-    skuLabel: row.skuLabel,
-    quantity: row.quantity,
-    originalUnitCentavos: row.originalUnitCentavos,
-    unitPriceCentavos: row.unitPriceCentavos,
-    discountCentavos: row.discountCentavos,
-    lineTotalCentavos: row.lineTotalCentavos,
-    productType: row.productType,
-    fulfillment: row.fulfillment,
-  }));
 }
 
 export async function submitReceipt(
@@ -603,7 +576,7 @@ export async function submitReceipt(
       recipientName: orderRow.recipientName,
       email: orderRow.email,
       fulfillmentMethod: orderRow.fulfillmentMethod,
-      lines: toEmailLines(itemRows),
+      lines: await toEmailLines(itemRows),
       subtotalCentavos: orderRow.subtotalCentavos,
       discountCentavos: orderRow.discountCentavos,
       deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
@@ -908,7 +881,7 @@ export async function releasePromoCodeRedemption(orderId: string): Promise<void>
 // customer's own action, the day-2 email's link, or the day-3 auto-complete
 // cron, none of which need a "we told you what you just told us" email.
 const STATUS_EMAIL_TEMPLATES: Partial<
-  Record<OrderStatus, { build: (input: OrderEmailInput) => { subject: string; text: string }; template: string }>
+  Record<OrderStatus, { build: (input: OrderEmailInput) => OrderEmail; template: string }>
 > = {
   REJECTED: { build: receiptRejectedEmail, template: "receipt_rejected" },
   CANCELLED: { build: orderCancelledEmail, template: "order_cancelled" },
@@ -984,7 +957,7 @@ export async function transitionOrderStatus(args: {
         recipientName: orderRow.recipientName,
         email: orderRow.email,
         fulfillmentMethod: orderRow.fulfillmentMethod,
-        lines: toEmailLines(items),
+        lines: await toEmailLines(items),
         subtotalCentavos: orderRow.subtotalCentavos,
         discountCentavos: orderRow.discountCentavos,
         deliveryFeeCentavos: orderRow.deliveryFeeCentavos,

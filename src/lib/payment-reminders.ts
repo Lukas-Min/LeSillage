@@ -7,6 +7,7 @@ import {
   PAYMENT_REMINDER_BATCH,
 } from "@/domain/payment-reminder";
 import { sendEmail } from "@/lib/email";
+import { toEmailLines } from "@/lib/order-email-lines";
 import { paymentReminderEmail } from "@/lib/email-templates";
 import { getEnv } from "@/lib/env";
 
@@ -76,17 +77,7 @@ export async function sendDuePaymentReminders(now = new Date()): Promise<Payment
         recipientName: order.recipientName,
         email: order.email,
         fulfillmentMethod: order.fulfillmentMethod,
-        lines: items.map((it) => ({
-          productName: it.productName,
-          skuLabel: it.skuLabel,
-          quantity: it.quantity,
-          originalUnitCentavos: it.originalUnitCentavos,
-          unitPriceCentavos: it.unitPriceCentavos,
-          discountCentavos: it.discountCentavos,
-          lineTotalCentavos: it.lineTotalCentavos,
-          productType: it.productType,
-          fulfillment: it.fulfillment,
-        })),
+        lines: await toEmailLines(items),
         subtotalCentavos: order.subtotalCentavos,
         discountCentavos: order.discountCentavos,
         deliveryFeeCentavos: order.deliveryFeeCentavos,
