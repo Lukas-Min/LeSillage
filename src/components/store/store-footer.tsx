@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { AtSign, Globe, Mail, MessageCircle, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
+import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
 import { getEnv } from "@/lib/env";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
@@ -63,19 +64,19 @@ export function StoreFooter() {
               <a href={`mailto:${email}`} className="hover:text-foreground">{email}</a>
             </li>
             <li className="flex items-center gap-2">
-              <AtSign className="h-3.5 w-3.5 text-gold" />
+              <FaInstagram className="h-3.5 w-3.5 text-gold" />
               <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 @{INSTAGRAM_HANDLE}
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <Globe className="h-3.5 w-3.5 text-gold" />
+              <FaFacebookF className="h-3.5 w-3.5 text-gold" />
               <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Facebook
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <MessageCircle className="h-3.5 w-3.5 text-gold" />
+              <FaFacebookMessenger className="h-3.5 w-3.5 text-gold" />
               <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Messenger
               </a>

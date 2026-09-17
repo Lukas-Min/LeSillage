@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { AtSign, Globe, HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { HelpCircle, Mail, MapPin, Phone } from "lucide-react";
+import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
@@ -11,18 +12,23 @@ const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}`;
 
 export default function ContactPage() {
   const env = getEnv();
-  const rows = [
+  type ContactRow = {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+    href: string | null;
+  };
+  const rows: (ContactRow | null)[] = [
     { icon: Mail, label: "Order questions", value: env.GMAIL_USER, href: `mailto:${env.GMAIL_USER}` },
     env.NEXT_PUBLIC_PHONE
       ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE, href: `tel:${env.NEXT_PUBLIC_PHONE}` }
       : null,
-    { icon: Globe, label: "Facebook", value: "Le Sillage", href: FACEBOOK_URL },
-    { icon: MessageCircle, label: "Messenger", value: "Message us", href: MESSENGER_URL },
-    { icon: AtSign, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
+    { icon: FaFacebookF, label: "Facebook", value: "Le Sillage", href: FACEBOOK_URL },
+    { icon: FaFacebookMessenger, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: FaInstagram, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
     { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },
-  ].filter(
-    (row): row is { icon: typeof Mail; label: string; value: string; href: string | null } => row !== null,
-  );
+  ];
+  const visibleRows = rows.filter((row): row is ContactRow => row !== null);
 
   return (
     <main className="w-full space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
@@ -34,7 +40,7 @@ export default function ContactPage() {
           title="Usually within one business day"
           contentClassName="space-y-1 divide-y divide-border/60"
         >
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <div key={row.label} className="flex items-center gap-3 pt-4 first:pt-0">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
                 <row.icon className="h-4 w-4" />

@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- The footer and `/contact` now show the real Facebook, Messenger, and Instagram logos (`react-icons`' Font Awesome 6 set: `FaFacebookF`/`FaFacebookMessenger`/`FaInstagram`) instead of generic Lucide stand-ins (a globe, a speech bubble, an @ sign) that didn't read as those platforms
+### Changed
 - Every small overlay badge on a product photo (rating, save %, category corner tag) and the fulfillment/Retail/Sold-out badge row on shop-grid cards now has a visible border and bigger, more legible text instead of a near-invisible 10% border and 10-11px type that read as too small to belong on the card. The three in-picture badges (rating, save %, category tag) scale back down from `min-[576px]` up, since the shop grid packs in more, narrower columns from there and the bigger mobile size would otherwise overwhelm a narrower card's image; the fulfillment/Retail/Sold-out row, the PDP's own corner label, and the homepage flagship panel aren't in a multi-column grid, so they keep the bigger size at every width
 - The PDP's main product photo is now capped at 80% of the viewport's height (`max-h-[80vh]`, paired with a matching `max-w-[80vh]` since the photo's container is a fixed 1:1 square) so an unusually tall image can't push the rest of the page below the fold on a short/wide screen
 ### Fixed
