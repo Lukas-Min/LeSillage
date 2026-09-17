@@ -4,7 +4,7 @@ import { HOW_TO_PAY_STEPS } from "@/lib/how-to-pay-copy";
 
 export default function HowToPayPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
+    <main className="w-full space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "How to pay" }]} />
       <div className="mx-auto max-w-3xl space-y-6">
         <PageHeader

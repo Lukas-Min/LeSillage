@@ -8,7 +8,7 @@ import { CatalogResultsSkeleton } from "@/components/store/loading";
 // Shop" is the same on every category, so it renders for real.
 export default function CollectionLoading() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-12">
+    <main className="w-full px-4 py-8 sm:py-12">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }]} />
       <Skeleton className="mt-2 h-8 w-1/2" />
       <Skeleton className="mt-2 h-4 w-1/3" />

@@ -38,7 +38,7 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
       <section className="surface-grid border-b border-border/60">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 sm:py-24">
+        <div className="flex w-full flex-col gap-10 px-4 py-16 sm:py-24">
           <div className="flex flex-col items-center gap-3 text-center">
             <Eyebrow>Est. 2026 · Manila</Eyebrow>
             <h1 className="font-serif-display text-5xl leading-tight sm:text-6xl">Le Sillage</h1>
@@ -52,7 +52,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-4 py-12">
+      <section className="w-full px-4 py-12">
         <header className="mb-10 flex flex-col items-center gap-3 text-center">
           <Eyebrow>The shelf</Eyebrow>
           <h2 className="font-serif-display text-3xl sm:text-4xl">Browse by type</h2>
@@ -67,7 +67,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-4 pb-16">
+      <section className="w-full px-4 pb-16">
         <SectionCard
           eyebrow="How it works"
           title="From browsing to bottle, in three steps"

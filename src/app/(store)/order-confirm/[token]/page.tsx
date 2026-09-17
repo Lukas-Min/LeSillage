@@ -27,7 +27,7 @@ export default async function OrderConfirmPage({
   )[0];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
+    <main className="w-full px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <div className="mx-auto max-w-xl space-y-6">
         <PageHeader
           eyebrow="Delivery"

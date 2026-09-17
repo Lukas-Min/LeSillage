@@ -5,7 +5,7 @@ import { ABOUT_PILLARS } from "@/lib/about-copy";
 export default function AboutPage() {
   return (
     <main className="surface-grid">
-      <div className="mx-auto w-full max-w-6xl space-y-8 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
+      <div className="w-full space-y-8 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "About" }]} />
         <div className="mx-auto max-w-3xl space-y-8">
           <PageHeader

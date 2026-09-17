@@ -62,7 +62,7 @@ export function CatalogGrid({
   breadcrumbs?: BreadcrumbItem[];
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:py-14">
+    <main className="flex w-full flex-1 flex-col px-4 py-10 sm:py-14">
       {breadcrumbs ? <Breadcrumbs items={breadcrumbs} className="mb-6" /> : null}
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
         {eyebrow ? eyebrow : <Eyebrow>Le Sillage · Manila</Eyebrow>}

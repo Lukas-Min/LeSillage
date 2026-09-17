@@ -41,7 +41,7 @@ export default async function ShopPage({
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
+    <main className="flex w-full flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs
         items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: labelForType(type) }]}
       />

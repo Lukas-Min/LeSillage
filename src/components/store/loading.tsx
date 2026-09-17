@@ -90,7 +90,7 @@ export function CatalogResultsSkeleton({
 
 export function CatalogSkeleton() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-12">
+    <main className="w-full px-4 py-8 sm:py-12">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-2 h-8 w-1/2" />
       <Skeleton className="mt-2 h-4 w-1/3" />

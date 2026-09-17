@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Globe, HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { AtSign, Globe, HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
 const MESSENGER_URL = "https://m.me/61591955240476";
+const INSTAGRAM_HANDLE = "le.sillage.mnl";
+const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}`;
 
 export default function ContactPage() {
   const env = getEnv();
@@ -16,13 +18,14 @@ export default function ContactPage() {
       : null,
     { icon: Globe, label: "Facebook", value: "Le Sillage", href: FACEBOOK_URL },
     { icon: MessageCircle, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: AtSign, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
     { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },
   ].filter(
     (row): row is { icon: typeof Mail; label: string; value: string; href: string | null } => row !== null,
   );
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
+    <main className="w-full space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
       <div className="mx-auto max-w-3xl space-y-6">
         <PageHeader eyebrow="Help" title="Contact" />

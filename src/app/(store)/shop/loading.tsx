@@ -12,7 +12,7 @@ import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
 // of time; only the actual results area is skeletoned.
 export default function ShopLoading() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
+    <main className="flex w-full flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }]} />
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
         <Eyebrow>The catalog</Eyebrow>

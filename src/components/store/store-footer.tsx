@@ -5,6 +5,8 @@ import { getEnv } from "@/lib/env";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
 const MESSENGER_URL = "https://m.me/61591955240476";
+const INSTAGRAM_HANDLE = "le.sillage.mnl";
+const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}`;
 
 const COLUMNS = [
   {
@@ -40,7 +42,7 @@ export function StoreFooter() {
   const phone = env.NEXT_PUBLIC_PHONE;
   return (
     <footer className="mt-auto border-t border-border bg-secondary/40">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
+      <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
         <div className="space-y-3">
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />
@@ -62,7 +64,9 @@ export function StoreFooter() {
             </li>
             <li className="flex items-center gap-2">
               <AtSign className="h-3.5 w-3.5 text-gold" />
-              <span>@le.sillage.mnl</span>
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+                @{INSTAGRAM_HANDLE}
+              </a>
             </li>
             <li className="flex items-center gap-2">
               <Globe className="h-3.5 w-3.5 text-gold" />
