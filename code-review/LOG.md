@@ -49,3 +49,23 @@ Entry template:
 - **Scope / areas covered:** the same 10 files/lines named above.
 - **Findings:** all 10 fixed — see each item's updated status above for what changed. Notably, closing #2/#3 (the FIXED-discount PDP-vs-checkout divergence and the quantity-dependent winning-discount flip) required threading a `discounts: VariantDiscount[]` list from `buildVariantOptions` through `SizePickerOption`/`VariantSubOption`, `BuyBox`/`DecantBuyBox`, and a new `pickHighestSaving` export in `src/domain/discount.ts`, so `<Price>` can re-pick the winner and the true line total from the live quantity instead of a server-computed quantity-1 snapshot. Verified: `tsc --noEmit` clean, `eslint` clean (no new issues; the 3 pre-existing `react-hooks/set-state-in-effect` errors are untouched), `vitest run` 120/121 passing (the 1 failure is the pre-existing, unrelated `pricing-parity` seed-data check), plus targeted throwaway numeric checks for the discount-flip math and the promo-date PHT boundary/round-trip.
 - **Checkpoint advanced to:** unchanged — still `8f29827dec106dbdec22151da00fd9a2d0eee69e`, since the fix commit itself hasn't been reviewed yet.
+
+---
+
+## 2026-09-18 — Diff-since-checkpoint review: full-bottle pre-order feature, width/pickup/Instagram, badge/icon UI
+
+- **Commit range reviewed:** `8f29827dec106dbdec22151da00fd9a2d0eee69e...f64b602` (57 files) — the 10-fix commit from the entry above plus the full-bottle pre-order feature (`595205b`), the width/pickup/Instagram commit (`f64b602`); the later badge/icon UI commits (`3b954b3`, `9686395`) postdate this diff snapshot and are intentionally left for the *next* review.
+- **Effort:** high — 4 finder angles dispatched (full-bottle correctness, 10-fix correctness re-check, removed-behavior auditor, cross-file tracer).
+- **Scope / areas covered:** `resolveBottleAvailability` and its call sites in `src/lib/cart.ts`/`src/lib/catalog.ts`/`src/app/(store)/shop/[skuId]/page.tsx`/`src/actions/admin-catalog-actions.ts`; every code path that creates a FULL_BOTTLE SKU (admin catalog actions, Fragrantica import, both bulk-import scripts, dev seed script); the checkout price/discount re-verification block and `transitionOrderStatus`/`releaseStockForOrder` locking added in the prior fix commit; the promo-code PHT date-parsing rewrite.
+- **Findings:** 8 reported, most severe first:
+  1. `src/actions/fragrantica-actions.ts:161` — Fragrantica-imported FULL_BOTTLE SKUs got no `availableForPreOrder`, silently invisible on `/shop` — status: fixed
+  2. `scripts/import-full-bottle-pricelist.ts:1` — same gap in the bulk pricelist importer — status: fixed
+  3. `scripts/add-full-bottles-batch-2.ts:1` — same gap in the second batch-import script — status: fixed
+  4. `scripts/seed.ts:202` — same gap in the dev seed script, plus its `SeedSkuInput` type didn't declare the field (caught by `tsc --noEmit` after the fix) — status: fixed
+  5. `src/lib/orders.ts` (checkout re-verification block) — re-checks per-product `productDiscounts` but not `promoConfig.siteWideDiscount`, so a site-wide discount change mid-checkout isn't caught — status: plausible, not fixed this pass
+  6. `src/actions/admin-promo-code-actions.ts` (PHT date-anchoring rewrite) — no backfill for promo codes created before this change; their `startsAt`/`endsAt` now display 8 hours off in the admin edit form — status: confirmed, not fixed this pass
+  7. `src/lib/orders.ts` (`submitReceipt`) — catch-all converts every thrown error to a generic `{ok:false}` with no logging, hiding the real cause — status: plausible, not fixed this pass
+  8. `scripts/migrate.ts` (availableForPreOrder backfill) — only covers `fulfillment='PRE_ORDER'` rows, missing any full bottle stuck ON_HAND with stock=0; verified against live production data that 0 rows are currently affected, so latent not active — status: plausible, not fixed this pass
+
+  All 4 FULL_BOTTLE-SKU-creation gaps (#1-4) were fixed in the same commit as this review. #5-8 are real but narrower/lower-severity and were left for a follow-up — flagged to the user.
+- **Checkpoint advanced to:** `f64b602` (the last commit actually captured in this diff snapshot — the badge/icon UI commits `3b954b3`/`9686395` and the bug-fix commit from this session are newer than the snapshot and remain in scope for the next review).

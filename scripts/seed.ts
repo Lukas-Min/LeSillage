@@ -73,6 +73,7 @@ interface SeedSkuInput {
   retailPrice: number;
   fulfillment: "PRE_ORDER" | "ON_HAND";
   stock: number;
+  availableForPreOrder?: boolean;
   isTester: boolean;
   testerBrand?: string | null;
 }
@@ -196,6 +197,10 @@ async function seedFragrances() {
       }),
       fulfillment: "PRE_ORDER",
       stock: 0,
+      // A FULL_BOTTLE's visibility is now derived from stock + this toggle
+      // (resolveBottleAvailability) — without it, stock 0 means the SKU is
+      // hidden from /shop entirely instead of showing as PRE_ORDER.
+      availableForPreOrder: true,
       isTester: false,
     });
 
