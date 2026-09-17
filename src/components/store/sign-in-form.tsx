@@ -61,7 +61,6 @@ export function SignInForm({
         </div>
         <div className="space-y-2">
           <OAuthButton provider="google" returnTo={returnTo} />
-          <OAuthButton provider="facebook" returnTo={returnTo} />
         </div>
         <p className="text-xs text-muted-foreground">
           By continuing you agree to our{" "}

@@ -18,7 +18,7 @@ export default async function SignInPage({
     <main className="mx-auto w-full max-w-md px-4 py-12">
       <h1 className="font-serif-display text-2xl">Sign in to Le Sillage</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Use email and password, or continue with Google or Facebook.
+        Use email and password, or continue with Google.
       </p>
       <SignInForm
         returnTo={returnTo}

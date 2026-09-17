@@ -56,7 +56,6 @@ export default async function SignUpPage({
           </div>
           <div className="mt-4 space-y-2">
             <OAuthButton provider="google" returnTo={returnTo} />
-            <OAuthButton provider="facebook" returnTo={returnTo} />
           </div>
         </CardContent>
       </Card>
