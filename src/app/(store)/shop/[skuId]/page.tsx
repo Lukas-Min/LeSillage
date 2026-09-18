@@ -312,11 +312,12 @@ function VariantSection({
   const conditionOptions = activeGroup?.subOptions?.length ? activeGroup.subOptions : null;
   return (
     // Condition and Size read as one "pick your variant" step, so they sit
-    // side by side from `sm:` up once there's room for two columns of
-    // wrapping buttons — stacked full-width below that. Only a 2-column
-    // grid when Condition actually renders; a lone Size group stays full
-    // width rather than being stranded in half a row.
-    <div className={cn("gap-4", conditionOptions ? "grid sm:grid-cols-2" : "flex flex-col")}>
+    // side by side from `sm:` up — but sized to their own content and
+    // packed close together (not stretched into two 50/50 columns, which
+    // stranded a handful of small buttons at opposite edges of a wide
+    // buy-box column with a huge dead gap between them). Wraps back to a
+    // stacked, full-width layout if the column is too narrow to fit both.
+    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-x-10">
       {conditionOptions ? (
         <div className="space-y-3">
           <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Condition</p>

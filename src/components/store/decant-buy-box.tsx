@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/store/add-to-cart-button";
 import { BuyNowButton } from "@/components/store/buy-now-button";
 import { Price } from "@/components/store/price";
+import { QuantityStepper } from "@/components/store/quantity-stepper";
 import { SizePicker } from "@/components/store/size-picker";
 import { findSelectedVariant, type SizePickerOption } from "@/domain/variant-options";
 
@@ -65,19 +66,19 @@ export function DecantBuyBox({
         {selected.soldOut ? (
           <p className="text-sm text-destructive">Sold out — check back soon.</p>
         ) : (
-          // Stacked full-width below `sm` (a stepper plus two buttons side
-          // by side doesn't fit a 360-414px phone screen); from `sm` up
-          // there's room, so they sit on one row, each taking half.
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="sm:flex-1">
-              <AddToCartButton
-                skuId={selected.skuId}
-                quantity={quantity}
-                onQuantityChange={setQuantity}
-              />
-            </div>
-            <div className="sm:flex-1">
-              <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+          <div className="flex flex-col gap-3">
+            <QuantityStepper quantity={quantity} onChange={setQuantity} />
+            {/* "Add to cart" and "Buy now" as a matched, equal-width pair —
+                the stepper used to sit inside this same row on one side
+                only, which made "Add to cart" read as the smaller, weaker
+                button even though it's the primary action. */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <AddToCartButton skuId={selected.skuId} quantity={quantity} hideStepper />
+              </div>
+              <div className="flex-1">
+                <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+              </div>
             </div>
           </div>
         )}

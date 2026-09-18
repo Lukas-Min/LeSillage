@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/components/store/cart-context";
+import { QuantityStepper } from "@/components/store/quantity-stepper";
+import { cn } from "@/lib/utils";
 
 /**
  * Every remaining call site (PDP buy boxes, the wishlist page) always has a
@@ -21,17 +23,24 @@ export function AddToCartButton({
   skuId,
   quantity,
   onQuantityChange,
+  hideStepper = false,
 }: {
   skuId: string;
   quantity?: number;
   onQuantityChange?: (quantity: number) => void;
+  /** The two PDP buy boxes lay the stepper out on its own row, next to "Buy
+   *  now" as a matched pair of equal-width buttons, instead of cramming it
+   *  into this button's own row — a stepper stealing space from only one
+   *  side of that pair left "Add to cart" visibly narrower than "Buy now".
+   *  `quantity` must be a controlled prop when this is set, since there's no
+   *  stepper here to drive the internal fallback. */
+  hideStepper?: boolean;
 }) {
   const cart = useCart();
   const [isPending, startTransition] = useTransition();
   const [internalQty, setInternalQty] = useState(1);
   const qty = quantity ?? internalQty;
-  const setQty = (updater: (value: number) => number) => {
-    const next = updater(qty);
+  const setQty = (next: number) => {
     if (onQuantityChange) onQuantityChange(next);
     else setInternalQty(next);
   };
@@ -46,52 +55,27 @@ export function AddToCartButton({
       }
     });
 
-  const decrement = () => setQty((value) => Math.max(1, value - 1));
-  const increment = () => setQty((value) => Math.min(99, value + 1));
+  const addButton = (
+    <Button
+      type="button"
+      variant="gold"
+      size="lg"
+      className={cn("h-11 rounded-md", hideStepper ? "w-full" : "flex-1")}
+      disabled={isPending}
+      aria-busy={isPending}
+      onClick={() => add(qty)}
+    >
+      <ShoppingBag className="h-4 w-4" />
+      {isPending ? "Adding…" : "Add to cart"}
+    </Button>
+  );
+
+  if (hideStepper) return addButton;
+
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center rounded-md border border-border">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Decrease quantity"
-          className="h-11 w-10 rounded-none rounded-l-md"
-          onClick={decrement}
-          disabled={qty <= 1}
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-        <span
-          aria-live="polite"
-          aria-label={`Quantity ${qty}`}
-          className="flex h-11 min-w-12 items-center justify-center px-2 text-sm font-medium tabular-nums"
-        >
-          {qty}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Increase quantity"
-          className="h-11 w-10 rounded-none rounded-r-md"
-          onClick={increment}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      <Button
-        type="button"
-        variant="gold"
-        size="lg"
-        className="h-11 flex-1 rounded-md"
-        disabled={isPending}
-        aria-busy={isPending}
-        onClick={() => add(qty)}
-      >
-        <ShoppingBag className="h-4 w-4" />
-        {isPending ? "Adding…" : "Add to cart"}
-      </Button>
+      <QuantityStepper quantity={qty} onChange={setQty} />
+      {addButton}
     </div>
   );
 }
