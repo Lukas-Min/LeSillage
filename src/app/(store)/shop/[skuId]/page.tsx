@@ -144,29 +144,21 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           rendering a second copy of it. */}
       <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
         <div className="contents md:flex md:flex-col md:gap-6 md:pr-12">
-          {/* The photo is capped at 60vh (below) and the column is often
-              wider than that cap allows, so a plain w-full would still
-              leave it flush left — this wrapper centers it in the leftover
-              space instead. */}
-          <div className="order-1 flex justify-center">
-            <CompositionCanvas
-              brand={row.brand}
-              name={row.name}
-              pyramid={notePyramid}
-              showComposition
-              imageUrl={image[0]?.url}
-              imageAlt={image[0]?.alt}
-              cornerLabel={labelForCategory(row.fragranceCategory)}
-              // aspect-square (set inside CompositionCanvas) means width and
-              // height are locked together — max-w must match max-h here or
-              // a height-only cap would leave the square stretching past
-              // 60vh wide instead of shrinking to fit. Capped at 60vh (not
-              // 80-100) so the photo never dominates a short/wide viewport
-              // and pushes the buy box below the fold.
-              className="max-h-[60vh] max-w-[60vh]"
-              enableLightbox
-            />
-          </div>
+          <CompositionCanvas
+            brand={row.brand}
+            name={row.name}
+            pyramid={notePyramid}
+            showComposition
+            imageUrl={image[0]?.url}
+            imageAlt={image[0]?.alt}
+            cornerLabel={labelForCategory(row.fragranceCategory)}
+            // No max-h/max-w cap here any more — the page-wide 2xl:80vw
+            // container (root layout) now keeps this column, and so the
+            // aspect-square photo inside it, from ever stretching wide
+            // enough on a large monitor to push the buy box below the fold.
+            className="order-1"
+            enableLightbox
+          />
 
           {accords && accords.length > 0 ? (
             <div className="order-3 space-y-2">
@@ -311,13 +303,7 @@ function VariantSection({
   );
   const conditionOptions = activeGroup?.subOptions?.length ? activeGroup.subOptions : null;
   return (
-    // Condition and Size read as one "pick your variant" step, so they sit
-    // side by side from `sm:` up — but sized to their own content and
-    // packed close together (not stretched into two 50/50 columns, which
-    // stranded a handful of small buttons at opposite edges of a wide
-    // buy-box column with a huge dead gap between them). Wraps back to a
-    // stacked, full-width layout if the column is too narrow to fit both.
-    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-x-10">
+    <div className="space-y-4">
       {conditionOptions ? (
         <div className="space-y-3">
           <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Condition</p>

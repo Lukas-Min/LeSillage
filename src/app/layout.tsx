@@ -60,7 +60,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers>
           <div className="flex min-h-dvh flex-col">
             <StoreHeader announcement={announcement.enabled ? announcement.messages : []} />
-            <div className="flex flex-1 flex-col">{children}</div>
+            {/* The header/footer chrome stays full-bleed (nav bar, promo
+                marquee, footer band) — only the actual page content is
+                capped, and only once a screen is wide enough to call
+                "large": below 2xl (1536px) every page's own w-full/px-4
+                already fills the viewport exactly as before. */}
+            <div className="flex flex-1 flex-col 2xl:mx-auto 2xl:w-full 2xl:max-w-[80vw]">{children}</div>
           </div>
           <StoreFooter />
           <Toaster position="top-center" />

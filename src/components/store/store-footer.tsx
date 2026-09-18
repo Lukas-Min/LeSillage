@@ -39,7 +39,10 @@ export function StoreFooter() {
   const phone = env.NEXT_PUBLIC_PHONE;
   return (
     <footer className="mt-auto border-t border-border bg-secondary/40">
-      <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
+      {/* Matches the page-content container's cap (root layout, 2xl:80vw) so
+          the footer's columns align with the content above instead of
+          sitting flush against the edge of an ultra-wide screen. */}
+      <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="space-y-3">
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />

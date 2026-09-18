@@ -78,7 +78,12 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-      <div className="relative flex h-14 w-full items-center justify-between gap-3 px-4">
+      {/* Matches the page-content container's cap (root layout, 2xl:80vw) so
+          the logo/nav align with the content below instead of sitting flush
+          against the edge of an ultra-wide screen while the page itself is
+          inset. The promo marquee below stays full-bleed — it's a ticker,
+          not page content, and its scroll math is sized to the viewport. */}
+      <div className="relative flex h-14 w-full items-center justify-between gap-3 px-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="flex items-center gap-2">
           <MobileMenu signedIn={signedIn} />
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
