@@ -38,6 +38,22 @@ export function resolveBottleAvailability(args: {
   return { visible: false, fulfillment: "PRE_ORDER", cap: 0 };
 }
 
+/**
+ * `fulfillment`/`availableForPreOrder` defaults for a freshly-created SKU
+ * with no stock yet — the one place every SKU-creation path (admin catalog
+ * actions, the Fragrantica importer, the seed/import scripts) should get
+ * these from, so a newly-added FULL_BOTTLE-creating path can't forget
+ * `availableForPreOrder` and silently ship an invisible SKU (see
+ * `resolveBottleAvailability`, which is what actually consumes the flag).
+ */
+export function newSkuFulfillmentDefaults(type: ProductType): {
+  fulfillment: Fulfillment;
+  availableForPreOrder: boolean;
+} {
+  if (type === "FULL_BOTTLE") return { fulfillment: "PRE_ORDER", availableForPreOrder: true };
+  return { fulfillment: "ON_HAND", availableForPreOrder: false };
+}
+
 export function labelForType(type: ProductType): string {
   switch (type) {
     case "DECANT":

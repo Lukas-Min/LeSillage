@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CatalogPrice } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
+import { OVERLAY_PILL_CLASS } from "@/components/store/overlay-pill";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
 import { capitalizeFirst } from "@/lib/utils";
@@ -32,7 +33,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               image at every wider step. The border stays the same at both
               sizes; only type size/padding shrink. */}
           {card.ratingValue ? (
-            <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium text-foreground shadow-sm backdrop-blur-sm min-[576px]:gap-1 min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[11px]">
+            <span className={`absolute left-2 top-2 gap-1 ${OVERLAY_PILL_CLASS} min-[576px]:gap-1 min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[11px]`}>
               <Star className="h-3.5 w-3.5 fill-gold text-gold min-[576px]:h-3 min-[576px]:w-3" aria-hidden="true" />
               {card.ratingValue.toFixed(1)}
             </span>
@@ -42,7 +43,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
               Save {card.savePercent}%
             </span>
           ) : null}
-          <span className="absolute left-2 bottom-2 z-10 inline-flex items-center rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[10px]">
+          <span className={`absolute left-2 bottom-2 ${OVERLAY_PILL_CLASS} uppercase tracking-[0.2em] min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[10px]`}>
             {labelForCategory(card.fragranceCategory)}
           </span>
           <CompositionCanvas

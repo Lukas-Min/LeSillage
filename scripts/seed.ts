@@ -4,6 +4,7 @@ config({ path: ".env.local" });
 import { eq } from "drizzle-orm";
 import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
 import { guessConcentration } from "@/domain/concentration";
+import { newSkuFulfillmentDefaults } from "@/domain/product-type";
 import type { FragranceCategory } from "../src/db/schema";
 import { db } from "../src/db/client";
 import {
@@ -195,12 +196,8 @@ async function seedFragrances() {
         sourceMl: 100,
         sizeMl: 100,
       }),
-      fulfillment: "PRE_ORDER",
       stock: 0,
-      // A FULL_BOTTLE's visibility is now derived from stock + this toggle
-      // (resolveBottleAvailability) — without it, stock 0 means the SKU is
-      // hidden from /shop entirely instead of showing as PRE_ORDER.
-      availableForPreOrder: true,
+      ...newSkuFulfillmentDefaults("FULL_BOTTLE"),
       isTester: false,
     });
 

@@ -21,7 +21,7 @@ import {
   lookupPendingPayload,
   type ReviewPayload,
 } from "@/lib/fragella-pending-store";
-import { formatFragranceDescription } from "@/domain/product-type";
+import { formatFragranceDescription, newSkuFulfillmentDefaults } from "@/domain/product-type";
 
 // Re-export the canonical type so other modules import from this file.
 export type { ReviewPayload };
@@ -166,14 +166,8 @@ export async function saveFragranticaImport(formData: FormData) {
     retailPrice: 0,
     pricingMode: "DIRECT",
     pricingInput: 0,
-    fulfillment: type === "FULL_BOTTLE" ? "PRE_ORDER" : "ON_HAND",
     stock: 0,
-    // A FULL_BOTTLE's fulfillment/visibility is derived live from stock +
-    // this toggle (resolveBottleAvailability) — without it, the PRE_ORDER
-    // intended above is moot: stock 0 and availableForPreOrder false means
-    // the newly-imported bottle is hidden from /shop entirely instead of
-    // showing as a pre-order the way this import always intended.
-    availableForPreOrder: type === "FULL_BOTTLE",
+    ...newSkuFulfillmentDefaults(type),
   });
   const finalImageUrl = merged.imageUrl ?? imageUrl;
   if (finalImageUrl) {

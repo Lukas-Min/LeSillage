@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { NotePyramid } from "@/lib/note-pyramid";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { OVERLAY_PILL_CLASS } from "@/components/store/overlay-pill";
 
 const LIGHTBOX_ZOOM_SCALE = 1.5;
 
@@ -300,9 +301,7 @@ export function CompositionCanvas({
 
 function CornerLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium uppercase tracking-[0.2em] text-foreground shadow-sm backdrop-blur-sm">
-      {children}
-    </span>
+    <span className={`absolute left-2 top-2 ${OVERLAY_PILL_CLASS} uppercase tracking-[0.2em]`}>{children}</span>
   );
 }
 

@@ -39,7 +39,7 @@ import { and, eq, ilike } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { productImages, products, skus } from "../src/db/schema";
 import type { Concentration, FragranceCategory } from "../src/db/schema";
-import { formatFragranceDescription } from "@/domain/product-type";
+import { formatFragranceDescription, newSkuFulfillmentDefaults } from "@/domain/product-type";
 
 type Gender = "men" | "women" | "unisex";
 
@@ -291,12 +291,8 @@ async function main() {
         pricingMode: "DIRECT",
         pricingInput: retailPrice,
         retailPrice,
-        fulfillment: "PRE_ORDER",
         stock: 0,
-        // A FULL_BOTTLE's visibility is now derived from stock + this toggle
-        // (resolveBottleAvailability) — without it, stock 0 means the SKU is
-        // hidden from /shop entirely instead of showing as PRE_ORDER.
-        availableForPreOrder: true,
+        ...newSkuFulfillmentDefaults("FULL_BOTTLE"),
         isTester: false,
       });
     }

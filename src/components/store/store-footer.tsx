@@ -3,11 +3,7 @@ import Image from "next/image";
 import { Mail, Phone } from "lucide-react";
 import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
 import { getEnv } from "@/lib/env";
-
-const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
-const MESSENGER_URL = "https://m.me/61591955240476";
-const INSTAGRAM_HANDLE = "le.sillage.mnl";
-const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}`;
+import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
 
 const COLUMNS = [
   {
