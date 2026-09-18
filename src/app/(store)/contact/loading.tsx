@@ -31,10 +31,10 @@ export default function ContactLoading() {
         <SectionCard
           eyebrow="Response time"
           title="Usually within one business day"
-          contentClassName="space-y-1 divide-y divide-border/60"
+          contentClassName="divide-y divide-border/60"
         >
           {rows.map((row) => (
-            <div key={row.label} className="flex items-center gap-3 pt-4 first:pt-0">
+            <div key={row.label} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
                 <row.icon className="h-4 w-4" />
               </span>
