@@ -168,7 +168,8 @@ export function CartLineItem({
           </div>
           <div className="mt-1 flex items-baseline justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              {formatPHP(displayDiscounted)} <span className="tabular-nums">× {qty}</span>
+              {formatPHP(displayDiscounted)}
+              {qty > 1 ? <span className="tabular-nums"> × {qty}</span> : null}
             </p>
             <div className="text-right">
               <p className="text-sm font-semibold tabular-nums">

@@ -61,7 +61,8 @@ export default function CartPage() {
                           {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatPHP(item.retailPriceCentavos)} <span className="tabular-nums">× {item.quantity}</span>
+                          {formatPHP(item.retailPriceCentavos)}
+                          {item.quantity > 1 ? <span className="tabular-nums"> × {item.quantity}</span> : null}
                         </p>
                       </div>
                       <div className="shrink-0 text-right tabular-nums">

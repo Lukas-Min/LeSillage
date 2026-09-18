@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- The cart drawer's Subtotal ("Your bag") was still on Playfair Display, the one price on the site left out of the Fraunces pass below — inconsistent with every other price in the same drawer (all sans) and reported as hard to read; now uses `.font-price-display` like the rest
+- The unit-price line in the cart drawer, full cart page, and checkout order summary (`₱190.00 × 1`) repeated the same figure already shown as the bold line total for every quantity-1 item — the `× N` multiplier now only shows once quantity is 2+, where it's actually informative
 ### Changed
 - Every displayed price (shop grid, PDP, cart total, checkout total, order-detail total) now sets its numerals in Fraunces instead of Playfair Display — chosen after comparing a dozen candidates for numeral clarity, since Playfair Display's thin, decorative digits were part of why the shop grid's price ranges were clipping/wrapping at narrower widths. Headings, titles, and product names are unchanged (`.font-price-display` in `globals.css`, scoped only to price text, alongside the existing `.font-serif-display`)
 ### Fixed

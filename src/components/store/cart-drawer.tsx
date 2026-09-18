@@ -94,7 +94,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
             <div className="space-y-3 border-t border-border/60 px-4 py-4">
               <p className="flex justify-between text-sm">
                 <span>Subtotal</span>
-                <span className="font-serif-display text-lg">
+                <span className="font-price-display text-lg">
                   {formatPHP(cart.totals.merchandiseSubtotalCentavos)}
                 </span>
               </p>
