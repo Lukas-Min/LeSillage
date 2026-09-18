@@ -44,26 +44,37 @@ export function DecantBuyBox({
         <SizePicker options={options} selectedSkuId={selected.skuId} onSelect={select} />
       </div>
 
-      <Price
-        originalCentavos={selected.originalCentavos}
-        discountedCentavos={selected.discountedCentavos}
-        savedCentavos={selected.savedCentavos}
-        quantity={quantity}
-        discounts={selected.discounts}
-      />
+      {/* Price and its own buy actions are one visual unit — grouped here
+          (gap-3, matching the label-to-control spacing used elsewhere on
+          the PDP) instead of being separate children of the parent's gap-6
+          row, which used to leave as much air between the price and "Add
+          to cart" as between wholly unrelated sections. This must be
+          `flex` + `gap-3`, not `space-y-3`: Price's root element is an
+          inline `<span>`, and vertical margin (what space-y relies on) has
+          no effect on layout for inline boxes — flex gap doesn't have that
+          gotcha. */}
+      <div className="flex flex-col gap-3">
+        <Price
+          originalCentavos={selected.originalCentavos}
+          discountedCentavos={selected.discountedCentavos}
+          savedCentavos={selected.savedCentavos}
+          quantity={quantity}
+          discounts={selected.discounts}
+        />
 
-      {selected.soldOut ? (
-        <p className="text-sm text-destructive">Sold out — check back soon.</p>
-      ) : (
-        <div className="space-y-2">
-          <AddToCartButton
-            skuId={selected.skuId}
-            quantity={quantity}
-            onQuantityChange={setQuantity}
-          />
-          <BuyNowButton skuId={selected.skuId} quantity={quantity} />
-        </div>
-      )}
+        {selected.soldOut ? (
+          <p className="text-sm text-destructive">Sold out — check back soon.</p>
+        ) : (
+          <div className="space-y-2">
+            <AddToCartButton
+              skuId={selected.skuId}
+              quantity={quantity}
+              onQuantityChange={setQuantity}
+            />
+            <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+          </div>
+        )}
+      </div>
     </>
   );
 }

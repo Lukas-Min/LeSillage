@@ -23,7 +23,15 @@ export function BuyBox({
 }) {
   const [quantity, setQuantity] = useState(1);
   return (
-    <>
+    // Price and its own buy actions are one visual unit — grouped in a
+    // single flex item (gap-3, matching the label-to-control spacing used
+    // elsewhere on the PDP) instead of being separate children of the
+    // parent's gap-6 row, which used to leave as much air between the price
+    // and "Add to cart" as between wholly unrelated sections. This must be
+    // `flex` + `gap-3`, not `space-y-3`: Price's root element is an inline
+    // `<span>`, and vertical margin (what space-y relies on) has no effect
+    // on layout for inline boxes — flex gap doesn't have that gotcha.
+    <div className="flex flex-col gap-3">
       <Price
         originalCentavos={originalCentavos}
         discountedCentavos={discountedCentavos}
@@ -39,6 +47,6 @@ export function BuyBox({
           <BuyNowButton skuId={skuId} quantity={quantity} />
         </div>
       )}
-    </>
+    </div>
   );
 }

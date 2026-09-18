@@ -154,9 +154,11 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             cornerLabel={labelForCategory(row.fragranceCategory)}
             // aspect-square (set inside CompositionCanvas) means width and
             // height are locked together — max-w must match max-h here or a
-            // height-only cap would leave the square stretching past 80vh
-            // wide instead of shrinking to fit.
-            className="order-1 max-h-[80vh] max-w-[80vh]"
+            // height-only cap would leave the square stretching past 60vh
+            // wide instead of shrinking to fit. Capped at 60vh (not 80-100)
+            // so the photo never dominates a short/wide viewport and pushes
+            // the buy box below the fold.
+            className="order-1 max-h-[60vh] max-w-[60vh]"
             enableLightbox
           />
 
