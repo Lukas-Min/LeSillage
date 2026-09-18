@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
       {Array.from({ length: count }).map((_, idx) => (
         <div key={idx} className="overflow-hidden rounded-md border border-border">
           <Skeleton className="aspect-square w-full rounded-none" />

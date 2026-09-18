@@ -98,7 +98,10 @@ export function CatalogPrice({
           ) : null}
         </p>
       ) : null}
-      <p className="font-serif-display text-2xl leading-none tracking-tight">
+      {/* Scales down as the grid packs in more columns (see catalog-grid.tsx)
+          so a wide range like "₱1,000.00 – ₱9,650.00" still fits one line on
+          a narrower card instead of wrapping mid-number. */}
+      <p className="font-serif-display text-xl leading-none tracking-tight whitespace-nowrap min-[576px]:text-lg md:text-2xl lg:text-lg xl:text-base">
         {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
       </p>
     </div>
