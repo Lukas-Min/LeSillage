@@ -141,8 +141,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           instance — mounting it twice crashed production, see
           wishlist-button.tsx) sit right under the image on mobile while
           still opening the sticky right column on desktop, without ever
-          rendering a second copy of it. */}
-      <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
+          rendering a second copy of it.
+
+          Capped at 80% of viewport width once a screen is wide enough to
+          call "large" (2xl, 1536px+) — just this product grid, not the
+          breadcrumbs above it or the page's own edge-to-edge padding.
+          Every other page still fills the viewport (see layout.tsx). */}
+      <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="contents md:flex md:flex-col md:gap-6 md:pr-12">
           <CompositionCanvas
             brand={row.brand}
