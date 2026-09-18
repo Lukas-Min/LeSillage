@@ -10,7 +10,14 @@ const TYPE_FILTERS: Array<{ type?: ProductType; label: string; href: string }> =
 
 export function ShopFilters({ activeType }: { activeType?: ProductType }) {
   return (
-    <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
+    // Never wraps to a second row on a narrow phone — scrolls horizontally
+    // instead, scrollbar hidden (same pattern as the admin type tabs).
+    // `shrink-0` on each link stops flex from squeezing their text before
+    // overflow kicks in. Left-aligned (not centered) while it's narrow
+    // enough to possibly need that scroll: centering a row that overflows
+    // starts it scrolled to the middle, clipping both the first and last
+    // tab instead of opening on "Decants" fully in view.
+    <div className="scrollbar-hide flex w-full items-center justify-start gap-x-8 overflow-x-auto sm:justify-center">
       {TYPE_FILTERS.map((filter) => {
         const isActive = filter.type === activeType || (!filter.type && !activeType);
         return (
@@ -18,7 +25,7 @@ export function ShopFilters({ activeType }: { activeType?: ProductType }) {
             key={filter.href}
             href={filter.href}
             className={cn(
-              "relative inline-flex min-h-11 items-center pb-2 text-xs uppercase tracking-[0.22em] transition-colors",
+              "relative inline-flex min-h-11 shrink-0 items-center pb-2 text-xs uppercase tracking-[0.22em] transition-colors",
               isActive ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >

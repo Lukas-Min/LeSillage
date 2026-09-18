@@ -86,9 +86,14 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
       <div className="relative flex h-14 w-full items-center justify-between gap-3 px-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="flex items-center gap-2">
           <MobileMenu signedIn={signedIn} />
+          {/* Below ~310px the wordmark has no room next to the logo mark and
+              wraps onto a second line inside this row's fixed h-14 — visually
+              hidden from there down to just the mark instead. `sr-only`
+              (not `hidden`) so the link keeps an accessible name at every
+              width — the mark's alt stays "" (decorative), same as before. */}
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
-            Le Sillage
+            <span className="sr-only min-[310px]:not-sr-only">Le Sillage</span>
           </Link>
         </div>
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-xs uppercase tracking-[0.22em] md:flex">
