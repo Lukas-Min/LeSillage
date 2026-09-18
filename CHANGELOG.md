@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- Dark mode's `--border` (10% white) and `--muted-foreground` (0.7 lightness) were too faint against the near-black `--background` — since Tailwind's base reset applies `border-border` to every element site-wide, this made card outlines, dividers, input/button borders, and secondary text (SKU meta, delivery notes, small-caps labels) hard to make out across the whole app in dark mode, not just the one screen it was reported on. Bumped `--border` to 25% and `--input` to 32% opacity, and `--muted-foreground` to 0.78 lightness — the same visible-border look already shot for badges earlier this session, now fixed at the token level instead of per-component
 - The cart drawer's Subtotal ("Your bag") was still on Playfair Display, the one price on the site left out of the Fraunces pass below — inconsistent with every other price in the same drawer (all sans) and reported as hard to read; now uses `.font-price-display` like the rest
 - The unit-price line in the cart drawer, full cart page, and checkout order summary (`₱190.00 × 1`) repeated the same figure already shown as the bold line total for every quantity-1 item — the `× N` multiplier now only shows once quantity is 2+, where it's actually informative
 ### Changed
