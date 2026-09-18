@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Playfair_Display } from "next/font/google";
+import { Fraunces, Geist, Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 import { StoreHeader } from "@/components/store/store-header";
@@ -15,6 +15,15 @@ const geistSans = Geist({
 
 const playfair = Playfair_Display({
   variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Prices only — chosen for numeral clarity at small sizes (the shop grid's
+// price ranges were clipping/wrapping with Playfair Display). Headings and
+// titles keep Playfair Display; see globals.css's .font-price-display.
+const fraunces = Fraunces({
+  variable: "--font-price",
   subsets: ["latin"],
   display: "swap",
 });
@@ -45,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${playfair.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="flex flex-col bg-background text-foreground">
         <Providers>

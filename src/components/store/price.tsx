@@ -41,7 +41,7 @@ export function Price({
   if (!hasDiscount) {
     return (
       <span className={className}>
-        <span className="font-serif-display text-2xl tracking-tight">{formatPHP(nowCentavos)}</span>
+        <span className="font-price-display text-2xl tracking-tight">{formatPHP(nowCentavos)}</span>
         {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}
       </span>
     );
@@ -49,7 +49,7 @@ export function Price({
   return (
     <span className={className}>
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="font-serif-display text-2xl tracking-tight" aria-label="Now">
+        <span className="font-price-display text-2xl tracking-tight" aria-label="Now">
           {formatPHP(nowCentavos)}
         </span>
         <s className="text-sm text-muted-foreground">
@@ -106,7 +106,7 @@ export function CatalogPrice({
           range up to ~230px, and md: shrinks once card width drops to ~190px.
           No whitespace-nowrap — if a future price range is ever wider than
           this was tuned for, it wraps to a second line instead of clipping. */}
-      <p className="font-serif-display text-2xl leading-none tracking-tight md:text-lg">
+      <p className="font-price-display text-2xl leading-none tracking-tight md:text-lg">
         {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
       </p>
     </div>

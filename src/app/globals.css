@@ -189,6 +189,15 @@
     font-family: var(--font-serif);
     letter-spacing: -0.01em;
   }
+  /* Prices only (cart/checkout/order totals, CatalogPrice) — see layout.tsx's
+     `fraunces` font. Headings/titles stay on .font-serif-display. Fraunces'
+     default weight reads lighter than Playfair Display's at the same size,
+     so this pins the weight to match the approved comparison. */
+  .font-price-display {
+    font-family: var(--font-price);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
   /* Horizontally-scrollable rows (e.g. admin type tabs) that must never wrap
      to a second line on narrow screens, with the scrollbar itself hidden. */
   .scrollbar-hide {

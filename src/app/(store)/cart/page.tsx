@@ -91,7 +91,7 @@ export default function CartPage() {
               <Separator className="my-3" />
               <p className="flex items-baseline justify-between">
                 <span className="font-serif-display text-lg text-foreground">Total</span>
-                <span className="font-serif-display text-2xl tabular-nums">{formatPHP(cart.totals.totalCentavos)}</span>
+                <span className="font-price-display text-2xl tabular-nums">{formatPHP(cart.totals.totalCentavos)}</span>
               </p>
               {cart.totals.discountCentavos > 0 ? (
                 <p className="mt-1 flex justify-between text-xs text-muted-foreground">

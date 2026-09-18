@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Every displayed price (shop grid, PDP, cart total, checkout total, order-detail total) now sets its numerals in Fraunces instead of Playfair Display — chosen after comparing a dozen candidates for numeral clarity, since Playfair Display's thin, decorative digits were part of why the shop grid's price ranges were clipping/wrapping at narrower widths. Headings, titles, and product names are unchanged (`.font-price-display` in `globals.css`, scoped only to price text, alongside the existing `.font-serif-display`)
 ### Fixed
 - The `Badge` component's `outline` variant (order-status badges, "Pre-order", and every other outline badge in the app — 42 files) now uses the same visible `border-foreground/25` the shop-grid badges got, instead of the near-invisible default `border-border` — fixes the same "badges are too faint" issue everywhere it occurs, not just the one screen it was first noticed on
 - The `availableForPreOrder` default for a new FULL_BOTTLE SKU is now set through one shared `newSkuFulfillmentDefaults()` helper (`src/domain/product-type.ts`), called from the admin catalog action, the Fragrantica importer, and both seed/import scripts, instead of each of those 4 call sites carrying its own copy-pasted literal and comment — a future SKU-creation path can't forget the flag and silently ship an invisible bottle

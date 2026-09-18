@@ -450,7 +450,7 @@ export function CheckoutForm({
           <Separator className="my-4" />
           <p className="flex items-baseline justify-between">
             <span className="font-serif-display text-lg">Total to pay</span>
-            <span className="font-serif-display text-2xl tabular-nums">{formatPHP(displayedTotalCentavos)}</span>
+            <span className="font-price-display text-2xl tabular-nums">{formatPHP(displayedTotalCentavos)}</span>
           </p>
           {totals.discountCentavos > 0 ? (
             <p className="mt-1 flex justify-between text-xs text-muted-foreground">

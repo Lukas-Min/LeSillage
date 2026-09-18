@@ -150,9 +150,9 @@ export default async function OrderDetailPage({
                 suffix="Free when applicable"
               />
             </p>
-            <p className="flex justify-between border-t border-border/60 pt-2 font-serif-display text-base">
-              <span>Total</span>
-              <span>{formatPHP(order.totalCentavos)}</span>
+            <p className="flex justify-between border-t border-border/60 pt-2 text-base">
+              <span className="font-serif-display">Total</span>
+              <span className="font-price-display">{formatPHP(order.totalCentavos)}</span>
             </p>
             {order.discountCentavos > 0 ? (
               <p className="flex justify-between text-xs text-muted-foreground">
