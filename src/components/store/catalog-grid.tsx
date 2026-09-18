@@ -31,9 +31,8 @@ export function CatalogResults({
         </div>
       ) : (
         // Single column below 576px, scaling up to 5 columns, the max, on
-        // wide desktop (xl). CatalogPrice's own text size scales back down
-        // as columns increase so its price range still fits on one line as
-        // cards get narrower.
+        // wide desktop (xl). CatalogPrice's own text size shrinks once cards
+        // reach their narrowest, roughly-constant width from md (768px) up.
         <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
           {cards.map((card) => (
             <ProductCard key={card.productId} card={card} />

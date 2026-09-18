@@ -3,8 +3,11 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- `CatalogPrice`'s range price was silently clipped (e.g. "₱1,800.00" rendered as "₱1,800.0") on any tablet-width or narrow-desktop viewport (768–1279px), because its font size jumped to its largest step at exactly the breakpoint where cards are narrowest, combined with a `whitespace-nowrap` that prevented the usual wrap fallback — verified against the live card grid: card content width is ~309px on mobile, ~230px at the 2-column tier, then a roughly constant ~190px from 768px up (columns and viewport grow in lockstep past that point), so the price text now only needs two sizes, not five, and no longer forces `nowrap`, so an unexpectedly wide future price range wraps to a second line instead of clipping
+- The shop-grid loading skeleton's badge placeholders were `h-5`, a size behind the real badges' `h-6` (from the badge-legibility change below) — the skeleton now matches so there's no height jump when real content swaps in
 ### Changed
-- The shop grid now scales up to 5 columns on wide desktop (`xl:grid-cols-5`, up from a 4-column max), and `CatalogPrice`'s range price (e.g. "₱180.00 – ₱1,800.00") now shrinks its font size as the grid packs in more columns so it stays on one line instead of wrapping mid-number on a narrower card
+- The shop grid now scales up to 5 columns on wide desktop (`xl:grid-cols-5`, up from a 4-column max)
 - The footer and `/contact` now show the real Facebook, Messenger, and Instagram logos (`react-icons`' Font Awesome 6 set: `FaFacebookF`/`FaFacebookMessenger`/`FaInstagram`) instead of generic Lucide stand-ins (a globe, a speech bubble, an @ sign) that didn't read as those platforms
 ### Changed
 - Every small overlay badge on a product photo (rating, save %, category corner tag) and the fulfillment/Retail/Sold-out badge row on shop-grid cards now has a visible border and bigger, more legible text instead of a near-invisible 10% border and 10-11px type that read as too small to belong on the card. The three in-picture badges (rating, save %, category tag) scale back down from `min-[576px]` up, since the shop grid packs in more, narrower columns from there and the bigger mobile size would otherwise overwhelm a narrower card's image; the fulfillment/Retail/Sold-out row, the PDP's own corner label, and the homepage flagship panel aren't in a multi-column grid, so they keep the bigger size at every width

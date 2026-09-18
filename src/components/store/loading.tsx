@@ -13,11 +13,12 @@ export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
               <Skeleton className="h-3 w-1/4" />
             </div>
             {/* Up to 3 real badges now (fulfillment, Retail, Sold out) — see
-                ProductCard — so this reserves the same worst-case width. */}
+                ProductCard — so this reserves the same worst-case width and
+                the same h-6 height those badges now render at. */}
             <div className="flex flex-wrap gap-1.5">
-              <Skeleton className="h-5 w-16 rounded-none" />
-              <Skeleton className="h-5 w-14 rounded-none" />
-              <Skeleton className="h-5 w-16 rounded-none" />
+              <Skeleton className="h-6 w-16 rounded-none" />
+              <Skeleton className="h-6 w-14 rounded-none" />
+              <Skeleton className="h-6 w-16 rounded-none" />
             </div>
             <Skeleton className="ml-auto h-5 w-1/2" />
           </div>

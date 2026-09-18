@@ -98,10 +98,15 @@ export function CatalogPrice({
           ) : null}
         </p>
       ) : null}
-      {/* Scales down as the grid packs in more columns (see catalog-grid.tsx)
-          so a wide range like "₱1,000.00 – ₱9,650.00" still fits one line on
-          a narrower card instead of wrapping mid-number. */}
-      <p className="font-serif-display text-xl leading-none tracking-tight whitespace-nowrap min-[576px]:text-lg md:text-2xl lg:text-lg xl:text-base">
+      {/* Card content width (measured, not guessed): ~309px below 576px,
+          ~230px at the 2-column tier (576-767px), then a roughly constant
+          ~190px from md up (768px+) — 3/4/5 columns grow with the viewport
+          in lockstep, so the per-card width barely changes once >=768px. So
+          only two sizes are needed: the default fits every current price
+          range up to ~230px, and md: shrinks once card width drops to ~190px.
+          No whitespace-nowrap — if a future price range is ever wider than
+          this was tuned for, it wraps to a second line instead of clipping. */}
+      <p className="font-serif-display text-2xl leading-none tracking-tight md:text-lg">
         {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
       </p>
     </div>
