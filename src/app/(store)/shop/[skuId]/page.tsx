@@ -144,23 +144,29 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           rendering a second copy of it. */}
       <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
         <div className="contents md:flex md:flex-col md:gap-6 md:pr-12">
-          <CompositionCanvas
-            brand={row.brand}
-            name={row.name}
-            pyramid={notePyramid}
-            showComposition
-            imageUrl={image[0]?.url}
-            imageAlt={image[0]?.alt}
-            cornerLabel={labelForCategory(row.fragranceCategory)}
-            // aspect-square (set inside CompositionCanvas) means width and
-            // height are locked together — max-w must match max-h here or a
-            // height-only cap would leave the square stretching past 60vh
-            // wide instead of shrinking to fit. Capped at 60vh (not 80-100)
-            // so the photo never dominates a short/wide viewport and pushes
-            // the buy box below the fold.
-            className="order-1 max-h-[60vh] max-w-[60vh]"
-            enableLightbox
-          />
+          {/* The photo is capped at 60vh (below) and the column is often
+              wider than that cap allows, so a plain w-full would still
+              leave it flush left — this wrapper centers it in the leftover
+              space instead. */}
+          <div className="order-1 flex justify-center">
+            <CompositionCanvas
+              brand={row.brand}
+              name={row.name}
+              pyramid={notePyramid}
+              showComposition
+              imageUrl={image[0]?.url}
+              imageAlt={image[0]?.alt}
+              cornerLabel={labelForCategory(row.fragranceCategory)}
+              // aspect-square (set inside CompositionCanvas) means width and
+              // height are locked together — max-w must match max-h here or
+              // a height-only cap would leave the square stretching past
+              // 60vh wide instead of shrinking to fit. Capped at 60vh (not
+              // 80-100) so the photo never dominates a short/wide viewport
+              // and pushes the buy box below the fold.
+              className="max-h-[60vh] max-w-[60vh]"
+              enableLightbox
+            />
+          </div>
 
           {accords && accords.length > 0 ? (
             <div className="order-3 space-y-2">
@@ -303,13 +309,19 @@ function VariantSection({
   const activeGroup = options.find(
     (o) => o.skuId === currentSkuId || o.subOptions?.some((s) => s.skuId === currentSkuId),
   );
+  const conditionOptions = activeGroup?.subOptions?.length ? activeGroup.subOptions : null;
   return (
-    <div className="space-y-4">
-      {activeGroup?.subOptions && activeGroup.subOptions.length > 0 ? (
+    // Condition and Size read as one "pick your variant" step, so they sit
+    // side by side from `sm:` up once there's room for two columns of
+    // wrapping buttons — stacked full-width below that. Only a 2-column
+    // grid when Condition actually renders; a lone Size group stays full
+    // width rather than being stranded in half a row.
+    <div className={cn("gap-4", conditionOptions ? "grid sm:grid-cols-2" : "flex flex-col")}>
+      {conditionOptions ? (
         <div className="space-y-3">
           <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Condition</p>
           <div className="flex flex-wrap gap-2">
-            {activeGroup.subOptions.map((sub) => (
+            {conditionOptions.map((sub) => (
               <Link
                 key={sub.skuId}
                 href={`/shop/${sub.skuId}`}

@@ -65,13 +65,20 @@ export function DecantBuyBox({
         {selected.soldOut ? (
           <p className="text-sm text-destructive">Sold out — check back soon.</p>
         ) : (
-          <div className="space-y-2">
-            <AddToCartButton
-              skuId={selected.skuId}
-              quantity={quantity}
-              onQuantityChange={setQuantity}
-            />
-            <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+          // Stacked full-width below `sm` (a stepper plus two buttons side
+          // by side doesn't fit a 360-414px phone screen); from `sm` up
+          // there's room, so they sit on one row, each taking half.
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="sm:flex-1">
+              <AddToCartButton
+                skuId={selected.skuId}
+                quantity={quantity}
+                onQuantityChange={setQuantity}
+              />
+            </div>
+            <div className="sm:flex-1">
+              <BuyNowButton skuId={selected.skuId} quantity={quantity} />
+            </div>
           </div>
         )}
       </div>
