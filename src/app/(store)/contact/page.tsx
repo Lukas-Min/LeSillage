@@ -34,17 +34,14 @@ export default function ContactPage() {
         <SectionCard
           eyebrow="Response time"
           title="Usually within one business day"
-          contentClassName="divide-y divide-border/60"
+          // `space-y-0` overrides SectionCard's default `space-y-4` on its
+          // content wrapper. That margin lands *outside* each row's box —
+          // between the divider and the next row — so it stacked on top of
+          // the next row's own padding-top (32px above the icon vs. 16px
+          // below it). With it gone, the rows' symmetric `py-4` is the only
+          // spacing, so each row sits dead-centre between its dividers.
+          contentClassName="space-y-0 divide-y divide-border/60"
         >
-          {/* Every row gets the same `py-4` on both sides, no first/last
-              exception — the old `pt-4` alone (plus the wrapper's `space-y-1`
-              margin) put all the breathing room above the icon/text and none
-              below, and an earlier attempt at fixing that special-cased the
-              first/last row to avoid doubling up with the card's own edge
-              padding, which just moved the imbalance from "within a row" to
-              "top of the list vs. bottom of the list". Same padding, every
-              row, full stop — the list sits inside the card's ordinary
-              padding exactly like any other content in a SectionCard. */}
           {visibleRows.map((row) => (
             <div key={row.label} className="flex items-center gap-3 py-4">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">

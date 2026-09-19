@@ -31,7 +31,7 @@ export default function ContactLoading() {
         <SectionCard
           eyebrow="Response time"
           title="Usually within one business day"
-          contentClassName="divide-y divide-border/60"
+          contentClassName="space-y-0 divide-y divide-border/60"
         >
           {rows.map((row) => (
             <div key={row.label} className="flex items-center gap-3 py-4">
