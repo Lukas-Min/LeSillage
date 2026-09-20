@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,15 @@ const SORT_LABELS: Record<CatalogSort, string> = {
   name_asc: "Name: A to Z",
   name_desc: "Name: Z to A",
 };
+
+// Below 400px the toolbar (count line + Clear/Filter/Sort) can't fit on one
+// row with the button labels, so every toolbar button collapses to a uniform
+// 44px square showing just its icon — the label stays in the DOM as sr-only
+// so the accessible name is unchanged. Same `sr-only min-[…]:not-sr-only`
+// pattern the header uses for its wordmark.
+const TOOLBAR_BUTTON_CLASS =
+  "min-h-11 min-w-11 gap-1.5 rounded-md px-0 text-[10px] uppercase tracking-[0.2em] min-[400px]:px-2.5";
+const TOOLBAR_LABEL_CLASS = "sr-only min-[400px]:not-sr-only";
 
 const CATEGORY_LABELS: Record<FragranceCategory, string> = {
   NICHE: "Niche",
@@ -75,10 +85,10 @@ export function ShopToolbar({
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="min-h-11 gap-1 rounded-md text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+            className={cn(TOOLBAR_BUTTON_CLASS, "text-muted-foreground hover:text-foreground")}
           >
             <X className="h-3.5 w-3.5" />
-            Clear
+            <span className={TOOLBAR_LABEL_CLASS}>Clear</span>
           </Button>
         ) : null}
         <DropdownMenu>
@@ -86,10 +96,10 @@ export function ShopToolbar({
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 gap-1.5 rounded-md text-[10px] uppercase tracking-[0.2em]"
+              className={TOOLBAR_BUTTON_CLASS}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filter
+              <span className={TOOLBAR_LABEL_CLASS}>Filter</span>
               {filterActive ? <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true" /> : null}
             </Button>
           </DropdownMenuTrigger>
@@ -140,10 +150,10 @@ export function ShopToolbar({
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 gap-1.5 rounded-md text-[10px] uppercase tracking-[0.2em]"
+              className={TOOLBAR_BUTTON_CLASS}
             >
               <ArrowUpDown className="h-3.5 w-3.5" />
-              Sort
+              <span className={TOOLBAR_LABEL_CLASS}>Sort</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">

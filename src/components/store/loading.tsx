@@ -57,8 +57,8 @@ export function ShopToolbarSkeleton() {
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <Skeleton className="h-3 w-24" />
       <div className="flex items-center gap-2">
-        <Skeleton className="h-11 w-24 rounded-md" />
-        <Skeleton className="h-11 w-20 rounded-md" />
+        <Skeleton className="h-11 w-11 rounded-md min-[400px]:w-24" />
+        <Skeleton className="h-11 w-11 rounded-md min-[400px]:w-20" />
       </div>
     </div>
   );
