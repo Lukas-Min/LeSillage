@@ -12,15 +12,16 @@ export function ShopFilters({ activeType }: { activeType?: ProductType }) {
   return (
     // Phone: the three tabs share the full content width (`flex-1` each,
     // label centered in its cell) so the row reads centered and edge-to-edge
-    // without a gap to tune. `sm+`: back to a natural-width centered row with
-    // a fixed gap. Never wraps to a second line — `whitespace-nowrap` keeps
+    // with a `gap-x-6` floor so the labels never touch once the cells shrink
+    // to their content. `sm+`: back to a natural-width centered row with a
+    // wider fixed gap. Never wraps to a second line — `whitespace-nowrap` keeps
     // each label intact, and if the viewport is too narrow for all three
     // (~<320px) the row scrolls horizontally, scrollbar hidden, opening on
     // "Decants" fully in view. `overflow-y-hidden` explicitly: `overflow-x-auto`
     // alone forces the y-axis to `auto` too, and the old 1px underline poking
     // outside the link box was enough to spawn a vertical scrollbar and clip
     // it — the underline now sits inside the label box for the same reason.
-    <div className="scrollbar-hide flex w-full items-center overflow-x-auto overflow-y-hidden sm:justify-center sm:gap-x-8">
+    <div className="scrollbar-hide flex w-full items-center gap-x-6 overflow-x-auto overflow-y-hidden sm:justify-center sm:gap-x-8">
       {TYPE_FILTERS.map((filter) => {
         const isActive = filter.type === activeType || (!filter.type && !activeType);
         return (
