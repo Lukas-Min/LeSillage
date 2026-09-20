@@ -86,14 +86,23 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
       <div className="relative flex h-14 w-full items-center justify-between gap-3 px-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="flex items-center gap-2">
           <MobileMenu signedIn={signedIn} />
-          {/* Below ~310px the wordmark has no room next to the logo mark and
-              wraps onto a second line inside this row's fixed h-14 — visually
-              hidden from there down to just the mark instead. `sr-only`
-              (not `hidden`) so the link keeps an accessible name at every
-              width — the mark's alt stays "" (decorative), same as before. */}
-          <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
+          {/* Below 360px the wordmark has no room next to the logo mark and
+              would wrap onto a second line inside this row's fixed h-14 —
+              visually hidden from there down to just the mark instead.
+              360 is the worst case: signed in, the right cluster is three
+              44px icons (search, cart, account — 140px), and with the
+              hamburger + mark + gaps the row needs ~356px; signed out it
+              fits down to ~310px, but one cutoff for both keeps it uniform
+              and avoids a hydration flash (the pre-mount placeholder is a
+              third icon too). `whitespace-nowrap` so it can never stack
+              even if the display font swaps in a hair wider — which rules
+              out the `sr-only`/`not-sr-only` pair used before, since
+              `not-sr-only` resets `white-space: normal`; the link carries
+              an explicit `aria-label` instead so it keeps an accessible name
+              while the text is `hidden` (the mark's alt stays "", decorative). */}
+          <Link href="/" aria-label="Le Sillage" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
-            <span className="sr-only min-[310px]:not-sr-only">Le Sillage</span>
+            <span className="hidden whitespace-nowrap min-[360px]:inline">Le Sillage</span>
           </Link>
         </div>
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-xs uppercase tracking-[0.22em] md:flex">
