@@ -3,8 +3,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { orders, receipts, users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { describeStatus } from "@/domain/order-state";
+import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 
@@ -88,11 +87,9 @@ export default async function AdminOrdersPage({
             className="absolute inset-0 z-0"
             aria-label={`View order ${order.orderNumber}`}
           />
-          <CardHeader className="pointer-events-none flex flex-row items-center justify-between">
+          <CardHeader className="pointer-events-none flex flex-row flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">{order.orderNumber}</CardTitle>
-            <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
-              {describeStatus(order.status)}
-            </Badge>
+            <OrderStatusPill status={order.status} />
           </CardHeader>
           <CardContent className="pointer-events-none space-y-2 text-sm">
             <p>

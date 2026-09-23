@@ -4,8 +4,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { orders, orderItems, receipts, users, skus, products } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { describeStatus } from "@/domain/order-state";
+import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
@@ -102,9 +101,7 @@ export default async function AdminOrderDetailPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif-display text-2xl">{order.orderNumber}</h1>
-        <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
-          {describeStatus(order.status)}
-        </Badge>
+        <OrderStatusPill status={order.status} className="text-xs px-3 py-1" />
       </div>
       <div className="flex flex-wrap items-center justify-end gap-3">
         <OrderRowActions

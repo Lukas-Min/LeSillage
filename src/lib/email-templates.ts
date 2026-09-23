@@ -204,6 +204,13 @@ export function orderConfirmedEmail(input: OrderEmailInput): OrderEmail {
 
 We verified your payment for order ${input.orderNumber}. We are preparing it now.
 
+Items:
+${input.lines.map(formatLineForEmail).join("\n")}
+
+Subtotal: ${formatPHP(input.subtotalCentavos)}
+Delivery: ${deliveryLine(input)}
+Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+
 Estimated arrival: ${eta}
 ${tester}${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ?? "TBD"}\n` : ""}
 — Le Sillage`;
@@ -219,6 +226,7 @@ ${tester}${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.picku
       ...pickupFact(input),
     ],
     items: input.lines,
+    totals: orderTotals(input, "Total paid"),
     cta: { label: "View your order", url: accountOrdersUrl() },
   });
   return { subject, text, html };
@@ -229,6 +237,13 @@ export function orderShippedEmail(input: OrderEmailInput): OrderEmail {
   const text = `Hi ${input.recipientName},
 
 Order ${input.orderNumber} is on its way. We will message you again when it is marked delivered.
+
+Items:
+${input.lines.map(formatLineForEmail).join("\n")}
+
+Subtotal: ${formatPHP(input.subtotalCentavos)}
+Delivery: ${deliveryLine(input)}
+Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
 
 ${input.fulfillmentMethod === "PICKUP" ? "Pickup details will follow in a separate email." : "Track your delivery via your courier updates."}
 
@@ -245,6 +260,7 @@ ${input.fulfillmentMethod === "PICKUP" ? "Pickup details will follow in a separa
         : "Track your delivery via your courier updates.",
     ],
     items: input.lines,
+    totals: orderTotals(input, "Total paid"),
     cta: { label: "View your order", url: accountOrdersUrl() },
   });
   return { subject, text, html };
@@ -256,6 +272,13 @@ export function orderDeliveredEmail(input: OrderEmailInput): OrderEmail {
 
 Order ${input.orderNumber} has been marked delivered. We hope it arrived in perfect condition.
 
+Items:
+${input.lines.map(formatLineForEmail).join("\n")}
+
+Subtotal: ${formatPHP(input.subtotalCentavos)}
+Delivery: ${deliveryLine(input)}
+Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+
 Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.
 
 — Le Sillage`;
@@ -266,6 +289,7 @@ Once you've had a chance to check it over, you can mark it received any time fro
     greeting: greeting(input),
     intro: [`Order ${input.orderNumber} has been marked delivered. We hope it arrived in perfect condition.`],
     items: input.lines,
+    totals: orderTotals(input, "Total paid"),
     cta: { label: "Mark as received", url: accountOrdersUrl() },
     outro: [
       "Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.",
@@ -280,6 +304,13 @@ export function orderReadyForPickupEmail(input: OrderEmailInput): OrderEmail {
 
 Order ${input.orderNumber} is ready for you to collect.
 
+Items:
+${input.lines.map(formatLineForEmail).join("\n")}
+
+Subtotal: ${formatPHP(input.subtotalCentavos)}
+Delivery: ${deliveryLine(input)}
+Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+
 Pickup notes: ${input.pickupNotes ?? "TBD"}
 
 — Le Sillage`;
@@ -291,6 +322,7 @@ Pickup notes: ${input.pickupNotes ?? "TBD"}
     intro: [`Order ${input.orderNumber} is ready for you to collect.`],
     facts: [{ label: "Pickup notes", value: input.pickupNotes ?? "TBD" }],
     items: input.lines,
+    totals: orderTotals(input, "Total paid"),
     cta: { label: "View your order", url: accountOrdersUrl() },
   });
   return { subject, text, html };

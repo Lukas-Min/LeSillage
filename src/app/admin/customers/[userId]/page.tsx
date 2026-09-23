@@ -5,8 +5,8 @@ import { db } from "@/db/client";
 import { users, orders } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
-import { describeStatus } from "@/domain/order-state";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +100,7 @@ export default async function AdminCustomerDetailPage({
                   <span className="text-xs text-muted-foreground">{order.createdAt.toLocaleDateString()}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  <Badge variant="outline">{describeStatus(order.status)}</Badge>
+                  <OrderStatusPill status={order.status} />
                   <span className="font-medium">{formatPHP(order.totalCentavos)}</span>
                 </span>
               </Link>

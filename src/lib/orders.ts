@@ -1189,9 +1189,9 @@ export async function transitionOrderStatus(args: {
   // the customer email runs after the response so admin actions and
   // self-service cancels return as soon as the DB work is done.
   after(async () => {
+    const entry = STATUS_EMAIL_TEMPLATES[args.next];
+    if (!entry) return;
     try {
-      const entry = STATUS_EMAIL_TEMPLATES[args.next];
-      if (!entry) return;
       const items = await client
         .select()
         .from(orderItems)
@@ -1221,8 +1221,27 @@ export async function transitionOrderStatus(args: {
         status: r.ok ? "SENT" : "FAILED",
         error: r.ok ? null : r.error ?? "unknown error",
       });
-    } catch {
-      // Status change already committed; email failure must not surface here.
+    } catch (error) {
+      // Status change already committed; this must not surface as a failure
+      // to the caller. But previously it also left zero trace — a throw
+      // anywhere above (building the email input, an unexpected sendEmail
+      // rejection) skipped the notificationLog insert entirely, so a status
+      // email could silently never send with no record it was even
+      // attempted. Log and record it as FAILED instead, best-effort.
+      console.error(`Failed to send ${entry.template} email for order ${args.orderId}`, error);
+      await client
+        .insert(notificationLog)
+        .values({
+          orderId: args.orderId,
+          recipient: orderRow.email,
+          template: entry.template,
+          status: "FAILED",
+          error: error instanceof Error ? error.message : "unknown error",
+        })
+        .catch(() => {
+          // Even the audit-trail insert failed; nothing more to do from a
+          // fire-and-forget after() callback.
+        });
     }
   });
 }

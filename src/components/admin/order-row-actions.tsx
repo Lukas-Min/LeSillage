@@ -99,54 +99,83 @@ export function OrderRowActions({
   const canAdminCancel = status === "READY_FOR_PICKUP";
 
   return (
-    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
-      {blocked ? <p className="text-xs text-amber-600 sm:max-w-xs sm:text-right">{blocked}</p> : null}
-      {forward ? (
-        <Button
-          onClick={() => advance(forward.next, `Order ${forward.next.toLowerCase().replace(/_/g, " ")}`)}
-          disabled={isPending || Boolean(blocked)}
-          aria-busy={isPending}
-          title={blocked ?? undefined}
-        >
-          {forward.label}
-        </Button>
-      ) : null}
-      {canReject ? (
-        <Button
-          variant="destructive"
-          onClick={() => setShowReason("REJECTED")}
-          disabled={isPending}
-        >
-          Reject
-        </Button>
-      ) : null}
-      {canAdminCancel ? (
-        <Button
-          variant="destructive"
-          onClick={() => setShowReason("CANCELLED")}
-          disabled={isPending}
-        >
-          Cancel (no-show)
-        </Button>
-      ) : null}
+    <div className="flex w-full flex-col items-end gap-2">
+      <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
+        {blocked ? <p className="text-xs text-amber-600 sm:max-w-xs sm:text-right">{blocked}</p> : null}
+        {forward ? (
+          <Button
+            onClick={() => advance(forward.next, `Order ${forward.next.toLowerCase().replace(/_/g, " ")}`)}
+            disabled={isPending || Boolean(blocked)}
+            aria-busy={isPending}
+            title={blocked ?? undefined}
+          >
+            {forward.label}
+          </Button>
+        ) : null}
+        {canReject ? (
+          <Button
+            variant="destructive"
+            onClick={() => setShowReason("REJECTED")}
+            disabled={isPending}
+          >
+            Reject
+          </Button>
+        ) : null}
+        {canAdminCancel ? (
+          <Button
+            variant="destructive"
+            onClick={() => setShowReason("CANCELLED")}
+            disabled={isPending}
+          >
+            Cancel (no-show)
+          </Button>
+        ) : null}
+      </div>
       {showReason ? (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="w-full space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-left">
+          <div>
+            <label htmlFor={`reason-${orderId}`} className="text-sm font-medium">
+              {showReason === "REJECTED" ? "Reason for rejection" : "Reason for cancellation"}
+            </label>
+            <p className="text-xs text-muted-foreground">
+              This will be included in the email the customer receives.
+            </p>
+          </div>
           <Textarea
-            placeholder={showReason === "REJECTED" ? "Reason for rejection" : "Reason for cancellation"}
+            id={`reason-${orderId}`}
+            placeholder={
+              showReason === "REJECTED"
+                ? "e.g. Payment receipt doesn't match the order total"
+                : "e.g. Not collected by the pickup deadline"
+            }
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             rows={2}
             maxLength={280}
             disabled={isPending}
+            autoFocus
           />
-          <Button
-            onClick={() => submitWithReason(showReason)}
-            variant="destructive"
-            disabled={isPending || !reason.trim()}
-            aria-busy={isPending}
-          >
-            {showReason === "REJECTED" ? "Confirm reject" : "Confirm cancel"}
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowReason(null);
+                setReason("");
+              }}
+              disabled={isPending}
+            >
+              Never mind
+            </Button>
+            <Button
+              onClick={() => submitWithReason(showReason)}
+              variant="destructive"
+              disabled={isPending || !reason.trim()}
+              aria-busy={isPending}
+            >
+              {showReason === "REJECTED" ? "Confirm reject" : "Confirm cancel"}
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
