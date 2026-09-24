@@ -6,8 +6,11 @@ import {
   customerCancelMode,
   describeStatus,
   isTerminal,
+  ORDER_STATUSES_BY_TIER,
+  orderTier,
   requiresReason,
 } from "../order-state";
+import { orderStatus } from "@/db/schema";
 
 describe("order state transitions", () => {
   it("allows the delivery happy path", () => {
@@ -81,6 +84,22 @@ describe("order state transitions", () => {
   it("assertTransition throws on invalid", () => {
     expect(() => assertTransition("AWAITING_PAYMENT", "SHIPPED")).toThrow();
     expect(() => assertTransition("SHIPPED", "COMPLETED")).toThrow();
+  });
+
+  it("orderTier groups every status into exactly one of Ongoing/Completed/Cancelled", () => {
+    expect(orderTier("AWAITING_PAYMENT")).toBe("ONGOING");
+    expect(orderTier("RECEIPT_SUBMITTED")).toBe("ONGOING");
+    expect(orderTier("CONFIRMED")).toBe("ONGOING");
+    expect(orderTier("SHIPPED")).toBe("ONGOING");
+    expect(orderTier("DELIVERED")).toBe("ONGOING");
+    expect(orderTier("READY_FOR_PICKUP")).toBe("ONGOING");
+    expect(orderTier("COMPLETED")).toBe("COMPLETED");
+    expect(orderTier("REJECTED")).toBe("CANCELLED");
+    expect(orderTier("CANCELLED")).toBe("CANCELLED");
+    // Every real status is accounted for exactly once across the three tiers.
+    const grouped = Object.values(ORDER_STATUSES_BY_TIER).flat();
+    expect(grouped.slice().sort()).toEqual(orderStatus.slice().sort());
+    expect(new Set(grouped).size).toBe(grouped.length);
   });
 });
 

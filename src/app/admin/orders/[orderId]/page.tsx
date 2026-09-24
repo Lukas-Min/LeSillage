@@ -6,6 +6,7 @@ import { orders, orderItems, receipts, users, skus, products } from "@/db/schema
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
+import { formatDateTime } from "@/lib/utils";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
 import { loadTesterOptions } from "@/lib/orders";
@@ -166,7 +167,7 @@ export default async function AdminOrderDetailPage({
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            Placed {order.createdAt.toLocaleString()} · Last updated {order.statusUpdatedAt.toLocaleString()}
+            Placed {formatDateTime(order.createdAt)} · Last updated {formatDateTime(order.statusUpdatedAt)}
           </p>
         </CardContent>
       </Card>
@@ -276,7 +277,7 @@ export default async function AdminOrderDetailPage({
               >
                 View uploaded receipt
               </a>
-              <p className="text-xs text-muted-foreground">Submitted {latestReceipt.submittedAt.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Submitted {formatDateTime(latestReceipt.submittedAt)}</p>
               {latestReceipt.note ? <p className="text-xs text-muted-foreground">Note: {latestReceipt.note}</p> : null}
               {receiptRows.length > 1 ? (
                 <p className="text-xs text-muted-foreground">

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -74,10 +75,10 @@ export default async function AdminCustomerDetailPage({
             <span className="text-muted-foreground">Marketing opt-in:</span> {user.marketingOptIn ? "Yes" : "No"}
           </p>
           <p>
-            <span className="text-muted-foreground">Joined:</span> {user.createdAt.toLocaleDateString()}
+            <span className="text-muted-foreground">Joined:</span> {formatDate(user.createdAt)}
           </p>
           {user.deletedAt ? (
-            <p className="text-destructive sm:col-span-2">Account deleted {user.deletedAt.toLocaleDateString()}</p>
+            <p className="text-destructive sm:col-span-2">Account deleted {formatDate(user.deletedAt)}</p>
           ) : null}
         </CardContent>
       </Card>
@@ -97,7 +98,7 @@ export default async function AdminCustomerDetailPage({
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{order.orderNumber}</span>
-                  <span className="text-xs text-muted-foreground">{order.createdAt.toLocaleDateString()}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <OrderStatusPill status={order.status} />

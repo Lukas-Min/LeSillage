@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { orders, receipts, users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
+import { OrdersListSkeleton } from "@/components/admin/orders-skeleton";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
+import { ORDER_STATUSES_BY_TIER, type OrderTier } from "@/domain/order-state";
+import { cn, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -13,13 +17,76 @@ export const dynamic = "force-dynamic";
 // timeouts (8s each) instead of the 10s default.
 export const maxDuration = 30;
 
+const TABS: { value: OrderTier; label: string }[] = [
+  { value: "ONGOING", label: "Ongoing" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
+
+// Ongoing is the default, so it's left off the URL — matches /admin/promo's
+// "settings" tab convention.
+function tabHref(tab: OrderTier, userId?: string, orderId?: string) {
+  const params = new URLSearchParams();
+  if (tab !== "ONGOING") params.set("tab", tab.toLowerCase());
+  if (userId) params.set("userId", userId);
+  if (orderId) params.set("orderId", orderId);
+  const query = params.toString();
+  return query ? `/admin/orders?${query}` : "/admin/orders";
+}
+
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ userId?: string; orderId?: string }>;
+  searchParams: Promise<{ tab?: string; userId?: string; orderId?: string }>;
 }) {
-  const { userId, orderId } = await searchParams;
+  const { tab: tabParam, userId, orderId } = await searchParams;
+  const activeTab: OrderTier =
+    tabParam === "completed" ? "COMPLETED" : tabParam === "cancelled" ? "CANCELLED" : "ONGOING";
+
+  return (
+    <div className="flex flex-1 flex-col space-y-4">
+      <h1 className="font-serif-display text-2xl">Orders</h1>
+      <div className="flex flex-wrap items-center gap-1 border-b border-border">
+        {TABS.map((tab) => (
+          <Link
+            key={tab.value}
+            href={tabHref(tab.value, userId, orderId)}
+            className={cn(
+              "min-h-11 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] transition-colors",
+              activeTab === tab.value
+                ? "border-gold text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
+      {/* Each tab fetches inside its own boundary, keyed to the tab (plus the
+          userId/orderId filters): switching tabs is query-string navigation
+          on this same route, which loading.tsx alone does not retrigger. */}
+      <Suspense key={`${activeTab}:${userId ?? ""}:${orderId ?? ""}`} fallback={<OrdersListSkeleton />}>
+        <OrdersTabContent tier={activeTab} userId={userId} orderId={orderId} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function OrdersTabContent({
+  tier,
+  userId,
+  orderId,
+}: {
+  tier: OrderTier;
+  userId?: string;
+  orderId?: string;
+}) {
   const conditions = [];
+  // A direct link to one specific order always shows that order, whichever
+  // tier it's actually in, rather than risking "No matching orders" just
+  // because it doesn't happen to fall under the currently-selected tab.
+  if (!orderId) conditions.push(inArray(orders.status, ORDER_STATUSES_BY_TIER[tier]));
   if (userId) conditions.push(eq(orders.userId, userId));
   if (orderId) conditions.push(eq(orders.id, orderId));
 
@@ -27,7 +94,7 @@ export default async function AdminOrdersPage({
     db()
       .select()
       .from(orders)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(orders.createdAt)),
     userId
       ? db()
@@ -58,20 +125,19 @@ export default async function AdminOrdersPage({
     : customer
       ? `orders for ${customer.name ?? customer.email}`
       : null;
+  const tierNoun = tier === "ONGOING" ? "ongoing" : tier === "COMPLETED" ? "completed" : "cancelled";
+
   return (
-    <div className="flex flex-1 flex-col space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="font-serif-display text-2xl">Orders</h1>
-        {filterLabel ? (
-          <Link href="/admin/orders" className="text-xs text-muted-foreground hover:underline">
-            Showing {filterLabel} · Clear filter
-          </Link>
-        ) : null}
-      </div>
+    <>
+      {filterLabel ? (
+        <Link href={tabHref(tier)} className="text-xs text-muted-foreground hover:underline">
+          Showing {filterLabel} · Clear filter
+        </Link>
+      ) : null}
       {rows.length === 0 ? (
         <Card className="flex flex-1 flex-col">
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            {filterLabel ? "No matching orders." : "No orders yet."}
+            {filterLabel ? "No matching orders." : `No ${tierNoun} orders yet.`}
           </CardContent>
         </Card>
       ) : null}
@@ -96,7 +162,6 @@ export default async function AdminOrdersPage({
               {order.recipientName} · {order.email} · {order.phone} ·{" "}
               {order.fulfillmentMethod}
             </p>
-            <p>Total {formatPHP(order.totalCentavos)} · placed {order.createdAt.toLocaleString()}</p>
             {order.statusReason ? <p className="text-destructive">Reason: {order.statusReason}</p> : null}
             {latestReceiptByOrder.has(order.id) ? (
               <a
@@ -108,6 +173,12 @@ export default async function AdminOrdersPage({
                 View uploaded receipt
               </a>
             ) : null}
+            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1 pt-1">
+              <p className="text-xs text-muted-foreground">Placed {formatDate(order.createdAt)}</p>
+              <p className="shrink-0 font-price-display text-lg font-semibold tabular-nums">
+                {formatPHP(order.totalCentavos)}
+              </p>
+            </div>
             <div className="pointer-events-auto relative z-10">
               <OrderRowActions
                 orderId={order.id}
@@ -121,6 +192,6 @@ export default async function AdminOrdersPage({
           </CardContent>
         </Card>
       ))}
-    </div>
+    </>
   );
 }

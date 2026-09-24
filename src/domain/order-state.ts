@@ -67,6 +67,24 @@ export function isTerminal(status: OrderStatus): boolean {
   return status === "COMPLETED" || status === "REJECTED" || status === "CANCELLED";
 }
 
+// The admin orders list groups every status into one of these three tabs.
+// REJECTED folds into "Cancelled" alongside CANCELLED — both are terminal
+// outcomes where the order didn't go through, just for different reasons —
+// rather than getting a fourth tab of its own.
+export type OrderTier = "ONGOING" | "COMPLETED" | "CANCELLED";
+
+export const ORDER_STATUSES_BY_TIER: Record<OrderTier, OrderStatus[]> = {
+  ONGOING: ["AWAITING_PAYMENT", "RECEIPT_SUBMITTED", "CONFIRMED", "SHIPPED", "DELIVERED", "READY_FOR_PICKUP"],
+  COMPLETED: ["COMPLETED"],
+  CANCELLED: ["REJECTED", "CANCELLED"],
+};
+
+export function orderTier(status: OrderStatus): OrderTier {
+  if (status === "COMPLETED") return "COMPLETED";
+  if (status === "REJECTED" || status === "CANCELLED") return "CANCELLED";
+  return "ONGOING";
+}
+
 export function describeStatus(status: OrderStatus): string {
   switch (status) {
     case "AWAITING_PAYMENT":

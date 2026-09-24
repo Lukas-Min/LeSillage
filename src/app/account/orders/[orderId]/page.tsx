@@ -14,6 +14,7 @@ import { ReorderButton } from "@/components/store/reorder-button";
 import { ConfirmReceivedButton } from "@/components/store/confirm-received-button";
 import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
+import { formatDateTime } from "@/lib/utils";
 import { computeEtaSummary } from "@/domain/eta";
 import { Button } from "@/components/ui/button";
 
@@ -72,7 +73,7 @@ export default async function OrderDetailPage({
       <PageHeader
         eyebrow={order.orderNumber}
         title={formatPHP(order.totalCentavos)}
-        subtitle={`Placed ${order.createdAt.toLocaleString()} · ${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}`}
+        subtitle={`Placed ${formatDateTime(order.createdAt)} · ${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}`}
         actions={
           <>
             <OrderStatusPill status={order.status} />

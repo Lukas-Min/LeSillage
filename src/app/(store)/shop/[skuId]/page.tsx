@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
+import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { products, skus, productDiscounts, productImages, promoSettings } from "@/db/schema";
+import { products, skus, productDiscounts, productImages, promoSettings, wishlists } from "@/db/schema";
 import { withSiteWideDiscount } from "@/domain/discount";
 import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { concentrationLabel, guessConcentration } from "@/domain/concentration";
@@ -62,7 +63,9 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   )[0];
   if (!row || !row.isActive || !row.productActive) return notFound();
 
-  const [discounts, siblings, promoRow, image] = await Promise.all([
+  const session = await auth();
+
+  const [discounts, siblings, promoRow, image, wishlisted] = await Promise.all([
     client.select().from(productDiscounts).where(eq(productDiscounts.productId, row.productId)),
     client
       .select({
@@ -87,6 +90,16 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
       .where(eq(productImages.productId, row.productId))
       .orderBy(asc(productImages.position))
       .limit(1),
+    // Browsing is open to guests, so this only runs for a signed-in
+    // session — a guest's heart always starts unfilled, matching
+    // WishlistButton's own toggleWishlist call requiring sign-in.
+    session?.user
+      ? client
+          .select({ id: wishlists.id })
+          .from(wishlists)
+          .where(and(eq(wishlists.userId, session.user.id as string), eq(wishlists.productId, row.productId)))
+          .then((rows) => rows.length > 0)
+      : Promise.resolve(false),
   ]);
 
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
@@ -201,7 +214,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         <div className="contents md:flex md:flex-col md:gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
           <div className="order-2 flex items-start justify-between gap-3">
             <ProductTitleText brand={row.brand} name={row.name} concentrationGender={concentrationGender} />
-            <WishlistButton productId={row.productId} variant="icon" />
+            <WishlistButton productId={row.productId} variant="icon" initiallySaved={wishlisted} />
           </div>
 
           {isDecant ? (

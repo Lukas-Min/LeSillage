@@ -111,13 +111,17 @@ export async function toggleWishlist(productId: string): Promise<ToggleWishlistR
   )[0];
   if (existing) {
     await db().delete(wishlists).where(eq(wishlists.id, existing.id));
+    // Wishlist change is already committed; an audit-log hiccup must not
+    // fail the toggle the customer is waiting on (the same class of bug as
+    // an order's status email — see the notification-log hardening in
+    // transitionOrderStatus, src/lib/orders.ts).
     await auditLogSubject({
       actor: user.id,
       action: "WISHLIST_TOGGLE",
       targetType: "product",
       targetId: productId,
       metadata: { saved: false },
-    });
+    }).catch(() => {});
     revalidatePath("/account/wishlist");
     return { ok: true, saved: false };
   }
@@ -128,7 +132,7 @@ export async function toggleWishlist(productId: string): Promise<ToggleWishlistR
     targetType: "product",
     targetId: productId,
     metadata: { saved: true },
-  });
+  }).catch(() => {});
   revalidatePath("/account/wishlist");
   return { ok: true, saved: true };
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function AdminCustomersPage() {
                 <p>Name: {row.name ?? "—"}</p>
                 <p>Role: {row.role}</p>
                 <p className="text-xs text-muted-foreground">
-                  Joined {row.createdAt.toLocaleDateString()}
+                  Joined {formatDate(row.createdAt)}
                 </p>
               </CardContent>
             </Card>

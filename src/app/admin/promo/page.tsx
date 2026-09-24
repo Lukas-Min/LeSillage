@@ -21,7 +21,7 @@ import {
   updatePromoCode,
 } from "@/actions/admin-promo-code-actions";
 import { fromCentavos, formatPHP } from "@/domain/money";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -236,8 +236,8 @@ async function CodesTab() {
                           {code.firstOrderOnly ? " · first order only" : ""}
                           {code.onePerCustomer ? " · once per customer" : ""}
                           {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
-                          {code.startsAt ? ` · starts ${code.startsAt.toLocaleDateString()}` : ""}
-                          {code.endsAt ? ` · ends ${code.endsAt.toLocaleDateString()}` : ""}
+                          {code.startsAt ? ` · starts ${formatDate(code.startsAt)}` : ""}
+                          {code.endsAt ? ` · ends ${formatDate(code.endsAt)}` : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

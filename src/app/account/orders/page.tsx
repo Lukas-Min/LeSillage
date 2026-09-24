@@ -9,6 +9,7 @@ import { OrderStatusPill } from "@/components/ui/status-pill";
 import { ReorderButton } from "@/components/store/reorder-button";
 import { formatPHP } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
+import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export default async function OrdersPage() {
               <SectionCard
                 eyebrow={order.orderNumber}
                 title={formatPHP(order.totalCentavos)}
-                description={`${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"} · placed ${order.createdAt.toLocaleDateString()}`}
+                description={`${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"} · placed ${formatDate(order.createdAt)}`}
                 actions={<OrderStatusPill status={order.status} />}
                 contentClassName="flex flex-wrap items-center justify-between gap-3"
               >
