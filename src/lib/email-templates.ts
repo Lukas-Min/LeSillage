@@ -545,3 +545,76 @@ If this wasn't you, reply to this email and we'll sort it out.
   return { subject, text, html };
 }
 
+// Once an order is CONFIRMED, a customer "cancel" only requests it — these
+// three cover that request/review round trip (see customerCancelMode in
+// src/domain/order-state.ts and requestOrderCancellation/
+// resolveCancellationRequest in src/lib/orders.ts). An approved request just
+// reuses orderCancelledEmail above via the normal CANCELLED transition.
+
+export function cancellationRequestedEmail(input: OrderEmailInput): OrderEmail {
+  const subject = `Cancellation request received — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+We received your request to cancel order ${input.orderNumber}. Your payment's already been verified, so we need to review it before it's cancelled — we'll email you as soon as it's resolved.
+
+Your reason: ${input.reason ?? "Not provided"}
+
+— Le Sillage`;
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Cancellation request received",
+    greeting: greeting(input),
+    intro: [
+      `We received your request to cancel order ${input.orderNumber}. Your payment's already been verified, so we need to review it before it's cancelled — we'll email you as soon as it's resolved.`,
+    ],
+    facts: [{ label: "Your reason", value: input.reason ?? "Not provided" }],
+    items: input.lines,
+    cta: { label: "View your orders", url: accountOrdersUrl() },
+  });
+  return { subject, text, html };
+}
+
+export function adminCancellationRequestNotification(input: OrderEmailInput): OrderEmail {
+  const subject = `Cancellation requested — ${input.orderNumber}`;
+  const text = `${input.recipientName} (${input.email}) has requested to cancel order ${input.orderNumber}.
+
+Reason: ${input.reason ?? "Not provided"}
+Items:
+${input.lines.map(formatLineForEmail).join("\n")}
+— Le Sillage admin`;
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "Cancellation requested",
+    greeting: "Hi team,",
+    intro: [`${input.recipientName} (${input.email}) has requested to cancel order ${input.orderNumber}.`],
+    facts: [{ label: "Reason", value: input.reason ?? "Not provided" }],
+    items: input.lines,
+    cta: { label: "Open admin orders", url: `${siteUrl()}/admin/orders` },
+  });
+  return { subject, text, html };
+}
+
+export function cancellationRequestDeniedEmail(input: OrderEmailInput): OrderEmail {
+  const subject = `About your cancellation request — ${input.orderNumber}`;
+  const text = `Hi ${input.recipientName},
+
+We looked into your request to cancel order ${input.orderNumber}, but we're not able to cancel it at this stage.
+
+If you have questions, just reply to this email and we'll help sort it out.
+
+— Le Sillage`;
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: eyebrow(input),
+    title: "About your cancellation request",
+    greeting: greeting(input),
+    intro: [`We looked into your request to cancel order ${input.orderNumber}, but we're not able to cancel it at this stage.`],
+    items: input.lines,
+    cta: { label: "View your orders", url: accountOrdersUrl() },
+    outro: ["If you have questions, just reply to this email and we'll help sort it out."],
+  });
+  return { subject, text, html };
+}
+

@@ -109,6 +109,8 @@ export default async function AdminOrderDetailPage({
           status={order.status}
           fulfillmentMethod={order.fulfillmentMethod}
           promoTesterResult={order.promoTesterResult}
+          cancellationRequestedAt={order.cancellationRequestedAt}
+          cancellationRequestReason={order.cancellationRequestReason}
         />
       </div>
       {order.statusReason ? <p className="text-sm text-destructive">Reason: {order.statusReason}</p> : null}

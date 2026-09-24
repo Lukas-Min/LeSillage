@@ -35,18 +35,28 @@ export function assertTransition(from: OrderStatus, to: OrderStatus): void {
   }
 }
 
-// The subset of canTransition(status, "CANCELLED") that's the customer's own
-// call to make. READY_FOR_PICKUP -> CANCELLED (a no-show) is deliberately
-// left out here — that one's an admin decision (OrderRowActions), not
-// self-service, so it isn't wired to the customer's Cancel button/action.
-const CUSTOMER_CANCELLABLE: ReadonlySet<OrderStatus> = new Set([
+export type CustomerCancelMode = "INSTANT" | "REQUEST";
+
+// AWAITING_PAYMENT/RECEIPT_SUBMITTED: nothing has been verified or prepared
+// yet, so the customer can cancel immediately, no admin involved.
+// CONFIRMED: payment is verified and the order may already be getting
+// packed, so a customer "cancel" here only *requests* it — an admin has to
+// approve before it actually becomes CANCELLED (requestOrderCancellation /
+// resolveCancellationRequest in src/lib/orders.ts) rather than it happening
+// instantly. Every other status either can't be cancelled by anyone
+// (SHIPPED/DELIVERED/COMPLETED/REJECTED/CANCELLED) or is admin-only
+// (READY_FOR_PICKUP's no-show Cancel, handled in OrderRowActions — not
+// self-service, so it isn't wired to the customer's Cancel button/action).
+const CUSTOMER_INSTANT_CANCELLABLE: ReadonlySet<OrderStatus> = new Set([
   "AWAITING_PAYMENT",
   "RECEIPT_SUBMITTED",
-  "CONFIRMED",
 ]);
+const CUSTOMER_REQUEST_CANCELLABLE: ReadonlySet<OrderStatus> = new Set(["CONFIRMED"]);
 
-export function canCustomerCancel(status: OrderStatus): boolean {
-  return CUSTOMER_CANCELLABLE.has(status);
+export function customerCancelMode(status: OrderStatus): CustomerCancelMode | null {
+  if (CUSTOMER_INSTANT_CANCELLABLE.has(status)) return "INSTANT";
+  if (CUSTOMER_REQUEST_CANCELLABLE.has(status)) return "REQUEST";
+  return null;
 }
 
 export function requiresReason(status: OrderStatus): boolean {

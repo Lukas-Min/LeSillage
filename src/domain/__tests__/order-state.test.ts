@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   assertTransition,
-  canCustomerCancel,
   canTransition,
   confirmBlockedReason,
+  customerCancelMode,
   describeStatus,
   isTerminal,
   requiresReason,
@@ -25,7 +25,7 @@ describe("order state transitions", () => {
 
   it("allows a no-show pickup to be cancelled", () => {
     expect(canTransition("READY_FOR_PICKUP", "CANCELLED")).toBe(true);
-    expect(canCustomerCancel("READY_FOR_PICKUP")).toBe(false);
+    expect(customerCancelMode("READY_FOR_PICKUP")).toBeNull();
   });
 
   it("allows rejection from non-terminal states with reason", () => {
@@ -45,12 +45,12 @@ describe("order state transitions", () => {
     expect(canTransition("DELIVERED", "CANCELLED")).toBe(false);
   });
 
-  it("canCustomerCancel matches the customer's own self-service statuses", () => {
-    expect(canCustomerCancel("AWAITING_PAYMENT")).toBe(true);
-    expect(canCustomerCancel("RECEIPT_SUBMITTED")).toBe(true);
-    expect(canCustomerCancel("CONFIRMED")).toBe(true);
-    expect(canCustomerCancel("SHIPPED")).toBe(false);
-    expect(canCustomerCancel("DELIVERED")).toBe(false);
+  it("customerCancelMode is instant pre-payment-verification, a request once confirmed, and unavailable after", () => {
+    expect(customerCancelMode("AWAITING_PAYMENT")).toBe("INSTANT");
+    expect(customerCancelMode("RECEIPT_SUBMITTED")).toBe("INSTANT");
+    expect(customerCancelMode("CONFIRMED")).toBe("REQUEST");
+    expect(customerCancelMode("SHIPPED")).toBeNull();
+    expect(customerCancelMode("DELIVERED")).toBeNull();
   });
 
   it("isTerminal handles end states", () => {

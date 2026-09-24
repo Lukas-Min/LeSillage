@@ -9,14 +9,16 @@ import { orderItems, orders } from "@/db/schema";
 import {
   CheckoutError,
   createOrderFromCart,
+  requestOrderCancellation as requestOrderCancellationLib,
   submitReceipt,
   transitionOrderStatus,
   type CheckoutErrorField,
 } from "@/lib/orders";
 import { addLinesToCart, loadPromoConfig, resolveActiveCart } from "@/lib/cart";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
+import { auditLogSubject } from "@/lib/audit";
 import { phMobileRequiredSchema } from "@/domain/phone";
-import { canCustomerCancel, isTerminal } from "@/domain/order-state";
+import { customerCancelMode, isTerminal } from "@/domain/order-state";
 
 const checkoutSchema = z.object({
   fulfillmentMethod: z.enum(["DELIVERY", "PICKUP"]),
@@ -143,15 +145,18 @@ export async function submitPaymentReceipt(formData: FormData): Promise<OrderAct
   return { ok: true };
 }
 
-// Customers can cancel their own order any time before it ships — the
-// AWAITING_PAYMENT/RECEIPT_SUBMITTED/CONFIRMED -> CANCELLED transitions,
-// gated by canCustomerCancel (src/domain/order-state.ts) rather than the
-// broader canTransition: once an order is SHIPPED/DELIVERED it's already in
-// transit and can't be pulled back this way, and a READY_FOR_PICKUP no-show
-// cancellation is an admin call (OrderRowActions), not self-service.
-export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
+// Customers can cancel their own order instantly only before payment is
+// verified — AWAITING_PAYMENT/RECEIPT_SUBMITTED -> CANCELLED, gated by
+// customerCancelMode(status) === "INSTANT" (src/domain/order-state.ts)
+// rather than the broader canTransition: once an order is CONFIRMED it may
+// already be getting packed, so cancelling it needs admin approval instead
+// (requestOrderCancellation below); once SHIPPED/DELIVERED it's already in
+// transit and can't be pulled back this way at all, and a READY_FOR_PICKUP
+// no-show cancellation is an admin call (OrderRowActions), not self-service.
+export async function cancelOrder(orderId: string, reason: string): Promise<OrderActionResult> {
   const session = await auth();
   if (!session?.user) return { ok: false, error: "Please sign in to cancel an order" };
+  if (!reason.trim()) return { ok: false, error: "A reason is required" };
   const decision = await rateLimit({
     bucket: "CHECKOUT",
     key: await getRequestKey("cancel-order", session.user.id as string),
@@ -167,12 +172,47 @@ export async function cancelOrder(orderId: string): Promise<OrderActionResult> {
       .where(and(eq(orders.id, orderId), eq(orders.userId, session.user.id as string)))
   )[0];
   if (!order) return { ok: false, error: "Order not found" };
-  if (!canCustomerCancel(order.status)) {
-    return { ok: false, error: "This order can no longer be cancelled" };
+  if (customerCancelMode(order.status) !== "INSTANT") {
+    return { ok: false, error: "This order can no longer be cancelled instantly" };
   }
 
-  await transitionOrderStatus({ orderId, next: "CANCELLED", reason: "Cancelled by customer" });
+  await transitionOrderStatus({ orderId, next: "CANCELLED", reason: reason.trim() });
   revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${orderId}`);
+  return { ok: true };
+}
+
+// Once an order is CONFIRMED, a customer "cancel" only requests it — an
+// admin has to approve or deny (OrderRowActions -> resolveCancellationRequest
+// in src/actions/admin-actions.ts) before it actually becomes CANCELLED. See
+// customerCancelMode/requestOrderCancellation for why.
+export async function requestOrderCancellation(orderId: string, reason: string): Promise<OrderActionResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: "Please sign in to request a cancellation" };
+  if (!reason.trim()) return { ok: false, error: "A reason is required" };
+  const decision = await rateLimit({
+    bucket: "CHECKOUT",
+    key: await getRequestKey("request-cancel-order", session.user.id as string),
+    limit: 8,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
+
+  try {
+    await requestOrderCancellationLib({ orderId, userId: session.user.id as string, reason: reason.trim() });
+  } catch (error) {
+    if (error instanceof Error) return { ok: false, error: error.message };
+    throw error;
+  }
+  auditLogSubject({
+    actor: session.user.id as string,
+    action: "ORDER_CANCEL_REQUEST",
+    targetType: "order",
+    targetId: orderId,
+    metadata: { reason: reason.trim() },
+  });
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${orderId}`);
   return { ok: true };
 }
 

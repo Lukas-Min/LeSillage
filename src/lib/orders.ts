@@ -28,7 +28,7 @@ import { generateOrderNumber } from "@/domain/order-number";
 import { isTesterBonusEligible, pickTester, testerUnitsAvailable } from "@/domain/promo";
 import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
 import { checkPromoCodeEligibility } from "@/domain/promo-code";
-import { assertTransition, confirmBlockedReason } from "@/domain/order-state";
+import { assertTransition, confirmBlockedReason, customerCancelMode } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment, resolveCartCap } from "@/lib/cart";
 import { clampQuantity } from "@/domain/money";
@@ -37,7 +37,10 @@ import { uploadPrivateImage } from "@/lib/blob";
 import { sendEmail } from "@/lib/email";
 import { getEnv } from "@/lib/env";
 import {
+  adminCancellationRequestNotification,
   adminReceiptNotification,
+  cancellationRequestDeniedEmail,
+  cancellationRequestedEmail,
   orderCancelledEmail,
   orderConfirmedEmail,
   orderCreatedPaymentEmail,
@@ -1171,6 +1174,13 @@ export async function transitionOrderStatus(args: {
         statusReason: args.reason ?? null,
         statusUpdatedAt: new Date(),
         updatedAt: new Date(),
+        // Any transition (whether it grants a pending cancellation request
+        // by moving to CANCELLED, or moves the order on some other path
+        // entirely, e.g. an admin ships it before reviewing the request)
+        // makes a pending cancellation request moot — clear it so it can't
+        // linger and show as still-pending in the admin UI.
+        cancellationRequestedAt: null,
+        cancellationRequestReason: null,
         ...deliveryFields,
       })
       .where(eq(orders.id, args.orderId));
@@ -1235,6 +1245,174 @@ export async function transitionOrderStatus(args: {
           orderId: args.orderId,
           recipient: orderRow.email,
           template: entry.template,
+          status: "FAILED",
+          error: error instanceof Error ? error.message : "unknown error",
+        })
+        .catch(() => {
+          // Even the audit-trail insert failed; nothing more to do from a
+          // fire-and-forget after() callback.
+        });
+    }
+  });
+}
+
+export interface RequestCancellationInput {
+  orderId: string;
+  userId: string;
+  reason: string;
+}
+
+/** Customer asks to cancel a CONFIRMED order (see customerCancelMode in
+ *  src/domain/order-state.ts) — sets a pending flag rather than cancelling
+ *  immediately; an admin must approve or deny it
+ *  (resolveCancellationRequest). */
+export async function requestOrderCancellation(args: RequestCancellationInput): Promise<void> {
+  const client = db();
+  const orderRow = await client.transaction(async (tx) => {
+    const row = (
+      await tx
+        .select()
+        .from(orders)
+        .where(and(eq(orders.id, args.orderId), eq(orders.userId, args.userId)))
+        .for("update")
+    )[0];
+    if (!row) throw new Error("Order not found");
+    if (customerCancelMode(row.status) !== "REQUEST") {
+      throw new Error("This order can't have a cancellation requested right now");
+    }
+    if (row.cancellationRequestedAt) {
+      throw new Error("A cancellation request is already pending for this order");
+    }
+    await tx
+      .update(orders)
+      .set({ cancellationRequestedAt: new Date(), cancellationRequestReason: args.reason, updatedAt: new Date() })
+      .where(eq(orders.id, args.orderId));
+    return row;
+  });
+
+  after(async () => {
+    try {
+      const env = getEnv();
+      const emailInput: OrderEmailInput = {
+        orderNumber: orderRow.orderNumber,
+        status: "CONFIRMED",
+        recipientName: orderRow.recipientName,
+        email: orderRow.email,
+        fulfillmentMethod: orderRow.fulfillmentMethod,
+        lines: await toEmailLines(await client.select().from(orderItems).where(eq(orderItems.orderId, args.orderId))),
+        subtotalCentavos: orderRow.subtotalCentavos,
+        discountCentavos: orderRow.discountCentavos,
+        deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
+        totalCentavos: orderRow.totalCentavos,
+        orderedAt: orderRow.createdAt,
+        reason: args.reason,
+        pickupNotes: orderRow.pickupNotes,
+      };
+      const [customerResult, adminResult] = await Promise.all([
+        sendEmail({ to: orderRow.email, ...cancellationRequestedEmail(emailInput) }),
+        sendEmail({ to: env.ADMIN_EMAIL, ...adminCancellationRequestNotification(emailInput) }),
+      ]);
+      await client.insert(notificationLog).values([
+        {
+          orderId: args.orderId,
+          recipient: orderRow.email,
+          template: "cancellation_requested",
+          status: customerResult.ok ? "SENT" : "FAILED",
+          error: customerResult.ok ? null : customerResult.error ?? "unknown error",
+        },
+        {
+          orderId: args.orderId,
+          recipient: env.ADMIN_EMAIL,
+          template: "admin_cancellation_request",
+          status: adminResult.ok ? "SENT" : "FAILED",
+          error: adminResult.ok ? null : adminResult.error ?? "unknown error",
+        },
+      ]);
+    } catch (error) {
+      console.error(`Failed to send cancellation-request emails for order ${args.orderId}`, error);
+      await client
+        .insert(notificationLog)
+        .values({
+          orderId: args.orderId,
+          recipient: orderRow.email,
+          template: "cancellation_requested",
+          status: "FAILED",
+          error: error instanceof Error ? error.message : "unknown error",
+        })
+        .catch(() => {
+          // Even the audit-trail insert failed; nothing more to do from a
+          // fire-and-forget after() callback.
+        });
+    }
+  });
+}
+
+/** Admin approves (-> CANCELLED, via transitionOrderStatus, which also
+ *  releases stock/promo and sends the usual cancellation email) or denies
+ *  (order stays as-is, a separate email explains) a pending cancellation
+ *  request. */
+export async function resolveCancellationRequest(args: {
+  orderId: string;
+  decision: "APPROVED" | "DENIED";
+}): Promise<void> {
+  const client = db();
+
+  if (args.decision === "APPROVED") {
+    const row = (await client.select().from(orders).where(eq(orders.id, args.orderId)))[0];
+    if (!row) throw new Error("Order not found");
+    if (!row.cancellationRequestedAt) throw new Error("No pending cancellation request for this order");
+    await transitionOrderStatus({
+      orderId: args.orderId,
+      next: "CANCELLED",
+      reason: row.cancellationRequestReason ?? "Cancellation request approved",
+    });
+    return;
+  }
+
+  const orderRow = await client.transaction(async (tx) => {
+    const row = (await tx.select().from(orders).where(eq(orders.id, args.orderId)).for("update"))[0];
+    if (!row) throw new Error("Order not found");
+    if (!row.cancellationRequestedAt) throw new Error("No pending cancellation request for this order");
+    await tx
+      .update(orders)
+      .set({ cancellationRequestedAt: null, cancellationRequestReason: null, updatedAt: new Date() })
+      .where(eq(orders.id, args.orderId));
+    return row;
+  });
+
+  after(async () => {
+    try {
+      const emailInput: OrderEmailInput = {
+        orderNumber: orderRow.orderNumber,
+        status: "CONFIRMED",
+        recipientName: orderRow.recipientName,
+        email: orderRow.email,
+        fulfillmentMethod: orderRow.fulfillmentMethod,
+        lines: await toEmailLines(await client.select().from(orderItems).where(eq(orderItems.orderId, args.orderId))),
+        subtotalCentavos: orderRow.subtotalCentavos,
+        discountCentavos: orderRow.discountCentavos,
+        deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
+        totalCentavos: orderRow.totalCentavos,
+        orderedAt: orderRow.createdAt,
+        reason: orderRow.cancellationRequestReason,
+        pickupNotes: orderRow.pickupNotes,
+      };
+      const r = await sendEmail({ to: orderRow.email, ...cancellationRequestDeniedEmail(emailInput) });
+      await client.insert(notificationLog).values({
+        orderId: args.orderId,
+        recipient: orderRow.email,
+        template: "cancellation_request_denied",
+        status: r.ok ? "SENT" : "FAILED",
+        error: r.ok ? null : r.error ?? "unknown error",
+      });
+    } catch (error) {
+      console.error(`Failed to send cancellation-request-denied email for order ${args.orderId}`, error);
+      await client
+        .insert(notificationLog)
+        .values({
+          orderId: args.orderId,
+          recipient: orderRow.email,
+          template: "cancellation_request_denied",
           status: "FAILED",
           error: error instanceof Error ? error.message : "unknown error",
         })

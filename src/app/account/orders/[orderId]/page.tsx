@@ -12,7 +12,7 @@ import { ReceiptUploader } from "@/components/store/receipt-uploader";
 import { CancelOrderButton } from "@/components/store/cancel-order-button";
 import { ReorderButton } from "@/components/store/reorder-button";
 import { ConfirmReceivedButton } from "@/components/store/confirm-received-button";
-import { describeStatus, canCustomerCancel, isTerminal } from "@/domain/order-state";
+import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-state";
 import { formatPHP } from "@/domain/money";
 import { computeEtaSummary } from "@/domain/eta";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,13 @@ export default async function OrderDetailPage({
           <>
             <OrderStatusPill status={order.status} />
             {order.status === "DELIVERED" ? <ConfirmReceivedButton orderId={order.id} /> : null}
-            {canCustomerCancel(order.status) ? <CancelOrderButton orderId={order.id} /> : null}
+            {customerCancelMode(order.status) || order.cancellationRequestedAt ? (
+              <CancelOrderButton
+                orderId={order.id}
+                status={order.status}
+                cancellationRequestedAt={order.cancellationRequestedAt}
+              />
+            ) : null}
             {isTerminal(order.status) ? <ReorderButton orderId={order.id} /> : null}
             <Button asChild variant="outline" size="sm">
               <Link href="/account/orders">

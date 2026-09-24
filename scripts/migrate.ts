@@ -617,6 +617,13 @@ async function main() {
       AND "sku"."availableForPreOrder" = false
   `);
 
+  // Customer-initiated cancellation requests on a CONFIRMED order need admin
+  // approval instead of an instant self-cancel — see customerCancelMode in
+  // src/domain/order-state.ts. Mirrors the promoTesterResult "side flag,
+  // order status unchanged while pending" pattern rather than a new status.
+  await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestedAt" timestamp`);
+  await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestReason" text`);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -645,6 +652,8 @@ async function main() {
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "deliveryConfirmToken";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "deliveryFollowupSentAt";
 // ALTER TABLE "sku" DROP COLUMN IF EXISTS "availableForPreOrder";
+// ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestedAt";
+// ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestReason";
 
 main().catch((error) => {
   console.error(error);

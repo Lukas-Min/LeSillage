@@ -124,6 +124,8 @@ export const auditAction = [
   "PRODUCT_FRAGELLA_IMPORT",
   "ORDER_STATUS",
   "ORDER_TESTER_ASSIGN",
+  "ORDER_CANCEL_REQUEST",
+  "ORDER_CANCEL_RESOLVE",
   "ORDER_NOTE",
   "OPTION_VALUE_CHANGE",
   "ACCOUNT_UPDATE",
@@ -613,6 +615,16 @@ export const orders = pgTable(
     promoTesterSkuId: text("promoTesterSkuId").references(() => skus.id, {
       onDelete: "set null",
     }),
+    // Set when a customer on a CONFIRMED order (past the point of instant
+    // self-cancel — see customerCancelMode in src/domain/order-state.ts)
+    // asks to cancel it. The order's status does NOT change yet: an admin
+    // has to approve (-> CANCELLED via transitionOrderStatus, which also
+    // clears these two) or deny (cleared, order stays CONFIRMED). Mirrors
+    // the promoTesterResult pattern above — a side flag, not a new order
+    // status, since the real status is unaffected while a request is
+    // pending.
+    cancellationRequestedAt: timestamp("cancellationRequestedAt", { mode: "date" }),
+    cancellationRequestReason: text("cancellationRequestReason"),
     statusReason: text("statusReason"),
     statusUpdatedAt: timestamp("statusUpdatedAt", { mode: "date" }).notNull().defaultNow(),
     paymentReminderSentAt: timestamp("paymentReminderSentAt", { mode: "date" }),

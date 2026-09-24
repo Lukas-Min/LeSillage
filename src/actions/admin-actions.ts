@@ -7,7 +7,7 @@ import { promoSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
-import { assignTesterToOrder, transitionOrderStatus } from "@/lib/orders";
+import { assignTesterToOrder, resolveCancellationRequest as resolveCancellationRequestLib, transitionOrderStatus } from "@/lib/orders";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { toCentavos } from "@/domain/money";
@@ -186,6 +186,45 @@ export async function adminTransitionOrder(formData: FormData): Promise<OrderAct
     targetType: "order",
     targetId: parsed.orderId,
     metadata: { to: parsed.next, reason: parsed.reason ?? null },
+  });
+  return { ok: true };
+}
+
+const resolveCancellationSchema = z.object({
+  orderId: z.string().min(1),
+  decision: z.enum(["APPROVED", "DENIED"]),
+});
+
+/** Admin approves or denies a customer's pending cancellation request on a
+ *  CONFIRMED order — see customerCancelMode in src/domain/order-state.ts and
+ *  resolveCancellationRequest in src/lib/orders.ts. */
+export async function resolveCancellationRequest(formData: FormData): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  const decision = await rateLimit({
+    bucket: "PASSWORD",
+    key: await getRequestKey("order-cancel-resolve", admin.id),
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
+  const parsed = resolveCancellationSchema.parse({
+    orderId: formData.get("orderId"),
+    decision: formData.get("decision"),
+  });
+  try {
+    await resolveCancellationRequestLib(parsed);
+  } catch (error) {
+    if (error instanceof Error) return { ok: false, error: error.message };
+    throw error;
+  }
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${parsed.orderId}`);
+  auditLogSubject({
+    actor: admin.id,
+    action: "ORDER_CANCEL_RESOLVE",
+    targetType: "order",
+    targetId: parsed.orderId,
+    metadata: { decision: parsed.decision },
   });
   return { ok: true };
 }

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { adminTransitionOrder } from "@/actions/admin-actions";
+import { adminTransitionOrder, resolveCancellationRequest } from "@/actions/admin-actions";
 import { canTransition, confirmBlockedReason } from "@/domain/order-state";
 import type { FulfillmentMethod, OrderStatus, TesterResult } from "@/db/schema";
 
@@ -40,6 +40,8 @@ export function OrderRowActions({
   status,
   fulfillmentMethod,
   promoTesterResult,
+  cancellationRequestedAt,
+  cancellationRequestReason,
 }: {
   orderId: string;
   status: OrderStatus;
@@ -47,10 +49,29 @@ export function OrderRowActions({
   /** Confirm is held while this is PENDING — the order earned a free tester
    *  nobody has picked yet (`confirmBlockedReason`). */
   promoTesterResult: TesterResult | null;
+  /** Set once a customer requests cancelling a CONFIRMED order — see
+   *  customerCancelMode in src/domain/order-state.ts. Approve/Deny below
+   *  resolves it via resolveCancellationRequest. */
+  cancellationRequestedAt: Date | null;
+  cancellationRequestReason: string | null;
 }) {
   const [showReason, setShowReason] = useState<"REJECTED" | "CANCELLED" | null>(null);
   const [reason, setReason] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const resolveCancellation = (decision: "APPROVED" | "DENIED") => {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("orderId", orderId);
+      formData.set("decision", decision);
+      const result = await resolveCancellationRequest(formData);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(decision === "APPROVED" ? "Order cancelled" : "Cancellation request denied");
+    });
+  };
 
   const advance = (next: OrderStatus, successLabel: string) => {
     startTransition(async () => {
@@ -100,6 +121,36 @@ export function OrderRowActions({
 
   return (
     <div className="flex w-full flex-col items-end gap-2">
+      {cancellationRequestedAt ? (
+        <div className="w-full space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-left">
+          <div>
+            <p className="text-sm font-medium text-amber-900">Customer requested cancellation</p>
+            <p className="text-xs text-amber-800">{cancellationRequestReason}</p>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => resolveCancellation("DENIED")}
+              disabled={isPending}
+              aria-busy={isPending}
+            >
+              Deny
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => resolveCancellation("APPROVED")}
+              disabled={isPending}
+              aria-busy={isPending}
+            >
+              Approve cancellation
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
         {blocked ? <p className="text-xs text-amber-600 sm:max-w-xs sm:text-right">{blocked}</p> : null}
         {forward ? (
