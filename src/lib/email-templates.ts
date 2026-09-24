@@ -1,6 +1,7 @@
 import { describeStatus } from "@/domain/order-state";
 import { computeEtaSummary } from "@/domain/eta";
 import { formatPHP } from "@/domain/money";
+import { pickupAddressLine } from "@/domain/pickup";
 import type { Fulfillment, OrderStatus, ProductType } from "@/db/schema";
 import { getEnv } from "@/lib/env";
 import { renderOrderEmailHtml, type EmailFact, type EmailTotal } from "@/lib/email-html";
@@ -101,7 +102,19 @@ function eyebrow(input: OrderEmailInput): string {
 }
 
 function pickupFact(input: OrderEmailInput): EmailFact[] {
-  return input.fulfillmentMethod === "PICKUP" ? [{ label: "Pickup notes", value: input.pickupNotes ?? "TBD" }] : [];
+  if (input.fulfillmentMethod !== "PICKUP") return [];
+  const facts: EmailFact[] = [{ label: "Pickup address", value: pickupAddressLine(input.status) }];
+  if (input.pickupNotes?.trim()) {
+    facts.push({ label: "Your pickup instructions", value: input.pickupNotes.trim() });
+  }
+  return facts;
+}
+
+/** Plain-text equivalent of pickupFact, for the text-only email bodies. */
+function pickupTextBlock(input: OrderEmailInput): string {
+  if (input.fulfillmentMethod !== "PICKUP") return "";
+  const notes = input.pickupNotes?.trim() ? `\nYour pickup instructions: ${input.pickupNotes.trim()}` : "";
+  return `\nPickup address: ${pickupAddressLine(input.status)}${notes}\n`;
 }
 
 /** Delivery row for the HTML totals — struck-through default fee plus the
@@ -146,7 +159,7 @@ Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nY
 
 Estimated arrival: ${eta}
 ${tester}
-${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ?? "TBD"}\n` : ""}
+${pickupTextBlock(input)}
 If anything looks off, reply to this email and we will sort it out.
 
 — Le Sillage`;
@@ -212,7 +225,7 @@ Delivery: ${deliveryLine(input)}
 Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
 
 Estimated arrival: ${eta}
-${tester}${input.fulfillmentMethod === "PICKUP" ? `\nPickup notes: ${input.pickupNotes ?? "TBD"}\n` : ""}
+${tester}${pickupTextBlock(input)}
 — Le Sillage`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
@@ -310,9 +323,7 @@ ${input.lines.map(formatLineForEmail).join("\n")}
 Subtotal: ${formatPHP(input.subtotalCentavos)}
 Delivery: ${deliveryLine(input)}
 Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
-
-Pickup notes: ${input.pickupNotes ?? "TBD"}
-
+${pickupTextBlock(input)}
 — Le Sillage`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
@@ -320,7 +331,7 @@ Pickup notes: ${input.pickupNotes ?? "TBD"}
     title: "Ready for pickup",
     greeting: greeting(input),
     intro: [`Order ${input.orderNumber} is ready for you to collect.`],
-    facts: [{ label: "Pickup notes", value: input.pickupNotes ?? "TBD" }],
+    facts: pickupFact(input),
     items: input.lines,
     totals: orderTotals(input, "Total paid"),
     cta: { label: "View your order", url: accountOrdersUrl() },

@@ -16,6 +16,7 @@ import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-s
 import { formatPHP } from "@/domain/money";
 import { formatDateTime } from "@/lib/utils";
 import { computeEtaSummary } from "@/domain/eta";
+import { canRevealPickupAddress, PICKUP_ADDRESS_LINE, PICKUP_ADDRESS_NAME } from "@/domain/pickup";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -201,6 +202,22 @@ export default async function OrderDetailPage({
               ))}
             </ul>
           </SectionCard>
+          {order.fulfillmentMethod === "PICKUP" ? (
+            <SectionCard
+              eyebrow="Pickup"
+              title={canRevealPickupAddress(order.status) ? PICKUP_ADDRESS_NAME : "Address coming soon"}
+              description={
+                canRevealPickupAddress(order.status)
+                  ? `Search "${PICKUP_ADDRESS_NAME}" on Google Maps or Apple Maps to find it.`
+                  : "We'll share the exact pickup address here once your payment is verified."
+              }
+            >
+              {canRevealPickupAddress(order.status) ? <p className="text-sm">{PICKUP_ADDRESS_LINE}</p> : null}
+              {order.pickupNotes ? (
+                <p className="text-sm text-muted-foreground">Your instructions: {order.pickupNotes}</p>
+              ) : null}
+            </SectionCard>
+          ) : null}
         </div>
       </div>
 
