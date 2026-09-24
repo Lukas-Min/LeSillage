@@ -1,17 +1,21 @@
 /**
- * One-off add of the remaining 23 Velixir FULL_BOTTLE listings (every
- * fragrance in the brand's real Fragrantica lineup except Icarus, already
- * added by add-velixir-icarus-full-bottle.ts). Metadata sourced from each
- * fragrance's own Fragrantica page: https://www.fragrantica.com/designers/Velixir.html
- * lists 24 perfumes total; this script covers the other 23.
+ * One-off add of 18 more Velixir FULL_BOTTLE listings, alongside Icarus
+ * (added by add-velixir-icarus-full-bottle.ts). This is a deliberately
+ * chosen subset of the brand's real 24-fragrance Fragrantica lineup
+ * (https://www.fragrantica.com/designers/Velixir.html) — not the whole
+ * catalog; Apollo, Harmonia, Narcisus, Nyx, and Selene were researched and
+ * briefly added too, then removed on the store owner's explicit correction
+ * ("it should just add this" + the 19-name list, Icarus included). Metadata
+ * for the 18 here is sourced from each fragrance's own Fragrantica page.
  *
  * concentration: Fragrantica doesn't print "Eau de Parfum" as page *text* for
  * most of these (a gap in this newer brand's listings, not an omission on our
- * part) — but where it was actually checked, it's consistently EDP: Nyx states
- * it directly in body copy, and 8 other entries' bottle-label photos were
- * visually confirmed to read "EAU DE PARFUM". With zero contradicting
- * evidence anywhere in the line and Icarus already catalogued the same way,
- * every entry here is EAU_DE_PARFUM on that basis rather than a guess.
+ * part) — but where it was actually checked, it's consistently EDP: Nyx (one
+ * of the removed entries) states it directly in body copy, and several other
+ * entries' bottle-label photos were visually confirmed to read "EAU DE
+ * PARFUM". With zero contradicting evidence anywhere in the line and Icarus
+ * already catalogued the same way, every entry here is EAU_DE_PARFUM on that
+ * basis rather than a guess.
  *
  * Pricing is a direct final price, not a formula, same as Icarus: cost
  * ₱2,550, retail ₱3,000 for every entry (not a markup calculation — ~17.6%
@@ -83,19 +87,6 @@ const CATALOG: VelixirEntry[] = [
     ratingCount: null,
     imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.127606.jpg",
     fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Aphrodite-127606.html",
-  },
-  {
-    name: "Apollo",
-    gender: "unisex",
-    releaseYear: 2024,
-    perfumers: [],
-    notePyramid: { top: ["Green Apple", "Ginger", "Bergamot"], middle: ["Clary Sage", "Juniper Berries"], base: ["Amberwood", "Cedar", "Tonka Bean", "Olibanum", "Vetiver"] },
-    flatNotes: null,
-    accords: ["aromatic", "woody", "fresh spicy", "amber", "citrus", "fresh", "fruity", "warm spicy", "green", "soft spicy"],
-    ratingValue: null,
-    ratingCount: null,
-    imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.127593.jpg",
-    fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Apollo-127593.html",
   },
   {
     name: "Ares",
@@ -189,19 +180,6 @@ const CATALOG: VelixirEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Galatea-127592.html",
   },
   {
-    name: "Harmonia",
-    gender: "unisex",
-    releaseYear: null,
-    perfumers: [],
-    notePyramid: { top: ["Lemongrass", "Tea"], middle: ["Rose", "Magnolia"], base: ["Woody Notes"] },
-    flatNotes: null,
-    accords: ["citrus", "floral", "rose", "woody", "fresh spicy", "green", "herbal", "aromatic", "fresh", "ozonic"],
-    ratingValue: "4.63",
-    ratingCount: 30,
-    imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.139663.jpg",
-    fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Harmonia-139663.html",
-  },
-  {
     name: "Helios",
     gender: "unisex",
     releaseYear: 2025,
@@ -254,32 +232,6 @@ const CATALOG: VelixirEntry[] = [
     fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Morpheus-127605.html",
   },
   {
-    name: "Narcisus",
-    gender: "unisex",
-    releaseYear: 2025,
-    perfumers: [],
-    notePyramid: { top: ["Bergamot"], middle: ["Orange Blossom"], base: ["Ambrofix", "Patchouli"] },
-    flatNotes: null,
-    accords: ["citrus", "white floral", "sweet", "fresh spicy", "soapy"],
-    ratingValue: null,
-    ratingCount: null,
-    imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.127594.jpg",
-    fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Narcisus-127594.html",
-  },
-  {
-    name: "Nyx",
-    gender: "unisex",
-    releaseYear: null,
-    perfumers: [],
-    notePyramid: null,
-    flatNotes: ["Incense", "Amber", "Sandalwood"],
-    accords: ["amber", "smoky", "balsamic", "warm spicy", "animalic"],
-    ratingValue: "3.75",
-    ratingCount: 20,
-    imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.139664.jpg",
-    fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Nyx-139664.html",
-  },
-  {
     name: "Orion",
     gender: "unisex",
     releaseYear: 2025,
@@ -330,19 +282,6 @@ const CATALOG: VelixirEntry[] = [
     ratingCount: null,
     imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.127607.jpg",
     fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Poseidon-127607.html",
-  },
-  {
-    name: "Selene",
-    gender: "unisex",
-    releaseYear: null,
-    perfumers: [],
-    notePyramid: null,
-    flatNotes: ["Peony", "Jasmine Sambac", "Rose Geranium", "Raspberry", "Magnolia"],
-    accords: ["floral", "fresh", "rose", "white floral", "fruity", "fresh spicy"],
-    ratingValue: "4.40",
-    ratingCount: 20,
-    imageUrl: "https://fimgs.net/mdimg/perfume-thumbs/375x500.139665.jpg",
-    fragranticaUrl: "https://www.fragrantica.com/perfume/Velixir/Selene-139665.html",
   },
   {
     name: "Uranus",
