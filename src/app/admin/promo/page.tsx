@@ -10,16 +10,12 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { PromoCodeForm } from "@/components/admin/promo-code-form";
+import { PromoCodeEditDialog } from "@/components/admin/promo-code-edit-dialog";
 import { PromoCodesSkeleton, PromoSettingsSkeleton } from "@/components/admin/promo-skeletons";
 import { AnnouncementForm } from "@/components/admin/announcement-form";
 import { readAnnouncement } from "@/lib/announcement";
 import { updatePromoSettings } from "@/actions/admin-actions";
-import {
-  createPromoCode,
-  deletePromoCode,
-  togglePromoCodeActive,
-  updatePromoCode,
-} from "@/actions/admin-promo-code-actions";
+import { createPromoCode, deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-code-actions";
 import { fromCentavos, formatPHP } from "@/domain/money";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -241,6 +237,22 @@ async function CodesTab() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <PromoCodeEditDialog
+                          values={{
+                            id: code.id,
+                            code: code.code,
+                            scope: code.scope,
+                            type: code.type,
+                            amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
+                            minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
+                            maxRedemptions: code.maxRedemptions ?? "",
+                            startsAt: toDateInput(code.startsAt, "start"),
+                            endsAt: toDateInput(code.endsAt, "end"),
+                            firstOrderOnly: code.firstOrderOnly,
+                            onePerCustomer: code.onePerCustomer,
+                            redemptionCount: code.redemptionCount,
+                          }}
+                        />
                         <form action={togglePromoCodeActive}>
                           <input type="hidden" name="id" value={code.id} />
                           <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
@@ -261,33 +273,6 @@ async function CodesTab() {
                         ) : null}
                       </div>
                     </div>
-                    {/* Collapsed by default so a long list stays scannable on a
-                        phone; a plain <details> keeps this a Server Component. */}
-                    <details className="rounded-md border bg-secondary/40 p-3">
-                      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">
-                        Edit <span className="ml-1 font-mono">{code.code}</span>
-                      </summary>
-                      <div className="mt-3">
-                        <PromoCodeForm
-                          action={updatePromoCode}
-                          mode="edit"
-                          values={{
-                            id: code.id,
-                            code: code.code,
-                            scope: code.scope,
-                            type: code.type,
-                            amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
-                            minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
-                            maxRedemptions: code.maxRedemptions ?? "",
-                            startsAt: toDateInput(code.startsAt, "start"),
-                            endsAt: toDateInput(code.endsAt, "end"),
-                            firstOrderOnly: code.firstOrderOnly,
-                            onePerCustomer: code.onePerCustomer,
-                            redemptionCount: code.redemptionCount,
-                          }}
-                        />
-                      </div>
-                    </details>
                   </div>
                 ))
               )}

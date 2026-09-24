@@ -71,10 +71,15 @@ export function PromoCodeForm({
   action,
   mode,
   values = BLANK,
+  onSaved,
 }: {
   action: (prev: PromoCodeFormState, formData: FormData) => Promise<PromoCodeFormState>;
   mode: "create" | "edit";
   values?: PromoCodeFormValues;
+  /** Fires once, right after a successful edit save — lets a modal wrapper
+   *  close itself. Not used in "create" mode, which stays open for the next
+   *  entry instead. */
+  onSaved?: () => void;
 }) {
   const [state, formAction] = useActionState(action, { savedAt: 0, error: null });
   const formRef = useRef<HTMLFormElement>(null);
@@ -99,7 +104,8 @@ export function PromoCodeForm({
     // Only the uncontrolled fields need the DOM reset; the two controlled ones
     // are cleared above.
     if (mode === "create" && wasSaved) formRef.current?.reset();
-  }, [mode, wasSaved, state.savedAt]);
+    if (mode === "edit" && wasSaved) onSaved?.();
+  }, [mode, wasSaved, state.savedAt, onSaved]);
 
   function changeType(next: "PERCENTAGE" | "FIXED") {
     setType(next);

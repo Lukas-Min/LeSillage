@@ -67,12 +67,11 @@ export function PromoCodesSkeleton({ rows = 3 }: { rows?: number }) {
                   <Skeleton className="h-3 w-56" />
                 </div>
                 <div className="flex items-center gap-2">
+                  <Skeleton className="h-9 w-14" />
                   <Skeleton className="h-9 w-24" />
                   <Skeleton className="h-9 w-20" />
                 </div>
               </div>
-              {/* The collapsed "Edit" disclosure. */}
-              <Skeleton className="h-11 w-full rounded-md" />
             </div>
           ))}
         </CardContent>
