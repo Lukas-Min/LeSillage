@@ -32,6 +32,7 @@ function makeCode(overrides: Partial<PromoCode> = {}): PromoCode {
 
 const baseEligibility: PromoCodeEligibilityInput = {
   merchandiseSubtotalCentavos: 300000,
+  orderDiscountEligibleSubtotalCentavos: 300000,
   deliveryFeeCentavos: 12000,
   isFirstOrder: false,
   hasPriorRedemption: false,
@@ -100,6 +101,16 @@ describe("checkPromoCodeEligibility", () => {
     const code = makeCode({ scope: "ORDER", type: "FIXED", amount: 0 });
     expect(checkPromoCodeEligibility(code, baseEligibility).ok).toBe(false);
   });
+
+  it("rejects an ORDER-scope code with a specific reason when every item is already individually discounted", () => {
+    const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10 });
+    const result = checkPromoCodeEligibility(code, {
+      ...baseEligibility,
+      orderDiscountEligibleSubtotalCentavos: 0,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/already discounted/);
+  });
 });
 
 describe("calculatePromoCodeDiscount", () => {
@@ -132,17 +143,24 @@ describe("applyPromoCode", () => {
   });
 });
 
-// --- Full pipeline: matches the store owner's own worked example ---
-// "if all perfumes is discounted by 5%, then there's a promo code of 10%
+// --- Full pipeline: matches the store owner's own worked examples ---
+// (1) "if all perfumes is discounted by 5%, then there's a promo code of 10%
 // off with a minimum spend of 2000, the 2000 should be based on the
-// discounted price, not the original price."
+// discounted price, not the original price." (minSpend still checks the
+// full item-discounted subtotal — unchanged.)
+// (2) Later revised: "if the specific perfume is already discounted, dont
+// apply the overall promo discount code... The welcome10 should only apply
+// to regular price perfumes" — so unlike the first worked example above
+// (which predates this), an ORDER-scope code's own discount no longer
+// stacks on top of an item discount; it's computed only from whichever
+// lines in the cart *aren't* already individually discounted.
 describe("full pipeline order-of-operations (site-wide item discount -> promo code)", () => {
-  function makeSku(retailPrice: number): Sku {
+  function makeSku(retailPrice: number, id = "sku1", productId = "p1"): Sku {
     const now = new Date();
     return {
-      id: "sku1",
-      productId: "p1",
-      sku: "X",
+      id,
+      productId,
+      sku: id.toUpperCase(),
       label: "X",
       sizeMl: null,
       condition: "BNIB",
@@ -178,8 +196,15 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     expect(priced.merchandiseSubtotalCentavos).toBe(199500);
 
     const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10, minSpendCentavos: 200000 });
+    const totals = buildCartTotals(
+      priced,
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
+      "DELIVERY",
+      null,
+    );
     const eligibility = checkPromoCodeEligibility(code, {
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
+      orderDiscountEligibleSubtotalCentavos: totals.orderDiscountEligibleSubtotalCentavos,
       deliveryFeeCentavos: 12000,
       isFirstOrder: false,
       hasPriorRedemption: false,
@@ -187,8 +212,11 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     expect(eligibility.ok).toBe(false);
   });
 
-  it("accepts and applies the code once the site-wide-discounted price clears the minimum, and the promo code's own discount stacks on top of the item discount", () => {
-    // ₱3,000 original, 5% site-wide discount -> ₱2,850 — clears ₱2,000.
+  it("rejects the code once the item-discounted price clears the minimum, but the whole cart is that one already-discounted item", () => {
+    // ₱3,000 original, 5% site-wide discount -> ₱2,850 — clears the ₱2,000
+    // minimum. But this is the *only* line in the cart, and it's already
+    // discounted, so there's nothing left for an ORDER-scope code to apply
+    // to — rejected outright rather than silently applying for ₱0.
     const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5 });
     const item: CartSkuInput = {
       sku: makeSku(300000),
@@ -201,24 +229,72 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     expect(priced.merchandiseSubtotalCentavos).toBe(285000);
 
     const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10, minSpendCentavos: 200000 });
+    const preCodeTotals = buildCartTotals(
+      priced,
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
+      "DELIVERY",
+      null,
+    );
+    expect(preCodeTotals.orderDiscountEligibleSubtotalCentavos).toBe(0);
+
     const eligibility = checkPromoCodeEligibility(code, {
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
+      orderDiscountEligibleSubtotalCentavos: preCodeTotals.orderDiscountEligibleSubtotalCentavos,
       deliveryFeeCentavos: 12000,
       isFirstOrder: false,
       hasPriorRedemption: false,
     });
-    expect(eligibility.ok).toBe(true);
+    expect(eligibility.ok).toBe(false);
+    if (!eligibility.ok) expect(eligibility.error).toMatch(/already discounted/);
 
+    // Even if a code were forced through anyway, buildCartTotals itself
+    // would still compute a ₱0 order discount — the rejection above isn't
+    // the only thing enforcing this.
     const totals = buildCartTotals(
       priced,
       { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
       "DELIVERY",
       { scope: code.scope, type: code.type, amount: code.amount },
     );
-    // 10% of the already-item-discounted 285000 = 28500.
-    expect(totals.orderDiscountCentavos).toBe(28500);
-    expect(totals.merchandiseSubtotalCentavos).toBe(285000);
-    expect(totals.totalCentavos).toBe(285000 - 28500 + 12000);
+    expect(totals.orderDiscountCentavos).toBe(0);
+    expect(totals.totalCentavos).toBe(285000 + 12000);
+  });
+
+  it("applies the code only to a regular-price line, skipping a sibling line that already has its own item discount", () => {
+    // Item A: ₱3,000, its own 10% product discount -> ₱2,700 (item-
+    // discounted, excluded from the code's base). Item B: ₱1,000, no
+    // discount at all (regular price, included in the code's base).
+    const productOwnDiscount = [
+      { id: "own1", productId: "pA", type: "PERCENTAGE" as const, amount: 10, startsAt: null, endsAt: null, isActive: true, createdAt: new Date() },
+    ];
+    const itemA: CartSkuInput = {
+      sku: makeSku(300000, "skuA", "pA"),
+      quantity: 1,
+      productType: "DECANT",
+      productBrand: "Maison Ivre",
+      discounts: productOwnDiscount,
+    };
+    const itemB: CartSkuInput = {
+      sku: makeSku(100000, "skuB", "pB"),
+      quantity: 1,
+      productType: "DECANT",
+      productBrand: "Maison Ivre",
+      discounts: [],
+    };
+    const priced = priceCart([itemA, itemB], { deliveryFeeCentavos: 12000, freeShipping: false });
+    expect(priced.merchandiseSubtotalCentavos).toBe(270000 + 100000);
+
+    const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10 });
+    const totals = buildCartTotals(
+      priced,
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: false, type: "PERCENTAGE", amount: 0 } },
+      "DELIVERY",
+      { scope: code.scope, type: code.type, amount: code.amount },
+    );
+    // Only item B (₱1,000, regular price) is in the code's base.
+    expect(totals.orderDiscountEligibleSubtotalCentavos).toBe(100000);
+    // 10% of ₱1,000 = ₱100 — not 10% of the full ₱3,700 subtotal.
+    expect(totals.orderDiscountCentavos).toBe(10000);
   });
 
   it("evaluates a DELIVERY-scope code's discount against the delivery fee, unaffected by item/order discounts", () => {

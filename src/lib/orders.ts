@@ -362,6 +362,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       const preCodeTotals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, null);
       const eligibility = checkPromoCodeEligibility(codeRow, {
         merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
+        orderDiscountEligibleSubtotalCentavos: preCodeTotals.orderDiscountEligibleSubtotalCentavos,
         deliveryFeeCentavos: preCodeTotals.deliveryFeeCentavos,
         isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
         hasPriorRedemption: priorRedemption.length > 0,

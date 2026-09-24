@@ -12,6 +12,16 @@ export type ActivePromoCode = { scope: PromoCodeScope; type: DiscountType; amoun
 export interface CheckoutTotals {
   merchandiseSubtotalCentavos: number;
   discountCentavos: number;
+  /** The portion of merchandiseSubtotalCentavos actually eligible for an
+   *  ORDER-scope promo code's discount — lines that already carry their own
+   *  item discount (a product's own productDiscounts row, or the site-wide
+   *  discount) are excluded, so a code like WELCOME10 only ever discounts
+   *  regular-price lines, never stacking on top of an item discount that's
+   *  already applied. Exposed so callers validating a code before it's
+   *  redeemed (checkPromoCodeEligibility's zero-benefit check, the checkout
+   *  "Apply" preview) use the exact same base this function computes
+   *  orderDiscountCentavos from below. */
+  orderDiscountEligibleSubtotalCentavos: number;
   /** From a redeemed ORDER-scope promo code — kept separate from
    *  `discountCentavos` (item-level) so the checkout UI can show them as
    *  distinct line items, matching the three-discount-type model. */
@@ -46,12 +56,18 @@ export function buildCartTotals(
     productType: line.productType,
     discountedLineTotalCentavos: line.lineSubtotalCentavos,
   }));
-  // An ORDER-scope code's discount depends only on the (already item-
-  // discounted) merchandise subtotal, so it's the same for pickup and
-  // delivery — computed once, up front.
+  // Lines that already have their own item discount (lineDiscountCentavos >
+  // 0) don't contribute to the base an ORDER-scope code discounts from — see
+  // orderDiscountEligibleSubtotalCentavos's own doc comment above.
+  const orderDiscountEligibleSubtotalCentavos = priced.lines.reduce(
+    (sum, line) => (line.lineDiscountCentavos === 0 ? sum + line.lineSubtotalCentavos : sum),
+    0,
+  );
+  // An ORDER-scope code's discount depends only on that eligible subtotal,
+  // so it's the same for pickup and delivery — computed once, up front.
   const orderDiscountCentavos =
     promoCode && promoCode.scope === "ORDER"
-      ? applyPromoCode(promoCode, priced.merchandiseSubtotalCentavos, 0).orderDiscountCentavos
+      ? applyPromoCode(promoCode, orderDiscountEligibleSubtotalCentavos, 0).orderDiscountCentavos
       : 0;
   const merchandiseAfterOrderDiscount = Math.max(
     0,
@@ -61,6 +77,7 @@ export function buildCartTotals(
     return {
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
       discountCentavos: priced.discountCentavos,
+      orderDiscountEligibleSubtotalCentavos,
       orderDiscountCentavos,
       deliveryDiscountCentavos: 0,
       decantSubtotalCentavos: priced.decantSubtotalCentavos,
@@ -81,6 +98,7 @@ export function buildCartTotals(
   return {
     merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
     discountCentavos: priced.discountCentavos,
+    orderDiscountEligibleSubtotalCentavos,
     orderDiscountCentavos,
     deliveryDiscountCentavos,
     decantSubtotalCentavos: priced.decantSubtotalCentavos,

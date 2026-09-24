@@ -8,6 +8,14 @@ export interface PromoCodeEligibilityInput {
    *  spend is always about how much the customer is buying, not how much
    *  shipping costs. */
   merchandiseSubtotalCentavos: number;
+  /** The portion of merchandiseSubtotalCentavos not already covered by an
+   *  item discount — see CheckoutTotals.orderDiscountEligibleSubtotalCentavos
+   *  (src/domain/checkout-totals.ts), which computes this same number.
+   *  Only used to reject an ORDER-scope code up front when it would
+   *  discount nothing — e.g. every item in the cart is already
+   *  individually discounted — so it doesn't silently burn a
+   *  maxRedemptions/onePerCustomer slot for zero benefit. */
+  orderDiscountEligibleSubtotalCentavos: number;
   /** The delivery fee *before* any code is applied (post free-shipping-
    *  threshold, which can already be 0). Only used to reject a DELIVERY-
    *  scope code up front when it would discount nothing — e.g. free
@@ -63,16 +71,22 @@ export function checkPromoCodeEligibility(
     return { ok: false, error: `Minimum spend of ${formatPHP(code.minSpendCentavos)} required for this code` };
   }
   // A code that would discount nothing (e.g. a DELIVERY-scope code when
-  // free shipping already applies) is rejected outright — otherwise it'd
-  // silently consume a maxRedemptions/onePerCustomer slot for zero benefit.
-  const base = code.scope === "ORDER" ? input.merchandiseSubtotalCentavos : input.deliveryFeeCentavos;
+  // free shipping already applies, or an ORDER-scope code when every item
+  // is already individually discounted) is rejected outright — otherwise
+  // it'd silently consume a maxRedemptions/onePerCustomer slot for zero
+  // benefit.
+  const base = code.scope === "ORDER" ? input.orderDiscountEligibleSubtotalCentavos : input.deliveryFeeCentavos;
   if (calculatePromoCodeDiscount(code.type, code.amount, base) <= 0) {
+    const everythingAlreadyDiscounted =
+      code.scope === "ORDER" && input.merchandiseSubtotalCentavos > 0 && input.orderDiscountEligibleSubtotalCentavos === 0;
     return {
       ok: false,
       error:
         code.scope === "DELIVERY"
           ? "This code has nothing to discount — delivery is already free on this order"
-          : "This code wouldn't apply any discount to your order",
+          : everythingAlreadyDiscounted
+            ? "This code only applies to regular-price items, and everything in your bag is already discounted"
+            : "This code wouldn't apply any discount to your order",
     };
   }
   return { ok: true };

@@ -59,8 +59,14 @@ export function ShopToolbar({
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Every caller here is a filter or sort change (Clear, gender, shelf,
+  // concentration, sort) — always drop `page` so it lands back on page 1
+  // instead of keeping whatever page number the old filter/sort happened to
+  // be on, which could now be out of range or just show a confusing slice
+  // of the new result set.
   function navigate(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
     for (const [key, value] of Object.entries(updates)) {
       if (value === null) params.delete(key);
       else params.set(key, value);

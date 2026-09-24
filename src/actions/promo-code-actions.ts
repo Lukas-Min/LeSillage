@@ -94,13 +94,14 @@ export async function previewPromoCode(
 
   const eligibility = checkPromoCodeEligibility(codeRow, {
     merchandiseSubtotalCentavos: totals.merchandiseSubtotalCentavos,
+    orderDiscountEligibleSubtotalCentavos: totals.orderDiscountEligibleSubtotalCentavos,
     deliveryFeeCentavos: totals.deliveryFeeCentavos,
     isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
     hasPriorRedemption: priorRedemption.length > 0,
   });
   if (!eligibility.ok) return { ok: false, error: eligibility.error };
 
-  const baseCentavos = codeRow.scope === "ORDER" ? totals.merchandiseSubtotalCentavos : totals.deliveryFeeCentavos;
+  const baseCentavos = codeRow.scope === "ORDER" ? totals.orderDiscountEligibleSubtotalCentavos : totals.deliveryFeeCentavos;
   const discountCentavos = calculatePromoCodeDiscount(codeRow.type, codeRow.amount, baseCentavos);
 
   return {
