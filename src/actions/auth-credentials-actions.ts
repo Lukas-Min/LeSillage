@@ -206,8 +206,8 @@ export async function completePasswordReset(formData: FormData) {
       await sendEmail({
         to: email,
         ...securityNoticeEmail({
-          subject: "Your Le Sillage password changed",
-          body: "The password on your Le Sillage account was just changed.",
+          subject: "Your Le Sillage Manila password changed",
+          body: "The password on your Le Sillage Manila account was just changed.",
         }),
       });
       await auditLogSubject({

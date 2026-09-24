@@ -64,7 +64,7 @@ export function CatalogGrid({
     <main className="flex w-full flex-1 flex-col px-4 py-10 sm:py-14">
       {breadcrumbs ? <Breadcrumbs items={breadcrumbs} className="mb-6" /> : null}
       <header className="mb-8 flex flex-col items-center gap-3 text-center">
-        {eyebrow ? eyebrow : <Eyebrow>Le Sillage · Manila</Eyebrow>}
+        {eyebrow ? eyebrow : <Eyebrow>Le Sillage Manila</Eyebrow>}
         <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">{title}</h1>
         {subtitle ? (
           <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>

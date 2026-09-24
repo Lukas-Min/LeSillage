@@ -315,8 +315,8 @@ export async function changePassword(formData: FormData) {
   await sendEmail({
     to: user.email,
     ...securityNoticeEmail({
-      subject: "Your Le Sillage password changed",
-      body: "The password on your Le Sillage account was just changed.",
+      subject: "Your Le Sillage Manila password changed",
+      body: "The password on your Le Sillage Manila account was just changed.",
     }),
   });
   await auditLogSubject({
@@ -342,7 +342,7 @@ export async function requestEmailChange(formData: FormData) {
       to: user.email,
       ...securityNoticeEmail({
         subject: "Email change requested",
-        body: `A request was made to change your Le Sillage email to ${nextEmail}.`,
+        body: `A request was made to change your Le Sillage Manila email to ${nextEmail}.`,
       }),
     });
   }
@@ -369,7 +369,7 @@ export async function confirmEmailChange(formData: FormData) {
   await sendEmail({
     to: user.email,
     ...securityNoticeEmail({
-      subject: "Your Le Sillage email changed",
+      subject: "Your Le Sillage Manila email changed",
       body: `Your account email is now ${nextEmail}.`,
     }),
   });

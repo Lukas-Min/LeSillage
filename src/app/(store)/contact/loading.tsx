@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Globe, HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
 
-const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61591955240476";
-const MESSENGER_URL = "https://m.me/61591955240476";
+import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
 
 // No DB fetch — env vars resolve synchronously, so this renders the exact
 // same real content as page.tsx rather than a skeleton for any of it.
@@ -16,8 +16,9 @@ export default function ContactLoading() {
     env.NEXT_PUBLIC_PHONE
       ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE, href: `tel:${env.NEXT_PUBLIC_PHONE}` }
       : null,
-    { icon: Globe, label: "Facebook", value: "Le Sillage", href: FACEBOOK_URL },
-    { icon: MessageCircle, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: FaFacebookF, label: "Facebook", value: "Le Sillage Manila", href: FACEBOOK_URL },
+    { icon: FaFacebookMessenger, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: FaInstagram, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
     { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },
   ].filter(
     (row): row is { icon: typeof Mail; label: string; value: string; href: string | null } => row !== null,

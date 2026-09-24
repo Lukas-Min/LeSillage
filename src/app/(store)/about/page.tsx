@@ -10,7 +10,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-3xl space-y-8">
           <PageHeader
             eyebrow="Maison"
-            title="About Le Sillage"
+            title="About Le Sillage Manila"
             subtitle="A Manila fragrance shop, est. 2026, built around trying before you buy."
           />
 
@@ -31,7 +31,7 @@ export default function AboutPage() {
 
           <SectionCard eyebrow="Our story" title="Why we exist">
             <p className="text-sm leading-relaxed">
-              We built Le Sillage around a simple idea: a great fragrance shouldn&apos;t require
+              We built Le Sillage Manila around a simple idea: a great fragrance shouldn&apos;t require
               committing to a full bottle sight unseen — or paying niche prices just to find out a
               scent isn&apos;t right for you. Full bottles, tester bottles, partials, and decants
               across niche, designer, and Middle Eastern houses, all in one shelf.

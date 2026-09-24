@@ -32,7 +32,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendResult> {
   const env = getEnv();
   try {
     await transporter().sendMail({
-      from: `Le Sillage <${env.GMAIL_USER}>`,
+      from: `Le Sillage Manila <${env.GMAIL_USER}>`,
       to: message.to,
       subject: message.subject,
       text: message.text,

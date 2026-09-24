@@ -44,9 +44,12 @@ export function StoreFooter() {
           sitting flush against the edge of an ultra-wide screen. */}
       <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="space-y-3">
-          <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
+          <Link href="/" aria-label="Le Sillage Manila" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />
-            Le Sillage
+            <span className="flex flex-col leading-none">
+              <span>Le Sillage</span>
+              <span className="font-sans text-[10px] tracking-[0.32em] text-gold">Manila</span>
+            </span>
           </Link>
           <p className="text-sm text-muted-foreground">
             Curated retail perfume from independent and iconic houses. Full bottles, testers, partials, and decants.
@@ -98,7 +101,7 @@ export function StoreFooter() {
         ))}
       </div>
       <p className="border-t border-border py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Le Sillage · Manila
+        © {new Date().getFullYear()} Le Sillage Manila
       </p>
     </footer>
   );

@@ -42,7 +42,7 @@ export default function Home() {
         <div className="flex w-full flex-col gap-10 px-4 py-16 sm:py-24">
           <div className="flex flex-col items-center gap-3 text-center">
             <Eyebrow>Est. 2026 · Manila</Eyebrow>
-            <h1 className="font-serif-display text-5xl leading-tight sm:text-6xl">Le Sillage</h1>
+            <h1 className="font-serif-display text-5xl leading-tight sm:text-6xl">Le Sillage Manila</h1>
           </div>
           <Suspense fallback={<FlagshipSkeleton />}>
             <FlagshipPanel />

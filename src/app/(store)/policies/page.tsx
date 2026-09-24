@@ -5,7 +5,7 @@ import { PageHeader, SectionCard } from "@/components/ui/section";
 import { policyCopy } from "@/lib/policy-copy";
 
 export const metadata = {
-  title: "Policies · Le Sillage",
+  title: "Policies · Le Sillage Manila",
 };
 
 function SectionIcon({ icon: Icon }: { icon: typeof Truck }) {

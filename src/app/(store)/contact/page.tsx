@@ -19,7 +19,7 @@ export default function ContactPage() {
     env.NEXT_PUBLIC_PHONE
       ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE, href: `tel:${env.NEXT_PUBLIC_PHONE}` }
       : null,
-    { icon: FaFacebookF, label: "Facebook", value: "Le Sillage", href: FACEBOOK_URL },
+    { icon: FaFacebookF, label: "Facebook", value: "Le Sillage Manila", href: FACEBOOK_URL },
     { icon: FaFacebookMessenger, label: "Messenger", value: "Message us", href: MESSENGER_URL },
     { icon: FaInstagram, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
     { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },

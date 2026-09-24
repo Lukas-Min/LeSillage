@@ -145,7 +145,7 @@ export function receiptSubmittedEmail(input: OrderEmailInput): OrderEmail {
   const subject = `We received your receipt — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
-Thank you for your order with Le Sillage. We received your payment receipt and will verify it shortly.
+Thank you for your order with Le Sillage Manila. We received your payment receipt and will verify it shortly.
 
 Order: ${input.orderNumber}
 Status: ${describeStatus(input.status)}
@@ -162,13 +162,13 @@ ${tester}
 ${pickupTextBlock(input)}
 If anything looks off, reply to this email and we will sort it out.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
     title: "We received your receipt",
     greeting: greeting(input),
-    intro: ["Thank you for your order with Le Sillage. We received your payment receipt and will verify it shortly."],
+    intro: ["Thank you for your order with Le Sillage Manila. We received your payment receipt and will verify it shortly."],
     facts: [
       { label: "Status", value: describeStatus(input.status) },
       { label: "Estimated arrival", value: eta },
@@ -193,7 +193,7 @@ Reason: ${input.reason ?? "Not provided"}
 
 You can upload a new receipt from your account page. If you believe this is a mistake, reply to this email.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -226,7 +226,7 @@ Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nY
 
 Estimated arrival: ${eta}
 ${tester}${pickupTextBlock(input)}
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -260,7 +260,7 @@ Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nY
 
 ${input.fulfillmentMethod === "PICKUP" ? "Pickup details will follow in a separate email." : "Track your delivery via your courier updates."}
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -294,7 +294,7 @@ Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nY
 
 Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -324,7 +324,7 @@ Subtotal: ${formatPHP(input.subtotalCentavos)}
 Delivery: ${deliveryLine(input)}
 Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
 ${pickupTextBlock(input)}
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -351,7 +351,7 @@ Not received it, or something's wrong? Visit ${input.contactUrl} or reply to thi
 
 If we don't hear back, we'll mark this order complete automatically after three days from delivery.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -376,7 +376,7 @@ Total: ${formatPHP(input.totalCentavos)}
 Method: ${input.fulfillmentMethod}
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
-— Le Sillage admin`;
+— Le Sillage Manila admin`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -409,9 +409,9 @@ Your code: ${args.code}
 
 It expires in 10 minutes. If you did not request this, you can ignore this email.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = `<div style="font-family:Georgia,serif;background:#f7f3ea;padding:32px;color:#2b241c">
-  <p style="letter-spacing:0.3em;text-transform:uppercase;font-size:12px;color:#b0893d">Le Sillage</p>
+  <p style="letter-spacing:0.3em;text-transform:uppercase;font-size:12px;color:#b0893d">Le Sillage Manila</p>
   <h1 style="font-size:22px">${args.subject}</h1>
   <p>${args.body}</p>
   <p style="font-size:32px;letter-spacing:0.4em;font-weight:700;margin:24px 0">${spaced}</p>
@@ -422,7 +422,7 @@ It expires in 10 minutes. If you did not request this, you can ignore this email
 
 export function confirmSignupEmail(code: string): { subject: string; text: string; html: string } {
   return brandedCodeEmail({
-    subject: "Confirm your Le Sillage account",
+    subject: "Confirm your Le Sillage Manila account",
     greeting: "Welcome",
     body: "Use this 6-digit code to verify your email and finish creating your account.",
     code,
@@ -431,7 +431,7 @@ export function confirmSignupEmail(code: string): { subject: string; text: strin
 
 export function resetPasswordEmail(code: string): { subject: string; text: string; html: string } {
   return brandedCodeEmail({
-    subject: "Reset your Le Sillage password",
+    subject: "Reset your Le Sillage Manila password",
     greeting: "Hello",
     body: "Use this 6-digit code to choose a new password.",
     code,
@@ -442,7 +442,7 @@ export function changeEmailEmail(code: string): { subject: string; text: string;
   return brandedCodeEmail({
     subject: "Confirm your new email",
     greeting: "Hello",
-    body: "Use this 6-digit code to confirm the new email address on your Le Sillage account.",
+    body: "Use this 6-digit code to confirm the new email address on your Le Sillage Manila account.",
     code,
   });
 }
@@ -468,7 +468,7 @@ ${args.body}
 
 If this was not you, reply to this email immediately.
 
-— Le Sillage`,
+— Le Sillage Manila`,
   };
 }
 
@@ -485,7 +485,7 @@ Delivery: ${deliveryLine(input)}
 
 Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -514,7 +514,7 @@ Send ${formatPHP(input.totalCentavos)} via the QR on your payment page, then upl
 
 If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes.
 ${payLine}
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -542,7 +542,7 @@ We've cancelled order ${input.orderNumber}. Nothing's reserved, nothing's charge
 ${reason}
 If this wasn't you, reply to this email and we'll sort it out.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -570,7 +570,7 @@ We received your request to cancel order ${input.orderNumber}. Your payment's al
 
 Your reason: ${input.reason ?? "Not provided"}
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -593,7 +593,7 @@ export function adminCancellationRequestNotification(input: OrderEmailInput): Or
 Reason: ${input.reason ?? "Not provided"}
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
-— Le Sillage admin`;
+— Le Sillage Manila admin`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
@@ -615,7 +615,7 @@ We looked into your request to cancel order ${input.orderNumber}, but we're not 
 
 If you have questions, just reply to this email and we'll help sort it out.
 
-— Le Sillage`;
+— Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),

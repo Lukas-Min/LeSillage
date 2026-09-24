@@ -31,18 +31,18 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3030"),
   title: {
-    default: "Le Sillage",
-    template: "%s | Le Sillage",
+    default: "Le Sillage Manila",
+    template: "%s | Le Sillage Manila",
   },
   description:
-    "Le Sillage — a curated retail perfume shop featuring full bottles, partials, and decants from independent and iconic houses.",
-  applicationName: "Le Sillage",
+    "Le Sillage Manila — a curated retail perfume shop featuring full bottles, partials, and decants from independent and iconic houses.",
+  applicationName: "Le Sillage Manila",
   openGraph: {
-    title: "Le Sillage",
+    title: "Le Sillage Manila",
     description:
-      "Full bottles, partials, and decants. Curated retail perfume from Le Sillage.",
+      "Full bottles, partials, and decants. Curated retail perfume from Le Sillage Manila.",
     type: "website",
-    siteName: "Le Sillage",
+    siteName: "Le Sillage Manila",
   },
 };
 

@@ -100,9 +100,12 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
               `not-sr-only` resets `white-space: normal`; the link carries
               an explicit `aria-label` instead so it keeps an accessible name
               while the text is `hidden` (the mark's alt stays "", decorative). */}
-          <Link href="/" aria-label="Le Sillage" className="flex items-center gap-2 font-serif-display text-lg">
+          <Link href="/" aria-label="Le Sillage Manila" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
-            <span className="hidden whitespace-nowrap min-[360px]:inline">Le Sillage</span>
+            <span className="hidden min-[360px]:flex min-[360px]:flex-col min-[360px]:leading-none">
+              <span className="whitespace-nowrap">Le Sillage</span>
+              <span className="font-sans text-[10px] tracking-[0.32em] text-gold">Manila</span>
+            </span>
           </Link>
         </div>
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-xs uppercase tracking-[0.22em] md:flex">
@@ -167,9 +170,12 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
       </SheetTrigger>
       <SheetContent side="left" className="w-full data-[side=left]:w-full sm:w-72">
         <SheetHeader className="border-b border-border/60">
-          <SheetTitle className="flex items-center gap-2 font-serif-display">
+          <SheetTitle aria-label="Le Sillage Manila" className="flex items-center gap-2 font-serif-display">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-6 w-auto" />
-            Le Sillage
+            <span className="flex flex-col leading-none">
+              <span>Le Sillage</span>
+              <span className="font-sans text-[10px] tracking-[0.32em] text-gold">Manila</span>
+            </span>
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-5 overflow-y-auto px-4 pb-4">

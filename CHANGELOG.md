@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Rebranded "Le Sillage" to "Le Sillage Manila" site-wide: page metadata/titles (`src/app/layout.tsx`), homepage hero, About/Sign-in copy, policies title, all order-lifecycle and auth emails (subjects, sign-offs, the "From" name, the branded HTML template's logo alt/wordmark), and account security-notice emails. The navbar and footer brand mark now show "Manila" as a small gold line stacked under "Le Sillage" instead of inline text (`store-header.tsx`, `store-footer.tsx`); the footer copyright line and the shop page's eyebrow tag (previously "Le Sillage · Manila") collapse to the same plain "Le Sillage Manila". Social links updated to match the store's actual rename: Facebook (`facebook.com/lesillagemanila`) and Instagram (`@lesillagemanila`) in `src/lib/social-links.ts`, the shared source for the footer and `/contact` — `/contact`'s `loading.tsx` skeleton now imports these instead of keeping its own stale duplicate copy, and gained the Instagram row it was missing. `GMAIL_USER`/`ADMIN_EMAIL` also updated to `lesillagemanila@gmail.com` (same underlying Gmail account, existing app password still valid) — production's copies of these still need updating on Vercel
 ### Fixed
 - The "Save X%" discount badge (PDP price, shop-grid `CatalogPrice`) used near-invisible light-gold text on a 15%-opacity gold background — switched to the same solid `bg-gold`/`text-gold-foreground` pairing already used everywhere else in the app (buttons, toasts, header CTA) for real contrast (`src/components/store/price.tsx`)
 ### Changed

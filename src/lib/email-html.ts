@@ -188,15 +188,15 @@ export function renderOrderEmailHtml(args: OrderEmailHtmlArgs): string {
   if (args.footnote) {
     parts.push(`<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:${MUTED}">${escapeHtml(args.footnote)}</p>`);
   }
-  parts.push(`<p style="margin:22px 0 0;font-size:15px;color:${INK}">— Le Sillage</p>`);
+  parts.push(`<p style="margin:22px 0 0;font-size:15px;color:${INK}">— Le Sillage Manila</p>`);
 
   return `<div style="margin:0;padding:0;background:${BG}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BG}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${CARD};border-radius:16px;font-family:${FONT}">
   <tr><td align="center" style="padding:26px 28px 18px;border-bottom:1px solid ${RULE}">
     <a href="${site}" style="text-decoration:none">
-      <img src="${site}/logo/mark.png" width="46" height="40" alt="Le Sillage" style="display:block;margin:0 auto 8px;width:46px;height:40px">
-      <span style="display:block;font-family:${FONT};font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:${GOLD}">Le Sillage</span>
+      <img src="${site}/logo/mark.png" width="46" height="40" alt="Le Sillage Manila" style="display:block;margin:0 auto 8px;width:46px;height:40px">
+      <span style="display:block;font-family:${FONT};font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:${GOLD}">Le Sillage Manila</span>
     </a>
   </td></tr>
   <tr><td style="padding:26px 28px 28px">
