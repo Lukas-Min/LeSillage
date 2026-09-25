@@ -63,7 +63,7 @@ const MENU_GROUPS = [
 export function StoreHeader({ announcement = [] }: { announcement?: string[] }) {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const signedIn = status === "authenticated" && Boolean(session?.user);
   const isAdmin = signedIn && (session?.user as { role?: string } | undefined)?.role === "ADMIN";
   // On /account and /admin, the mobile bottom nav's "More" sheet already
@@ -75,6 +75,19 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
   useEffect(() => {
     Promise.resolve().then(() => setMounted(true));
   }, []);
+
+  // signInWithPassword (and sign-out) run through a Server Action that calls
+  // next-auth's server-side signIn()/signOut(), then redirects — a soft,
+  // client-router navigation. This header never unmounts across that, so
+  // useSession()'s cached client state doesn't know the cookie changed until
+  // something else (window focus, a timer) triggers a refetch — the header
+  // keeps showing "Sign in" right after a successful login. Forcing a
+  // refetch on every pathname change (the redirect target differs from
+  // wherever the sign-in form was) closes that gap.
+  useEffect(() => {
+    updateSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
