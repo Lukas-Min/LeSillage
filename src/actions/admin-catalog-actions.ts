@@ -470,9 +470,24 @@ export async function upsertDiscount(formData: FormData) {
   const productId = String(formData.get("productId") ?? "");
   const type = z.enum(["PERCENTAGE", "FIXED"]).parse(formData.get("type"));
   // Entered in pesos for FIXED (converted to centavos below); a plain percent for PERCENTAGE.
-  const rawAmount = z.coerce.number().min(1).parse(formData.get("amount"));
+  // min(0) rather than min(1): 0 is how the admin form removes a discount,
+  // not a value ever persisted (see the branch below).
+  const rawAmount = z.coerce.number().min(0).parse(formData.get("amount"));
   const amount = type === "FIXED" ? toCentavos(rawAmount) : Math.round(rawAmount);
-  await db().insert(productDiscounts).values({ productId, type, amount, isActive: true });
+
+  const [existing] = await db()
+    .select({ id: productDiscounts.id })
+    .from(productDiscounts)
+    .where(eq(productDiscounts.productId, productId));
+
+  if (amount <= 0) {
+    if (existing) await db().delete(productDiscounts).where(eq(productDiscounts.id, existing.id));
+  } else if (existing) {
+    await db().update(productDiscounts).set({ type, amount, isActive: true }).where(eq(productDiscounts.id, existing.id));
+  } else {
+    await db().insert(productDiscounts).values({ productId, type, amount, isActive: true });
+  }
+
   await auditLogSubject({ actor: admin.id, action: "DISCOUNT_UPDATE", targetType: "product", targetId: productId });
   revalidatePath(`/admin/products/${productId}`);
 }

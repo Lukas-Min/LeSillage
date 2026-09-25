@@ -61,6 +61,11 @@ export default async function AdminProductDetailPage({
     db().select().from(productDiscounts).where(eq(productDiscounts.productId, productId)),
     db().select().from(productImages).where(eq(productImages.productId, productId)),
   ]);
+  // The edit form below only ever targets this one row — upsertDiscount
+  // updates/removes it by productId, matching the "one discount per
+  // product" convention every reprice/repricing script already assumes.
+  // Any extra rows (shouldn't normally happen) still show in the list above.
+  const activeDiscount = discountList[0];
   let pendingPreOrderMl = 0;
   if (product.type === "DECANT" && skuList.length > 0) {
     const pendingRows = await db()
@@ -499,15 +504,34 @@ export default async function AdminProductDetailPage({
           <form action={upsertDiscount} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="productId" value={product.id} />
             <Field label="Type" htmlFor="new-discount-type" className="min-w-[9rem] flex-1">
-              <select id="new-discount-type" name="type" className={selectClass}>
+              <select
+                id="new-discount-type"
+                name="type"
+                defaultValue={activeDiscount?.type ?? "PERCENTAGE"}
+                className={selectClass}
+              >
                 <option value="PERCENTAGE">Percentage</option>
                 <option value="FIXED">Fixed ₱ off</option>
               </select>
             </Field>
-            <Field label="Amount (% or ₱)" htmlFor="new-discount-amount" className="min-w-[9rem] flex-1">
-              <Input id="new-discount-amount" name="amount" type="number" step="0.01" required />
+            <Field label="Amount (% or ₱) — 0 to remove" htmlFor="new-discount-amount" className="min-w-[9rem] flex-1">
+              <Input
+                id="new-discount-amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                defaultValue={
+                  activeDiscount
+                    ? activeDiscount.type === "FIXED"
+                      ? (activeDiscount.amount / 100).toFixed(2)
+                      : activeDiscount.amount
+                    : undefined
+                }
+              />
             </Field>
-            <SubmitButton>Add discount</SubmitButton>
+            <SubmitButton>{activeDiscount ? "Update discount" : "Add discount"}</SubmitButton>
           </form>
         </CardContent>
       </Card>
