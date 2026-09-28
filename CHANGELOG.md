@@ -11,6 +11,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ### Security
 - Cron bearer checks use a shared SHA-256 + `timingSafeEqual` compare in `src/lib/cron-auth.ts` so a wrong `Authorization` header cannot leak `CRON_SECRET` by timing
 ### Fixed
+- Production build type-check no longer augments `next-auth/jwt`, which this Auth.js version does not ship. Remember me still lives on the JWT payload
 - A pending cancellation must be approved or denied before any other status change. Approve re-checks the request under the same row lock as Deny, so the two cannot both win. Pickup emails say "Pickup" for free delivery instead of "Promo applied", and `formatDate`/`formatDateTime` use Asia/Manila
 ### Changed
 - Decant and full-bottle pricelist imports read `scripts/data/*.json` instead of catalogs hardcoded in TypeScript. `scripts/import-catalog.ts` runs full bottles in parallel with the decant price pass, then fills decant notes

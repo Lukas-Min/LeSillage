@@ -224,9 +224,3 @@ declare module "next-auth" {
     sessionVersion?: number;
   }
 }
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    rememberMe?: boolean;
-  }
-}
