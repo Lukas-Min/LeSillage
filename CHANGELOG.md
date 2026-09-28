@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Auto-reject window widened from 24 to 48 hours (`AUTO_REJECT_AFTER_MS` in `src/domain/auto-reject.ts`) — an `AWAITING_PAYMENT` order now needs 2 days without a receipt before it's automatically cancelled, not 1. Cancellation reason copy and tests updated to match
 ### Fixed
 - The root `tsconfig.json`'s broad `**/*.ts` include picked up `workers/auto-reject-cron/src/index.ts` (added the same session), whose Cloudflare-only types (`ScheduledController`, `ExecutionContext`) the main app can't resolve — broke `next build`'s type-check step and failed the production deploy. Added `workers` to `tsconfig.json`'s `exclude`; the Worker keeps its own separate `tsconfig.json`/`@cloudflare/workers-types` and is unaffected
 ### Added
