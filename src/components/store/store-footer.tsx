@@ -4,6 +4,7 @@ import { Mail, Phone } from "lucide-react";
 import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
 import { getEnv } from "@/lib/env";
 import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
+import { FooterAccountLink } from "@/components/store/footer-account-link";
 
 const COLUMNS = [
   {
@@ -26,10 +27,7 @@ const COLUMNS = [
   },
   {
     title: "Maison",
-    links: [
-      { href: "/about", label: "About" },
-      { href: "/sign-in", label: "Sign in" },
-    ],
+    links: [{ href: "/about", label: "About" }],
   },
 ] as const;
 
@@ -96,6 +94,11 @@ export function StoreFooter() {
                   </Link>
                 </li>
               ))}
+              {column.title === "Maison" ? (
+                <li>
+                  <FooterAccountLink />
+                </li>
+              ) : null}
             </ul>
           </div>
         ))}

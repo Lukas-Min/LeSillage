@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- The footer's Maison column hardcoded a static "Sign in" link regardless of auth state, unlike the header (which correctly swaps to the account menu once signed in) — `StoreFooter` never had any session awareness at all. New `FooterAccountLink` (`src/components/store/footer-account-link.tsx`), a small client component reading the same `useSession()` the header does, swaps it to "My account" once signed in; the rest of the footer stays static/server-rendered
 - The new product-discount Type/Amount/Start date/End date fields (`/admin/products/[productId]`) used `flex flex-wrap`, which wrapped unevenly at narrow widths (an orphaned Start date, the button crowded next to End date). Now a `grid grid-cols-2 sm:grid-cols-4`, so it's a clean 2-column/2-row layout on small screens with the submit button on its own row below, collapsing to one row once there's room
 ### Changed
 - Homepage flagship panel now prioritizes discounted full bottles: `pickFlagship` (`src/app/page.tsx`) filters in-stock full bottles down to the ones with an active discount and picks randomly among those, only falling back to the whole in-stock pool when none are currently discounted. The "full bottle only" source query is unchanged
