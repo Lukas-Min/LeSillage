@@ -20,6 +20,23 @@ Entry template:
 
 ---
 
+## 2026-09-28 — Full-codebase request, scoped to open findings and scripts
+
+- **Commit range reviewed:** full re-audit requested. This pass did not re-read every file. It checked the 15 findings still open from `748a30e` (2026-09-24), the SEO and catalog-cache commits through `2790727`, and `scripts/`.
+- **Effort:** medium
+- **Scope / areas covered:** `src/domain/pickup.ts`, catalog cache in `src/lib/catalog.ts`, live production deploy status, and the one-off product scripts under `scripts/`.
+- **Findings:**
+  1. `src/domain/pickup.ts` — cancelled or rejected orders with no receipt showed the home address — status: fixed locally, not committed or deployed
+  2. `src/lib/orders.ts` — cancellation Approve/Deny race — status: confirmed, still open
+  3. `src/components/admin/order-row-actions.tsx` — pending cancellation can be bypassed by other admin buttons — status: confirmed, still open
+  4. `src/lib/orders.ts` — pickup status emails say "Promo applied" for free delivery — status: confirmed, still open
+  5. `src/lib/utils.ts` — `formatDate` / `formatDateTime` are not pinned to Asia/Manila — status: confirmed, still open
+  6. `scripts/add-*.ts` — one hardcoded script per fragrance — status: fixed. Those files are deleted. New listings use `scripts/upsert-listing.ts`. `import-decant-pricelist.ts` and `import-full-bottle-pricelist.ts` stay, because they store exact per-size prices rather than a markup formula
+  7. Findings 6–15 from the 2026-09-24 log were not re-verified in this pass — status: skipped
+- **Checkpoint advanced to:** not advanced. Left at `748a30e14c39b6b642bcfd6f93fd86027741b9c6` so the next review still starts there. A line-by-line pass of the whole tree was not done.
+
+---
+
 ## 2026-09-17 — Full codebase baseline audit
 
 - **Commit range reviewed:** full codebase baseline — no prior checkpoint existed. Session diff `bc6e6c3...8f29827` (this session's 5 commits: HTML order emails, marquee fix, tester-bonus feature, instant-save toggle, tester-pool script) was also scanned as one of the angles.

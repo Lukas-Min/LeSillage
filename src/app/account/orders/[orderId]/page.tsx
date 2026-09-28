@@ -16,7 +16,12 @@ import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-s
 import { formatPHP } from "@/domain/money";
 import { formatDateTime } from "@/lib/utils";
 import { computeEtaSummary } from "@/domain/eta";
-import { canRevealPickupAddress, PICKUP_ADDRESS_LINE, PICKUP_ADDRESS_NAME } from "@/domain/pickup";
+import {
+  canRevealPickupAddress,
+  pickupAddressPlaceholder,
+  PICKUP_ADDRESS_LINE,
+  PICKUP_ADDRESS_NAME,
+} from "@/domain/pickup";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +73,8 @@ export default async function OrderDetailPage({
           { label: "Delivered", status: "DELIVERED" as const },
           { label: "Completed", status: "COMPLETED" as const },
         ];
+  const revealPickup = canRevealPickupAddress(order.status);
+  const pickupHidden = pickupAddressPlaceholder(order.status);
 
   return (
     <div className="space-y-6">
@@ -205,14 +212,14 @@ export default async function OrderDetailPage({
           {order.fulfillmentMethod === "PICKUP" ? (
             <SectionCard
               eyebrow="Pickup"
-              title={canRevealPickupAddress(order.status) ? PICKUP_ADDRESS_NAME : "Address coming soon"}
+              title={revealPickup ? PICKUP_ADDRESS_NAME : pickupHidden.title}
               description={
-                canRevealPickupAddress(order.status)
+                revealPickup
                   ? `Search "${PICKUP_ADDRESS_NAME}" on Google Maps or Apple Maps to find it.`
-                  : "We'll share the exact pickup address here once your payment is verified."
+                  : pickupHidden.description
               }
             >
-              {canRevealPickupAddress(order.status) ? <p className="text-sm">{PICKUP_ADDRESS_LINE}</p> : null}
+              {revealPickup ? <p className="text-sm">{PICKUP_ADDRESS_LINE}</p> : null}
               {order.pickupNotes ? (
                 <p className="text-sm text-muted-foreground">Your instructions: {order.pickupNotes}</p>
               ) : null}

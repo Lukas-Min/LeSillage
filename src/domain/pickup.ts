@@ -8,16 +8,48 @@ import type { OrderStatus } from "@/db/schema";
 export const PICKUP_ADDRESS_NAME = "Moraleta Residence";
 export const PICKUP_ADDRESS_LINE = "20 Balimbing St, Taguig, 1639 Metro Manila";
 
-// Revealed once a pickup order has moved past AWAITING_PAYMENT — i.e. a
-// receipt has been submitted at least once, so this is a real, paying
-// customer rather than anyone who happened to start a checkout.
+// Revealed only after a receipt exists. CANCELLED and REJECTED are reachable
+// straight from AWAITING_PAYMENT (instant cancel, admin reject, auto-reject)
+// with no receipt row at all — status alone would otherwise publish the
+// residence to anyone who started a checkout and then backed out. A later
+// cancel, after the address was already shown, stops showing it too: a
+// closed order should not keep directing someone to the house.
 export function canRevealPickupAddress(status: OrderStatus): boolean {
-  return status !== "AWAITING_PAYMENT";
+  switch (status) {
+    case "AWAITING_PAYMENT":
+    case "REJECTED":
+    case "CANCELLED":
+      return false;
+    case "RECEIPT_SUBMITTED":
+    case "CONFIRMED":
+    case "SHIPPED":
+    case "DELIVERED":
+    case "READY_FOR_PICKUP":
+    case "COMPLETED":
+      return true;
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
+/** Title and description for the order page when the street address stays hidden. */
+export function pickupAddressPlaceholder(status: OrderStatus): { title: string; description: string } {
+  if (status === "CANCELLED" || status === "REJECTED") {
+    return {
+      title: "Pickup closed",
+      description: "This order is closed, so the pickup address stays private.",
+    };
+  }
+  return {
+    title: "Address coming soon",
+    description: "We'll share the exact pickup address here once your payment is verified.",
+  };
 }
 
 /** One-line version for plain-text contexts (emails' text bodies). */
 export function pickupAddressLine(status: OrderStatus): string {
-  return canRevealPickupAddress(status)
-    ? `${PICKUP_ADDRESS_NAME} — ${PICKUP_ADDRESS_LINE} (search "${PICKUP_ADDRESS_NAME}" on Google Maps or Apple Maps to find it)`
-    : "We'll share the exact pickup address here once your payment is verified.";
+  if (!canRevealPickupAddress(status)) return pickupAddressPlaceholder(status).description;
+  return `${PICKUP_ADDRESS_NAME} — ${PICKUP_ADDRESS_LINE} (search "${PICKUP_ADDRESS_NAME}" on Google Maps or Apple Maps to find it)`;
 }

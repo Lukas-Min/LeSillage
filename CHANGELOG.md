@@ -3,7 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Removed the one-off product scripts (`scripts/add-*.ts`, `scripts/reprice-velixir-full-bottles.ts`, `scripts/update-libre-decant-stock.ts`). Those listings are already in the database. New listings go through `scripts/upsert-listing.ts`. New decant SKUs from that script default to Retail provenance. The pricelist importers stay, because they record exact per-size prices rather than a markup formula
 ### Fixed
+- Pickup address stays hidden on cancelled or rejected orders (`canRevealPickupAddress` in `src/domain/pickup.ts`). Those statuses are reachable straight from awaiting payment with no receipt, and the order page was treating any status other than awaiting payment as permission to show the home address
 - Catalog cache options in `src/lib/catalog.ts` are a plain `{ tags, revalidate }` object. `as const` made `tags` a readonly tuple, which failed `next build`'s type check and blocked the production deploy
 ### Changed
 - Claude Code and Cursor now share one copy of the project rules: changelog, code-review checkpoints, mobile-first, and loading states live in `.cursor/rules/` and `CLAUDE.md` imports those files. The store skill (`360–414px`) and the reviewer prompt bodies match under `.cursor/` and `.claude/`; reviewer frontmatter still differs only by each tool's read-only switch
