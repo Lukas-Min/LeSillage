@@ -43,9 +43,9 @@ export const accountNavItems: AccountNavItem[] = [
   { href: "/account/wishlist", label: "Wishlist", icon: Heart },
   { href: "/account/notifications", label: "Notifications", icon: Bell },
   { href: "/account/delete", label: "Delete account", icon: Trash2, destructive: true },
-  // Appended after Delete account, not inserted earlier — customerPrimaryItems
-  // below indexes into this array by fixed position (0, 2, 4), which an
-  // earlier insertion would shift.
+  // Kept for the archive page's breadcrumb. The link itself lives on the
+  // profile, not in this sidebar. customerPrimaryItems indexes this array
+  // (0, 2, 5), so do not insert anything before Wishlist.
   { href: "/account/archive", label: "Archive account", icon: Archive, destructive: true },
 ];
 
@@ -128,7 +128,9 @@ function NavList({
  *  the static desktop sidebar, which isn't inside one. */
 export function SidebarContent({ isAdmin, closeOnNavigate = false }: { isAdmin: boolean; closeOnNavigate?: boolean }) {
   const pathname = usePathname();
-  const items = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
+  const items = isAdmin
+    ? [adminHomeItem, ...adminNavItems]
+    : accountNavItems.filter((item) => item.href !== "/account/archive");
   const accountLinkClassName = "h-11 w-full justify-start gap-3 rounded-md px-3";
   return (
     <>

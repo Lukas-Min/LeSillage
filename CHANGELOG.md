@@ -6,8 +6,12 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ### Added
 - A promo code limited to one customer is created from Add on that customer's admin page and listed with the public codes they can use. The customer gets an email; the code in it opens `/promo-code` and can be copied
 - Editing a promo code opens `/admin/promo/[promoCodeId]` instead of a dialog
+### Changed
+- Archive account is a button on the profile page. It is no longer in the account sidebar
 ### Fixed
 - Account quick actions share one top edge in each row. The section spacing no longer pushes the right-hand cards down
+### Added
+- Commit messages stay plain. No `Co-authored-by` line and no agent name, in `.cursor/rules/no-agent-commit-trailers.mdc`
 ### Changed
 - Promo codes use the same type as prices (`font-price-display`)
 - WELCOME10 is capped at the first 100 redemptions and can be deleted after it has been used. The announcement bar says so

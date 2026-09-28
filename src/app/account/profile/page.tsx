@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Mail } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -6,6 +7,7 @@ import { requireActiveCustomer } from "@/auth";
 import { GoogleIcon } from "@/components/store/brand-icons";
 import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { configuredOAuthProviders } from "@/lib/oauth-providers";
 import {
   ProfileForm,
@@ -108,6 +110,15 @@ export default async function ProfilePage() {
         <Eyebrow className="inline">Tip</Eyebrow>
         {" "}Adding a social login keeps access if you ever lose your password.
       </p>
+
+      <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Step away for up to 30 days. Log back in and the account is restored.
+        </p>
+        <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
+          <Link href="/account/archive">Archive account</Link>
+        </Button>
+      </div>
     </div>
   );
 }

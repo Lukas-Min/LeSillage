@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +43,15 @@ export default function ProfileLoading() {
       <p className="text-xs text-muted-foreground">
         <Eyebrow className="inline">Tip</Eyebrow> Adding a social login keeps access if you ever lose your password.
       </p>
+
+      <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Step away for up to 30 days. Log back in and the account is restored.
+        </p>
+        <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
+          <Link href="/account/archive">Archive account</Link>
+        </Button>
+      </div>
     </div>
   );
 }

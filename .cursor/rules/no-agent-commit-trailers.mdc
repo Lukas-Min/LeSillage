@@ -1,0 +1,32 @@
+---
+description: Commit messages stay plain. No Co-authored-by and no agent attribution.
+alwaysApply: true
+---
+
+# No agent commit trailers
+
+A commit message is plain text. It never names an agent, a tool, or Cursor.
+
+Forbidden in every commit and push, including ones a tool writes for you:
+
+- `Co-authored-by` with any identity
+- `Signed-off-by`, `Generated-by`, or any other trailer that credits an agent
+- `Cursor`, `cursoragent@cursor.com`, or any agent name
+
+## How to apply
+
+1. Write the message yourself. Do not add a trailer.
+2. After `git commit`, read `git log -1 --format=%B`.
+3. If a trailer is there, do not `git commit --amend`. Amending puts the trailer back.
+4. Replace the commit before any push:
+
+```bash
+TREE=$(git rev-parse 'HEAD^{tree}')
+PARENT=$(git rev-parse 'HEAD^')
+NEW=$(git commit-tree "$TREE" -p "$PARENT" -m "the plain message")
+git reset --soft "$NEW"
+```
+
+5. Read `git log -1 --format=%B` again. Push only when that output has no trailer and no agent name.
+
+The commit on the remote must match that plain message.
