@@ -755,7 +755,7 @@ async function searchCatalogCardsUncached(query: string): Promise<SearchResultCa
 const catalogCache = {
   tags: [CATALOG_TAG],
   revalidate: CATALOG_REVALIDATE_SECONDS,
-} as const;
+};
 
 const cachedLoadCatalogCards = unstable_cache(
   async (key: string) => loadCatalogCardsUncached(JSON.parse(key) as CatalogFilter),

@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Catalog cache options in `src/lib/catalog.ts` are a plain `{ tags, revalidate }` object. `as const` made `tags` a readonly tuple, which failed `next build`'s type check and blocked the production deploy
 ### Changed
 - Claude Code and Cursor now share one copy of the project rules: changelog, code-review checkpoints, mobile-first, and loading states live in `.cursor/rules/` and `CLAUDE.md` imports those files. The store skill (`360–414px`) and the reviewer prompt bodies match under `.cursor/` and `.claude/`; reviewer frontmatter still differs only by each tool's read-only switch
 - Storefront catalog reads (`loadCatalogCards`, `countCatalogCards`, `searchCatalogCards` in `src/lib/catalog.ts`) are cached for 60 seconds under the `catalog` tag and dropped immediately with `updateTag` when an admin save changes a product, SKU, discount, image, ml pool, Fragrantica import, or promo settings (site-wide discount and decant pre-order threshold). Checkout still prices from the database; an order that changes stock shows on the shop within that 60-second window
