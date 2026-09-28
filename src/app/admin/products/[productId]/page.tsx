@@ -508,54 +508,56 @@ export default async function AdminProductDetailPage({
               </p>
             );
           })}
-          <form action={upsertDiscount} className="flex flex-wrap items-end gap-2">
+          <form action={upsertDiscount} className="space-y-3">
             <input type="hidden" name="productId" value={product.id} />
-            <Field label="Type" htmlFor="new-discount-type" className="min-w-[9rem] flex-1">
-              <select
-                id="new-discount-type"
-                name="type"
-                defaultValue={activeDiscount?.type ?? "PERCENTAGE"}
-                className={selectClass}
-              >
-                <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed ₱ off</option>
-              </select>
-            </Field>
-            <Field label="Amount (% or ₱) — 0 to remove" htmlFor="new-discount-amount" className="min-w-[9rem] flex-1">
-              <Input
-                id="new-discount-amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                defaultValue={
-                  activeDiscount
-                    ? activeDiscount.type === "FIXED"
-                      ? (activeDiscount.amount / 100).toFixed(2)
-                      : activeDiscount.amount
-                    : undefined
-                }
-              />
-            </Field>
-            <Field label="Start date" htmlFor="new-discount-starts-at" className="min-w-[9rem] flex-1">
-              <Input
-                id="new-discount-starts-at"
-                name="startsAt"
-                type="date"
-                defaultValue={
-                  activeDiscount?.startsAt ? formatPhDateBoundary(activeDiscount.startsAt, "start") : todayPhDateString()
-                }
-              />
-            </Field>
-            <Field label="End date (empty = no expiration)" htmlFor="new-discount-ends-at" className="min-w-[9rem] flex-1">
-              <Input
-                id="new-discount-ends-at"
-                name="endsAt"
-                type="date"
-                defaultValue={activeDiscount?.endsAt ? formatPhDateBoundary(activeDiscount.endsAt, "end") : ""}
-              />
-            </Field>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Field label="Type" htmlFor="new-discount-type">
+                <select
+                  id="new-discount-type"
+                  name="type"
+                  defaultValue={activeDiscount?.type ?? "PERCENTAGE"}
+                  className={selectClass}
+                >
+                  <option value="PERCENTAGE">Percentage</option>
+                  <option value="FIXED">Fixed ₱ off</option>
+                </select>
+              </Field>
+              <Field label="Amount (% or ₱) — 0 to remove" htmlFor="new-discount-amount">
+                <Input
+                  id="new-discount-amount"
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  defaultValue={
+                    activeDiscount
+                      ? activeDiscount.type === "FIXED"
+                        ? (activeDiscount.amount / 100).toFixed(2)
+                        : activeDiscount.amount
+                      : undefined
+                  }
+                />
+              </Field>
+              <Field label="Start date" htmlFor="new-discount-starts-at">
+                <Input
+                  id="new-discount-starts-at"
+                  name="startsAt"
+                  type="date"
+                  defaultValue={
+                    activeDiscount?.startsAt ? formatPhDateBoundary(activeDiscount.startsAt, "start") : todayPhDateString()
+                  }
+                />
+              </Field>
+              <Field label="End date (empty = no expiration)" htmlFor="new-discount-ends-at">
+                <Input
+                  id="new-discount-ends-at"
+                  name="endsAt"
+                  type="date"
+                  defaultValue={activeDiscount?.endsAt ? formatPhDateBoundary(activeDiscount.endsAt, "end") : ""}
+                />
+              </Field>
+            </div>
             <SubmitButton>{activeDiscount ? "Update discount" : "Add discount"}</SubmitButton>
           </form>
         </CardContent>

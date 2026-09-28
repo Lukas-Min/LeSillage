@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- The new product-discount Type/Amount/Start date/End date fields (`/admin/products/[productId]`) used `flex flex-wrap`, which wrapped unevenly at narrow widths (an orphaned Start date, the button crowded next to End date). Now a `grid grid-cols-2 sm:grid-cols-4`, so it's a clean 2-column/2-row layout on small screens with the submit button on its own row below, collapsing to one row once there's room
 ### Changed
 - Homepage flagship panel now prioritizes discounted full bottles: `pickFlagship` (`src/app/page.tsx`) filters in-stock full bottles down to the ones with an active discount and picks randomly among those, only falling back to the whole in-stock pool when none are currently discounted. The "full bottle only" source query is unchanged
 - Product discounts (`/admin/products/[productId]`) now have Start date / End date fields, matching the scheduling the domain logic (`isDiscountActive` in `src/domain/discount.ts`) already supported but the admin form never exposed. An empty start date defaults to today; an empty end date means no expiration. Extracted the PHT-midnight date anchoring (`<input type="date">` has no timezone of its own, so it needs explicit +08:00 anchoring to mean the Manila calendar day it looks like) into a new shared `src/domain/ph-date.ts`, and refactored the promo-code admin page/action to use it too instead of keeping its own separate copy
