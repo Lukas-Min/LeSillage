@@ -20,7 +20,19 @@ Entry template:
 
 ---
 
-## 2026-09-28 — Full-codebase request, scoped to open findings and scripts
+## 2026-09-28 — Review of the script cleanup commit
+
+- **Commit range reviewed:** `d2621e7...53a62e0`
+- **Effort:** medium
+- **Scope / areas covered:** `scripts/import-catalog.ts`, the three pricelist importers, `scripts/data/*.json`, deleted one-time scripts, `package.json`. The pickup-address change in `d2621e7` was re-read with it.
+- **Findings:**
+  1. `scripts/import-catalog.ts` — running it writes the live database immediately. There is no `--apply` dry-run, unlike `flag-tester-pool.ts` — status: confirmed. Left as-is because the old importers behaved the same way
+  2. `src/domain/pickup.ts` — cancelled and rejected orders hide the address even when a receipt was submitted earlier — status: confirmed, intentional
+  3. Cancellation race, pending-cancellation bypass, pickup "Promo applied" emails, and Manila timezone on dates — status: confirmed, still open, not in this commit
+- **Checkpoint advanced to:** not advanced. Still `748a30e14c39b6b642bcfd6f93fd86027741b9c6`. The commits between that checkpoint and `d2621e7` were not re-read line by line.
+
+---
+
 
 - **Commit range reviewed:** full re-audit requested. This pass did not re-read every file. It checked the 15 findings still open from `748a30e` (2026-09-24), the SEO and catalog-cache commits through `2790727`, and `scripts/`.
 - **Effort:** medium
