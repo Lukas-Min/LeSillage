@@ -2,10 +2,10 @@ import Link from "next/link";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { products, skus, productDiscounts, productImages, promoSettings, wishlists } from "@/db/schema";
+import { wishlists } from "@/db/schema";
 import { withSiteWideDiscount } from "@/domain/discount";
 import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { concentrationLabel, guessConcentration } from "@/domain/concentration";
@@ -20,7 +20,7 @@ import { WishlistButton } from "@/components/store/wishlist-button";
 import { DecantBuyBox } from "@/components/store/decant-buy-box";
 import { findSelectedVariant, type SizePickerOption } from "@/domain/variant-options";
 import { labelForCategory, labelForType } from "@/domain/product-type";
-import { buildVariantOptions } from "@/lib/catalog";
+import { buildVariantOptions, loadProductPageCatalog } from "@/lib/catalog";
 import { productAccords } from "@/lib/product-accords";
 import { policyCopy } from "@/lib/policy-copy";
 import { normaliseNotePyramid } from "@/lib/note-pyramid";
@@ -28,60 +28,15 @@ import { capitalizeFirst, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// Shared by generateMetadata and the page body — React's cache() dedupes
-// the two calls into one query per request instead of hitting the DB twice
-// for the same row.
-const getProductRow = cache(async (skuId: string) => {
-  const client = db();
-  return (
-    await client
-      .select({
-        productId: products.id,
-        name: products.name,
-        brand: products.brand,
-        fragranceCategory: products.fragranceCategory,
-        concentration: products.concentration,
-        gender: products.gender,
-        type: products.type,
-        description: products.description,
-        notes: products.notes,
-        remainingMl: products.remainingMl,
-        notePyramid: products.notePyramid,
-        accords: products.accords,
-        perfumers: products.perfumers,
-        longevity: products.longevity,
-        seasonBreakout: products.seasonBreakout,
-        ratingValue: products.ratingValue,
-        ratingCount: products.ratingCount,
-        condition: skus.condition,
-        provenance: skus.provenance,
-        skuId: skus.id,
-        skuLabel: skus.label,
-        sizeMl: skus.sizeMl,
-        retailPrice: skus.retailPrice,
-        fulfillment: skus.fulfillment,
-        stock: skus.stock,
-        isActive: skus.isActive,
-        productActive: products.isActive,
-      })
-      .from(skus)
-      .innerJoin(products, eq(products.id, skus.productId))
-      .where(eq(skus.id, skuId))
-  )[0];
-});
+const getProductPageCatalog = cache(loadProductPageCatalog);
 
 export async function generateMetadata({ params }: { params: Promise<{ skuId: string }> }): Promise<Metadata> {
   const { skuId } = await params;
-  const row = await getProductRow(skuId);
-  if (!row || !row.isActive || !row.productActive) return {};
+  const catalog = await getProductPageCatalog(skuId);
+  const row = catalog?.row;
+  if (!catalog || !row || !row.isActive || !row.productActive) return {};
 
-  const [image] = await db()
-    .select({ url: productImages.url, alt: productImages.alt })
-    .from(productImages)
-    .where(eq(productImages.productId, row.productId))
-    .orderBy(asc(productImages.position))
-    .limit(1);
-
+  const image = catalog.image;
   const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
   const title = `${row.brand} ${row.name} — ${row.skuLabel}`;
   const priceText = formatPHP(row.retailPrice);
@@ -113,58 +68,30 @@ export async function generateMetadata({ params }: { params: Promise<{ skuId: st
 
 export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
   const { skuId } = await params;
-  const client = db();
-  const row = await getProductRow(skuId);
-  if (!row || !row.isActive || !row.productActive) return notFound();
+  const catalog = await getProductPageCatalog(skuId);
+  const row = catalog?.row;
+  if (!catalog || !row || !row.isActive || !row.productActive) return notFound();
 
   const session = await auth();
-
-  const [discounts, siblings, promoRow, image, wishlisted] = await Promise.all([
-    client.select().from(productDiscounts).where(eq(productDiscounts.productId, row.productId)),
-    client
-      .select({
-        skuId: skus.id,
-        label: skus.label,
-        sizeMl: skus.sizeMl,
-        retailPrice: skus.retailPrice,
-        condition: skus.condition,
-        provenance: skus.provenance,
-        packaging: skus.packaging,
-        fulfillment: skus.fulfillment,
-        stock: skus.stock,
-        isTester: skus.isTester,
-        availableForPreOrder: skus.availableForPreOrder,
-      })
-      .from(skus)
-      .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true))),
-    client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
-    client
-      .select({ url: productImages.url, alt: productImages.alt })
-      .from(productImages)
-      .where(eq(productImages.productId, row.productId))
-      .orderBy(asc(productImages.position))
-      .limit(1),
-    // Browsing is open to guests, so this only runs for a signed-in
-    // session — a guest's heart always starts unfilled, matching
-    // WishlistButton's own toggleWishlist call requiring sign-in.
-    session?.user
-      ? client
+  // Wishlist is per signed-in shopper — leave it off the shared catalog cache.
+  const wishlisted = session?.user
+    ? (
+        await db()
           .select({ id: wishlists.id })
           .from(wishlists)
           .where(and(eq(wishlists.userId, session.user.id as string), eq(wishlists.productId, row.productId)))
-          .then((rows) => rows.length > 0)
-      : Promise.resolve(false),
-  ]);
+      ).length > 0
+    : false;
 
-  const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
+  const threshold = catalog.promo?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   const remainingMl = row.remainingMl ?? 0;
-  const discountsWithSiteWide = withSiteWideDiscount(discounts, row.productId, {
-    enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
-    type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
-    amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
+  const discountsWithSiteWide = withSiteWideDiscount(catalog.discounts, row.productId, {
+    enabled: catalog.promo?.siteWideDiscountEnabled ?? false,
+    type: catalog.promo?.siteWideDiscountType ?? "PERCENTAGE",
+    amount: catalog.promo?.siteWideDiscountAmount ?? 0,
   });
   const isDecant = row.type === "DECANT";
-  const variantOptions = buildVariantOptions(siblings, discountsWithSiteWide, {
+  const variantOptions = buildVariantOptions(catalog.siblings, discountsWithSiteWide, {
     isDecant,
     remainingMl,
     thresholdMl: threshold,
@@ -197,7 +124,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
     "@context": "https://schema.org",
     "@type": "Product",
     name: `${row.brand} ${row.name}`,
-    image: image[0]?.url ? [image[0].url] : undefined,
+    image: catalog.image?.url ? [catalog.image.url] : undefined,
     description: row.description || `${row.brand} ${row.name} — ${labelForType(row.type)}, ${row.skuLabel}.`,
     brand: { "@type": "Brand", name: row.brand },
     sku: currentVariant.skuId,
@@ -259,8 +186,8 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             name={row.name}
             pyramid={notePyramid}
             showComposition
-            imageUrl={image[0]?.url}
-            imageAlt={image[0]?.alt}
+            imageUrl={catalog.image?.url}
+            imageAlt={catalog.image?.alt}
             cornerLabel={labelForCategory(row.fragranceCategory)}
             // No max-h/max-w cap here any more — the page-wide 2xl:80vw
             // container (root layout) now keeps this column, and so the

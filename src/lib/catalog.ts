@@ -1,5 +1,5 @@
 import { unstable_cache, updateTag } from "next/cache";
-import { and, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   productDiscounts,
@@ -752,6 +752,99 @@ async function searchCatalogCardsUncached(query: string): Promise<SearchResultCa
   return results;
 }
 
+function reviveProductDiscount(discount: ProductDiscount): ProductDiscount {
+  return {
+    ...discount,
+    startsAt: discount.startsAt ? new Date(discount.startsAt) : null,
+    endsAt: discount.endsAt ? new Date(discount.endsAt) : null,
+    createdAt: new Date(discount.createdAt),
+  };
+}
+
+async function loadProductPageCatalogUncached(skuId: string) {
+  const client = db();
+  const row = (
+    await client
+      .select({
+        productId: products.id,
+        name: products.name,
+        brand: products.brand,
+        fragranceCategory: products.fragranceCategory,
+        concentration: products.concentration,
+        gender: products.gender,
+        type: products.type,
+        description: products.description,
+        notes: products.notes,
+        remainingMl: products.remainingMl,
+        notePyramid: products.notePyramid,
+        accords: products.accords,
+        perfumers: products.perfumers,
+        longevity: products.longevity,
+        seasonBreakout: products.seasonBreakout,
+        ratingValue: products.ratingValue,
+        ratingCount: products.ratingCount,
+        condition: skus.condition,
+        provenance: skus.provenance,
+        skuId: skus.id,
+        skuLabel: skus.label,
+        sizeMl: skus.sizeMl,
+        retailPrice: skus.retailPrice,
+        fulfillment: skus.fulfillment,
+        stock: skus.stock,
+        isActive: skus.isActive,
+        productActive: products.isActive,
+      })
+      .from(skus)
+      .innerJoin(products, eq(products.id, skus.productId))
+      .where(eq(skus.id, skuId))
+  )[0];
+  if (!row) return null;
+
+  const [discounts, siblings, promoRow, image] = await Promise.all([
+    client.select().from(productDiscounts).where(eq(productDiscounts.productId, row.productId)),
+    client
+      .select({
+        skuId: skus.id,
+        label: skus.label,
+        sizeMl: skus.sizeMl,
+        retailPrice: skus.retailPrice,
+        condition: skus.condition,
+        provenance: skus.provenance,
+        packaging: skus.packaging,
+        fulfillment: skus.fulfillment,
+        stock: skus.stock,
+        isTester: skus.isTester,
+        availableForPreOrder: skus.availableForPreOrder,
+      })
+      .from(skus)
+      .where(and(eq(skus.productId, row.productId), eq(skus.isActive, true))),
+    client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
+    client
+      .select({ url: productImages.url, alt: productImages.alt })
+      .from(productImages)
+      .where(eq(productImages.productId, row.productId))
+      .orderBy(asc(productImages.position))
+      .limit(1),
+  ]);
+
+  return {
+    row,
+    discounts,
+    siblings,
+    promo: promoRow[0]
+      ? {
+          decantPreOrderThresholdMl: promoRow[0].decantPreOrderThresholdMl,
+          siteWideDiscountEnabled: promoRow[0].siteWideDiscountEnabled,
+          siteWideDiscountType: promoRow[0].siteWideDiscountType,
+          siteWideDiscountAmount: promoRow[0].siteWideDiscountAmount,
+        }
+      : null,
+    image: image[0] ?? null,
+  };
+}
+
+export type ProductPageCatalog = NonNullable<Awaited<ReturnType<typeof loadProductPageCatalogUncached>>>;
+
 const catalogCache = {
   tags: [CATALOG_TAG],
   revalidate: CATALOG_REVALIDATE_SECONDS,
@@ -771,6 +864,12 @@ const cachedCountCatalogCards = unstable_cache(
 
 const cachedSearchCatalogCards = unstable_cache(searchCatalogCardsUncached, ["catalog-search"], catalogCache);
 
+const cachedLoadProductPageCatalog = unstable_cache(
+  async (skuId: string) => loadProductPageCatalogUncached(skuId),
+  ["catalog-pdp"],
+  catalogCache,
+);
+
 export function loadCatalogCards(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
   return cachedLoadCatalogCards(catalogFilterKey(filter));
 }
@@ -781,6 +880,15 @@ export function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "offset"
 
 export function searchCatalogCards(query: string): Promise<SearchResultCard[]> {
   return cachedSearchCatalogCards(query);
+}
+
+export async function loadProductPageCatalog(skuId: string): Promise<ProductPageCatalog | null> {
+  const data = await cachedLoadProductPageCatalog(skuId);
+  if (!data) return null;
+  return {
+    ...data,
+    discounts: data.discounts.map(reviveProductDiscount),
+  };
 }
 
 /** Server Actions only. `updateTag` expires the tag immediately so the shop shows the save, instead of `revalidateTag`, which serves the stale entry while it refreshes. */

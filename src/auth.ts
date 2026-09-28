@@ -17,6 +17,12 @@ import {
 import { getEnv } from "@/lib/env";
 import { verifyPassword } from "@/lib/password";
 import { auditLogSubject } from "@/lib/audit";
+import {
+  SESSION_MAX_AGE_REMEMBERED_S,
+  applyRememberMeSession,
+  consumeRememberMeChoice,
+  hasBrowserSessionMarker,
+} from "@/lib/remember-me";
 
 const env = getEnv();
 const ADMIN_EMAIL = env.ADMIN_EMAIL.toLowerCase();
@@ -68,7 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     verificationTokensTable: verificationTokens,
   }),
   trustHost: true,
-  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 7 },
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_REMEMBERED_S },
   pages: {
     signIn: "/sign-in",
   },
@@ -151,7 +157,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.sub = user.id;
         token.role = (user as { role?: UserRole }).role ?? "CUSTOMER";
         token.sessionVersion = (user as { sessionVersion?: number }).sessionVersion ?? 0;
+        const rememberMe = await consumeRememberMeChoice();
+        token.rememberMe = rememberMe;
+        await applyRememberMeSession(rememberMe);
       }
+      // Auth.js always writes a persistent session cookie. An unchecked box uses a
+      // browser-session marker instead: closing the browser drops it, and the next
+      // request ends the login. Returning null is what clears that cookie.
+      if (token.rememberMe === false && !user && !(await hasBrowserSessionMarker())) return null;
       if (!token.sub) return token;
       const state = await getUserAuthState(token.sub);
       if (!state || state.deletedAt) return {};
@@ -209,5 +222,11 @@ declare module "next-auth" {
   interface User {
     role?: UserRole;
     sessionVersion?: number;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    rememberMe?: boolean;
   }
 }

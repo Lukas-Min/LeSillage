@@ -13,6 +13,7 @@ export default function SignInLoading() {
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
           <Skeleton className="h-4 w-1/3 mx-auto" />
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />

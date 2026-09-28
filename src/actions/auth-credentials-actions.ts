@@ -18,6 +18,7 @@ import {
 } from "@/lib/email-templates";
 import { getEnv } from "@/lib/env";
 import { auditLogSubject } from "@/lib/audit";
+import { applyRememberMeSession, parseRememberMe, persistRememberMeChoice } from "@/lib/remember-me";
 
 const emailSchema = z.string().trim().email().transform((value) => value.toLowerCase());
 
@@ -139,6 +140,8 @@ export async function verifyEmailCode(formData: FormData) {
         .set({ emailVerified: new Date() })
         .where(eq(users.email, email));
       if (password) {
+        await persistRememberMeChoice(true);
+        await applyRememberMeSession(true);
         await signIn("credentials", { email, password, redirectTo: returnTo.startsWith("/") ? returnTo : "/account" });
       }
       redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
@@ -233,10 +236,13 @@ export async function signInWithPassword(formData: FormData) {
       await limitAuth("password-signin");
       const email = emailSchema.parse(emailRaw);
       const password = String(formData.get("password") ?? "");
+      const rememberMe = parseRememberMe(formData.get("rememberMe"));
       const user = (await db().select().from(users).where(eq(users.email, email)))[0];
       if (user && !user.emailVerified) {
         redirect(`/verify-email?email=${encodeURIComponent(email)}&returnTo=${encodeURIComponent(returnTo)}`);
       }
+      await persistRememberMeChoice(rememberMe);
+      await applyRememberMeSession(rememberMe);
       await signIn("credentials", { email, password, redirectTo: returnTo });
     },
   );

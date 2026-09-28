@@ -5,8 +5,15 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { signIn } from "@/auth";
+import { applyRememberMeSession, persistRememberMeChoice } from "@/lib/remember-me";
 
-export async function startOAuthSignIn(provider: "google" | "facebook", returnTo: string) {
+export async function startOAuthSignIn(
+  provider: "google" | "facebook",
+  returnTo: string,
+  rememberMe = true,
+) {
+  await persistRememberMeChoice(rememberMe);
+  await applyRememberMeSession(rememberMe);
   await signIn(provider, { redirectTo: returnTo || "/" });
 }
 

@@ -3,8 +3,13 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Remember me on sign-in (`src/lib/remember-me.ts`, `src/components/store/sign-in-form.tsx`). Checked stays signed in for 30 days across closing the browser or restarting the computer, and keeps the email on this browser so the sign-in field is filled after an explicit sign-out. Unchecked ends the login when the browser closes and does not keep the email. Sign-out always ends the session. The same choice applies to Google sign-in
 ### Changed
+- Product page catalog reads (`loadProductPageCatalog` in `src/lib/catalog.ts`) are cached for 60 seconds under the `catalog` tag. Wishlist state stays per request
 - Auto-reject window is 24 hours again (`AUTO_REJECT_AFTER_MS` in `src/domain/auto-reject.ts`). An `AWAITING_PAYMENT` order is cancelled after 1 day without a receipt
+### Security
+- Cron bearer checks use a shared SHA-256 + `timingSafeEqual` compare in `src/lib/cron-auth.ts` so a wrong `Authorization` header cannot leak `CRON_SECRET` by timing
 ### Fixed
 - A pending cancellation must be approved or denied before any other status change. Approve re-checks the request under the same row lock as Deny, so the two cannot both win. Pickup emails say "Pickup" for free delivery instead of "Promo applied", and `formatDate`/`formatDateTime` use Asia/Manila
 ### Changed
