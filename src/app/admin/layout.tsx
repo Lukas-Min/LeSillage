@@ -8,12 +8,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session?.user) redirect("/sign-in?returnTo=/admin");
   if (role !== "ADMIN") redirect("/account");
   return (
-    <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 pb-24 md:flex-row md:gap-8 md:py-10">
-      <AccountSidebar isAdmin />
-      <main className="flex min-w-0 flex-1 flex-col">
-        <SectionBreadcrumbs isAdmin />
-        {children}
-      </main>
+    <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 pb-24 md:py-10 2xl:mx-auto 2xl:max-w-[80vw]">
+      <SectionBreadcrumbs isAdmin />
+      <div className="flex min-w-0 flex-1 flex-col gap-6 md:flex-row md:gap-8">
+        <AccountSidebar isAdmin />
+        <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+      </div>
       <AccountBottomNav />
     </div>
   );

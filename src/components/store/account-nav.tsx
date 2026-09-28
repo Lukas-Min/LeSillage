@@ -201,10 +201,10 @@ export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname() ?? "";
   const rootHref = isAdmin ? "/admin" : "/account";
   const rootLabel = isAdmin ? "Admin" : "Account";
-  const items: BreadcrumbItem[] = [{ label: "Home", href: "/" }, { label: rootLabel, href: rootHref }];
+  const items: BreadcrumbItem[] = [{ label: rootLabel, href: rootHref }];
 
   if (pathname === rootHref) {
-    return <Breadcrumbs items={items} />;
+    return <Breadcrumbs items={items} className="2xl:mx-0 2xl:max-w-none" />;
   }
 
   const candidates = isAdmin ? [adminHomeItem, ...adminNavItems] : accountNavItems;
@@ -218,7 +218,7 @@ export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
     if (trailing) items.push({ label: decodeURIComponent(trailing) });
   }
 
-  return <Breadcrumbs items={items} />;
+  return <Breadcrumbs items={items} className="2xl:mx-0 2xl:max-w-none" />;
 }
 
 // Bottom tab bar only fits a few items — these are the ones worth one tap;

@@ -9,6 +9,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ### Changed
 - Archive account is a button on the profile page. It is no longer in the account sidebar
 ### Fixed
+- Account and admin breadcrumbs sit on the same left edge as the header. The extra Home link that jumped back to the shop is gone, and each crumb shares one line
+### Fixed
 - Account quick actions share one top edge in each row. The section spacing no longer pushes the right-hand cards down
 ### Added
 - Commit messages stay plain. No `Co-authored-by` line and no agent name, in `.cursor/rules/no-agent-commit-trailers.mdc`

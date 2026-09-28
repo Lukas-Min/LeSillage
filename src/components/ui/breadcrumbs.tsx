@@ -29,7 +29,10 @@ export function Breadcrumbs({ items, className }: { items: BreadcrumbItem[]; cla
                   {item.label}
                 </Link>
               ) : (
-                <span aria-current={isLast ? "page" : undefined} className={isLast ? "text-foreground" : undefined}>
+                <span
+                  aria-current={isLast ? "page" : undefined}
+                  className={cn("inline-flex min-h-11 items-center", isLast ? "text-foreground" : undefined)}
+                >
                   {item.label}
                 </span>
               )}
