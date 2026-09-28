@@ -19,7 +19,7 @@
     "delivery-followups": "tsx scripts/send-delivery-followups.ts",
     "delivery-auto-complete": "tsx scripts/auto-complete-delivered-orders.ts",
     "flag-tester-pool": "tsx scripts/flag-tester-pool.ts",
-    "catalog:upsert": "tsx scripts/upsert-listing.ts"
+    "catalog:import": "tsx scripts/import-catalog.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

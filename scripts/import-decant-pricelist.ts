@@ -1,218 +1,33 @@
 /**
- * One-time load of the "Le Sillage Pricelist - Decants" (as of 2026-08-09)
- * into `product`/`sku`. SKU retail prices are taken verbatim from that
- * pricelist — they are NOT derived from the product-level pricing formula
- * (product.costPrice/pricingMode/pricingInput), because the real pricing
- * isn't linear: 5ml sells at exactly the raw per-ml rate off the reference
- * spreadsheet's Discounted Full Bottle Price, but 3ml/10ml/30ml carry
- * roughly a 30% markup over that same rate. The single reference price ÷
- * size × size formula (src/domain/pricing.ts computeSkuRetailPrice) cannot
- * reproduce that in one shot, so exact prices are written directly per SKU
- * (pricingMode "DIRECT") instead of relying on the cascade.
+ * Upserts decant products and their 3/5/10/30ml SKUs from
+ * `scripts/data/decant-pricelist.json`. SKU retail prices are the file's own
+ * numbers, not the product markup formula. A re-run does not reset remainingMl.
  *
- * Product-level costPrice/pricingMode/pricingInput/sourceMl below use each
- * fragrance's Base Full Bottle Price (not Discounted — Base is the correct
- * cost-basis reference per the user) purely for cost/margin bookkeeping;
- * they do not feed the SKU prices above.
- *
- * IMPORTANT — known limitation: `resyncSkuPricesForProduct` (called by the
- * admin product edit form on every save, see src/actions/admin-catalog-actions.ts)
- * overwrites every SKU's retailPrice from the product's reference formula.
- * Since Base Full Bottle Price = Discounted price × 13/10 on every row, and
- * 3ml/10ml/30ml already carry ~30% over the Discounted-based raw rate, a
- * Base-based linear resync happens to land within rounding of the correct
- * 3ml/10ml/30ml prices — but 5ml (which carries zero markup) would jump
- * ~30% too high. If this product is ever re-saved via the admin UI, check
- * the 5ml price and correct it by hand afterward (re-running this script
- * also fixes it).
- *
- * Usage: npx tsx scripts/import-decant-pricelist.ts
- * Safe to re-run: upserts by deterministic sku code, does not duplicate.
+ *   npx tsx scripts/import-decant-pricelist.ts
  */
+import { readFileSync } from "fs";
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { and, eq, ilike } from "drizzle-orm";
-import { db } from "../src/db/client";
-import { products, skus } from "../src/db/schema";
-import type { Concentration, FragranceCategory } from "../src/db/schema";
-
-type Gender = "men" | "women" | "unisex";
+import { db } from "@/db/client";
+import { products, skus, type Concentration, type FragranceCategory } from "@/db/schema";
 
 interface DecantEntry {
   brand: string;
   name: string;
   concentration: Concentration;
   category: FragranceCategory;
-  gender: Gender;
-  /** ml, 3/5/10/30 prices in PHP (not centavos — converted below) */
+  gender: "men" | "women" | "unisex";
   prices: { 3: number; 5: number; 10: number; 30: number };
-  /** From the reference formula spreadsheet — full bottle size and its
-   *  Base Full Bottle Price in PHP (not the Discounted price — per the
-   *  user, Base is the correct cost-basis reference), used only for
-   *  cost-basis bookkeeping (see file header). Does not affect the actual
-   *  SKU retail prices, which come from `prices` above regardless. Omit
-   *  when the spreadsheet has no row for this fragrance. */
   fullBottle?: { sizeMl: number; basePricePhp: number };
-  /** Set when fullBottle is a guess, not from the spreadsheet. */
-  costBasisEstimated?: boolean;
 }
 
-// Prices are the pricelist's own numbers (source of truth for what customers
-// pay). fullBottle figures are cross-checked against the formula spreadsheet
-// and matched on every row except Nishane (see NISHANE NOTE below).
-const CATALOG: DecantEntry[] = [
-  // --- Designer ---
-  {
-    brand: "Carolina Herrera", name: "Good Girl", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
-    prices: { 3: 270, 5: 345, 10: 895, 30: 2680 },
-    fullBottle: { sizeMl: 80, basePricePhp: 7150 },
-  },
-  {
-    brand: "Coach", name: "Dreams", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
-    prices: { 3: 135, 5: 170, 10: 450, 30: 1345 },
-    fullBottle: { sizeMl: 90, basePricePhp: 4030 },
-  },
-  {
-    brand: "Coach", name: "Dreams Sunset", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
-    prices: { 3: 135, 5: 170, 10: 450, 30: 1345 },
-    fullBottle: { sizeMl: 90, basePricePhp: 4030 },
-  },
-  {
-    // Confirmed by the user: "Guilty Pour Homme Parfum" (2022), fragrance id 71378.
-    brand: "Gucci", name: "Guilty Pour Homme Parfum", concentration: "PARFUM", category: "DESIGNER", gender: "men",
-    prices: { 3: 120, 5: 155, 10: 405, 30: 1215 },
-    fullBottle: { sizeMl: 90, basePricePhp: 3640 },
-  },
-  {
-    brand: "Moschino", name: "Toy Boy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
-    prices: { 3: 115, 5: 145, 10: 375, 30: 1130 },
-    fullBottle: { sizeMl: 100, basePricePhp: 3770 },
-  },
-  {
-    brand: "Nautica", name: "Voyage Sport", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "men",
-    prices: { 3: 55, 5: 70, 10: 180, 30: 545 },
-    fullBottle: { sizeMl: 100, basePricePhp: 1820 },
-  },
-  {
-    brand: "Valentino", name: "Uomo Born In Roma Coral Fantasy", concentration: "EAU_DE_TOILETTE", category: "DESIGNER", gender: "men",
-    prices: { 3: 200, 5: 255, 10: 665, 30: 1990 },
-    fullBottle: { sizeMl: 100, basePricePhp: 6630 },
-  },
-  {
-    brand: "Versace", name: "Eros Energy", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
-    prices: { 3: 135, 5: 175, 10: 455, 30: 1365 },
-    fullBottle: { sizeMl: 100, basePricePhp: 4550 },
-  },
-  {
-    // Pricelist said "YSL Y EDP" — Fragrantica's exact title for the EDP
-    // concentration is "Y Eau de Parfum" (2018), distinct from "Y" (1964,
-    // discontinued vintage) and "Y Eau de Toilette"/"Y Le Parfum" flankers.
-    brand: "Yves Saint Laurent", name: "Y Eau de Parfum", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "men",
-    prices: { 3: 215, 5: 275, 10: 715, 30: 2145 },
-    fullBottle: { sizeMl: 100, basePricePhp: 7150 },
-  },
-  {
-    // Not in the formula spreadsheet at all — sizeMl/base price below are a
-    // guess (100ml; base back-computed from the 5ml price, which every other
-    // row's spreadsheet formula shows sells at exactly the raw per-ml rate off
-    // the *discounted* price, and discounted = base * 10/13 on every row).
-    brand: "Yves Saint Laurent", name: "Libre Flowers & Flames", concentration: "EAU_DE_PARFUM", category: "DESIGNER", gender: "women",
-    prices: { 3: 240, 5: 400, 10: 800, 30: 2420 },
-    fullBottle: { sizeMl: 100, basePricePhp: 10400 },
-    costBasisEstimated: true,
-  },
-  // --- Niche ---
-  {
-    // NISHANE NOTE: the pricelist message says 5ml = ₱550; the formula
-    // spreadsheet's own Price List column says ₱425 for the same row (only
-    // disagreement found across the whole catalog). Went with the pricelist's
-    // ₱550 as the more current source (dated 2026-08-09, explicitly "ready to
-    // ship" pricing) — flagged to the user, needs their confirmation.
-    brand: "Nishane", name: "Wulóng Chá", concentration: "EXTRAIT_DE_PARFUM", category: "NICHE", gender: "unisex",
-    prices: { 3: 330, 5: 550, 10: 1105, 30: 3315 },
-    fullBottle: { sizeMl: 100, basePricePhp: 11050 },
-  },
-  // --- Middle Eastern & others ---
-  {
-    brand: "Afnan", name: "Mystique Bouquet", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "women",
-    prices: { 3: 120, 5: 155, 10: 400, 30: 1195 },
-    fullBottle: { sizeMl: 80, basePricePhp: 3185 },
-  },
-  {
-    brand: "Armaf", name: "Club De Nuit Maleka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "women",
-    prices: { 3: 95, 5: 125, 10: 320, 30: 965 },
-    fullBottle: { sizeMl: 105, basePricePhp: 3380 },
-  },
-  {
-    // Full name per the linked mirror row (Fragrantica): "Club de Nuit Intense
-    // Man Parfum" (2022) — distinct from the base "Club de Nuit Intense Man"
-    // (2015, EDT). Pricelist's concentration column said "Parfum", matching this one.
-    brand: "Armaf", name: "Club De Nuit Intense Man Parfum", concentration: "PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 95, 5: 125, 10: 320, 30: 960 },
-    fullBottle: { sizeMl: 150, basePricePhp: 4810 },
-  },
-  {
-    brand: "French Avenue", name: "Vulcan Feu", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
-    prices: { 3: 100, 5: 130, 10: 340, 30: 1015 },
-    fullBottle: { sizeMl: 100, basePricePhp: 3380 },
-  },
-  {
-    brand: "French Avenue", name: "Liquid Brun", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 80, 5: 100, 10: 260, 30: 780 },
-    fullBottle: { sizeMl: 100, basePricePhp: 2600 },
-  },
-  {
-    // Fragrantica spells it "Ra'ed Luxe" (with apostrophe) — pricelist had "Raed Luxe".
-    brand: "Lattafa", name: "Ra'ed Luxe", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
-    prices: { 3: 60, 5: 75, 10: 195, 30: 585 },
-    fullBottle: { sizeMl: 100, basePricePhp: 1950 },
-  },
-  {
-    brand: "Mykonos", name: "Milk Drops", concentration: "EXTRAIT_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "unisex",
-    prices: { 3: 125, 5: 160, 10: 415, 30: 1250 },
-    fullBottle: { sizeMl: 50, basePricePhp: 2080 },
-  },
-  {
-    brand: "Rasasi", name: "Hawas Kobra", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
-    fullBottle: { sizeMl: 100, basePricePhp: 2730 },
-  },
-  {
-    brand: "Rasasi", name: "Hawas Ice", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
-    fullBottle: { sizeMl: 100, basePricePhp: 2730 },
-  },
-  {
-    brand: "Rasasi", name: "Hawas Malibu", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 80, 5: 105, 10: 275, 30: 820 },
-    fullBottle: { sizeMl: 100, basePricePhp: 2730 },
-  },
-  {
-    brand: "Rayhaan", name: "Pacific Aura", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 60, 5: 75, 10: 195, 30: 585 },
-    fullBottle: { sizeMl: 100, basePricePhp: 1950 },
-  },
-  {
-    brand: "Rayhaan", name: "Aquatica", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "men",
-    prices: { 3: 65, 5: 85, 10: 220, 30: 665 },
-    fullBottle: { sizeMl: 100, basePricePhp: 2210 },
-  },
-  {
-    brand: "Rayhaan", name: "Ayka", concentration: "EAU_DE_PARFUM", category: "MIDDLE_EASTERN", gender: "women",
-    prices: { 3: 55, 5: 75, 10: 190, 30: 565 },
-    fullBottle: { sizeMl: 100, basePricePhp: 1885 },
-    // Linked, but this mirror row has no note pyramid yet (Fragrantica page has
-    // no dedicated pyramid) — name/brand/image only, no notes/accords.
-  },
-];
+function loadCatalog(): DecantEntry[] {
+  return JSON.parse(readFileSync(new URL("./data/decant-pricelist.json", import.meta.url), "utf8")) as DecantEntry[];
+}
 
 function slug(value: string) {
-  // No length cap: `sku` is unbounded text, and a truncated slug risks two
-  // different names colliding on the same SKU code (bit us once already —
-  // "Club De Nuit Intense Man" vs "...Man Parfum" both truncated to the same
-  // 24 chars, so the renamed product's SKU upsert silently landed on the old
-  // product's rows instead of creating its own).
   return value
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
@@ -223,21 +38,14 @@ function php(pesos: number) {
   return Math.round(pesos * 100);
 }
 
-async function main() {
+export async function runDecantPricelist(): Promise<void> {
+  const catalog = loadCatalog();
   const client = db();
-  let productCount = 0;
   let skuCount = 0;
 
-  for (const entry of CATALOG) {
-    const brandSlug = slug(entry.brand);
-    const nameSlug = slug(entry.name);
-
+  for (const entry of catalog) {
     const sourceMl = entry.fullBottle?.sizeMl ?? null;
     const referenceCostPrice = entry.fullBottle ? php(entry.fullBottle.basePricePhp) : 0;
-
-    // Description/notes/accords/perfumers/releaseYear are not sourced here —
-    // fill those in per product via the admin edit page or the Fragrantica
-    // manual-paste import after this script creates the base product/SKUs.
     const productValues = {
       type: "DECANT" as const,
       fragranceCategory: entry.category,
@@ -251,12 +59,6 @@ async function main() {
       pricingInput: referenceCostPrice,
     };
 
-    // No unique constraint on (brand, name) — look up by hand so a re-run
-    // updates the existing row instead of inserting a duplicate product.
-    // CAVEAT: this matches on the *current* name, so renaming an entry here
-    // (e.g. correcting it to Fragrantica's full title) makes this look like a
-    // new product — the old-named row is orphaned, not updated. Delete it by
-    // hand after re-running (`delete from product where brand=... and name=...`).
     const [existing] = await client
       .select({ id: products.id })
       .from(products)
@@ -265,33 +67,19 @@ async function main() {
 
     let productId: string;
     if (existing) {
-      // remainingMl is deliberately NOT in this update — it tracks live stock
-      // as orders deplete it, and a re-run of this script (e.g. to pick up a
-      // price change) must not reset that back to full sourceMl.
       productId = existing.id;
       await client.update(products).set({ ...productValues, updatedAt: new Date() }).where(eq(products.id, productId));
     } else {
-      // 100% of bottle size on first insert only — nothing to preserve yet.
       const [inserted] = await client
         .insert(products)
         .values({ ...productValues, remainingMl: sourceMl })
         .returning({ id: products.id });
       productId = inserted.id;
     }
-    productCount += 1;
 
     for (const sizeMl of [3, 5, 10, 30] as const) {
-      const retailPricePhp = entry.prices[sizeMl];
-      const retailPrice = php(retailPricePhp);
-      const costForSize = entry.fullBottle
-        ? Math.round((referenceCostPrice / entry.fullBottle.sizeMl) * sizeMl)
-        : 0;
-      // Matched on (productId, sizeMl) — the real identity for a decant
-      // SKU — not the mutable slug-derived `sku` string. Renaming a product
-      // (already happened for Armaf, Lattafa, YSL, Gucci — each needing a
-      // manual DB patch) would make the new slug miss the old row entirely,
-      // silently orphaning it instead of updating it. Mirrors the product
-      // upsert above, which already avoids this exact trap.
+      const retailPrice = php(entry.prices[sizeMl]);
+      const costForSize = entry.fullBottle ? Math.round((referenceCostPrice / entry.fullBottle.sizeMl) * sizeMl) : 0;
       const [existingSku] = await client
         .select({ id: skus.id })
         .from(skus)
@@ -305,7 +93,7 @@ async function main() {
       } else {
         await client.insert(skus).values({
           productId,
-          sku: `${brandSlug}-${nameSlug}-${sizeMl}ML`,
+          sku: `${slug(entry.brand)}-${slug(entry.name)}-${sizeMl}ML`,
           label: `${sizeMl}ml Decant`,
           sizeMl,
           condition: "BNIB",
@@ -316,20 +104,24 @@ async function main() {
           pricingInput: retailPrice,
           retailPrice,
           fulfillment: "ON_HAND",
-          stock: 0, // decant stock is tracked via the product's shared remainingMl pool
+          stock: 0,
           isTester: false,
         });
       }
       skuCount += 1;
     }
-    console.log(`✓ ${entry.brand} — ${entry.name} (${entry.category}, ${entry.gender})`);
+    console.log(`✓ decant ${entry.brand} — ${entry.name}`);
   }
 
-  console.log(`\nInserted ${productCount} products, ${skuCount} SKUs.`);
-  process.exit(0);
+  console.log(`Decant pricelist: ${catalog.length} products, ${skuCount} SKUs.`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+const invokedDirectly = process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/import-decant-pricelist.ts");
+if (invokedDirectly) {
+  runDecantPricelist()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+}

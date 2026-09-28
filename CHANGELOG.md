@@ -3,8 +3,12 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Decant and full-bottle pricelist imports read `scripts/data/*.json` instead of catalogs hardcoded in TypeScript. `scripts/import-catalog.ts` runs full bottles in parallel with the decant price pass, then fills decant notes
 ### Added
-- Removed the one-off product scripts (`scripts/add-*.ts`, `scripts/reprice-velixir-full-bottles.ts`, `scripts/update-libre-decant-stock.ts`). Those listings are already in the database. New listings go through `scripts/upsert-listing.ts`. New decant SKUs from that script default to Retail provenance. The pricelist importers stay, because they record exact per-size prices rather than a markup formula
+- Removed finished one-time data scripts: `fix-welcome10-promo.ts`, `rename-gender-values.ts`, `import-qr-codes.ts`, `release-cancelled-promo-redemptions.ts`, `normalize-decant-markup.ts`, and `migrate-decant-provenance-to-in-house.ts`. The last two would rewrite live decant prices or mark Retail decants as In-house if run again. `scripts/set-admin-password.ts` stays
+- Removed the one-off helpers `scripts/upsert-listing.ts` and `scripts/manual-fragrances.example.json`. New listings are added in admin, and the example belonged to the deleted Fragella importer
+- Removed the one-off product scripts (`scripts/add-*.ts`, `scripts/reprice-velixir-full-bottles.ts`, `scripts/update-libre-decant-stock.ts`). Those listings are already in the database. New listings are added in admin
 ### Fixed
 - Pickup address stays hidden on cancelled or rejected orders (`canRevealPickupAddress` in `src/domain/pickup.ts`). Those statuses are reachable straight from awaiting payment with no receipt, and the order page was treating any status other than awaiting payment as permission to show the home address
 - Catalog cache options in `src/lib/catalog.ts` are a plain `{ tags, revalidate }` object. `as const` made `tags` a readonly tuple, which failed `next build`'s type check and blocked the production deploy
