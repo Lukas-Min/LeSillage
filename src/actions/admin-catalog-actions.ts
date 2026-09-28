@@ -30,6 +30,7 @@ import { auditLogSubject } from "@/lib/audit";
 import { uploadPublicImage } from "@/lib/blob";
 import { clampRemainingMl } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
+import { parsePhDateBoundary, todayPhDateString } from "@/domain/ph-date";
 
 function skuSlugPart(value: string): string {
   return value
@@ -475,6 +476,21 @@ export async function upsertDiscount(formData: FormData) {
   const rawAmount = z.coerce.number().min(0).parse(formData.get("amount"));
   const amount = type === "FIXED" ? toCentavos(rawAmount) : Math.round(rawAmount);
 
+  // An empty start date defaults to today rather than staying null — a
+  // discount with no start should still read as "starts now", not "always
+  // started" (isDiscountActive in src/domain/discount.ts treats null as no
+  // restriction either way, but the admin form always shows a concrete date,
+  // so the stored value should match what it displays). An empty end date
+  // does stay null: that's genuinely "no expiration".
+  const rawStartsAt = String(formData.get("startsAt") ?? "").trim();
+  const startsAt = parsePhDateBoundary(rawStartsAt, "start") ?? parsePhDateBoundary(todayPhDateString(), "start")!;
+  const rawEndsAt = String(formData.get("endsAt") ?? "").trim();
+  const parsedEndsAt = parsePhDateBoundary(rawEndsAt, "end");
+  // An end date on or before the start date can't ever be active — treat it
+  // as "no expiration" instead of silently storing a discount that never
+  // applies.
+  const endsAt = parsedEndsAt && parsedEndsAt > startsAt ? parsedEndsAt : null;
+
   const [existing] = await db()
     .select({ id: productDiscounts.id })
     .from(productDiscounts)
@@ -483,9 +499,12 @@ export async function upsertDiscount(formData: FormData) {
   if (amount <= 0) {
     if (existing) await db().delete(productDiscounts).where(eq(productDiscounts.id, existing.id));
   } else if (existing) {
-    await db().update(productDiscounts).set({ type, amount, isActive: true }).where(eq(productDiscounts.id, existing.id));
+    await db()
+      .update(productDiscounts)
+      .set({ type, amount, startsAt, endsAt, isActive: true })
+      .where(eq(productDiscounts.id, existing.id));
   } else {
-    await db().insert(productDiscounts).values({ productId, type, amount, isActive: true });
+    await db().insert(productDiscounts).values({ productId, type, amount, startsAt, endsAt, isActive: true });
   }
 
   await auditLogSubject({ actor: admin.id, action: "DISCOUNT_UPDATE", targetType: "product", targetId: productId });

@@ -17,6 +17,7 @@ import { readAnnouncement } from "@/lib/announcement";
 import { updatePromoSettings } from "@/actions/admin-actions";
 import { createPromoCode, deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-code-actions";
 import { fromCentavos, formatPHP } from "@/domain/money";
+import { formatPhDateBoundary } from "@/domain/ph-date";
 import { cn, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -32,20 +33,10 @@ function amountLabel(type: "PERCENTAGE" | "FIXED", amount: number) {
   return type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
 }
 
-/** `<input type="date">` wants yyyy-mm-dd; `parseDate` in the action anchors
- *  that to Philippine midnight (see its own comment for why), storing `endsAt`
- *  as the *start of the following* PHT day so the code stays valid through
- *  the whole day the admin picked. This undoes both — the PHT shift, and for
- *  `endsAt` the extra day — so a code edited here round-trips to the exact
- *  day it shows instead of drifting a day off in one direction or the other. */
-const PH_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-function toDateInput(value: Date | null, boundary: "start" | "end") {
-  if (!value) return "";
-  const ms = value.getTime() + PH_UTC_OFFSET_MS - (boundary === "end" ? ONE_DAY_MS : 0);
-  return new Date(ms).toISOString().slice(0, 10);
-}
+// formatPhDateBoundary (src/domain/ph-date.ts) undoes the action's PHT
+// anchoring (and, for endsAt, the extra day) so a code edited here
+// round-trips to the exact day it shows instead of drifting off by one.
+const toDateInput = formatPhDateBoundary;
 
 export default async function PromoAdminPage({
   searchParams,

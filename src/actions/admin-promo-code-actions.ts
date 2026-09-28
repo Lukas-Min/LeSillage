@@ -9,6 +9,7 @@ import { promoCodes } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { toCentavos } from "@/domain/money";
+import { parsePhDateBoundary } from "@/domain/ph-date";
 
 const createSchema = z.object({
   code: z
@@ -78,25 +79,11 @@ function describeIssues(error: z.ZodError): string {
   return field ? `Check "${field}": ${issue.message}` : issue.message;
 }
 
-// Philippine Time is UTC+8 year-round (no DST). A bare <input type="date">
-// value ("2024-12-25") has no timezone of its own — new Date(value) parses
-// it as UTC midnight, i.e. 8:00 AM PHT, so an admin's end date expired 8
-// hours early (and a start date activated 8 hours late) relative to what
-// "Dec 25" actually means in Manila. Anchoring explicitly to +08:00 fixes
-// that; see toDateInput in src/app/admin/promo/page.tsx for the matching
-// reverse conversion that keeps the form round-tripping the day it shows.
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-function parseDate(value: string | undefined, boundary: "start" | "end"): Date | null {
-  if (!value) return null;
-  const startOfDayPht = new Date(`${value}T00:00:00+08:00`);
-  if (Number.isNaN(startOfDayPht.getTime())) return null;
-  // "Ends on Dec 25" means valid through the end of that day in Manila —
-  // stored as the exclusive upper bound, the start of the following day, so
-  // the endsAt < now check in domain/promo-code.ts only trips once Dec 25
-  // (PHT) has fully elapsed rather than 8 hours into it.
-  return boundary === "end" ? new Date(startOfDayPht.getTime() + ONE_DAY_MS) : startOfDayPht;
-}
+// See src/domain/ph-date.ts for why a bare <input type="date"> value needs
+// explicit +08:00 (Philippine Time) anchoring; parsePhDateBoundary is that
+// shared helper, also used by product discounts and by the reverse
+// conversion (formatPhDateBoundary) in src/app/admin/promo/page.tsx.
+const parseDate = parsePhDateBoundary;
 
 export async function createPromoCode(
   _prev: PromoCodeFormState,

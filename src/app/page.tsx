@@ -139,7 +139,11 @@ async function FlagshipPanel() {
 function pickFlagship(cards: CatalogCardModel[]): CatalogCardModel | null {
   const inStock = cards.filter((c) => !c.soldOut);
   if (inStock.length === 0) return null;
-  return inStock[Math.floor(Math.random() * inStock.length)];
+  // Discounted full bottles get priority — random among those; only fall
+  // back to the whole in-stock pool when none currently have a discount.
+  const discounted = inStock.filter((c) => c.hasDiscount);
+  const pool = discounted.length > 0 ? discounted : inStock;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function FlagshipSkeleton() {

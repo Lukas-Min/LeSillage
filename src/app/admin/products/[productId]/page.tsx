@@ -24,6 +24,8 @@ import {
 import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
 import { labelForType } from "@/domain/product-type";
+import { formatPhDateBoundary, todayPhDateString, toDisplayDate } from "@/domain/ph-date";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -496,11 +498,16 @@ export default async function AdminProductDetailPage({
           <CardTitle className="text-base">Discounts</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {discountList.map((d) => (
-            <p key={d.id}>
-              {d.type === "PERCENTAGE" ? `${d.amount}%` : `₱${(d.amount / 100).toFixed(2)} off`} — {d.isActive ? "active" : "inactive"}
-            </p>
-          ))}
+          {discountList.map((d) => {
+            const displayEndsAt = toDisplayDate(d.endsAt, "end");
+            return (
+              <p key={d.id}>
+                {d.type === "PERCENTAGE" ? `${d.amount}%` : `₱${(d.amount / 100).toFixed(2)} off`} — {d.isActive ? "active" : "inactive"}
+                {d.startsAt ? ` — from ${formatDate(d.startsAt)}` : ""}
+                {displayEndsAt ? ` to ${formatDate(displayEndsAt)}` : d.startsAt ? " (no expiration)" : ""}
+              </p>
+            );
+          })}
           <form action={upsertDiscount} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="productId" value={product.id} />
             <Field label="Type" htmlFor="new-discount-type" className="min-w-[9rem] flex-1">
@@ -529,6 +536,24 @@ export default async function AdminProductDetailPage({
                       : activeDiscount.amount
                     : undefined
                 }
+              />
+            </Field>
+            <Field label="Start date" htmlFor="new-discount-starts-at" className="min-w-[9rem] flex-1">
+              <Input
+                id="new-discount-starts-at"
+                name="startsAt"
+                type="date"
+                defaultValue={
+                  activeDiscount?.startsAt ? formatPhDateBoundary(activeDiscount.startsAt, "start") : todayPhDateString()
+                }
+              />
+            </Field>
+            <Field label="End date (empty = no expiration)" htmlFor="new-discount-ends-at" className="min-w-[9rem] flex-1">
+              <Input
+                id="new-discount-ends-at"
+                name="endsAt"
+                type="date"
+                defaultValue={activeDiscount?.endsAt ? formatPhDateBoundary(activeDiscount.endsAt, "end") : ""}
               />
             </Field>
             <SubmitButton>{activeDiscount ? "Update discount" : "Add discount"}</SubmitButton>
