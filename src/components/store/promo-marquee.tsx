@@ -34,7 +34,7 @@ const CODE_PATTERN = /^[A-Z][A-Z0-9]{3,}$/;
 function renderMessage(message: string) {
   return message.split(/(\b[A-Z][A-Z0-9]{3,}\b)/g).map((part, index) =>
     CODE_PATTERN.test(part) && /\d/.test(part) ? (
-      <strong key={index} className="mx-0.5 font-semibold tracking-[0.08em]">
+      <strong key={index} className="mx-0.5 font-price-display">
         {part}
       </strong>
     ) : (

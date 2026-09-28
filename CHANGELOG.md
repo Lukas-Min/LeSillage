@@ -4,6 +4,13 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- A promo code limited to one customer is created from Add on that customer's admin page and listed with the public codes they can use. The customer gets an email; the code in it opens `/promo-code` and can be copied
+- Editing a promo code opens `/admin/promo/[promoCodeId]` instead of a dialog
+### Changed
+- Promo codes use the same type as prices (`font-price-display`)
+- WELCOME10 is capped at the first 100 redemptions and can be deleted after it has been used. The announcement bar says so
+- Announcement defaults read “for the first 100 redemptions”, “₱2,000 worth of decants”, and “A complimentary tester with ₱2,000 worth of decants”
+- Promo codes sit under Orders in the account sidebar, in the same list layout as orders. Everyone sees public codes such as WELCOME10, plus any code made only for them, grouped as Valid and Used. The conditions sit under the code, and tapping the card copies it. Valid and Used sit on the left on wider screens, and on a very narrow screen they share the full width and stay centered. An empty Valid or Used group is centered like an empty shop shelf
 - Remember me on sign-in (`src/lib/remember-me.ts`, `src/components/store/sign-in-form.tsx`). Checked stays signed in for 30 days across closing the browser or restarting the computer, and keeps the email on this browser so the sign-in field is filled after an explicit sign-out. Unchecked ends the login when the browser closes and does not keep the email. Sign-out always ends the session. The same choice applies to Google sign-in
 ### Added
 - Ask about this order on the customer order page asks Facebook or Instagram first. Facebook opens Messenger and Instagram opens the same chat, both with the order number, status, pickup or delivery, total, view-order link, and two blank lines

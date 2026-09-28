@@ -1,15 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
-import { promoCodes } from "@/db/schema";
+import { notificationLog, promoCodes, users } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
-import { toCentavos } from "@/domain/money";
+import { formatPHP, toCentavos } from "@/domain/money";
 import { parsePhDateBoundary } from "@/domain/ph-date";
+import { sendEmail } from "@/lib/email";
+import { promoAssignedEmail } from "@/lib/email-templates";
 
 const createSchema = z.object({
   code: z
@@ -29,6 +33,7 @@ const createSchema = z.object({
   maxRedemptions: z.coerce.number().int().min(1).optional(),
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
+  restrictedUserId: z.string().min(1).optional(),
 });
 
 // Editing reuses every create field; only the target row id is extra.
@@ -47,6 +52,7 @@ function readCodeFields(formData: FormData) {
     maxRedemptions: formData.get("maxRedemptions") || undefined,
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
+    restrictedUserId: formData.get("restrictedUserId") || undefined,
   };
 }
 
@@ -117,6 +123,22 @@ export async function createPromoCode(
   const existing = (await db().select({ id: promoCodes.id }).from(promoCodes).where(eq(promoCodes.code, parsed.code)))[0];
   if (existing) return failed(`Code "${parsed.code}" already exists`);
 
+  let restrictedUserId: string | null = null;
+  let customerEmail: string | null = null;
+  let customerName: string | null = null;
+  if (parsed.restrictedUserId) {
+    const customer = (
+      await db()
+        .select({ id: users.id, email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.id, parsed.restrictedUserId))
+    )[0];
+    if (!customer?.email) return failed("That customer no longer exists");
+    restrictedUserId = customer.id;
+    customerEmail = customer.email;
+    customerName = customer.name;
+  }
+
   const created = await db()
     .insert(promoCodes)
     .values({
@@ -131,6 +153,7 @@ export async function createPromoCode(
       startsAt,
       endsAt,
       isActive: true,
+      restrictedUserId,
     })
     .returning({ id: promoCodes.id });
 
@@ -139,10 +162,45 @@ export async function createPromoCode(
     action: "PROMO_CODE_CREATE",
     targetType: "promo_code",
     targetId: created[0].id,
-    metadata: { code: parsed.code, type: parsed.type, amount, scope: parsed.scope },
+    metadata: { code: parsed.code, type: parsed.type, amount, scope: parsed.scope, restrictedUserId },
   });
   revalidatePath("/admin/promo");
+  if (restrictedUserId && customerEmail) {
+    revalidatePath(`/admin/customers/${restrictedUserId}`);
+    const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
+    const email = customerEmail;
+    const name = customerName;
+    const code = parsed.code;
+    after(async () => {
+      const message = promoAssignedEmail({ name, code, offer });
+      const result = await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html });
+      await db().insert(notificationLog).values({
+        recipient: email,
+        template: "promo_code_assigned",
+        status: result.ok ? "SENT" : "FAILED",
+        error: result.ok ? null : result.error ?? "unknown",
+      });
+    });
+    redirect(`/admin/customers/${restrictedUserId}`);
+  }
   return saved();
+}
+
+function describeCustomerOffer(
+  type: "PERCENTAGE" | "FIXED",
+  amount: number,
+  scope: "ORDER" | "DELIVERY",
+  maxRedemptions: number | null,
+): string {
+  const off = type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
+  const target = scope === "ORDER" ? "your order" : "delivery";
+  const times =
+    maxRedemptions === 1
+      ? " You can use it once."
+      : maxRedemptions
+        ? ` You can use it ${maxRedemptions} times.`
+        : "";
+  return `${off} off ${target}.${times}`;
 }
 
 export async function updatePromoCode(
@@ -279,7 +337,7 @@ export async function updatePromoCode(
     },
   });
   revalidatePath("/admin/promo");
-  return saved();
+  redirect("/admin/promo?tab=codes");
 }
 
 export async function togglePromoCodeActive(formData: FormData) {
@@ -306,7 +364,7 @@ export async function deletePromoCode(formData: FormData) {
     await db().select({ code: promoCodes.code, redemptionCount: promoCodes.redemptionCount }).from(promoCodes).where(eq(promoCodes.id, id))
   )[0];
   if (!row) throw new Error("Promo code not found");
-  if (row.redemptionCount > 0) {
+  if (row.redemptionCount > 0 && row.code !== "WELCOME10") {
     throw new Error("This code has been redeemed and can't be deleted — deactivate it instead");
   }
   await db().delete(promoCodes).where(eq(promoCodes.id, id));

@@ -140,7 +140,7 @@ export function PromoCodeForm({
           required
           minLength={3}
           maxLength={40}
-          className="uppercase"
+          className="font-price-display uppercase"
         />
       </Field>
       <Field label="Discounts" htmlFor={id("scope")}>
@@ -215,7 +215,7 @@ export function PromoCodeForm({
       <p className="text-xs text-muted-foreground sm:col-span-2">
         Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always pesos.
         {mode === "edit"
-          ? ` Active/inactive stays with the button above, and the ${values.redemptionCount} redemption(s) already recorded are never changed here.`
+          ? ` Active or inactive stays on the promo codes list, and the ${values.redemptionCount} redemption(s) already recorded are never changed here.`
           : ""}
       </p>
       {state.error ? (

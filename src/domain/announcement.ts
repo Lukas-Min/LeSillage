@@ -15,16 +15,15 @@ export interface AnnouncementConfig {
 /**
  * What the bar says until an admin saves something of their own. Kept in sync
  * with the live promo rules: WELCOME10 is ORDER-scope 10% (fragrances only,
- * delivery still charged) with no minimum spend and one use per customer, and
- * ₱2,000 of discounted decants unlocks free delivery plus a tester.
+ * delivery still charged) with no minimum spend, one use per customer, and a
+ * cap of 100 redemptions. ₱2,000 worth of decants unlocks free delivery plus a tester.
  */
 export const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
   enabled: true,
   messages: [
-    "Enjoy 10% off your fragrances with code WELCOME10 · no minimum spend, one use per customer",
-    "Free delivery on ₱2,000 of decants",
-    "Plus a complimentary tester, matched to your order",
-    "Decants, partials and full bottles — find your signature scent",
+    "Enjoy 10% off your first order with code WELCOME10 · no minimum spend, for the first 100 redemptions",
+    "Free delivery on ₱2,000 worth of decants",
+    "A complimentary tester with ₱2,000 worth of decants",
   ],
 };
 

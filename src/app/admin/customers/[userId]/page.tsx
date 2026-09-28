@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
-import { users, orders } from "@/db/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { users, orders, promoCodes } from "@/db/schema";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
@@ -19,11 +20,14 @@ export default async function AdminCustomerDetailPage({
   const { userId } = await params;
   const user = (await db().select().from(users).where(eq(users.id, userId)))[0];
   if (!user) return notFound();
-  const rows = await db()
-    .select()
-    .from(orders)
-    .where(eq(orders.userId, userId))
-    .orderBy(desc(orders.createdAt));
+  const [rows, codes] = await Promise.all([
+    db().select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt)),
+    db()
+      .select()
+      .from(promoCodes)
+      .where(or(isNull(promoCodes.restrictedUserId), eq(promoCodes.restrictedUserId, userId)))
+      .orderBy(desc(promoCodes.createdAt)),
+  ]);
 
   const completedOrders = rows.filter((o) => o.status === "COMPLETED");
   const totalSpentCentavos = completedOrders.reduce((sum, o) => sum + o.totalCentavos, 0);
@@ -80,6 +84,35 @@ export default async function AdminCustomerDetailPage({
           {user.deletedAt ? (
             <p className="text-destructive sm:col-span-2">Account deleted {formatDate(user.deletedAt)}</p>
           ) : null}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Promo codes</CardTitle>
+          <CardAction>
+            <Button asChild className="h-11">
+              <Link href={`/admin/customers/${user.id}/promo-codes/new`}>Add</Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {codes.length === 0 ? (
+            <p className="text-muted-foreground">No codes for this customer.</p>
+          ) : (
+            <ul className="space-y-2">
+              {codes.map((code) => (
+                <li key={code.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2">
+                  <span className="font-price-display">{code.code}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {code.type === "PERCENTAGE" ? `${code.amount}%` : formatPHP(code.amount)} off {code.scope === "ORDER" ? "the order" : "delivery"}
+                    {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
+                    {code.restrictedUserId ? " · only this customer" : " · everyone"}
+                    {code.isActive ? "" : " · inactive"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
       <Card>

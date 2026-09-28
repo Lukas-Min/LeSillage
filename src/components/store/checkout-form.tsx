@@ -364,7 +364,7 @@ export function CheckoutForm({
           <Label htmlFor="promoCode">Promo code</Label>
           {appliedPromoCode ? (
             <div className="flex items-center justify-between gap-2 rounded-md border border-gold/40 bg-gold/5 px-3 py-2 text-sm">
-              <span className="font-mono font-medium">{appliedPromoCode.code}</span>
+              <span className="font-price-display">{appliedPromoCode.code}</span>
               <button type="button" onClick={removePromoCode} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
                 Remove
               </button>
@@ -376,7 +376,7 @@ export function CheckoutForm({
                 value={promoCodeInput}
                 onChange={(event) => setPromoCodeInput(event.target.value.toUpperCase())}
                 placeholder="e.g. WELCOME10"
-                className="uppercase"
+                className="font-price-display uppercase"
                 aria-invalid={Boolean(promoCodeError)}
                 aria-describedby={promoCodeError ? "promoCode-error" : undefined}
               />

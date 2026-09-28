@@ -1,0 +1,14 @@
+---
+description: Center empty list messages the same way an empty shop shelf does.
+globs: **/*.{ts,tsx}
+alwaysApply: true
+---
+
+# Empty states
+
+An empty list, filter, or shelf message is centered in the leftover space, the same way `/shop` says "Nothing on this shelf yet." for an empty Partials (or any other) shelf.
+
+- Use a dashed box that fills the remaining height: `flex flex-1 flex-col items-center justify-center rounded-md border border-dashed border-border/80 p-10 text-center`.
+- The message itself is `text-sm text-muted-foreground`.
+- The parent of that box is a column with `flex flex-1 flex-col`, so the message sits in the middle of the page under the heading and tabs, not stuck to the top-left.
+- Do not leave an empty message as a left-aligned line.

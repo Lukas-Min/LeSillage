@@ -366,6 +366,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
         deliveryFeeCentavos: preCodeTotals.deliveryFeeCentavos,
         isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
         hasPriorRedemption: priorRedemption.length > 0,
+        userId: input.user.userId,
       });
       if (!eligibility.ok) throw new CheckoutError(eligibility.error, "promoCode");
       lockedCode = codeRow;

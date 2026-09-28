@@ -25,6 +25,7 @@ function makeCode(overrides: Partial<PromoCode> = {}): PromoCode {
     startsAt: null,
     endsAt: null,
     isActive: true,
+    restrictedUserId: null,
     createdAt: new Date(),
     ...overrides,
   };
@@ -36,9 +37,16 @@ const baseEligibility: PromoCodeEligibilityInput = {
   deliveryFeeCentavos: 12000,
   isFirstOrder: false,
   hasPriorRedemption: false,
+  userId: "user1",
 };
 
 describe("checkPromoCodeEligibility", () => {
+  it("rejects a code locked to another customer", () => {
+    const code = makeCode({ restrictedUserId: "user1" });
+    expect(checkPromoCodeEligibility(code, baseEligibility).ok).toBe(true);
+    expect(checkPromoCodeEligibility(code, { ...baseEligibility, userId: "someone-else" }).ok).toBe(false);
+  });
+
   it("rejects an inactive code", () => {
     expect(checkPromoCodeEligibility(makeCode({ isActive: false }), baseEligibility).ok).toBe(false);
   });
@@ -208,6 +216,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       deliveryFeeCentavos: 12000,
       isFirstOrder: false,
       hasPriorRedemption: false,
+      userId: "user1",
     });
     expect(eligibility.ok).toBe(false);
   });
@@ -243,6 +252,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       deliveryFeeCentavos: 12000,
       isFirstOrder: false,
       hasPriorRedemption: false,
+      userId: "user1",
     });
     expect(eligibility.ok).toBe(false);
     if (!eligibility.ok) expect(eligibility.error).toMatch(/already discounted/);

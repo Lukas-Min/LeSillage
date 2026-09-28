@@ -98,6 +98,7 @@ export async function previewPromoCode(
     deliveryFeeCentavos: totals.deliveryFeeCentavos,
     isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
     hasPriorRedemption: priorRedemption.length > 0,
+    userId: session.user.id,
   });
   if (!eligibility.ok) return { ok: false, error: eligibility.error };
 

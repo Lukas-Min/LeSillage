@@ -547,11 +547,18 @@ async function main() {
       "startsAt" timestamp,
       "endsAt" timestamp,
       "isActive" boolean NOT NULL DEFAULT true,
+      "restrictedUserId" text REFERENCES "user"("id") ON DELETE CASCADE,
       "createdAt" timestamp NOT NULL DEFAULT now()
     )
   `);
   await db.execute(
     `CREATE UNIQUE INDEX IF NOT EXISTS "promo_code_code_idx" ON "promo_code" ("code")`,
+  );
+  await db.execute(
+    `ALTER TABLE "promo_code" ADD COLUMN IF NOT EXISTS "restrictedUserId" text REFERENCES "user"("id") ON DELETE CASCADE`,
+  );
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "promo_code_user_idx" ON "promo_code" ("restrictedUserId")`,
   );
 
   await db.execute(`

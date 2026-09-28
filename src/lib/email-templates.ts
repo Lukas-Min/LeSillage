@@ -427,6 +427,39 @@ It expires in 10 minutes. If you did not request this, you can ignore this email
   return { subject: args.subject, text, html };
 }
 
+export function promoAssignedEmail(args: {
+  name: string | null;
+  code: string;
+  offer: string;
+}): { subject: string; text: string; html: string } {
+  const who = args.name?.trim() || "there";
+  const subject = "A promo code for you";
+  const copyUrl = `${siteUrl()}/promo-code?code=${encodeURIComponent(args.code)}`;
+  const text = `Hi ${who},
+
+${args.offer}
+
+Your code: ${args.code}
+
+Tap the code to copy it, then use it at checkout:
+${copyUrl}
+
+If you were not expecting this, you can ignore this email.
+
+— Le Sillage Manila`;
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: "For you",
+    title: "A promo code",
+    greeting: `Hi ${who},`,
+    intro: [args.offer, "Tap the code to copy it, then use it at checkout."],
+    facts: [{ label: "Code", value: args.code }],
+    cta: { label: args.code, url: copyUrl },
+    footnote: "If you were not expecting this, you can ignore this email.",
+  });
+  return { subject, text, html };
+}
+
 export function confirmSignupEmail(code: string): { subject: string; text: string; html: string } {
   return brandedCodeEmail({
     subject: "Confirm your Le Sillage Manila account",

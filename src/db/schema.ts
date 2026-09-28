@@ -517,10 +517,13 @@ export const promoCodes = pgTable(
     startsAt: timestamp("startsAt", { mode: "date" }),
     endsAt: timestamp("endsAt", { mode: "date" }),
     isActive: boolean("isActive").notNull().default(true),
+    // Null means any customer can use it. Set means only that account can.
+    restrictedUserId: text("restrictedUserId").references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => ({
     codeIdx: uniqueIndex("promo_code_code_idx").on(t.code),
+    userIdx: index("promo_code_user_idx").on(t.restrictedUserId),
   }),
 );
 

@@ -25,6 +25,8 @@ export interface PromoCodeEligibilityInput {
   isFirstOrder: boolean;
   /** This specific customer has already redeemed this exact code before. */
   hasPriorRedemption: boolean;
+  /** The customer trying to use the code. Required so a code locked to one account cannot be used by anyone else. */
+  userId: string;
 }
 
 export type PromoCodeEligibility = { ok: true } | { ok: false; error: string };
@@ -37,6 +39,7 @@ const ELIGIBILITY_FIELDS = [
   "maxRedemptions",
   "redemptionCount",
   "onePerCustomer",
+  "restrictedUserId",
   "minSpendCentavos",
   "scope",
   "type",
@@ -60,6 +63,9 @@ export function checkPromoCodeEligibility(
   if (code.endsAt && code.endsAt < now) return { ok: false, error: "This code has expired" };
   if (code.firstOrderOnly && !input.isFirstOrder) {
     return { ok: false, error: "This code is only for a customer's first order" };
+  }
+  if (code.restrictedUserId && code.restrictedUserId !== input.userId) {
+    return { ok: false, error: "This code can't be used on this account" };
   }
   if (code.onePerCustomer && input.hasPriorRedemption) {
     return { ok: false, error: "You've already used this code" };

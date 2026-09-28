@@ -23,6 +23,6 @@ export async function readAnnouncement(): Promise<AnnouncementConfig> {
  * them static and is dropped by `updateTag(ANNOUNCEMENT_TAG)` the moment an
  * admin saves.
  */
-export const loadAnnouncement = unstable_cache(readAnnouncement, ["announcement"], {
+export const loadAnnouncement = unstable_cache(readAnnouncement, ["announcement-welcome10-cap"], {
   tags: [ANNOUNCEMENT_TAG],
 });

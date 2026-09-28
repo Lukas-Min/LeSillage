@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { promoSettings, promoCodes } from "@/db/schema";
+import { promoSettings, promoCodes, users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,14 +10,12 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { PromoCodeForm } from "@/components/admin/promo-code-form";
-import { PromoCodeEditDialog } from "@/components/admin/promo-code-edit-dialog";
 import { PromoCodesSkeleton, PromoSettingsSkeleton } from "@/components/admin/promo-skeletons";
 import { AnnouncementForm } from "@/components/admin/announcement-form";
 import { readAnnouncement } from "@/lib/announcement";
 import { updatePromoSettings } from "@/actions/admin-actions";
 import { createPromoCode, deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-code-actions";
 import { fromCentavos, formatPHP } from "@/domain/money";
-import { formatPhDateBoundary } from "@/domain/ph-date";
 import { cn, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +30,6 @@ const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 function amountLabel(type: "PERCENTAGE" | "FIXED", amount: number) {
   return type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
 }
-
-// formatPhDateBoundary (src/domain/ph-date.ts) undoes the action's PHT
-// anchoring (and, for endsAt, the extra day) so a code edited here
-// round-trips to the exact day it shows instead of drifting off by one.
-const toDateInput = formatPhDateBoundary;
 
 export default async function PromoAdminPage({
   searchParams,
@@ -202,6 +195,14 @@ async function SettingsTab() {
 
 async function CodesTab() {
   const codes = await db().select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
+  const restrictedIds = [...new Set(codes.flatMap((code) => (code.restrictedUserId ? [code.restrictedUserId] : [])))];
+  const customers = restrictedIds.length
+    ? await db()
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(inArray(users.id, restrictedIds))
+    : [];
+  const customerById = new Map(customers.map((customer) => [customer.id, customer.name ?? customer.email]));
   return (
         <>
           <Card>
@@ -216,40 +217,28 @@ async function CodesTab() {
                   <div key={code.id} className="space-y-3 rounded-lg border p-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="space-y-1">
-                        <p className="font-mono font-medium">{code.code}</p>
+                        <p className="font-price-display">{code.code}</p>
                         <p className="text-xs text-muted-foreground">
                           {amountLabel(code.type, code.amount)} off {code.scope === "ORDER" ? "order" : "delivery"}
                           {code.minSpendCentavos ? ` · min spend ${formatPHP(code.minSpendCentavos)}` : ""}
                           {code.firstOrderOnly ? " · first order only" : ""}
                           {code.onePerCustomer ? " · once per customer" : ""}
                           {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
+                          {code.restrictedUserId ? ` · only ${customerById.get(code.restrictedUserId) ?? "one customer"}` : ""}
                           {code.startsAt ? ` · starts ${formatDate(code.startsAt)}` : ""}
                           {code.endsAt ? ` · ends ${formatDate(code.endsAt)}` : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <PromoCodeEditDialog
-                          values={{
-                            id: code.id,
-                            code: code.code,
-                            scope: code.scope,
-                            type: code.type,
-                            amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
-                            minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
-                            maxRedemptions: code.maxRedemptions ?? "",
-                            startsAt: toDateInput(code.startsAt, "start"),
-                            endsAt: toDateInput(code.endsAt, "end"),
-                            firstOrderOnly: code.firstOrderOnly,
-                            onePerCustomer: code.onePerCustomer,
-                            redemptionCount: code.redemptionCount,
-                          }}
-                        />
+                        <Button asChild variant="outline" className="h-11">
+                          <Link href={`/admin/promo/${code.id}`}>Edit</Link>
+                        </Button>
                         <form action={togglePromoCodeActive}>
                           <input type="hidden" name="id" value={code.id} />
                           <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
                           <SubmitButton variant="outline">{code.isActive ? "Deactivate" : "Activate"}</SubmitButton>
                         </form>
-                        {code.redemptionCount === 0 ? (
+                        {code.redemptionCount === 0 || code.code === "WELCOME10" ? (
                           <>
                             <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
                               <input type="hidden" name="id" value={code.id} />
@@ -257,7 +246,11 @@ async function CodesTab() {
                             <ConfirmSubmitButton
                               formId={`delete-promo-${code.id}`}
                               title="Delete this promo code?"
-                              description={`"${code.code}" has never been redeemed, so this is safe to remove permanently.`}
+                              description={
+                                code.redemptionCount > 0
+                                  ? `"${code.code}" has been used ${code.redemptionCount} times. Deleting it removes the code. Past orders stay as they are.`
+                                  : `"${code.code}" has never been redeemed, so this is safe to remove permanently.`
+                              }
                               triggerLabel="Delete"
                             />
                           </>

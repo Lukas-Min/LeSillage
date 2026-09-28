@@ -38,6 +38,7 @@ export const accountNavItems: AccountNavItem[] = [
   { href: "/account", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/account/profile", label: "Profile", icon: User },
   { href: "/account/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/account/promo-codes", label: "Promo codes", icon: Tag },
   { href: "/account/addresses", label: "Addresses", icon: MapPin },
   { href: "/account/wishlist", label: "Wishlist", icon: Heart },
   { href: "/account/notifications", label: "Notifications", icon: Bell },
@@ -221,7 +222,7 @@ export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
 // Bottom tab bar only fits a few items — these are the ones worth one tap;
 // everything else on the desktop sidebar (including sign out, which had no
 // mobile equivalent at all before) lives behind the "More" sheet instead.
-const customerPrimaryItems = [accountNavItems[0], accountNavItems[2], accountNavItems[4]]; // Home, Orders, Wishlist
+const customerPrimaryItems = [accountNavItems[0], accountNavItems[2], accountNavItems[5]]; // Home, Orders, Wishlist
 const adminPrimaryItems = [adminHomeItem, adminNavItems[0], adminNavItems[1]]; // Dashboard, Orders, Products
 
 export function AccountBottomNav() {

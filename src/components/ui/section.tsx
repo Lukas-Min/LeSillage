@@ -66,7 +66,7 @@ export function PageHeader({
   );
 }
 
-type SectionProps = React.ComponentProps<"div"> & {
+type SectionProps = Omit<React.ComponentProps<"div">, "title"> & {
   eyebrow?: React.ReactNode;
   title?: React.ReactNode;
   description?: React.ReactNode;

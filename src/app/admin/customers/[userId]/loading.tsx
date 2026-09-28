@@ -46,6 +46,15 @@ export default function AdminCustomerLoading() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Promo codes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Orders</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
