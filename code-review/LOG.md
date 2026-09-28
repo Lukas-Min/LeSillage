@@ -20,6 +20,22 @@ Entry template:
 
 ---
 
+## 2026-09-28 — Dead code, duplicates, and static scripts
+
+- **Commit range reviewed:** working tree on `1fea95d` (account, orders, auth, brand icons) plus `scripts/`. Not a line-by-line re-read of every domain file already covered at `748a30e`.
+- **Effort:** medium
+- **Scope / areas covered:** `scripts/`, unused `react-icons`, the customer order and contact pages, and the uncommitted account/auth UI that shipped in the same commit
+- **Findings:**
+  - [low] Catalog importers and the seed pool hardcoded paths, sizes, markup, and a copied slug helper — `scripts/import-decant-pricelist.ts`, `scripts/import-full-bottle-pricelist.ts`, `scripts/backfill-decant-metadata.ts`, `scripts/seed.ts` — status: fixed. Shared helpers in `scripts/catalog-script.ts`. A `.json` argument replaces the default file. Decant sizes come from the price keys. Seed names live in `scripts/data/seed-fragrances.json`
+  - [low] `react-icons` had no remaining imports after brand-colored marks moved to `src/components/store/brand-icons.tsx` — status: fixed. Package removed
+  - [low] Contact loading's row filter did not type-check once social icons were no longer Lucide components — `src/app/(store)/contact/loading.tsx` — status: fixed
+  - [low] Waived delivery on the order page used a raw `12000` — `src/app/account/orders/[orderId]/page.tsx` — status: fixed. Uses `DEFAULT_DELIVERY_FEE_CENTAVOS`
+  - [info] `scripts/import-catalog.ts` still writes the live database with no dry-run — status: confirmed. Left as-is; the old importers did the same
+  - [info] Cron scripts stay thin wrappers. Their dynamic imports exist so env loads before `getEnv()` — status: no-issue
+- **Checkpoint advanced to:** `5c0e045acec28228c1be4f287d0005e90c23d327`
+
+---
+
 ## 2026-09-28 — Review of the script cleanup commit
 
 - **Commit range reviewed:** `d2621e7...53a62e0`
