@@ -6,6 +6,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ### Added
 - A promo code limited to one customer is created from Add on that customer's admin page and listed with the public codes they can use. The customer gets an email; the code in it opens `/promo-code` and can be copied
 - Editing a promo code opens `/admin/promo/[promoCodeId]` instead of a dialog
+### Fixed
+- Account quick actions share one top edge in each row. The section spacing no longer pushes the right-hand cards down
 ### Changed
 - Promo codes use the same type as prices (`font-price-display`)
 - WELCOME10 is capped at the first 100 redemptions and can be deleted after it has been used. The announcement bar says so

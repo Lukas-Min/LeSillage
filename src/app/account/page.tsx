@@ -91,7 +91,7 @@ export default async function AccountPage() {
       <SectionCard
         eyebrow="Quick actions"
         title="Where would you like to go?"
-        contentClassName="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        contentClassName="grid grid-cols-1 gap-3 space-y-0 sm:grid-cols-2"
       >
         {QUICK_LINKS.map((link) => {
           const Icon = link.icon;
@@ -99,7 +99,7 @@ export default async function AccountPage() {
             <Link
               key={link.href}
               href={link.href}
-              className="group flex items-start gap-3 rounded-xl border border-border/60 bg-background p-4 transition-colors hover:border-gold/40 hover:bg-gold/5"
+              className="group flex h-full items-center gap-3 rounded-xl border border-border/60 bg-background p-4 transition-colors hover:border-gold/40 hover:bg-gold/5"
             >
               <div className="rounded-lg bg-gold/10 p-2 text-gold">
                 <Icon className="h-4 w-4" />
