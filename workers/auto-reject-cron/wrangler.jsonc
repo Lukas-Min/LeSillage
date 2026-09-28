@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "le-sillage-auto-reject-cron",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-28",
+  // No fetch handler and no HTTP route — this Worker only responds to its
+  // cron trigger, so it doesn't need a workers.dev subdomain either.
+  "workers_dev": false,
+  // Vercel Hobby caps cron jobs at once per day (see vercel.json — every job
+  // there is staggered to a different hour for exactly that reason). This
+  // Worker exists only to hit auto-reject-orders more often than that; it
+  // has no other job. Cloudflare's free Cron Triggers have no such cap.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

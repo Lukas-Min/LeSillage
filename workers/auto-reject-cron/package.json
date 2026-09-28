@@ -1,0 +1,14 @@
+{
+  "name": "le-sillage-auto-reject-cron",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
+    "wrangler": "^4.142.0"
+  }
+}
