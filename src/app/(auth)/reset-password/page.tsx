@@ -28,8 +28,8 @@ export default async function ResetPasswordPage({
               <Input id="password" name="password" type="password" required minLength={6} className="h-11" />
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Saving…">
-              Update password
+            <SubmitButton className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold" pendingLabel="Saving…">
+              Save
             </SubmitButton>
           </form>
         </CardContent>

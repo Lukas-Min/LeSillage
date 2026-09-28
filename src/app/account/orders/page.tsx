@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { ArrowRight } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders } from "@/db/schema";
@@ -29,11 +28,6 @@ export default async function OrdersPage() {
         eyebrow="Orders"
         title="Your orders"
         subtitle="Receipts, payments, confirmations, and shipping — all in one place."
-        actions={
-          <Button asChild variant="outline">
-            <Link href="/shop">Find another fragrance</Link>
-          </Button>
-        }
       />
 
       {rows.length === 0 ? (
@@ -50,8 +44,14 @@ export default async function OrdersPage() {
       ) : (
         <ul className="space-y-3">
           {rows.map((order) => (
-            <li key={order.id}>
+            <li key={order.id} className="group relative">
+              <Link
+                href={`/account/orders/${order.id}`}
+                aria-label={`Order ${order.orderNumber}`}
+                className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
               <SectionCard
+                className="transition-colors group-hover:border-gold/50"
                 eyebrow={order.orderNumber}
                 title={formatPHP(order.totalCentavos)}
                 description={`${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"} · placed ${formatDate(order.createdAt)}`}
@@ -61,18 +61,11 @@ export default async function OrdersPage() {
                 <p className="text-xs text-muted-foreground">
                   Order ID <span className="font-mono">{order.id.slice(0, 8)}</span>
                 </p>
-                {/* Grouped so that when the row wraps at phone widths both
-                    buttons move to the second line together, right-aligned,
-                    instead of Re-order stranding next to the order ID. */}
-                <div className="ml-auto flex items-center gap-2">
-                  {isTerminal(order.status) ? <ReorderButton orderId={order.id} /> : null}
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href={`/account/orders/${order.id}`}>
-                      View details
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
+                {isTerminal(order.status) ? (
+                  <div className="relative z-20 ml-auto">
+                    <ReorderButton orderId={order.id} />
+                  </div>
+                ) : null}
               </SectionCard>
             </li>
           ))}

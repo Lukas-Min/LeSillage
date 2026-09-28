@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Clock, Loader2, X } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -40,7 +40,7 @@ export function CancelOrderButton({
 
   if (cancellationRequestedAt) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+      <span className="inline-flex h-11 items-center gap-2 rounded-lg bg-secondary px-4 text-sm font-medium text-secondary-foreground">
         <Clock className="h-3.5 w-3.5 shrink-0" />
         Cancellation requested — we&apos;ll email you once it&apos;s reviewed
       </span>
@@ -80,8 +80,7 @@ export function CancelOrderButton({
       }}
     >
       <AlertDialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <X className="h-4 w-4" />
+        <Button type="button" variant="gold" className="h-11 w-full rounded-md px-4 sm:w-auto">
           {isRequest ? "Request cancellation" : "Cancel order"}
         </Button>
       </AlertDialogTrigger>

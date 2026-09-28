@@ -1,6 +1,7 @@
+import type { ComponentType } from "react";
 import Link from "next/link";
-import { HelpCircle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
-import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
+import { HelpCircle, Mail, MapPin, Phone } from "lucide-react";
+import { FacebookIcon, InstagramIcon, MessengerIcon } from "@/components/store/brand-icons";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
@@ -11,18 +12,23 @@ import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/
 // same real content as page.tsx rather than a skeleton for any of it.
 export default function ContactLoading() {
   const env = getEnv();
-  const rows = [
+  type ContactRow = {
+    icon: ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+    href: string | null;
+  };
+  const rows: (ContactRow | null)[] = [
     { icon: Mail, label: "Order questions", value: env.GMAIL_USER, href: `mailto:${env.GMAIL_USER}` },
     env.NEXT_PUBLIC_PHONE
       ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE, href: `tel:${env.NEXT_PUBLIC_PHONE}` }
       : null,
-    { icon: FaFacebookF, label: "Facebook", value: "Le Sillage Manila", href: FACEBOOK_URL },
-    { icon: FaFacebookMessenger, label: "Messenger", value: "Message us", href: MESSENGER_URL },
-    { icon: FaInstagram, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
+    { icon: FacebookIcon, label: "Facebook", value: "Le Sillage Manila", href: FACEBOOK_URL },
+    { icon: MessengerIcon, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: InstagramIcon, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
     { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },
-  ].filter(
-    (row): row is { icon: typeof Mail; label: string; value: string; href: string | null } => row !== null,
-  );
+  ];
+  const visibleRows = rows.filter((row): row is ContactRow => row !== null);
 
   return (
     <main className="w-full space-y-6 px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
@@ -34,7 +40,7 @@ export default function ContactLoading() {
           title="Usually within one business day"
           contentClassName="space-y-0 divide-y divide-border/60"
         >
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <div key={row.label} className="flex items-center gap-3 py-4">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold">
                 <row.icon className="h-4 w-4" />

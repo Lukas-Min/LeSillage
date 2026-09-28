@@ -71,8 +71,8 @@ export function ReceiptUploader({
             <img src={preview} alt="Receipt preview" className="max-h-48 rounded border" />
           ) : null}
           <Input name="note" placeholder="Optional note for the team" maxLength={280} />
-          <Button type="submit" disabled={isPending} aria-busy={isPending}>
-            {isPending ? "Uploading…" : "Upload receipt"}
+          <Button type="submit" disabled={isPending} aria-busy={isPending} className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
+            {isPending ? "Saving…" : "Save"}
           </Button>
         </form>
       </CardContent>

@@ -37,6 +37,11 @@ const orderTones: Record<string, StatusPillProps["tone"]> = {
   CANCELLED: "neutral",
 };
 
+export function formatOrderStatus(status: string): string {
+  const label = status.replace(/_/g, " ").toLowerCase();
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function OrderStatusPill({
   status,
   className,
@@ -46,7 +51,7 @@ export function OrderStatusPill({
 }) {
   return (
     <StatusPill tone={orderTones[status] ?? "neutral"} className={className}>
-      {status.replace(/_/g, " ").toLowerCase()}
+      {formatOrderStatus(status)}
     </StatusPill>
   );
 }

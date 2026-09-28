@@ -11,7 +11,6 @@ export default function VerifyEmailLoading() {
           <div className="space-y-3">
             <Skeleton className="h-11 w-full" />
             <Skeleton className="h-11 w-full" />
-            <Skeleton className="h-11 w-full" />
           </div>
           <Skeleton className="h-11 w-full" />
         </CardContent>

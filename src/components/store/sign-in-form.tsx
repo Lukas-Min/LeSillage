@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signInWithPassword } from "@/actions/auth-credentials-actions";
 import { OAuthButton } from "@/components/store/oauth-button";
+import type { OAuthProvider } from "@/lib/oauth-providers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -17,10 +18,12 @@ export function SignInForm({
   returnTo,
   errorMessage,
   defaultEmail,
+  providers,
 }: {
   returnTo: string;
   errorMessage?: string | null;
   defaultEmail?: string;
+  providers: OAuthProvider[];
 }) {
   const [rememberMe, setRememberMe] = useState(true);
   const [email, setEmail] = useState(defaultEmail ?? "");
@@ -97,7 +100,7 @@ export function SignInForm({
             </Link>
           </div>
           {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-          <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Signing in…">
+          <SubmitButton className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold" pendingLabel="Signing in…">
             Sign in
           </SubmitButton>
         </form>
@@ -107,14 +110,20 @@ export function SignInForm({
             Create an account
           </Link>
         </p>
-        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="h-px flex-1 bg-border" aria-hidden="true" />
-          Or
-          <span className="h-px flex-1 bg-border" aria-hidden="true" />
-        </div>
-        <div className="space-y-2">
-          <OAuthButton provider="google" returnTo={returnTo} rememberMe={rememberMe} />
-        </div>
+        {providers.length > 0 ? (
+          <>
+            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <span className="h-px flex-1 bg-border" aria-hidden="true" />
+              Or
+              <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            </div>
+            <div className="space-y-2">
+              {providers.map((provider) => (
+                <OAuthButton key={provider} provider={provider} returnTo={returnTo} rememberMe={rememberMe} />
+              ))}
+            </div>
+          </>
+        ) : null}
         <p className="text-xs text-muted-foreground">
           By continuing you agree to our{" "}
           <Link href="/policies" className="underline-offset-4 hover:underline">

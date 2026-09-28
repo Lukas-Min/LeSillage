@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { signIn } from "@/auth";
-import { applyRememberMeSession, persistRememberMeChoice } from "@/lib/remember-me";
+import { applyRememberMeSession, hasBrowserSessionMarker, persistRememberMeChoice } from "@/lib/remember-me";
 
 export async function startOAuthSignIn(
   provider: "google" | "facebook",
@@ -15,6 +15,13 @@ export async function startOAuthSignIn(
   await persistRememberMeChoice(rememberMe);
   await applyRememberMeSession(rememberMe);
   await signIn(provider, { redirectTo: returnTo || "/" });
+}
+
+export async function linkOAuthAccount(provider: "google" | "facebook") {
+  const remember = !(await hasBrowserSessionMarker());
+  await persistRememberMeChoice(remember);
+  await applyRememberMeSession(remember);
+  await signIn(provider, { redirectTo: "/account/profile" });
 }
 
 export async function requestGuestCartMerge(returnTo: string) {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone } from "lucide-react";
-import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
+import { FacebookIcon, InstagramIcon, MessengerIcon } from "@/components/store/brand-icons";
 import { getEnv } from "@/lib/env";
 import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
 import { FooterAccountLink } from "@/components/store/footer-account-link";
@@ -64,19 +64,19 @@ export function StoreFooter() {
               <a href={`mailto:${email}`} className="hover:text-foreground">{email}</a>
             </li>
             <li className="flex items-center gap-2">
-              <FaInstagram className="h-3.5 w-3.5 text-gold" />
+              <InstagramIcon className="h-3.5 w-3.5" />
               <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 @{INSTAGRAM_HANDLE}
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <FaFacebookF className="h-3.5 w-3.5 text-gold" />
+              <FacebookIcon className="h-3.5 w-3.5" />
               <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Facebook
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <FaFacebookMessenger className="h-3.5 w-3.5 text-gold" />
+              <MessengerIcon className="h-3.5 w-3.5" />
               <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Messenger
               </a>

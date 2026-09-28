@@ -29,11 +29,11 @@ export default function ProfileLoading() {
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <SectionCard eyebrow="Security" title="Change password" description="Confirm with the 6-digit code we email you.">
+        <SectionCard eyebrow="Security" title="Change password" description="Enter your current password and a new one. We email a code to confirm.">
           <Skeleton className="h-24 w-full" />
         </SectionCard>
 
-        <SectionCard eyebrow="Security" title="Change email" description="A code is sent to the new address. All devices will be signed out.">
+        <SectionCard eyebrow="Security" title="Change email" description="Enter the new address. We email a code there to confirm.">
           <Skeleton className="h-24 w-full" />
         </SectionCard>
       </div>

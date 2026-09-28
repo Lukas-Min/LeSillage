@@ -47,9 +47,9 @@ export function NotificationsForm({ initial }: { initial: boolean }) {
           Preferences saved.
         </p>
       ) : null}
-      <Button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy} className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {busy ? "Saving…" : "Save preferences"}
+        {busy ? "Saving…" : "Save"}
       </Button>
     </form>
   );

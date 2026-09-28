@@ -159,6 +159,7 @@ export const emailVerificationPurpose = [
   "SIGNUP",
   "RESET_PASSWORD",
   "CHANGE_EMAIL",
+  "CHANGE_PASSWORD",
   "REAUTH",
 ] as const;
 export type EmailVerificationPurpose = (typeof emailVerificationPurpose)[number];

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { registerWithEmail } from "@/actions/auth-credentials-actions";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { OAuthButton } from "@/components/store/oauth-button";
+import { configuredOAuthProviders } from "@/lib/oauth-providers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ export default async function SignUpPage({
   const params = await searchParams;
   const returnTo = params.returnTo && params.returnTo.startsWith("/") ? params.returnTo : "/account";
   const errorMessage = authErrorMessage(params.error, params.msg);
+  const providers = configuredOAuthProviders();
   return (
     <main className="mx-auto w-full max-w-md px-4 py-12">
       <h1 className="font-serif-display text-2xl">Create an account</h1>
@@ -39,7 +41,7 @@ export default async function SignUpPage({
               <p className="text-xs text-muted-foreground">At least 6 characters, with a letter and a number.</p>
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Creating…">
+            <SubmitButton className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold" pendingLabel="Creating…">
               Create account
             </SubmitButton>
           </form>
@@ -49,14 +51,20 @@ export default async function SignUpPage({
               Sign in
             </Link>
           </p>
-          <div className="mt-4 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            <span className="h-px flex-1 bg-border" aria-hidden="true" />
-            Or
-            <span className="h-px flex-1 bg-border" aria-hidden="true" />
-          </div>
-          <div className="mt-4 space-y-2">
-            <OAuthButton provider="google" returnTo={returnTo} />
-          </div>
+          {providers.length > 0 ? (
+            <>
+              <div className="mt-4 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                Or
+                <span className="h-px flex-1 bg-border" aria-hidden="true" />
+              </div>
+              <div className="mt-4 space-y-2">
+                {providers.map((provider) => (
+                  <OAuthButton key={provider} provider={provider} returnTo={returnTo} />
+                ))}
+              </div>
+            </>
+          ) : null}
         </CardContent>
       </Card>
     </main>

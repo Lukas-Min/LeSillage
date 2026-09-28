@@ -102,7 +102,7 @@ export default async function AdminOrderDetailPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif-display text-2xl">{order.orderNumber}</h1>
-        <OrderStatusPill status={order.status} className="text-xs px-3 py-1" />
+        <OrderStatusPill status={order.status} />
       </div>
       <div className="flex flex-wrap items-center justify-end gap-3">
         <OrderRowActions

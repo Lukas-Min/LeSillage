@@ -132,18 +132,12 @@ export async function verifyEmailCode(formData: FormData) {
       await limitAuth("verify-email");
       const email = emailSchema.parse(emailRaw);
       const code = String(formData.get("code") ?? "").replace(/\D/g, "");
-      const password = String(formData.get("password") ?? "");
       const result = await consumeVerificationCode({ identifier: email, purpose: "SIGNUP", code });
       if (!result.ok) throw new Error(result.error ?? "Invalid code");
       await db()
         .update(users)
         .set({ emailVerified: new Date() })
         .where(eq(users.email, email));
-      if (password) {
-        await persistRememberMeChoice(true);
-        await applyRememberMeSession(true);
-        await signIn("credentials", { email, password, redirectTo: returnTo.startsWith("/") ? returnTo : "/account" });
-      }
       redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
     },
   );

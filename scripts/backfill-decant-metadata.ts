@@ -1,10 +1,10 @@
 /**
  * Fills notes, accords, ratings, and photos on decants that already exist.
- * Does not change prices or stock. Data: `scripts/data/decant-metadata.json`.
+ * Does not change prices or stock. Data: `scripts/data/decant-metadata.json`,
+ * or another file passed as an argument.
  *
  *   npx tsx scripts/backfill-decant-metadata.ts
  */
-import { readFileSync } from "fs";
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
@@ -12,6 +12,7 @@ import { and, eq, ilike } from "drizzle-orm";
 import { formatFragranceDescription } from "@/domain/product-type";
 import { db } from "@/db/client";
 import { productImages, products } from "@/db/schema";
+import { formatNotesSummary, loadCatalogJson, runWhenInvoked } from "./catalog-script";
 
 interface MetadataEntry {
   brand: string;
@@ -27,17 +28,7 @@ interface MetadataEntry {
 }
 
 function loadCatalog(): MetadataEntry[] {
-  return JSON.parse(readFileSync(new URL("./data/decant-metadata.json", import.meta.url), "utf8")) as MetadataEntry[];
-}
-
-function formatNotesSummary(notes: MetadataEntry["notes"]) {
-  return [
-    notes.top.length ? `Top: ${notes.top.join(", ")}` : null,
-    notes.middle.length ? `Middle: ${notes.middle.join(", ")}` : null,
-    notes.base.length ? `Base: ${notes.base.join(", ")}` : null,
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  return loadCatalogJson<MetadataEntry[]>("decant-metadata.json");
 }
 
 export async function runDecantMetadata(): Promise<void> {
@@ -94,12 +85,4 @@ export async function runDecantMetadata(): Promise<void> {
   console.log(`Decant metadata: ${updated} updated${notFound ? `, ${notFound} not found` : ""}.`);
 }
 
-const invokedDirectly = process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/backfill-decant-metadata.ts");
-if (invokedDirectly) {
-  runDecantMetadata()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
+runWhenInvoked("scripts/backfill-decant-metadata.ts", runDecantMetadata);

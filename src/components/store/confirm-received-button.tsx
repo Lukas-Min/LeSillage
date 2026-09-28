@@ -28,7 +28,7 @@ export function ConfirmReceivedButton({ orderId }: { orderId: string }) {
   }
 
   return (
-    <Button type="button" size="sm" onClick={handleConfirm} disabled={isPending} aria-busy={isPending}>
+    <Button type="button" onClick={handleConfirm} disabled={isPending} aria-busy={isPending}>
       {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />}
       Mark as received
     </Button>

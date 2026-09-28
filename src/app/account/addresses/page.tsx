@@ -99,8 +99,8 @@ export default async function AddressesPage() {
                     <input type="checkbox" name="isDefault" defaultChecked={address.isDefault} />
                     Set as default
                   </label>
-                  <div className="flex flex-wrap gap-2 sm:col-span-2">
-                    <SubmitButton size="sm" pendingLabel="Saving…">Save changes</SubmitButton>
+                  <div className="flex flex-wrap gap-2 sm:col-span-2 sm:justify-end">
+                    <SubmitButton size="sm" className="sm:w-auto" pendingLabel="Saving…">Save</SubmitButton>
                     <form action={setDefaultAddressForm} className="contents">
                       <input type="hidden" name="addressId" value={address.id} />
                       {!address.isDefault ? (
@@ -147,8 +147,8 @@ export default async function AddressesPage() {
             <input type="checkbox" name="isDefault" />
             Set as default
           </label>
-          <div className="sm:col-span-2">
-            <SubmitButton pendingLabel="Saving…">Save address</SubmitButton>
+          <div className="sm:col-span-2 sm:flex sm:justify-end">
+            <SubmitButton className="h-11 w-full sm:w-auto" pendingLabel="Saving…">Save</SubmitButton>
           </div>
         </form>
       </SectionCard>

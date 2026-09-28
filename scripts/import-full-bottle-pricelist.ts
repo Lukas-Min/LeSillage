@@ -1,11 +1,11 @@
 /**
- * Upserts full-bottle products from `scripts/data/full-bottle-pricelist.json`.
- * Cost is the file's discounted price. Retail is that cost plus 20%.
+ * Upserts full-bottle products from `scripts/data/full-bottle-pricelist.json`,
+ * or another file passed as an argument. Cost is the file's discounted price.
+ * Retail is that cost plus markupPercent, or 20% when the file omits it.
  * Does not touch a decant of the same name.
  *
  *   npx tsx scripts/import-full-bottle-pricelist.ts
  */
-import { readFileSync } from "fs";
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
@@ -13,6 +13,15 @@ import { and, eq, ilike } from "drizzle-orm";
 import { formatFragranceDescription, newSkuFulfillmentDefaults } from "@/domain/product-type";
 import { db } from "@/db/client";
 import { productImages, products, skus, type Concentration, type FragranceCategory } from "@/db/schema";
+import {
+  catalogSlug,
+  DEFAULT_FULL_BOTTLE_MARKUP_PERCENT,
+  formatNotesSummary,
+  loadCatalogJson,
+  pesosToCentavos,
+  retailFromMarkup,
+  runWhenInvoked,
+} from "./catalog-script";
 
 interface FullBottleEntry {
   brand: string;
@@ -21,6 +30,7 @@ interface FullBottleEntry {
   category: FragranceCategory;
   gender: "men" | "women" | "unisex";
   costPricePhp: number;
+  markupPercent?: number;
   sizeMl: number;
   releaseYear: number;
   perfumers: string[];
@@ -33,28 +43,7 @@ interface FullBottleEntry {
 }
 
 function loadCatalog(): FullBottleEntry[] {
-  return JSON.parse(readFileSync(new URL("./data/full-bottle-pricelist.json", import.meta.url), "utf8")) as FullBottleEntry[];
-}
-
-function slug(value: string) {
-  return value
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function php(pesos: number) {
-  return Math.round(pesos * 100);
-}
-
-function formatNotesSummary(notes: FullBottleEntry["notes"]) {
-  return [
-    notes.top.length ? `Top: ${notes.top.join(", ")}` : null,
-    notes.middle.length ? `Middle: ${notes.middle.join(", ")}` : null,
-    notes.base.length ? `Base: ${notes.base.join(", ")}` : null,
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  return loadCatalogJson<FullBottleEntry[]>("full-bottle-pricelist.json");
 }
 
 export async function runFullBottlePricelist(): Promise<void> {
@@ -62,7 +51,8 @@ export async function runFullBottlePricelist(): Promise<void> {
   const client = db();
 
   for (const entry of catalog) {
-    const costPrice = php(entry.costPricePhp);
+    const costPrice = pesosToCentavos(entry.costPricePhp);
+    const markupPercent = entry.markupPercent ?? DEFAULT_FULL_BOTTLE_MARKUP_PERCENT;
     const productValues = {
       type: "FULL_BOTTLE" as const,
       fragranceCategory: entry.category,
@@ -81,7 +71,7 @@ export async function runFullBottlePricelist(): Promise<void> {
       fragranticaUrl: entry.fragranticaUrl,
       costPrice,
       pricingMode: "PERCENTAGE" as const,
-      pricingInput: 20,
+      pricingInput: markupPercent,
     };
 
     const [existing] = await client
@@ -99,9 +89,9 @@ export async function runFullBottlePricelist(): Promise<void> {
       productId = inserted.id;
     }
 
-    const retailPrice = Math.round(costPrice * 1.2);
+    const retailPrice = retailFromMarkup(costPrice, markupPercent);
     const label = `${entry.sizeMl}ml Full bottle`;
-    const skuCode = `${slug(entry.brand)}-${slug(entry.name)}-${entry.sizeMl}ML`;
+    const skuCode = `${catalogSlug(entry.brand)}-${catalogSlug(entry.name)}-${entry.sizeMl}ML`;
     const [existingSku] = await client.select({ id: skus.id }).from(skus).where(eq(skus.productId, productId)).limit(1);
     if (existingSku) {
       await client
@@ -145,12 +135,4 @@ export async function runFullBottlePricelist(): Promise<void> {
   console.log(`Full-bottle pricelist: ${catalog.length} products.`);
 }
 
-const invokedDirectly = process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/import-full-bottle-pricelist.ts");
-if (invokedDirectly) {
-  runFullBottlePricelist()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
+runWhenInvoked("scripts/import-full-bottle-pricelist.ts", runFullBottlePricelist);

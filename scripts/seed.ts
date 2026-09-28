@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { computeRetailPrice, computeSkuRetailPrice } from "@/domain/pricing";
 import { guessConcentration } from "@/domain/concentration";
 import { newSkuFulfillmentDefaults } from "@/domain/product-type";
+import { catalogSlug, loadCatalogJson } from "./catalog-script";
 import type { FragranceCategory } from "../src/db/schema";
 import { db } from "../src/db/client";
 import {
@@ -26,36 +27,9 @@ interface QueryPoolEntry {
   category: FragranceCategory;
 }
 
-// A pool of real, well-known fragrances used to generate demo data — plain
-// names only (no live lookup), so notes/accords/images are left blank; fill
-// those in per product via the admin edit page if a richer demo is needed.
-// We only take MIN_FRAGRANCES of these (chosen at random), so the catalog
-// looks different each time `db:seed` runs.
-const QUERY_POOL: QueryPoolEntry[] = [
-  { brand: "Dior", name: "Sauvage", category: "DESIGNER" },
-  { brand: "Chanel", name: "Bleu de Chanel", category: "DESIGNER" },
-  { brand: "Yves Saint Laurent", name: "Black Opium", category: "DESIGNER" },
-  { brand: "Giorgio Armani", name: "Acqua di Gio", category: "DESIGNER" },
-  { brand: "Versace", name: "Eros", category: "DESIGNER" },
-  { brand: "Prada", name: "Luna Rossa", category: "DESIGNER" },
-  { brand: "Gucci", name: "Bloom", category: "DESIGNER" },
-  { brand: "Calvin Klein", name: "CK One", category: "DESIGNER" },
-  { brand: "Burberry", name: "Her", category: "DESIGNER" },
-  { brand: "Hugo Boss", name: "Bottled", category: "DESIGNER" },
-  { brand: "Creed", name: "Aventus", category: "NICHE" },
-  { brand: "Le Labo", name: "Santal 33", category: "NICHE" },
-  { brand: "Byredo", name: "Gypsy Water", category: "NICHE" },
-  { brand: "Maison Francis Kurkdjian", name: "Baccarat Rouge 540", category: "NICHE" },
-  { brand: "Amouage", name: "Interlude Man", category: "NICHE" },
-  { brand: "Parfums de Marly", name: "Layton", category: "NICHE" },
-  { brand: "Initio", name: "Side Effect", category: "NICHE" },
-  { brand: "Xerjoff", name: "Naxos", category: "NICHE" },
-  { brand: "Lattafa", name: "Khamrah", category: "MIDDLE_EASTERN" },
-  { brand: "Ajmal", name: "Amber Wood", category: "MIDDLE_EASTERN" },
-  { brand: "Rasasi", name: "Hawas", category: "MIDDLE_EASTERN" },
-  { brand: "Afnan", name: "9pm", category: "MIDDLE_EASTERN" },
-  { brand: "Swiss Arabian", name: "Shaghaf Oud", category: "MIDDLE_EASTERN" },
-];
+function loadQueryPool(): QueryPoolEntry[] {
+  return loadCatalogJson<QueryPoolEntry[]>("seed-fragrances.json");
+}
 
 interface SeedSkuInput {
   productId: string;
@@ -92,16 +66,6 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function slugify(value: string): string {
-  // No length cap: a truncated slug risks two different names colliding on
-  // the same SKU code (see scripts/import-decant-pricelist.ts's slug(),
-  // which had this exact bug at 24 chars and fixed it).
-  return value
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 async function pickRandomFragrances(min: number): Promise<QueryPoolEntry[]> {
   const existing = await db()
     .select({ brand: products.brand, name: products.name })
@@ -110,7 +74,7 @@ async function pickRandomFragrances(min: number): Promise<QueryPoolEntry[]> {
   const alreadySeeded = existingKeys.size;
 
   const picked: QueryPoolEntry[] = [];
-  for (const entry of shuffle(QUERY_POOL)) {
+  for (const entry of shuffle(loadQueryPool())) {
     if (picked.length >= min) break;
     const key = `${entry.brand}::${entry.name}`.toLowerCase();
     if (existingKeys.has(key)) continue;
@@ -130,8 +94,8 @@ async function seedFragrances() {
   for (const [index, entry] of picks.entries()) {
     const category = entry.category;
     const concentration = guessConcentration(undefined) ?? "EAU_DE_PARFUM";
-    const brandSlug = slugify(entry.brand || "BRAND");
-    const nameSlug = slugify(entry.name || "SCENT");
+    const brandSlug = catalogSlug(entry.brand || "BRAND");
+    const nameSlug = catalogSlug(entry.name || "SCENT");
     const costPerMlCentavos = randomInt(3000, 9000);
     // No live data source for notes/accords/description/images anymore —
     // fill those in per product via the admin edit page if a richer demo is

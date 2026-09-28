@@ -26,8 +26,8 @@ export default async function ForgotPasswordPage({
               <Input id="email" name="email" type="email" required className="h-11" />
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Sending…">
-              Send code
+            <SubmitButton className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold" pendingLabel="Sending…">
+              Reset
             </SubmitButton>
           </form>
         </CardContent>

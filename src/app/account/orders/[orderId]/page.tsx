@@ -1,19 +1,20 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, orderItems } from "@/db/schema";
 import { PageHeader, SectionCard } from "@/components/ui/section";
-import { OrderStatusPill } from "@/components/ui/status-pill";
-import { Price } from "@/components/store/price";
+import { formatOrderStatus } from "@/components/ui/status-pill";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
 import { CancelOrderButton } from "@/components/store/cancel-order-button";
 import { ReorderButton } from "@/components/store/reorder-button";
 import { ConfirmReceivedButton } from "@/components/store/confirm-received-button";
+import { AskAboutOrderButton } from "@/components/store/ask-about-order-button";
 import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-state";
-import { formatPHP } from "@/domain/money";
+import { DEFAULT_DELIVERY_FEE_CENTAVOS, formatPHP } from "@/domain/money";
+import { getEnv } from "@/lib/env";
+import { instagramChatUrl, messengerChatUrl } from "@/lib/social-links";
 import { formatDateTime } from "@/lib/utils";
 import { computeEtaSummary } from "@/domain/eta";
 import {
@@ -22,7 +23,6 @@ import {
   PICKUP_ADDRESS_LINE,
   PICKUP_ADDRESS_NAME,
 } from "@/domain/pickup";
-import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -75,6 +75,16 @@ export default async function OrderDetailPage({
         ];
   const revealPickup = canRevealPickupAddress(order.status);
   const pickupHidden = pickupAddressPlaceholder(order.status);
+  const orderUrl = `${getEnv().NEXT_PUBLIC_APP_URL}/account/orders/${order.id}`;
+  const askMessage = [
+    `Order ID: ${order.orderNumber}`,
+    `Order Status: ${formatOrderStatus(order.status)}`,
+    `Type: ${order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"}`,
+    `Total: ${formatPHP(order.totalCentavos)}`,
+    `View Order: ${orderUrl}`,
+    "",
+    "",
+  ].join("\n");
 
   return (
     <div className="space-y-6">
@@ -84,7 +94,10 @@ export default async function OrderDetailPage({
         subtitle={`Placed ${formatDateTime(order.createdAt)} · ${order.fulfillmentMethod === "DELIVERY" ? "Delivery" : "Pickup"}`}
         actions={
           <>
-            <OrderStatusPill status={order.status} />
+            <AskAboutOrderButton
+              messengerUrl={messengerChatUrl(askMessage)}
+              instagramUrl={instagramChatUrl(askMessage)}
+            />
             {order.status === "DELIVERED" ? <ConfirmReceivedButton orderId={order.id} /> : null}
             {customerCancelMode(order.status) || order.cancellationRequestedAt ? (
               <CancelOrderButton
@@ -94,12 +107,6 @@ export default async function OrderDetailPage({
               />
             ) : null}
             {isTerminal(order.status) ? <ReorderButton orderId={order.id} /> : null}
-            <Button asChild variant="outline" size="sm">
-              <Link href="/account/orders">
-                <ArrowLeft className="h-4 w-4" />
-                All orders
-              </Link>
-            </Button>
           </>
         }
       />
@@ -118,56 +125,61 @@ export default async function OrderDetailPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SectionCard
-          className="lg:col-span-2"
+          className="flex h-full flex-col lg:col-span-2"
           eyebrow="Items"
-          title={`${items.length} ${items.length === 1 ? "line" : "lines"}`}
-          contentClassName="space-y-3"
+          contentClassName="flex flex-1 flex-col space-y-0"
         >
-          <ul className="divide-y divide-border/60">
+          <ul>
             {items.map((item) => (
-              <li key={item.id} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+              <li key={item.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div>
                   <p className="font-serif-display text-base leading-tight">{item.productName}</p>
                   <p className="text-xs text-muted-foreground">
                     {item.skuLabel} · × {item.quantity}
                   </p>
                 </div>
-                {/* item.discountCentavos/lineTotalCentavos are already
-                    whole-line totals (quantity baked in) — passed at
-                    quantity 1 (the default) so Price doesn't multiply them
-                    by quantity a second time. originalUnitCentavos is a true
-                    per-unit price, so it's scaled up to match. */}
-                <Price
-                  originalCentavos={item.originalUnitCentavos * item.quantity}
-                  discountedCentavos={item.lineTotalCentavos}
-                  savedCentavos={item.discountCentavos}
-                />
+                <span className="text-sm tabular-nums">
+                  {item.discountCentavos > 0 ? (
+                    <span className="inline-flex items-baseline gap-2">
+                      <s className="text-muted-foreground">{formatPHP(item.originalUnitCentavos * item.quantity)}</s>
+                      <span>{formatPHP(item.lineTotalCentavos)}</span>
+                    </span>
+                  ) : (
+                    formatPHP(item.lineTotalCentavos)
+                  )}
+                </span>
               </li>
             ))}
           </ul>
-          <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
+          <div className="mt-auto border-t border-border/60 text-sm">
             {/* subtotalCentavos and deliveryFeeCentavos already have every
                 discount (item, promo-code order, promo-code delivery) baked
                 in — totalCentavos is exactly their sum, nothing further to
                 subtract here. discountCentavos below is shown separately as
                 an informational "amount saved" figure, not as a deduction,
                 so this can't misread as double-discounting. */}
-            <p className="flex justify-between">
+            <p className="flex justify-between py-3">
               <span className="text-muted-foreground">Subtotal</span>
               <span>{formatPHP(order.subtotalCentavos)}</span>
             </p>
-            <p className="flex justify-between">
+            <p className="flex justify-between gap-3 py-3">
               <span className="text-muted-foreground">Delivery</span>
-              <Price
-                originalCentavos={12000}
-                discountedCentavos={order.deliveryFeeCentavos}
-                savedCentavos={12000 - order.deliveryFeeCentavos}
-                suffix="Free when applicable"
-              />
+              <span className="text-right">
+                {order.fulfillmentMethod === "PICKUP" ? (
+                  "Free · Pickup"
+                ) : order.deliveryFeeCentavos === 0 ? (
+                  <span className="inline-flex items-baseline gap-2">
+                    <s className="text-muted-foreground">{formatPHP(DEFAULT_DELIVERY_FEE_CENTAVOS)}</s>
+                    <span>Free</span>
+                  </span>
+                ) : (
+                  formatPHP(order.deliveryFeeCentavos)
+                )}
+              </span>
             </p>
-            <p className="flex justify-between border-t border-border/60 pt-2 text-base">
-              <span className="font-serif-display">Total</span>
-              <span className="font-price-display">{formatPHP(order.totalCentavos)}</span>
+            <p className="flex items-baseline justify-between border-t border-border/60 py-3">
+              <span className="font-serif-display text-lg">Total</span>
+              <span className="font-price-display text-2xl">{formatPHP(order.totalCentavos)}</span>
             </p>
             {order.discountCentavos > 0 ? (
               <p className="flex justify-between text-xs text-muted-foreground">

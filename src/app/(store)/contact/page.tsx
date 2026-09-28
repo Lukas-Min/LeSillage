@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpCircle, Mail, MapPin, Phone } from "lucide-react";
-import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
+import { FacebookIcon, InstagramIcon, MessengerIcon } from "@/components/store/brand-icons";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
@@ -26,9 +26,9 @@ export default function ContactPage() {
     env.NEXT_PUBLIC_PHONE
       ? { icon: Phone, label: "Phone", value: env.NEXT_PUBLIC_PHONE, href: `tel:${env.NEXT_PUBLIC_PHONE}` }
       : null,
-    { icon: FaFacebookF, label: "Facebook", value: "Le Sillage Manila", href: FACEBOOK_URL },
-    { icon: FaFacebookMessenger, label: "Messenger", value: "Message us", href: MESSENGER_URL },
-    { icon: FaInstagram, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
+    { icon: FacebookIcon, label: "Facebook", value: "Le Sillage Manila", href: FACEBOOK_URL },
+    { icon: MessengerIcon, label: "Messenger", value: "Message us", href: MESSENGER_URL },
+    { icon: InstagramIcon, label: "Instagram", value: `@${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL },
     { icon: MapPin, label: "Pickup", value: env.NEXT_PUBLIC_PICKUP_NOTES ?? "By appointment only.", href: null },
   ];
   const visibleRows = rows.filter((row): row is ContactRow => row !== null);

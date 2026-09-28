@@ -52,7 +52,6 @@ export function ReorderButton({ orderId }: { orderId: string }) {
     <Button
       type="button"
       variant="outline"
-      size="sm"
       onClick={handleReorder}
       disabled={isPending}
       aria-busy={isPending}

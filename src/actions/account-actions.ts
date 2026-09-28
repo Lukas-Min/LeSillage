@@ -1,17 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, sql } from "drizzle-orm";
+import { redirect, unstable_rethrow } from "next/navigation";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { signOut, requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import {
   addresses,
+  emailVerificationCodes,
   notificationLog,
   orders,
   products,
   users,
   wishlists,
+  type EmailVerificationPurpose,
 } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
@@ -289,53 +292,157 @@ export async function requestReauthCode() {
   }
 }
 
-export async function changePassword(formData: FormData) {
-  const user = await requireActiveCustomer();
-  await limitAccount(user.id, "password-change");
-  const code = String(formData.get("code") ?? "");
-  const current = String(formData.get("currentPassword") ?? "");
-  const next = String(formData.get("password") ?? "");
-  const passwordError = validatePassword(next);
-  if (passwordError) throw new Error(passwordError);
-  const verified = await consumeVerificationCode({
-    identifier: user.email,
-    purpose: "REAUTH",
-    code,
-  });
-  if (!verified.ok) throw new Error(verified.error ?? "Invalid code");
-  const row = (await db().select().from(users).where(eq(users.id, user.id)))[0];
-  if (row?.passwordHash) {
-    const ok = await verifyPassword(current, row.passwordHash);
-    if (!ok) throw new Error("Current password is incorrect");
-  }
-  await db()
-    .update(users)
-    .set({ passwordHash: await hashPassword(next), sessionVersion: sql`${users.sessionVersion} + 1` })
-    .where(eq(users.id, user.id));
-  await sendEmail({
-    to: user.email,
-    ...securityNoticeEmail({
-      subject: "Your Le Sillage Manila password changed",
-      body: "The password on your Le Sillage Manila account was just changed.",
-    }),
-  });
-  await auditLogSubject({
-    actor: user.id,
-    action: "AUTH_PASSWORD_CHANGE",
-    targetType: "user",
-    targetId: user.id,
-  });
-  revalidatePath("/account/profile");
+function actionErrorMessage(error: unknown): string {
+  if (error instanceof z.ZodError) return "Check the details and try again.";
+  if (error instanceof Error) return error.message;
+  return "Something went wrong. Please try again.";
 }
 
-export async function requestEmailChange(formData: FormData) {
+function redirectWithMessage(path: string, error: unknown): never {
+  const join = path.includes("?") ? "&" : "?";
+  redirect(`${path}${join}error=message&msg=${encodeURIComponent(actionErrorMessage(error))}`);
+}
+
+async function latestCodeMetadata(identifier: string, purpose: EmailVerificationPurpose) {
+  const row = (
+    await db()
+      .select({ metadata: emailVerificationCodes.metadata })
+      .from(emailVerificationCodes)
+      .where(
+        and(
+          eq(emailVerificationCodes.identifier, identifier),
+          eq(emailVerificationCodes.purpose, purpose),
+          isNull(emailVerificationCodes.consumedAt),
+        ),
+      )
+      .orderBy(desc(emailVerificationCodes.createdAt))
+      .limit(1)
+  )[0];
+  return (row?.metadata as Record<string, unknown> | null) ?? null;
+}
+
+export async function startPasswordChange(formData: FormData): Promise<{ error?: string }> {
+  try {
+    const user = await requireActiveCustomer();
+    await limitAccount(user.id, "password-change");
+    const current = String(formData.get("currentPassword") ?? "");
+    const next = String(formData.get("password") ?? "");
+    const confirm = String(formData.get("confirmPassword") ?? "");
+    if (next !== confirm) return { error: "Passwords do not match." };
+    const passwordError = validatePassword(next);
+    if (passwordError) return { error: passwordError };
+    const row = (await db().select().from(users).where(eq(users.id, user.id)))[0];
+    if (row?.passwordHash) {
+      if (!current) return { error: "Enter your current password." };
+      const ok = await verifyPassword(current, row.passwordHash);
+      if (!ok) return { error: "Current password is incorrect." };
+    }
+    const issued = await issueVerificationCode({
+      identifier: user.email,
+      purpose: "CHANGE_PASSWORD",
+      metadata: { nextPasswordHash: await hashPassword(next) },
+    });
+    if (issued.resentTooSoon) return { error: "Please wait a moment before requesting another code." };
+    if (issued.code) {
+      const sent = await sendEmail({ to: user.email, ...reauthEmail(issued.code) });
+      await db().insert(notificationLog).values({
+        recipient: user.email,
+        template: "reauth",
+        status: sent.ok ? "SENT" : "FAILED",
+        error: sent.ok ? null : sent.error ?? "unknown",
+      });
+    }
+    return {};
+  } catch (error) {
+    return { error: actionErrorMessage(error) };
+  }
+}
+
+export async function confirmPasswordChange(formData: FormData) {
+  const back = "/account/verify?purpose=password";
+  try {
+    const user = await requireActiveCustomer();
+    await limitAccount(user.id, "password-change");
+    const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+    const verified = await consumeVerificationCode({
+      identifier: user.email,
+      purpose: "CHANGE_PASSWORD",
+      code,
+    });
+    if (!verified.ok) throw new Error(verified.error ?? "Invalid code");
+    const hash = verified.metadata?.nextPasswordHash;
+    if (typeof hash !== "string" || hash.length === 0) {
+      throw new Error("Start the password change again from your profile.");
+    }
+    await db()
+      .update(users)
+      .set({ passwordHash: hash, sessionVersion: sql`${users.sessionVersion} + 1` })
+      .where(eq(users.id, user.id));
+    await sendEmail({
+      to: user.email,
+      ...securityNoticeEmail({
+        subject: "Your Le Sillage Manila password changed",
+        body: "The password on your Le Sillage Manila account was just changed.",
+      }),
+    });
+    await auditLogSubject({
+      actor: user.id,
+      action: "AUTH_PASSWORD_CHANGE",
+      targetType: "user",
+      targetId: user.id,
+    });
+    revalidatePath("/account/profile");
+    redirect("/account/profile");
+  } catch (error) {
+    unstable_rethrow(error);
+    redirectWithMessage(back, error);
+  }
+}
+
+export async function resendPasswordChangeCode() {
+  const back = "/account/verify?purpose=password";
+  try {
+    const user = await requireActiveCustomer();
+    const metadata = await latestCodeMetadata(user.email, "CHANGE_PASSWORD");
+    const hash = metadata?.nextPasswordHash;
+    if (typeof hash !== "string" || hash.length === 0) {
+      throw new Error("Start the password change again from your profile.");
+    }
+    const issued = await issueVerificationCode({
+      identifier: user.email,
+      purpose: "CHANGE_PASSWORD",
+      metadata: { nextPasswordHash: hash },
+    });
+    if (issued.resentTooSoon) throw new Error("Please wait a moment before requesting another code.");
+    if (issued.code) {
+      const sent = await sendEmail({ to: user.email, ...reauthEmail(issued.code) });
+      await db().insert(notificationLog).values({
+        recipient: user.email,
+        template: "reauth",
+        status: sent.ok ? "SENT" : "FAILED",
+        error: sent.ok ? null : sent.error ?? "unknown",
+      });
+    }
+    redirect(back);
+  } catch (error) {
+    unstable_rethrow(error);
+    redirectWithMessage(back, error);
+  }
+}
+
+async function sendEmailChangeCode(nextEmailRaw: string) {
   const user = await requireActiveCustomer();
-  const nextEmail = z.string().email().parse(String(formData.get("email") ?? "")).toLowerCase();
+  await limitAccount(user.id, "email-change");
+  const nextEmail = z.string().email().parse(nextEmailRaw).toLowerCase();
+  if (nextEmail === user.email.toLowerCase()) throw new Error("That's already your email.");
+  const taken = (await db().select({ id: users.id }).from(users).where(eq(users.email, nextEmail)))[0];
+  if (taken && taken.id !== user.id) throw new Error("That email can't be used.");
   const issued = await issueVerificationCode({
     identifier: nextEmail,
     purpose: "CHANGE_EMAIL",
     metadata: { userId: user.id, previousEmail: user.email },
   });
+  if (issued.resentTooSoon) throw new Error("Please wait a moment before requesting another code.");
   if (issued.code) {
     await sendEmail({ to: nextEmail, ...changeEmailEmail(issued.code) });
     await sendEmail({
@@ -348,38 +455,67 @@ export async function requestEmailChange(formData: FormData) {
   }
 }
 
+export async function startEmailChange(formData: FormData): Promise<{ error?: string }> {
+  try {
+    await sendEmailChangeCode(String(formData.get("email") ?? ""));
+    return {};
+  } catch (error) {
+    return { error: actionErrorMessage(error) };
+  }
+}
+
+export async function resendEmailChangeCode(formData: FormData) {
+  const email = String(formData.get("email") ?? "");
+  const back = `/account/verify?purpose=email&email=${encodeURIComponent(email)}`;
+  try {
+    await sendEmailChangeCode(email);
+    redirect(back);
+  } catch (error) {
+    unstable_rethrow(error);
+    redirectWithMessage(back, error);
+  }
+}
+
 export async function confirmEmailChange(formData: FormData) {
-  const user = await requireActiveCustomer();
-  const nextEmail = z.string().email().parse(String(formData.get("email") ?? "")).toLowerCase();
-  const code = String(formData.get("code") ?? "");
-  const verified = await consumeVerificationCode({
-    identifier: nextEmail,
-    purpose: "CHANGE_EMAIL",
-    code,
-  });
-  if (!verified.ok) throw new Error(verified.error ?? "Invalid code");
-  await db()
-    .update(users)
-    .set({
-      email: nextEmail,
-      emailVerified: new Date(),
-      sessionVersion: sql`${users.sessionVersion} + 1`,
-    })
-    .where(eq(users.id, user.id));
-  await sendEmail({
-    to: user.email,
-    ...securityNoticeEmail({
-      subject: "Your Le Sillage Manila email changed",
-      body: `Your account email is now ${nextEmail}.`,
-    }),
-  });
-  await auditLogSubject({
-    actor: user.id,
-    action: "AUTH_EMAIL_CHANGE",
-    targetType: "user",
-    targetId: user.id,
-  });
-  revalidatePath("/account/profile");
+  const nextEmailRaw = String(formData.get("email") ?? "");
+  const back = `/account/verify?purpose=email&email=${encodeURIComponent(nextEmailRaw)}`;
+  try {
+    const user = await requireActiveCustomer();
+    const nextEmail = z.string().email().parse(nextEmailRaw).toLowerCase();
+    const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+    const verified = await consumeVerificationCode({
+      identifier: nextEmail,
+      purpose: "CHANGE_EMAIL",
+      code,
+    });
+    if (!verified.ok) throw new Error(verified.error ?? "Invalid code");
+    await db()
+      .update(users)
+      .set({
+        email: nextEmail,
+        emailVerified: new Date(),
+        sessionVersion: sql`${users.sessionVersion} + 1`,
+      })
+      .where(eq(users.id, user.id));
+    await sendEmail({
+      to: user.email,
+      ...securityNoticeEmail({
+        subject: "Your Le Sillage Manila email changed",
+        body: `Your account email is now ${nextEmail}.`,
+      }),
+    });
+    await auditLogSubject({
+      actor: user.id,
+      action: "AUTH_EMAIL_CHANGE",
+      targetType: "user",
+      targetId: user.id,
+    });
+    revalidatePath("/account/profile");
+    redirect("/account/profile");
+  } catch (error) {
+    unstable_rethrow(error);
+    redirectWithMessage(back, error);
+  }
 }
 
 export async function deleteAccount(formData: FormData) {

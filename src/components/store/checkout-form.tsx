@@ -475,7 +475,7 @@ export function CheckoutForm({
           type="submit"
           variant="gold"
           size="lg"
-          className="h-11 rounded-md"
+          className="h-11 w-full rounded-md sm:w-auto"
           // Also held while a promo preview is in flight: submitting then
           // would send promoCode: null and silently drop the discount.
           disabled={isPending || promoCodePending || !accepted}

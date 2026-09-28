@@ -5,7 +5,22 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 ## [Unreleased]
 ### Added
 - Remember me on sign-in (`src/lib/remember-me.ts`, `src/components/store/sign-in-form.tsx`). Checked stays signed in for 30 days across closing the browser or restarting the computer, and keeps the email on this browser so the sign-in field is filled after an explicit sign-out. Unchecked ends the login when the browser closes and does not keep the email. Sign-out always ends the session. The same choice applies to Google sign-in
+### Added
+- Ask about this order on the customer order page asks Facebook or Instagram first. Facebook opens Messenger and Instagram opens the same chat, both with the order number, status, pickup or delivery, total, view-order link, and two blank lines
+- Signed-in customers can connect Google from the profile (`linkOAuthAccount` in `src/actions/auth-actions.ts`). Facebook stays hidden until it is in use. Each sign-in method row uses the same height and a same-size status or Connect control
 ### Changed
+- Catalog import and seed scripts read JSON, and an extra `.json` argument replaces the default file. Decant sizes come from the price keys. Shared slug, notes, and peso helpers live in `scripts/catalog-script.ts`. The unused `react-icons` package is removed
+- Facebook, Instagram, Messenger, and Google marks keep their brand colors on the order chat chooser, footer, contact page, sign-in, and profile (`src/components/store/brand-icons.tsx`)
+- The order page drops the “1 line” heading. Subtotal, delivery, and total sit at the bottom of the items card
+- A customer order card opens the order when any part of the card is clicked. Re-order stays its own button
+- Order status pills use sentence case (`Awaiting payment`) instead of all lowercase. Profile sign-in rows show a mail icon for email and the Google mark for Google
+- The order summary uses the same vertical gap for the line, subtotal, delivery, and total, and the total stays the largest amount. Pickup reads “Free · Pickup”; a waived delivery fee shows a small struck-through original beside Free
+- The order page no longer shows the status pill next to Cancel order. Cancel order uses the same button style as Save and Continue. Status pills stay the smaller shared size, including on the orders list
+- Form actions that save, continue, or reset use those words, and on wide screens those buttons sit on the right instead of stretching across the row
+- Password change, email change, and email signup all confirm with the same 6-digit code page (`EmailCodePanel`). The password form is current, new, and confirm password; the code is the next page
+- The customer orders page no longer shows Find another fragrance next to the title. The empty state still links to the shop
+- Email verification asks only for the 6-digit code (`src/app/(auth)/verify-email/page.tsx`). After the code is accepted, the customer signs in on the sign-in page
+- The customer order page no longer shows an All orders button (`src/app/account/orders/[orderId]/page.tsx`)
 - Product page catalog reads (`loadProductPageCatalog` in `src/lib/catalog.ts`) are cached for 60 seconds under the `catalog` tag. Wishlist state stays per request
 - Auto-reject window is 24 hours again (`AUTO_REJECT_AFTER_MS` in `src/domain/auto-reject.ts`). An `AWAITING_PAYMENT` order is cancelled after 1 day without a receipt
 ### Security

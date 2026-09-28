@@ -219,14 +219,14 @@ export default async function AdminProductDetailPage({
           <form id="delete-product-form" action={archiveOrDeleteProduct}>
             <input type="hidden" name="productId" value={product.id} />
           </form>
-          <div className="mt-4 flex gap-2">
-            <SubmitButton form="save-product-form" className="flex-1">
-              Save product
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <SubmitButton form="save-product-form" className="h-11 w-full sm:w-auto">
+              Save
             </SubmitButton>
             <ConfirmSubmitButton
               formId="delete-product-form"
               triggerLabel="Archive or delete"
-              triggerClassName="flex-1"
+              triggerClassName="h-11 w-full sm:w-auto"
               title={`Archive or delete "${product.name}"?`}
               description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records). Otherwise it's deleted permanently. This can't be undone from here."
               confirmLabel="Archive or delete"
@@ -354,7 +354,7 @@ export default async function AdminProductDetailPage({
                     <input type="checkbox" name="isActive" defaultChecked={sku.isActive} /> Active
                   </label>
                 </div>
-                <SubmitButton>Save SKU</SubmitButton>
+                <SubmitButton className="h-11 w-full sm:w-auto">Save</SubmitButton>
               </div>
             </form>
               <form id={`delete-sku-form-${sku.id}`} action={archiveOrDeleteSku}>

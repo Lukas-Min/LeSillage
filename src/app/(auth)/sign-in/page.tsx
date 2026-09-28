@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { SignInForm } from "@/components/store/sign-in-form";
+import { configuredOAuthProviders, oauthProviderLabel } from "@/lib/oauth-providers";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +15,19 @@ export default async function SignInPage({
   const params = await searchParams;
   const returnTo = params.returnTo && params.returnTo.startsWith("/") ? params.returnTo : "/";
   if (session?.user) redirect(returnTo);
+  const providers = configuredOAuthProviders();
+  const providerNames = providers.map(oauthProviderLabel).join(" or ");
   return (
     <main className="mx-auto w-full max-w-md px-4 py-12">
       <h1 className="font-serif-display text-2xl">Sign in to Le Sillage Manila</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Use email and password, or continue with Google.
+        {providerNames ? `Use email and password, or continue with ${providerNames}.` : "Use email and password."}
       </p>
       <SignInForm
         returnTo={returnTo}
         errorMessage={authErrorMessage(params.error, params.msg)}
         defaultEmail={params.email}
+        providers={providers}
       />
     </main>
   );

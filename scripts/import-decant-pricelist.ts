@@ -1,17 +1,18 @@
 /**
- * Upserts decant products and their 3/5/10/30ml SKUs from
- * `scripts/data/decant-pricelist.json`. SKU retail prices are the file's own
+ * Upserts decant products and one SKU per size from
+ * `scripts/data/decant-pricelist.json`, or another file passed as an argument.
+ * Sizes come from that file's price keys. SKU retail prices are the file's own
  * numbers, not the product markup formula. A re-run does not reset remainingMl.
  *
  *   npx tsx scripts/import-decant-pricelist.ts
  */
-import { readFileSync } from "fs";
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { and, eq, ilike } from "drizzle-orm";
 import { db } from "@/db/client";
 import { products, skus, type Concentration, type FragranceCategory } from "@/db/schema";
+import { catalogSlug, decantSizes, loadCatalogJson, pesosToCentavos, runWhenInvoked } from "./catalog-script";
 
 interface DecantEntry {
   brand: string;
@@ -19,23 +20,12 @@ interface DecantEntry {
   concentration: Concentration;
   category: FragranceCategory;
   gender: "men" | "women" | "unisex";
-  prices: { 3: number; 5: number; 10: number; 30: number };
+  prices: Record<string, number>;
   fullBottle?: { sizeMl: number; basePricePhp: number };
 }
 
 function loadCatalog(): DecantEntry[] {
-  return JSON.parse(readFileSync(new URL("./data/decant-pricelist.json", import.meta.url), "utf8")) as DecantEntry[];
-}
-
-function slug(value: string) {
-  return value
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function php(pesos: number) {
-  return Math.round(pesos * 100);
+  return loadCatalogJson<DecantEntry[]>("decant-pricelist.json");
 }
 
 export async function runDecantPricelist(): Promise<void> {
@@ -45,7 +35,7 @@ export async function runDecantPricelist(): Promise<void> {
 
   for (const entry of catalog) {
     const sourceMl = entry.fullBottle?.sizeMl ?? null;
-    const referenceCostPrice = entry.fullBottle ? php(entry.fullBottle.basePricePhp) : 0;
+    const referenceCostPrice = entry.fullBottle ? pesosToCentavos(entry.fullBottle.basePricePhp) : 0;
     const productValues = {
       type: "DECANT" as const,
       fragranceCategory: entry.category,
@@ -77,8 +67,8 @@ export async function runDecantPricelist(): Promise<void> {
       productId = inserted.id;
     }
 
-    for (const sizeMl of [3, 5, 10, 30] as const) {
-      const retailPrice = php(entry.prices[sizeMl]);
+    for (const sizeMl of decantSizes(entry.prices)) {
+      const retailPrice = pesosToCentavos(entry.prices[String(sizeMl)]);
       const costForSize = entry.fullBottle ? Math.round((referenceCostPrice / entry.fullBottle.sizeMl) * sizeMl) : 0;
       const [existingSku] = await client
         .select({ id: skus.id })
@@ -93,7 +83,7 @@ export async function runDecantPricelist(): Promise<void> {
       } else {
         await client.insert(skus).values({
           productId,
-          sku: `${slug(entry.brand)}-${slug(entry.name)}-${sizeMl}ML`,
+          sku: `${catalogSlug(entry.brand)}-${catalogSlug(entry.name)}-${sizeMl}ML`,
           label: `${sizeMl}ml Decant`,
           sizeMl,
           condition: "BNIB",
@@ -116,12 +106,4 @@ export async function runDecantPricelist(): Promise<void> {
   console.log(`Decant pricelist: ${catalog.length} products, ${skuCount} SKUs.`);
 }
 
-const invokedDirectly = process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/import-decant-pricelist.ts");
-if (invokedDirectly) {
-  runDecantPricelist()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
+runWhenInvoked("scripts/import-decant-pricelist.ts", runDecantPricelist);
