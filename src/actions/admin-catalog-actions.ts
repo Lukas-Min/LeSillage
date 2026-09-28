@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { invalidateCatalog } from "@/lib/catalog";
 import { count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -345,6 +346,7 @@ export async function upsertSku(formData: FormData) {
   revalidatePath(`/admin/products/${parsed.productId}`);
   revalidatePath("/shop");
   invalidateCatalog();
+  if (!parsed.skuId) redirect(`/admin/products/${parsed.productId}`);
 }
 
 export async function adjustDecantMl(formData: FormData) {

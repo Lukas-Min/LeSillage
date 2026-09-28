@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { AlertCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { orders, orderItems } from "@/db/schema";
+import { orders, orderItems, productImages, skus } from "@/db/schema";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { formatOrderStatus } from "@/components/ui/status-pill";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
@@ -49,6 +49,23 @@ export default async function OrderDetailPage({
   )[0];
   if (!order) return notFound();
   const items = await client.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+  const imageBySku = new Map<string, { url: string; alt: string | null }>();
+  const skuIds = [...new Set(items.map((item) => item.skuId))];
+  if (skuIds.length > 0) {
+    const imageRows = await client
+      .select({
+        skuId: skus.id,
+        url: productImages.url,
+        alt: productImages.alt,
+      })
+      .from(skus)
+      .innerJoin(productImages, eq(productImages.productId, skus.productId))
+      .where(inArray(skus.id, skuIds))
+      .orderBy(asc(productImages.position));
+    for (const row of imageRows) {
+      if (!imageBySku.has(row.skuId)) imageBySku.set(row.skuId, { url: row.url, alt: row.alt });
+    }
+  }
   const eta = computeEtaSummary(
     items.map((it) => ({ fulfillment: it.fulfillment, orderedAt: order.createdAt })),
   );
@@ -130,26 +147,42 @@ export default async function OrderDetailPage({
           contentClassName="flex flex-1 flex-col space-y-0"
         >
           <ul>
-            {items.map((item) => (
-              <li key={item.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                <div>
-                  <p className="font-serif-display text-base leading-tight">{item.productName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.skuLabel} · × {item.quantity}
-                  </p>
-                </div>
-                <span className="text-sm tabular-nums">
-                  {item.discountCentavos > 0 ? (
-                    <span className="inline-flex items-baseline gap-2">
-                      <s className="text-muted-foreground">{formatPHP(item.originalUnitCentavos * item.quantity)}</s>
-                      <span>{formatPHP(item.lineTotalCentavos)}</span>
+            {items.map((item) => {
+              const image = imageBySku.get(item.skuId);
+              return (
+                <li key={item.id} className="flex gap-3 py-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border/60 bg-white">
+                    {image ? (
+                      // Plain img, same as the shop card, so a missing host does not break the page.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image.url}
+                        alt={image.alt ?? item.productName}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                    <div>
+                      <p className="font-serif-display text-base leading-tight">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.skuLabel} · × {item.quantity}
+                      </p>
+                    </div>
+                    <span className="text-sm tabular-nums sm:shrink-0">
+                      {item.discountCentavos > 0 ? (
+                        <span className="inline-flex items-baseline gap-2">
+                          <s className="text-muted-foreground">{formatPHP(item.originalUnitCentavos * item.quantity)}</s>
+                          <span>{formatPHP(item.lineTotalCentavos)}</span>
+                        </span>
+                      ) : (
+                        formatPHP(item.lineTotalCentavos)
+                      )}
                     </span>
-                  ) : (
-                    formatPHP(item.lineTotalCentavos)
-                  )}
-                </span>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <div className="mt-auto border-t border-border/60 text-sm">
             {/* subtotalCentavos and deliveryFeeCentavos already have every

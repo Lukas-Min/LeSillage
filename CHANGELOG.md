@@ -9,6 +9,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 - Ask about this order on the customer order page asks Facebook or Instagram first. Facebook opens Messenger and Instagram opens the same chat, both with the order number, status, pickup or delivery, total, view-order link, and two blank lines
 - Signed-in customers can connect Google from the profile (`linkOAuthAccount` in `src/actions/auth-actions.ts`). Facebook stays hidden until it is in use. Each sign-in method row uses the same height and a same-size status or Connect control
 ### Changed
+- Add SKU sits next to the perfume name at the top of the admin product page and opens `/admin/products/[productId]/skus/new`
+- The customer order page shows each line's product photo on a white background beside the name (`src/app/account/orders/[orderId]/page.tsx`)
 - Catalog import and seed scripts read JSON, and an extra `.json` argument replaces the default file. Decant sizes come from the price keys. Shared slug, notes, and peso helpers live in `scripts/catalog-script.ts`. The unused `react-icons` package is removed
 - Facebook, Instagram, Messenger, and Google marks keep their brand colors on the order chat chooser, footer, contact page, sign-in, and profile (`src/components/store/brand-icons.tsx`)
 - The order page drops the “1 line” heading. Subtotal, delivery, and total sit at the bottom of the items card
