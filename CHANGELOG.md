@@ -4,6 +4,10 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Auto-reject window is 24 hours again (`AUTO_REJECT_AFTER_MS` in `src/domain/auto-reject.ts`). An `AWAITING_PAYMENT` order is cancelled after 1 day without a receipt
+### Fixed
+- A pending cancellation must be approved or denied before any other status change. Approve re-checks the request under the same row lock as Deny, so the two cannot both win. Pickup emails say "Pickup" for free delivery instead of "Promo applied", and `formatDate`/`formatDateTime` use Asia/Manila
+### Changed
 - Decant and full-bottle pricelist imports read `scripts/data/*.json` instead of catalogs hardcoded in TypeScript. `scripts/import-catalog.ts` runs full bottles in parallel with the decant price pass, then fills decant notes
 ### Added
 - Removed finished one-time data scripts: `fix-welcome10-promo.ts`, `rename-gender-values.ts`, `import-qr-codes.ts`, `release-cancelled-promo-redemptions.ts`, `normalize-decant-markup.ts`, and `migrate-decant-provenance-to-in-house.ts`. The last two would rewrite live decant prices or mark Retail decants as In-house if run again. `scripts/set-admin-password.ts` stays

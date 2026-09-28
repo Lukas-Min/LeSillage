@@ -14,8 +14,14 @@ export function capitalizeFirst(value: string): string {
 // used everywhere a date is shown to a customer or admin. Locale is fixed
 // rather than left to the runtime's default so output doesn't drift across
 // environments.
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" })
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Manila",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+})
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Manila",
   year: "numeric",
   month: "short",
   day: "numeric",

@@ -1,26 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { AUTO_REJECT_AFTER_MS, isDueForAutoReject } from "../auto-reject";
 
-const fortyEightHoursAgo = new Date("2026-09-04T12:00:00.000Z");
-const now = new Date(fortyEightHoursAgo.getTime() + AUTO_REJECT_AFTER_MS);
+const orderedAt = new Date("2026-09-04T12:00:00.000Z");
+const now = new Date(orderedAt.getTime() + AUTO_REJECT_AFTER_MS);
 
 describe("isDueForAutoReject", () => {
-  it("is due after 48 hours still awaiting payment", () => {
+  it("is due after 24 hours still awaiting payment", () => {
     expect(
       isDueForAutoReject({
         status: "AWAITING_PAYMENT",
-        statusUpdatedAt: fortyEightHoursAgo,
+        statusUpdatedAt: orderedAt,
         now,
       }),
     ).toBe(true);
   });
 
-  it("is not due before 48 hours", () => {
+  it("is not due before 24 hours", () => {
     expect(
       isDueForAutoReject({
         status: "AWAITING_PAYMENT",
-        statusUpdatedAt: fortyEightHoursAgo,
-        now: new Date(fortyEightHoursAgo.getTime() + AUTO_REJECT_AFTER_MS - 1),
+        statusUpdatedAt: orderedAt,
+        now: new Date(orderedAt.getTime() + AUTO_REJECT_AFTER_MS - 1),
       }),
     ).toBe(false);
   });
@@ -29,7 +29,7 @@ describe("isDueForAutoReject", () => {
     expect(
       isDueForAutoReject({
         status: "RECEIPT_SUBMITTED",
-        statusUpdatedAt: fortyEightHoursAgo,
+        statusUpdatedAt: orderedAt,
         now,
       }),
     ).toBe(false);

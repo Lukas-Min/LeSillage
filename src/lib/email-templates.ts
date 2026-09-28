@@ -69,11 +69,18 @@ function formatLineForEmail(line: EmailLine): string {
   return `- ${line.productName} (${line.skuLabel}) × ${line.quantity} — ${formatPHP(line.lineTotalCentavos)}`;
 }
 
+function freeDeliveryNote(input: OrderEmailInput): string {
+  if (input.freeDeliveryReason) return input.freeDeliveryReason;
+  if (input.fulfillmentMethod === "PICKUP") return "Pickup";
+  return "Promo applied";
+}
+
 function deliveryLine(input: OrderEmailInput): string {
   if (input.deliveryFeeCentavos === 0) {
-    const reason = input.freeDeliveryReason ?? "Promo applied";
+    const reason = freeDeliveryNote(input);
     const original = input.defaultDeliveryFeeCentavos ?? input.deliveryFeeCentavos;
-    return `- ~~${formatPHP(original)}~~ Free · ${reason}`;
+    if (original > 0) return `- ~~${formatPHP(original)}~~ Free · ${reason}`;
+    return `- Free · ${reason}`;
   }
   return `- ${formatPHP(input.deliveryFeeCentavos)}`;
 }
@@ -126,7 +133,7 @@ function deliveryTotal(input: OrderEmailInput): EmailTotal {
       label: "Delivery",
       value: "Free",
       strike: original > 0 ? formatPHP(original) : undefined,
-      note: input.freeDeliveryReason ?? "Promo applied",
+      note: freeDeliveryNote(input),
     };
   }
   return { label: "Delivery", value: formatPHP(input.deliveryFeeCentavos) };

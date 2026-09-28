@@ -151,6 +151,7 @@ export function OrderRowActions({
           </div>
         </div>
       ) : null}
+      {cancellationRequestedAt ? null : (
       <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end">
         {blocked ? <p className="text-xs text-amber-600 sm:max-w-xs sm:text-right">{blocked}</p> : null}
         {forward ? (
@@ -182,6 +183,7 @@ export function OrderRowActions({
           </Button>
         ) : null}
       </div>
+      )}
       {showReason ? (
         <div className="w-full space-y-2 rounded-lg border border-border bg-muted/30 p-3 text-left">
           <div>

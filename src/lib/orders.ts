@@ -1128,6 +1128,8 @@ export async function transitionOrderStatus(args: {
   orderId: string;
   next: OrderStatus;
   reason?: string | null;
+  /** Set by cancellation approval. Re-checked under the row lock so a Deny that already committed cannot be overwritten. */
+  requirePendingCancellation?: boolean;
 }): Promise<void> {
   const client = db();
   // Read-validate-write in one transaction, with the order row locked for
@@ -1139,13 +1141,22 @@ export async function transitionOrderStatus(args: {
   // lock makes the second transition wait for the first to commit, then
   // re-validate against the now-current (and for CANCELLED/REJECTED,
   // terminal — see order-state.ts) status instead of a stale snapshot.
-  const orderRow = await client.transaction(async (tx) => {
+  const { row: orderRow, reason: statusReason } = await client.transaction(async (tx) => {
     const row = (await tx.select().from(orders).where(eq(orders.id, args.orderId)).for("update"))[0];
     if (!row) throw new Error("Order not found");
+    if (row.cancellationRequestedAt && args.next !== "CANCELLED") {
+      throw new Error("Resolve the pending cancellation request before changing this order");
+    }
+    if (args.requirePendingCancellation && !row.cancellationRequestedAt) {
+      throw new Error("No pending cancellation request for this order");
+    }
+    const reason = args.requirePendingCancellation
+      ? row.cancellationRequestReason?.trim() || "Cancellation request approved"
+      : args.reason;
     assertTransition(row.status, args.next);
 
     if (args.next === "REJECTED" || args.next === "CANCELLED") {
-      if (!args.reason || args.reason.trim().length === 0) {
+      if (!reason || reason.trim().length === 0) {
         throw new Error("A reason is required to reject or cancel an order");
       }
     }
@@ -1172,7 +1183,7 @@ export async function transitionOrderStatus(args: {
       .update(orders)
       .set({
         status: args.next,
-        statusReason: args.reason ?? null,
+        statusReason: reason ?? null,
         statusUpdatedAt: new Date(),
         updatedAt: new Date(),
         // Any transition (whether it grants a pending cancellation request
@@ -1185,7 +1196,7 @@ export async function transitionOrderStatus(args: {
         ...deliveryFields,
       })
       .where(eq(orders.id, args.orderId));
-    return row;
+    return { row, reason };
   });
 
   if (args.next === "REJECTED" || args.next === "CANCELLED") {
@@ -1219,7 +1230,7 @@ export async function transitionOrderStatus(args: {
         deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
         totalCentavos: orderRow.totalCentavos,
         orderedAt: orderRow.createdAt,
-        reason: args.reason,
+        reason: statusReason,
         pickupNotes: orderRow.pickupNotes,
         testerAwarded: args.next === "CONFIRMED" ? await loadTesterAwarded(orderRow.promoTesterSkuId) : null,
       };
@@ -1359,13 +1370,10 @@ export async function resolveCancellationRequest(args: {
   const client = db();
 
   if (args.decision === "APPROVED") {
-    const row = (await client.select().from(orders).where(eq(orders.id, args.orderId)))[0];
-    if (!row) throw new Error("Order not found");
-    if (!row.cancellationRequestedAt) throw new Error("No pending cancellation request for this order");
     await transitionOrderStatus({
       orderId: args.orderId,
       next: "CANCELLED",
-      reason: row.cancellationRequestReason ?? "Cancellation request approved",
+      requirePendingCancellation: true,
     });
     return;
   }
