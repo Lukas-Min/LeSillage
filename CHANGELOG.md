@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Stock/availability update for the three Yves Saint Laurent "Libre" decants (`scripts/update-libre-decant-stock.ts`): Libre (EDP) set to 0ml remaining with all 4 sizes deactivated (fully sold out, no pre-order offered — it now drops out of the shop grid entirely, matching every other product with zero active SKUs); Libre Le Parfum and Libre Intense both set to 10ml remaining, which puts 3/5/10ml on hand and deactivates only the 30ml SKU rather than showing it as a pre-order. `decantFulfillment()` has no separate "pre-order allowed" flag — it's a pure function of remainingMl/sizeMl/threshold — so removing a size from pre-order specifically means deactivating that SKU (catalog queries already filter on `skus.isActive`), which is what this script does instead of just changing the pool number
 ### Added
 - Yves Saint Laurent — Libre Intense (2020 EDP flanker) and Libre Le Parfum (2022, Parfum concentration) added as DECANTs, both priced identically to the existing Libre Flowers & Flames DECANT per the store owner's request — same ₱5,750/90ml cost basis and 30% markup, not an independently-sourced wholesale cost, so every SKU price matches exactly: ₱250/₱420/₱835/₱2,495 for 3/5/10/30ml (`scripts/add-libre-intense-decant.ts`, `scripts/add-libre-le-parfum-decant.ts`). Notes, accords, perfumers, rating, and image sourced from each fragrance's own Fragrantica page
 ### Changed
