@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- The root `tsconfig.json`'s broad `**/*.ts` include picked up `workers/auto-reject-cron/src/index.ts` (added the same session), whose Cloudflare-only types (`ScheduledController`, `ExecutionContext`) the main app can't resolve — broke `next build`'s type-check step and failed the production deploy. Added `workers` to `tsconfig.json`'s `exclude`; the Worker keeps its own separate `tsconfig.json`/`@cloudflare/workers-types` and is unaffected
 ### Added
 - `workers/auto-reject-cron` — a small standalone Cloudflare Worker that pings `/api/cron/auto-reject-orders` hourly via Cloudflare's uncapped free Cron Triggers, working around Vercel Hobby's once-daily cron limit (see the staggered hourly schedule on the other 4 jobs in `vercel.json`, the same workaround). Doesn't touch the app or its hosting — deployed and scheduled entirely independently
 ### Fixed
