@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader } from "@/components/ui/section";
 import { FaqGroupList } from "@/components/store/faq-groups";
+
+export const metadata: Metadata = {
+  title: "FAQs",
+  description: "Frequently asked questions about ordering, payment, shipping, and pickup at Le Sillage Manila.",
+  alternates: { canonical: "/faq" },
+};
 
 export default function FaqPage() {
   return (

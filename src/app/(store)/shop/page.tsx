@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { CatalogPagination } from "@/components/store/catalog-pagination";
 import { CatalogResults } from "@/components/store/catalog-grid";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
@@ -25,6 +26,36 @@ interface ShopSearchParams {
   gender?: string;
   sort?: string;
   page?: string;
+}
+
+// Matches the plural labels already used for this exact tab set elsewhere
+// (store-footer.tsx's Shop column, admin/products' type tabs) — not
+// derived from labelForType, which returns the singular breadcrumb form.
+const TYPE_TITLES: Record<ProductType, string> = {
+  DECANT: "Decants",
+  FULL_BOTTLE: "Full Bottles",
+  PARTIAL: "Partials",
+};
+
+// Only `type` gets its own canonical URL — it's the one filter that changes
+// the actual catalog being shown (three genuinely distinct product sets).
+// category/concentration/gender/sort/page are refinements of that same
+// catalog, so they canonicalize back to it instead of each combination
+// competing as separate near-duplicate pages in search results.
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<ShopSearchParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const type = parseEnum(params.type, VALID_TYPES);
+  const title = type ? TYPE_TITLES[type] : "Shop";
+  const canonical = type ? `/shop?type=${type}` : "/shop";
+  return {
+    title,
+    description: SHOP_CATALOG_SUBTITLE,
+    alternates: { canonical },
+  };
 }
 
 export default async function ShopPage({

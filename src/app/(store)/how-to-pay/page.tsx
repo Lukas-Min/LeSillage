@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow, PageHeader, SectionCard } from "@/components/ui/section";
 import { HOW_TO_PAY_STEPS } from "@/lib/how-to-pay-copy";
+
+export const metadata: Metadata = {
+  title: "How to Pay",
+  description: "How payment works at Le Sillage Manila — QR code, receipt upload, and stock reservation.",
+  alternates: { canonical: "/how-to-pay" },
+};
 
 export default function HowToPayPage() {
   return (

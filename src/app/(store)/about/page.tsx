@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { ABOUT_PILLARS } from "@/lib/about-copy";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "A Manila fragrance shop, est. 2026, built around trying before you buy — full bottles, partials, and decants from independent and iconic houses.",
+  alternates: { canonical: "/about" },
+};
 
 export default function AboutPage() {
   return (

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpCircle, Mail, MapPin, Phone } from "lucide-react";
 import { FaFacebookF, FaFacebookMessenger, FaInstagram } from "react-icons/fa6";
@@ -5,6 +6,12 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
 import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description: "Get in touch with Le Sillage Manila — order questions, Facebook, Instagram, and pickup details.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   const env = getEnv();

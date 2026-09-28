@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { type FragranceCategory } from "@/db/schema";
 import { ShopView } from "@/components/store/shop-view";
@@ -17,6 +18,22 @@ const LABEL: Record<FragranceCategory, string> = {
   DESIGNER: "Designer",
   MIDDLE_EASTERN: "Middle Eastern",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ category: string }>;
+}): Promise<Metadata> {
+  const { category } = await params;
+  const matched = SLUGS[category.toLowerCase()];
+  if (!matched) return {};
+  const blurb = FRAGRANCE_CATEGORY_BLURBS[matched];
+  return {
+    title: `${LABEL[matched]} Fragrances`,
+    description: blurb.charAt(0).toUpperCase() + blurb.slice(1),
+    alternates: { canonical: `/collections/${category.toLowerCase()}` },
+  };
+}
 
 export default async function CollectionPage({
   params,

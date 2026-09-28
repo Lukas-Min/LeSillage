@@ -5,7 +5,20 @@ import { Providers } from "@/components/providers";
 import { StoreHeader } from "@/components/store/store-header";
 import { StoreFooter } from "@/components/store/store-footer";
 import { loadAnnouncement } from "@/lib/announcement";
+import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/social-links";
 import "./globals.css";
+
+// Rendered once, site-wide, in the body below — never includes the pickup
+// address (src/domain/pickup.ts), which stays gated to a verified order's
+// own account page on purpose, not something to put in public markup.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Le Sillage Manila",
+  url: process.env.NEXT_PUBLIC_APP_URL ?? "https://lesillagemanila.com",
+  logo: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lesillagemanila.com"}/logo/mark.png`,
+  sameAs: [FACEBOOK_URL, INSTAGRAM_URL],
+};
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -37,12 +50,19 @@ export const metadata: Metadata = {
   description:
     "Le Sillage Manila — a curated retail perfume shop featuring full bottles, partials, and decants from independent and iconic houses.",
   applicationName: "Le Sillage Manila",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Le Sillage Manila",
     description:
       "Full bottles, partials, and decants. Curated retail perfume from Le Sillage Manila.",
     type: "website",
     siteName: "Le Sillage Manila",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Le Sillage Manila",
+    description:
+      "Full bottles, partials, and decants. Curated retail perfume from Le Sillage Manila.",
   },
 };
 
@@ -57,6 +77,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${geistSans.variable} ${playfair.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="flex flex-col bg-background text-foreground">
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <Providers>
           <div className="flex min-h-dvh flex-col">
             <StoreHeader announcement={announcement.enabled ? announcement.messages : []} />

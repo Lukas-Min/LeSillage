@@ -3,6 +3,11 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Per-page SEO metadata across the storefront: `generateMetadata`/static `metadata` (title, description, canonical) added to the PDP (`shop/[skuId]`), `/shop` (per `?type=` filter), `/collections/[category]`, `/about`, `/contact`, `/how-to-pay`, and `/faq` — previously only the root layout and `/policies` had any. Root layout now also sets `alternates.canonical` and a Twitter card. `sitemap.ts` gained the three `/shop?type=` entries to match the shop page's new canonical URLs
+- `Organization` JSON-LD (root layout) and `Product` JSON-LD (PDP — brand, price/currency, availability, and `aggregateRating` when a product has a Fragrantica rating) for Google rich results, mirroring the same price/stock state the page itself renders rather than being computed separately. The PDP's `generateMetadata` and page body now share one deduped DB query via React's `cache()` instead of querying the product row twice
+### Fixed
+- The Cloudflare Worker's `CRON_SECRET` never actually matched Vercel's production value — the two are independently configured and `.env.local` isn't deployed to either, so nothing had verified they agreed. The hourly auto-reject ping was silently failing (401) every run. Rotated to a new shared secret, verified against the live production endpoint and a local `wrangler dev --test-scheduled` run
 ### Changed
 - Auto-reject window widened from 24 to 48 hours (`AUTO_REJECT_AFTER_MS` in `src/domain/auto-reject.ts`) — an `AWAITING_PAYMENT` order now needs 2 days without a receipt before it's automatically cancelled, not 1. Cancellation reason copy and tests updated to match
 ### Fixed

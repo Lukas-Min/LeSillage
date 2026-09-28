@@ -8,6 +8,9 @@ export default async function sitemap() {
   const staticRoutes = [
     "/",
     "/shop",
+    "/shop?type=DECANT",
+    "/shop?type=FULL_BOTTLE",
+    "/shop?type=PARTIAL",
     "/how-to-pay",
     "/contact",
     "/about",

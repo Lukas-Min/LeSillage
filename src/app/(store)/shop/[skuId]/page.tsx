@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -7,6 +9,7 @@ import { products, skus, productDiscounts, productImages, promoSettings, wishlis
 import { withSiteWideDiscount } from "@/domain/discount";
 import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { concentrationLabel, guessConcentration } from "@/domain/concentration";
+import { formatPHP, fromCentavos } from "@/domain/money";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
@@ -25,10 +28,12 @@ import { capitalizeFirst, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
-  const { skuId } = await params;
+// Shared by generateMetadata and the page body — React's cache() dedupes
+// the two calls into one query per request instead of hitting the DB twice
+// for the same row.
+const getProductRow = cache(async (skuId: string) => {
   const client = db();
-  const row = (
+  return (
     await client
       .select({
         productId: products.id,
@@ -46,6 +51,8 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
         perfumers: products.perfumers,
         longevity: products.longevity,
         seasonBreakout: products.seasonBreakout,
+        ratingValue: products.ratingValue,
+        ratingCount: products.ratingCount,
         condition: skus.condition,
         provenance: skus.provenance,
         skuId: skus.id,
@@ -61,6 +68,53 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
       .innerJoin(products, eq(products.id, skus.productId))
       .where(eq(skus.id, skuId))
   )[0];
+});
+
+export async function generateMetadata({ params }: { params: Promise<{ skuId: string }> }): Promise<Metadata> {
+  const { skuId } = await params;
+  const row = await getProductRow(skuId);
+  if (!row || !row.isActive || !row.productActive) return {};
+
+  const [image] = await db()
+    .select({ url: productImages.url, alt: productImages.alt })
+    .from(productImages)
+    .where(eq(productImages.productId, row.productId))
+    .orderBy(asc(productImages.position))
+    .limit(1);
+
+  const concentration = concentrationLabel(row.concentration) ?? concentrationLabel(guessConcentration(row.skuLabel));
+  const title = `${row.brand} ${row.name} — ${row.skuLabel}`;
+  const priceText = formatPHP(row.retailPrice);
+  const description = [
+    `${row.brand} ${row.name}${concentration ? ` ${concentration}` : ""} — ${priceText}.`,
+    `Shop ${labelForType(row.type).toLowerCase()}s at Le Sillage Manila.`,
+  ].join(" ");
+  const canonical = `/shop/${skuId}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: "website",
+      images: image?.url ? [{ url: image.url, alt: image.alt ?? title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image?.url ? [image.url] : undefined,
+    },
+  };
+}
+
+export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
+  const { skuId } = await params;
+  const client = db();
+  const row = await getProductRow(skuId);
   if (!row || !row.isActive || !row.productActive) return notFound();
 
   const session = await auth();
@@ -136,6 +190,39 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   const concentrationGender = [concentration, genderLabel].filter(Boolean).join(" · ") || null;
   const topSeasons = topSeasonLabels(row.seasonBreakout);
 
+  // Product rich-result eligibility (price/availability/rating shown
+  // directly in Google search results) — mirrors the same price/stock
+  // state the BuyBox above renders, not re-derived separately.
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${row.brand} ${row.name}`,
+    image: image[0]?.url ? [image[0].url] : undefined,
+    description: row.description || `${row.brand} ${row.name} — ${labelForType(row.type)}, ${row.skuLabel}.`,
+    brand: { "@type": "Brand", name: row.brand },
+    sku: currentVariant.skuId,
+    offers: {
+      "@type": "Offer",
+      url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lesillagemanila.com"}/shop/${skuId}`,
+      priceCurrency: "PHP",
+      price: fromCentavos(currentVariant.discountedCentavos).toFixed(2),
+      availability: soldOut
+        ? "https://schema.org/OutOfStock"
+        : fulfillment === "PRE_ORDER"
+          ? "https://schema.org/PreOrder"
+          : "https://schema.org/InStock",
+    },
+    ...(row.ratingValue && row.ratingCount
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: row.ratingValue,
+            reviewCount: row.ratingCount,
+          },
+        }
+      : {}),
+  };
+
   return (
     // Capped at 80% of viewport width once a screen is wide enough to call
     // "large" (2xl, 1536px+) — this is the one non-chrome page that gets
@@ -143,6 +230,11 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
     // viewport. Matches the header/footer's own 2xl:80vw cap so the PDP,
     // breadcrumb included, lines up with the nav/footer above and below it.
     <main className="w-full px-4 pt-4 pb-8 sm:pt-6 sm:pb-12 2xl:mx-auto 2xl:max-w-[80vw]">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <Breadcrumbs
         items={[
           { label: "Home", href: "/" },
