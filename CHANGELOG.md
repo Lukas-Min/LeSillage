@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- `workers/auto-reject-cron` — a small standalone Cloudflare Worker that pings `/api/cron/auto-reject-orders` hourly via Cloudflare's uncapped free Cron Triggers, working around Vercel Hobby's once-daily cron limit (see the staggered hourly schedule on the other 4 jobs in `vercel.json`, the same workaround). Doesn't touch the app or its hosting — deployed and scheduled entirely independently
 ### Fixed
 - The footer's Maison column hardcoded a static "Sign in" link regardless of auth state, unlike the header (which correctly swaps to the account menu once signed in) — `StoreFooter` never had any session awareness at all. New `FooterAccountLink` (`src/components/store/footer-account-link.tsx`), a small client component reading the same `useSession()` the header does, swaps it to "My account" once signed in; the rest of the footer stays static/server-rendered
 - The new product-discount Type/Amount/Start date/End date fields (`/admin/products/[productId]`) used `flex flex-wrap`, which wrapped unevenly at narrow widths (an orphaned Start date, the button crowded next to End date). Now a `grid grid-cols-2 sm:grid-cols-4`, so it's a clean 2-column/2-row layout on small screens with the submit button on its own row below, collapsing to one row once there's room
