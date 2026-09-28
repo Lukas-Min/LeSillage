@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Claude Code and Cursor now share one copy of the project rules: changelog, code-review checkpoints, mobile-first, and loading states live in `.cursor/rules/` and `CLAUDE.md` imports those files. The store skill (`360–414px`) and the reviewer prompt bodies match under `.cursor/` and `.claude/`; reviewer frontmatter still differs only by each tool's read-only switch
+- Storefront catalog reads (`loadCatalogCards`, `countCatalogCards`, `searchCatalogCards` in `src/lib/catalog.ts`) are cached for 60 seconds under the `catalog` tag and dropped immediately with `updateTag` when an admin save changes a product, SKU, discount, image, ml pool, Fragrantica import, or promo settings (site-wide discount and decant pre-order threshold). Checkout still prices from the database; an order that changes stock shows on the shop within that 60-second window
 ### Added
 - Per-page SEO metadata across the storefront: `generateMetadata`/static `metadata` (title, description, canonical) added to the PDP (`shop/[skuId]`), `/shop` (per `?type=` filter), `/collections/[category]`, `/about`, `/contact`, `/how-to-pay`, and `/faq` — previously only the root layout and `/policies` had any. Root layout now also sets `alternates.canonical` and a Twitter card. `sitemap.ts` gained the three `/shop?type=` entries to match the shop page's new canonical URLs
 - `Organization` JSON-LD (root layout) and `Product` JSON-LD (PDP — brand, price/currency, availability, and `aggregateRating` when a product has a Fragrantica rating) for Google rich results, mirroring the same price/stock state the page itself renders rather than being computed separately. The PDP's `generateMetadata` and page body now share one deduped DB query via React's `cache()` instead of querying the product row twice

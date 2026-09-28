@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateCatalog } from "@/lib/catalog";
 import { count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
@@ -181,6 +182,7 @@ export async function upsertProduct(formData: FormData) {
     });
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${parsed.productId}`);
+    invalidateCatalog();
     return;
   }
   const inserted = await db().insert(products).values(values).returning();
@@ -191,6 +193,7 @@ export async function upsertProduct(formData: FormData) {
     targetId: inserted[0].id,
   });
   revalidatePath("/admin/products");
+  invalidateCatalog();
   return inserted[0].id;
 }
 
@@ -341,6 +344,7 @@ export async function upsertSku(formData: FormData) {
   }
   revalidatePath(`/admin/products/${parsed.productId}`);
   revalidatePath("/shop");
+  invalidateCatalog();
 }
 
 export async function adjustDecantMl(formData: FormData) {
@@ -366,6 +370,7 @@ export async function adjustDecantMl(formData: FormData) {
     metadata: { remainingMl },
   });
   revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
 }
 
 async function referenceCounts(productId: string) {
@@ -407,6 +412,7 @@ export async function archiveOrDeleteProduct(formData: FormData) {
     });
   }
   revalidatePath("/admin/products");
+  invalidateCatalog();
 }
 
 /**
@@ -464,6 +470,7 @@ export async function archiveOrDeleteSku(formData: FormData) {
     await auditLogSubject({ actor: admin.id, action: "SKU_DELETE", targetType: "sku", targetId: skuId });
   }
   revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
 }
 
 export async function upsertDiscount(formData: FormData) {
@@ -509,6 +516,7 @@ export async function upsertDiscount(formData: FormData) {
 
   await auditLogSubject({ actor: admin.id, action: "DISCOUNT_UPDATE", targetType: "product", targetId: productId });
   revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
 }
 
 export async function removeProductImage(formData: FormData) {
@@ -524,6 +532,7 @@ export async function removeProductImage(formData: FormData) {
     metadata: { removed: imageId },
   });
   revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
 }
 
 /** Adds a product image either from an uploaded file or a pasted URL — one
@@ -559,4 +568,5 @@ export async function addProductImage(formData: FormData) {
   });
   await auditLogSubject({ actor: admin.id, action: "IMAGE_UPDATE", targetType: "product", targetId: productId });
   revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateCatalog } from "@/lib/catalog";
 import { signIn } from "@/auth";
 import { db } from "@/db/client";
 import { promoSettings } from "@/db/schema";
@@ -83,6 +84,7 @@ export async function updatePromoSettings(formData: FormData) {
   });
   revalidatePath("/admin/settings");
   revalidatePath("/admin/promo");
+  invalidateCatalog();
 }
 
 const transitionSchema = z.object({

@@ -1,3 +1,4 @@
+import { unstable_cache, updateTag } from "next/cache";
 import { and, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
@@ -46,6 +47,34 @@ export const CATALOG_SORTS = [
   "name_desc",
 ] as const;
 export type CatalogSort = (typeof CATALOG_SORTS)[number];
+
+/** Dropped by admin saves that change what the shop grid, homepage, or header search shows. */
+export const CATALOG_TAG = "catalog";
+const CATALOG_REVALIDATE_SECONDS = 60;
+
+const CATALOG_FILTER_KEYS = [
+  "type",
+  "types",
+  "fragranceCategory",
+  "concentration",
+  "brand",
+  "gender",
+  "query",
+  "sizeMl",
+  "sort",
+  "limit",
+  "offset",
+] as const satisfies readonly (keyof CatalogFilter)[];
+
+/** Stable cache key. `JSON.stringify` of a caller object follows key insertion order, so the same filter built two ways would miss. */
+function catalogFilterKey(filter: CatalogFilter): string {
+  const stable: Record<string, unknown> = {};
+  for (const key of CATALOG_FILTER_KEYS) {
+    const value = filter[key];
+    if (value !== undefined) stable[key] = value;
+  }
+  return JSON.stringify(stable);
+}
 
 export interface CatalogFilter {
   type?: ProductType;
@@ -345,7 +374,7 @@ export function buildVariantOptions(
   return options.sort(compareSkuOrder);
 }
 
-export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
+async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
   const client = db();
   const conditions: SQL[] = [eq(products.isActive, true)];
   if (filter.types && filter.types.length > 0) {
@@ -531,7 +560,7 @@ export async function loadCatalogCards(filter: CatalogFilter = {}): Promise<Cata
  * per-product "at least one active SKU" requirement) without its
  * image, discount, and pricing queries/computation, which a count doesn't need.
  */
-export async function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
+async function countCatalogCardsUncached(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
   const client = db();
   const conditions: SQL[] = [eq(products.isActive, true)];
   if (filter.types && filter.types.length > 0) {
@@ -668,7 +697,7 @@ const SEARCH_QUERY_LIMIT = 100;
  * matching catalog. This fetches only what's displayed and caps at
  * `SEARCH_RESULT_LIMIT`.
  */
-export async function searchCatalogCards(query: string): Promise<SearchResultCard[]> {
+async function searchCatalogCardsUncached(query: string): Promise<SearchResultCard[]> {
   const term = query.trim();
   if (term.length === 0) return [];
   const client = db();
@@ -721,6 +750,42 @@ export async function searchCatalogCards(query: string): Promise<SearchResultCar
     });
   }
   return results;
+}
+
+const catalogCache = {
+  tags: [CATALOG_TAG],
+  revalidate: CATALOG_REVALIDATE_SECONDS,
+} as const;
+
+const cachedLoadCatalogCards = unstable_cache(
+  async (key: string) => loadCatalogCardsUncached(JSON.parse(key) as CatalogFilter),
+  ["catalog-cards"],
+  catalogCache,
+);
+
+const cachedCountCatalogCards = unstable_cache(
+  async (key: string) => countCatalogCardsUncached(JSON.parse(key) as Omit<CatalogFilter, "limit" | "offset">),
+  ["catalog-count"],
+  catalogCache,
+);
+
+const cachedSearchCatalogCards = unstable_cache(searchCatalogCardsUncached, ["catalog-search"], catalogCache);
+
+export function loadCatalogCards(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
+  return cachedLoadCatalogCards(catalogFilterKey(filter));
+}
+
+export function countCatalogCards(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
+  return cachedCountCatalogCards(catalogFilterKey(filter));
+}
+
+export function searchCatalogCards(query: string): Promise<SearchResultCard[]> {
+  return cachedSearchCatalogCards(query);
+}
+
+/** Server Actions only. `updateTag` expires the tag immediately so the shop shows the save, instead of `revalidateTag`, which serves the stale entry while it refreshes. */
+export function invalidateCatalog(): void {
+  updateTag(CATALOG_TAG);
 }
 
 function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {

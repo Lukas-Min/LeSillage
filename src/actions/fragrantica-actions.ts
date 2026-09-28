@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateCatalog } from "@/lib/catalog";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
@@ -191,6 +192,7 @@ export async function saveFragranticaImport(formData: FormData) {
   await clearPendingPayload(admin.id, query);
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
   redirect(`/admin/products/${productId}?welcome=1`);
 }
 

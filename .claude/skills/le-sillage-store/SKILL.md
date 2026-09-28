@@ -47,7 +47,7 @@ Le Sillage is a Philippine retail perfume storefront and admin portal built on N
 
 ## Mobile-first
 
-Every layout, typography, navigation, and interactive component must be built and tested at narrow viewports first, then enhanced for larger screens.
+Every layout, typography, navigation, and interactive component must be built and tested at narrow viewports (360–414px) first, then enhanced for larger screens.
 
 ## Loading states
 
@@ -62,4 +62,4 @@ Append a single bullet to `CHANGELOG.md` for every change.
 
 ## Code review checkpoints
 
-`code-review/CHECKPOINT.md` holds the last-reviewed commit SHA; a review scopes to `git diff <that-sha>...HEAD` instead of the whole tree (full baseline only when no checkpoint exists yet, or a full re-audit / specific PR-branch-path target was asked for), and always appends an entry to `code-review/LOG.md` and advances the checkpoint when it finishes — even with zero findings. Full rule and rationale in the repo's `CLAUDE.md` under "Code review checkpoints (hard rule)".
+`code-review/CHECKPOINT.md` holds the last-reviewed commit SHA; a review scopes to `git diff <that-sha>...HEAD` instead of the whole tree (full baseline only when no checkpoint exists yet, or a full re-audit / specific PR-branch-path target was asked for), and always appends an entry to `code-review/LOG.md` and advances the checkpoint when it finishes — even with zero findings. Full rule and rationale in `.cursor/rules/code-review-checkpoints.mdc` (imported by `CLAUDE.md`).

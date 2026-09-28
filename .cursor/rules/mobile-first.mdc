@@ -1,0 +1,9 @@
+---
+description: Build and test every layout at a narrow phone width before enhancing it for larger screens.
+globs: **/*.{ts,tsx,css}
+alwaysApply: true
+---
+
+# Mobile-first
+
+Every layout, typography, navigation, and interactive component must be built and tested at narrow viewports (360–414px) first, then enhanced for larger screens.
