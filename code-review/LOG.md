@@ -20,6 +20,24 @@ Entry template:
 
 ---
 
+## 2026-09-29 — Reviewer passes on allowed-customer promo codes and sale emails; pill sizing measured (not a checkpoint review)
+
+- **Commit range reviewed:** none as a checkpoint review — the uncommitted work behind `a6cf8bc` only, so the checkpoint does not move.
+- **Effort:** medium
+- **Scope / areas covered:** domain-reviewer and storefront-reviewer passes on the promo-code allowed-customers list (`promo_code_allowed_user`, `withAllowedUsers`, `CustomerMultiSelect`) and the site-wide discount subscriber email. Plus the carried backlog item "pill sizing past 576px", measured on the live shop.
+- **Findings:**
+  - [high] Two concurrent site-wide saves could both email every subscriber — `src/actions/admin-actions.ts` — status: fixed (read + write under `FOR UPDATE`)
+  - [high] A pre-deploy admin tab posting `restrictedUserId`, or an edit post without the list field, could open a one-customer code to everyone — `src/actions/admin-promo-code-actions.ts` — status: fixed (legacy field read; `allowedUsersField` marker required to change the list)
+  - [medium] An older build (rollback) would treat list-limited codes as open — status: fixed (a save keeps one listed customer in `restrictedUserId`)
+  - [medium] Removing a deleted customer from a list could empty it and open the code; listed-customer emails ignored opt-out; newsletter form could switch on someone else's account; unverified sign-ups got marketing email — status: fixed
+  - [low] A customer not on the list learned why else a code fails; a 0.4% sale saved as on at 0 — status: fixed
+  - [low] Deleted accounts' old newsletter rows would get the first sale email — status: no-issue (`newsletter_subscriber` was created 2026-09-29, and erasure now deletes the row)
+  - UI: dropdown clipped by `Card` overflow, 24px chip ×, unlabeled combobox / misplaced ARIA roles, non-option rows in the listbox, highlight scrolling out of view, focus lost on Escape / chip removal / tab-away, loading-screen and helper-copy drift, stale "Saved." status — status: fixed
+  - Backlog: pill sizing past 576px — no-issue. Measured on le-sillage.vercel.app/shop at 375/575/576/768/1024/1280/1536: the grid adds columns, so the photo stays 222–277px wide from 576 up; the rating pill is 18–23% and the widest category pill 47–59% of the photo width, with no overlap, overflow, or horizontal scroll at any width.
+- **Checkpoint advanced to:** unchanged (`5c0e045`)
+
+---
+
 ## 2026-09-29 — Applied fixes for the open 2026-09-24 findings (not a new review)
 
 - **Commit range reviewed:** none — fix pass only, so the checkpoint does not move. Each 2026-09-24 finding was re-checked against current code first.
