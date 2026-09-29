@@ -13,8 +13,8 @@ export function ThemeToggle({
   showLabel = false,
 }: {
   className?: string;
-  /** Renders as a full-width labeled row (icon + "Switch to light/dark
-   *  mode" text) instead of the plain icon-only square button — for a
+  /** Renders as a full-width, left-aligned labeled row (icon + "Switch to
+   *  light/dark mode" text, styled like the menu's link rows) instead of the plain icon-only square button — for a
    *  context like a menu list where every other entry has a visible label,
    *  as opposed to the icon row in the header. */
   showLabel?: boolean;
@@ -58,7 +58,7 @@ export function ThemeToggle({
         variant="ghost"
         aria-label={label}
         className={cn(
-          "flex min-h-11 w-full items-center justify-center gap-3 rounded-md px-3 text-sm font-normal text-muted-foreground hover:text-foreground",
+          "flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 text-sm font-normal text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
           className,
         )}
         onClick={toggle}

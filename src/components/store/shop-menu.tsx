@@ -3,62 +3,19 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import {
-  ArrowRight,
-  BadgePercent,
-  ChevronDown,
-  Droplet,
-  Gem,
-  Globe,
-  LayoutGrid,
-  PackageCheck,
-  PackageOpen,
-  Sparkles,
-  SprayCan,
-  Star,
-  Tag,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { ShopTile } from "@/components/store/shop-tile";
 import { cn } from "@/lib/utils";
 
-export interface ShopMenuLink {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-}
-
 /**
- * The shop's entry points, shared by the desktop mega menu and the phone
- * hamburger menu so the two never drift. Every link is a /shop view (a
- * shelf, a filter, or a sort), replacing the old in-page shelf tabs.
+ * The shop's three shelves as cards, shared by the header's Shop menu and
+ * the phone hamburger menu. Same copy as the homepage Browse-by-type rows.
+ * "All fragrances" is the "Shop" link itself.
  */
-export const SHOP_MENU_GROUPS: Array<{ title: string; links: ShopMenuLink[] }> = [
-  {
-    title: "Shop by type",
-    links: [
-      { href: "/shop", label: "All fragrances", icon: LayoutGrid },
-      { href: "/shop?type=DECANT", label: "Decants", icon: Droplet },
-      { href: "/shop?type=FULL_BOTTLE", label: "Full bottles", icon: SprayCan },
-      { href: "/shop?type=PARTIAL", label: "Partials", icon: PackageOpen },
-    ],
-  },
-  {
-    title: "Scent family",
-    links: [
-      { href: "/shop?category=MIDDLE_EASTERN", label: "Middle Eastern", icon: Globe },
-      { href: "/shop?category=DESIGNER", label: "Designer", icon: Tag },
-      { href: "/shop?category=NICHE", label: "Niche", icon: Gem },
-    ],
-  },
-  {
-    title: "Discover",
-    links: [
-      { href: "/shop?sort=discount_desc", label: "On sale", icon: BadgePercent },
-      { href: "/shop?sort=newest", label: "New arrivals", icon: Sparkles },
-      { href: "/shop?sort=rating", label: "Highest rated", icon: Star },
-      { href: "/shop?stock=ON_HAND", label: "Ready to ship", icon: PackageCheck },
-    ],
-  },
+export const SHOP_TYPE_TILES: Array<{ href: string; title: string; description: string }> = [
+  { href: "/shop?type=DECANT", title: "Decants", description: "Try before the full bottle" },
+  { href: "/shop?type=FULL_BOTTLE", title: "Full bottles", description: "Sealed, ready to ship" },
+  { href: "/shop?type=PARTIAL", title: "Partials", description: "Opened once, priced to move" },
 ];
 
 const PANEL_ID = "shop-mega-menu";
@@ -178,44 +135,13 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
           id={PANEL_ID}
           className="fixed inset-x-0 top-full z-40 border-y border-border bg-background shadow-[0_24px_48px_-24px_rgba(31,28,24,0.35)]"
         >
-          <div className="grid grid-cols-3 gap-8 px-8 py-8 normal-case tracking-normal lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.3fr)] 2xl:mx-auto 2xl:max-w-[80vw]">
-            {SHOP_MENU_GROUPS.map((group) => (
-              <div key={group.title} className="space-y-3">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gold-ink">{group.title}</p>
-                <ul className="space-y-0.5">
-                  {group.links.map(({ href, label, icon: Icon }) => (
-                    <li key={href}>
-                      <Link
-                        href={href}
-                        onClick={close}
-                        className="group/link -mx-2 flex min-h-10 items-center gap-3 rounded-md px-2 text-sm text-foreground/85 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold-ink"
-                      >
-                        <Icon className="h-4 w-4 text-gold-ink" aria-hidden="true" />
-                        {label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          <ul className="grid grid-cols-3 gap-4 px-8 py-6 normal-case tracking-normal 2xl:mx-auto 2xl:max-w-[80vw]">
+            {SHOP_TYPE_TILES.map((tile) => (
+              <li key={tile.href}>
+                <ShopTile {...tile} size="menu" as="p" onClick={close} />
+              </li>
             ))}
-            <Link
-              href="/shop?type=DECANT"
-              onClick={close}
-              className="group/tile relative col-span-3 flex min-h-36 flex-col justify-end overflow-hidden rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] p-6 transition-colors hover:border-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-ink lg:col-span-1"
-            >
-              <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
-              <Droplet
-                className="pointer-events-none absolute -right-4 -top-4 h-32 w-32 text-gold/15 transition-colors group-hover/tile:text-gold/25"
-                aria-hidden="true"
-              />
-              <p className="relative text-[10px] uppercase tracking-[0.3em] text-gold-ink">Try before the bottle</p>
-              <p className="relative mt-1.5 font-serif-display text-2xl leading-tight">Decants from 3 ml</p>
-              <span className="relative mt-3 inline-flex items-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink">
-                Shop decants
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/tile:translate-x-0.5" aria-hidden="true" />
-              </span>
-            </Link>
-          </div>
+          </ul>
         </div>
       ) : null}
     </div>

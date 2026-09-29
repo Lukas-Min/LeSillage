@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- The header Shop menu now holds only the three shelves (Decants, Full bottles, Partials) as framed, gold-tinted cards; the scent-family and Discover link lists are gone. The phone hamburger menu shows the same three cards (compact) under "Shop", with a "Shop all fragrances" link and then Preferences below them; the dark-mode switch there is a normal left-aligned menu row. One shared `ShopTile` card (page/menu/compact sizes) now draws the homepage scent families, the Shop menu, and the phone menu (`src/components/store/shop-tile.tsx`, `shop-menu.tsx`, `store-header.tsx`, `home-sections.tsx`, `src/components/theme-toggle.tsx`)
 ### Added
 - Shop mega menu: from `md` up, hovering "Shop" in the header (a real mouse only, with a short grace period to reach the panel) opens a full-width panel under the header with Shop by type (All fragrances, Decants, Full bottles, Partials), Scent family (Middle Eastern, Designer, Niche), Discover (On sale, New arrivals, Highest rated, Ready to ship), and a "Decants from 3 ml" tile; a chevron button toggles it from the keyboard (`aria-expanded`), focus leaving or Escape closes it (Escape returns focus to the chevron), and any link closes it. On phones the same groups replace the single "Shop" link in the hamburger menu. One shared `SHOP_MENU_GROUPS` list feeds both (`src/components/store/shop-menu.tsx`, `src/components/store/store-header.tsx`)
 ### Removed

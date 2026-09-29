@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
+  ArrowRight,
   Menu,
   HelpCircle,
   MessageCircle,
@@ -30,7 +31,8 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { PromoMarquee } from "@/components/store/promo-marquee";
-import { SHOP_MENU_GROUPS, ShopMegaMenu } from "@/components/store/shop-menu";
+import { SHOP_TYPE_TILES, ShopMegaMenu } from "@/components/store/shop-menu";
+import { ShopTile } from "@/components/store/shop-tile";
 
 /** Besides Shop, which is its own mega-menu item (ShopMegaMenu). */
 const PRIMARY_LINKS = [
@@ -38,10 +40,9 @@ const PRIMARY_LINKS = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
-/** The phone menu: the shop groups first (the same links as the desktop mega
- *  menu), then help and the maison. */
+/** The phone menu's link groups, under its Shop cards (the same cards as the
+ *  desktop Shop menu). */
 const MENU_GROUPS = [
-  ...SHOP_MENU_GROUPS,
   {
     title: "Help",
     links: [
@@ -178,8 +179,11 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
 
 function MobileMenu({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
+  // Controlled so the Shop cards (plain links, not SheetClose children) can
+  // close the sheet when tapped.
+  const [open, setOpen] = useState(false);
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon-lg" aria-label="Open menu" className="min-h-11 min-w-11 md:hidden">
           <Menu className="h-5 w-5" />
@@ -196,6 +200,25 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-5 overflow-y-auto px-4 pb-4">
+          <div className="space-y-1.5">
+            <p className="px-3 text-[11px] sm:text-[10px] uppercase tracking-[0.3em] text-gold">Shop</p>
+            <ul className="space-y-2">
+              {SHOP_TYPE_TILES.map((tile) => (
+                <li key={tile.href}>
+                  <ShopTile {...tile} size="compact" as="p" onClick={() => setOpen(false)} />
+                </li>
+              ))}
+            </ul>
+            <SheetClose asChild>
+              <Link
+                href="/shop"
+                className="flex min-h-11 items-center justify-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink"
+              >
+                Shop all fragrances
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+            </SheetClose>
+          </div>
           {/* Only below 576px — from there up, the header's own icon button
               (hidden min-[576px]:inline-flex above) already covers this, and
               showing both would be a confusing duplicate control. */}

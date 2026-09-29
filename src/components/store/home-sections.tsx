@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronRight, Droplet, PackageOpen, SprayCan } from "lucide-react";
 import type { FragranceCategory } from "@/db/schema";
 import { ProductCard } from "@/components/store/product-card";
+import { ShopTile } from "@/components/store/shop-tile";
 import { CatalogCardSkeleton } from "@/components/store/loading";
 import { Eyebrow } from "@/components/ui/section";
 import type { CatalogCardModel } from "@/lib/catalog";
@@ -176,32 +177,13 @@ const FAMILIES: Array<{ category: FragranceCategory; title: string; description:
   { category: "NICHE", title: "Niche", description: "Independent houses with unexpected compositions" },
 ];
 
-/** Framed, gold-tinted tiles into the shop's scent-family filter: name and a short
- *  line at the bottom, "Explore" in the top-right corner, drawn over the initial
- *  as a large watermark behind it. */
+/** ShopTile cards into the shop's scent-family filter. */
 export function ScentFamilies() {
   return (
     <ul className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 sm:gap-4">
       {FAMILIES.map(({ category, title, description }) => (
         <li key={category}>
-          <Link
-            href={`/shop?category=${category}`}
-            className={`group relative flex h-full min-h-40 flex-col justify-end overflow-hidden rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] p-5 transition-colors hover:border-gold sm:min-h-56 sm:p-6 ${HOME_FOCUS_RING}`}
-          >
-            <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
-            <span
-              className="pointer-events-none absolute -top-7 right-4 font-serif-display text-[6.5rem] leading-[0.8] text-gold/15 transition-colors group-hover:text-gold/25 sm:-top-9 sm:right-5 sm:text-[8rem]"
-              aria-hidden="true"
-            >
-              {title.charAt(0)}
-            </span>
-            <h3 className="relative font-serif-display text-2xl leading-tight sm:text-3xl">{title}</h3>
-            <p className="relative mt-1 text-sm text-muted-foreground">{description}</p>
-            <span className="absolute right-5 top-5 inline-flex items-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink sm:right-6 sm:top-6">
-              Explore
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </span>
-          </Link>
+          <ShopTile href={`/shop?category=${category}`} title={title} description={description} />
         </li>
       ))}
     </ul>
