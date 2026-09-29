@@ -625,6 +625,16 @@ export function compareCardNames(a: { name: string }, b: { name: string }): numb
   return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
 }
 
+/** Biggest saving first (no discount last), ties A-Z — the "Biggest discount" sort. */
+export function compareByDiscount(a: CatalogCardModel, b: CatalogCardModel): number {
+  return (b.savePercent ?? -1) - (a.savePercent ?? -1) || compareCardNames(a, b);
+}
+
+/** Highest rating first (unrated last), ties A-Z — the "Most rated" sort. */
+export function compareByRating(a: CatalogCardModel, b: CatalogCardModel): number {
+  return (b.ratingValue ?? -1) - (a.ratingValue ?? -1) || compareCardNames(a, b);
+}
+
 /**
  * Every sort breaks ties by name A-Z, so equal prices, ratings, or discounts
  * (e.g. 19 bottles all at 10% off) read alphabetically instead of in the
@@ -640,10 +650,10 @@ function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardMod
       sorted.sort((a, b) => b.minDiscountedCentavos - a.minDiscountedCentavos || compareCardNames(a, b));
       return sorted;
     case "rating":
-      sorted.sort((a, b) => (b.ratingValue ?? -1) - (a.ratingValue ?? -1) || compareCardNames(a, b));
+      sorted.sort(compareByRating);
       return sorted;
     case "discount_desc":
-      sorted.sort((a, b) => (b.savePercent ?? -1) - (a.savePercent ?? -1) || compareCardNames(a, b));
+      sorted.sort(compareByDiscount);
       return sorted;
     case "name_asc":
       sorted.sort(compareCardNames);

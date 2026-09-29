@@ -1,29 +1,48 @@
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accounts, marketingEmails, newsletterSubscribers, users } from "@/db/schema";
 import { mergeMarketingRecipients, type MarketingRecipient } from "@/domain/marketing";
 
-/** Everyone subscribed to news and promotions — see mergeMarketingRecipients for the rules. */
-export async function loadMarketingRecipients(): Promise<MarketingRecipient[]> {
+/**
+ * Everyone subscribed to news and promotions — see mergeMarketingRecipients
+ * for the rules. Pass `onlyEmails` (lowercased) to check just those
+ * addresses, e.g. the send queue's current batch, instead of reading every
+ * customer.
+ */
+export async function loadMarketingRecipients(onlyEmails?: readonly string[]): Promise<MarketingRecipient[]> {
+  if (onlyEmails && onlyEmails.length === 0) return [];
   const client = db();
-  const [people, oauthLinks, subscribers] = await Promise.all([
-    client
-      .select({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        marketingOptIn: users.marketingOptIn,
-        emailVerified: users.emailVerified,
-        deletedAt: users.deletedAt,
-        archivedAt: users.archivedAt,
-      })
-      .from(users),
-    client.select({ userId: accounts.userId }).from(accounts),
+  const emailList = onlyEmails ? [...onlyEmails] : null;
+  const people = await client
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      marketingOptIn: users.marketingOptIn,
+      emailVerified: users.emailVerified,
+      deletedAt: users.deletedAt,
+      archivedAt: users.archivedAt,
+    })
+    .from(users)
+    .where(emailList ? inArray(sql`lower(${users.email})`, emailList) : undefined);
+  const [oauthLinks, subscribers] = await Promise.all([
+    emailList
+      ? people.length
+        ? client
+            .select({ userId: accounts.userId })
+            .from(accounts)
+            .where(inArray(accounts.userId, people.map((person) => person.id)))
+        : Promise.resolve([])
+      : client.select({ userId: accounts.userId }).from(accounts),
     // Only confirmed sign-ups: anyone can type any address into the form.
     client
       .select({ email: newsletterSubscribers.email })
       .from(newsletterSubscribers)
-      .where(isNotNull(newsletterSubscribers.confirmedAt)),
+      .where(
+        emailList
+          ? and(isNotNull(newsletterSubscribers.confirmedAt), inArray(newsletterSubscribers.email, emailList))
+          : isNotNull(newsletterSubscribers.confirmedAt),
+      ),
   ]);
   // Google sign-ins don't set emailVerified here, but Google already verified the address.
   const linked = new Set(oauthLinks.map((link) => link.userId));

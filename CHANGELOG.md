@@ -3,6 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Shop menu: in Safari, clicking a card after opening the menu by click did nothing (Safari doesn't focus links, so the blur-to-nothing closed and unmounted the menu first); blur now only closes it when focus lands outside, and an outside press closes it. The header sets `contain: layout` so the menu panel no longer depends on the header's blur to stay anchored (`src/components/store/shop-menu.tsx`, `store-header.tsx`)
+- Marketing email: a confirmed newsletter sign-up now counts for an unverified account (unless that account turned promotions off); promo-code emails are no longer sent for a code whose end date has passed; a send interrupted by a crash is marked failed instead of being re-sent as a duplicate; and each queue run loads only its batch's recipients instead of every customer (`src/domain/marketing.ts`, `src/actions/admin-promo-code-actions.ts`, `src/lib/marketing-queue.ts`, `src/lib/marketing-recipients.ts`)
+- /shop with a `?page=` past the end (an old link, or the page size flipping between 20 and 21) shows the last real page instead of an empty shelf; the homepage rails reuse the shop's discount and rating orderings (`compareByDiscount`/`compareByRating` in `src/lib/catalog.ts`) (`src/app/(store)/shop/page.tsx`, `src/lib/home-rails.ts`)
 ### Added
 - Authenticity guarantee: a full refund if anything sold is proven fake, final-sale items (decants, partials, testers) included, stated in the shared returns policy (`policyCopy.returns`, shown on the product page, cart, cart drawer, and Policies page), the FAQ's "Are your fragrances authentic?", and the About page's "Authorised distributors only" pillar (`src/lib/policy-copy.ts`, `faq-copy.ts`, `about-copy.ts`)
 - FAQ "Can I get news and promotions by email?" (homepage and Contact sign-up, email confirmation first, an Unsubscribe link in every promotional email, order emails unaffected); the scent-family answer points to the homepage and Filter → Shelf, and the shipping answer to Filter → Stock (`src/lib/faq-copy.ts`)

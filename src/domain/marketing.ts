@@ -24,31 +24,36 @@ export interface MarketingAccount {
 
 /**
  * Everyone who asked for news and promotions: accounts with marketing opt-in
- * that are neither deleted nor archived, plus newsletter sign-ups with no
- * account (the caller passes only confirmed ones — double opt-in). Accounts
- * must be verified, so signing up with someone else's address can't
- * subscribe them. When an email belongs to an account, the
- * account's setting decides — turning promotions off in Account →
- * Notifications wins over an old newsletter row. Emails are compared
- * lowercased and listed once.
+ * that are neither deleted nor archived, plus newsletter sign-ups (the caller
+ * passes only confirmed ones — double opt-in). An account counts on its own
+ * only once verified, so signing up with someone else's address can't
+ * subscribe them; a confirmed newsletter sign-up proves the address too, so
+ * it also counts for an unverified account. When an email belongs to an
+ * account, the account's setting decides — turning promotions off in
+ * Account → Notifications wins over a newsletter row, and deleted or archived
+ * accounts get nothing. Emails are compared lowercased and listed once.
  */
 export function mergeMarketingRecipients(
   accounts: readonly MarketingAccount[],
   newsletterEmails: readonly string[],
 ): MarketingRecipient[] {
   const byEmail = new Map<string, MarketingRecipient>();
-  const accountEmails = new Set<string>();
+  const accountByEmail = new Map<string, MarketingAccount>();
+  const wantsEmail = (account: MarketingAccount) => account.marketingOptIn && !account.deletedAt && !account.archivedAt;
   for (const account of accounts) {
     if (!account.email) continue;
     const email = account.email.trim().toLowerCase();
-    accountEmails.add(email);
-    if (account.marketingOptIn && account.verified && !account.deletedAt && !account.archivedAt) {
+    accountByEmail.set(email, account);
+    if (wantsEmail(account) && account.verified) {
       byEmail.set(email, { email, name: account.name });
     }
   }
   for (const raw of newsletterEmails) {
     const email = raw.trim().toLowerCase();
-    if (!accountEmails.has(email) && !byEmail.has(email)) byEmail.set(email, { email, name: null });
+    if (byEmail.has(email)) continue;
+    const account = accountByEmail.get(email);
+    if (!account) byEmail.set(email, { email, name: null });
+    else if (wantsEmail(account)) byEmail.set(email, { email, name: account.name });
   }
   return [...byEmail.values()];
 }

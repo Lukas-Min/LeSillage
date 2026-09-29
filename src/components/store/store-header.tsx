@@ -89,7 +89,11 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+    // [contain:layout] makes the header the containing block for fixed
+    // descendants on purpose: ShopMegaMenu's panel is `fixed inset-x-0
+    // top-full` and must hang off the header, not the viewport. (The
+    // backdrop-blur does the same today, but only as a side effect.)
+    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur [contain:layout]">
       {/* Matches the page-content container's cap (root layout, 2xl:80vw) so
           the logo/nav align with the content below instead of sitting flush
           against the edge of an ultra-wide screen while the page itself is

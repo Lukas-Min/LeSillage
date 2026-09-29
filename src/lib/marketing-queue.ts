@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, lt } from "drizzle-orm";
 import { db } from "@/db/client";
 import { marketingEmails, notificationLog } from "@/db/schema";
 import { MARKETING_EMAILS_PER_RUN, MARKETING_SEND_STALE_MS } from "@/domain/marketing";
@@ -43,9 +43,11 @@ export interface MarketingQueueRunResult {
 /**
  * Sends the next batch of queued marketing email. Rows are claimed with
  * FOR UPDATE SKIP LOCKED, so the hourly Worker run, Vercel's daily fallback
- * and a post-save run can overlap without sending anything twice; a row left
- * SENDING by a crashed run is picked up again after MARKETING_SEND_STALE_MS.
- * Anyone who unsubscribed after the email was queued is skipped.
+ * and a post-save run can overlap without sending anything twice. A row left
+ * SENDING by a crashed run (older than MARKETING_SEND_STALE_MS) is marked
+ * FAILED rather than retried: the crash may have come after the email went
+ * out, and a missed promo is better than a duplicate one. Anyone who
+ * unsubscribed after the email was queued is skipped.
  */
 export async function drainMarketingQueue(
   limit: number = MARKETING_EMAILS_PER_RUN,
@@ -53,16 +55,15 @@ export async function drainMarketingQueue(
 ): Promise<MarketingQueueRunResult> {
   const client = db();
   const stale = new Date(now.getTime() - MARKETING_SEND_STALE_MS);
+  await client
+    .update(marketingEmails)
+    .set({ status: "FAILED", error: "Interrupted mid-send; not resent to avoid a duplicate" })
+    .where(and(eq(marketingEmails.status, "SENDING"), lt(marketingEmails.claimedAt, stale)));
   const claimed = await client.transaction(async (tx) => {
     const next = await tx
       .select({ id: marketingEmails.id })
       .from(marketingEmails)
-      .where(
-        or(
-          eq(marketingEmails.status, "PENDING"),
-          and(eq(marketingEmails.status, "SENDING"), lt(marketingEmails.claimedAt, stale)),
-        ),
-      )
+      .where(eq(marketingEmails.status, "PENDING"))
       .orderBy(asc(marketingEmails.createdAt))
       .limit(limit)
       .for("update", { skipLocked: true });
@@ -82,7 +83,11 @@ export async function drainMarketingQueue(
   const result: MarketingQueueRunResult = { sent: 0, failed: 0, skipped: 0 };
   if (claimed.length === 0) return result;
 
-  const subscribed = new Set((await loadMarketingRecipients()).map((recipient) => recipient.email));
+  const subscribed = new Set(
+    (await loadMarketingRecipients([...new Set(claimed.map((email) => email.recipient))])).map(
+      (recipient) => recipient.email,
+    ),
+  );
   for (const email of claimed) {
     if (!subscribed.has(email.recipient)) {
       await client

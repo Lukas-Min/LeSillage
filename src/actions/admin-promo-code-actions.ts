@@ -114,6 +114,12 @@ async function loadEligibleSubscribers(
   return eligible.filter((u): u is { id: string; email: string; name: string | null } => u.email !== null);
 }
 
+/** True when a code's end date has already passed (checkout would reject it
+ *  as expired), so saving it must not email anyone about it. */
+function hasEnded(endsAt: Date | null): boolean {
+  return endsAt !== null && endsAt.getTime() < Date.now();
+}
+
 /** Queues a promo email for every still-eligible subscriber after the
  *  response, and sends the first batch; the hourly cron sends the rest. */
 function broadcastPromoEmail(code: {
@@ -337,7 +343,8 @@ export async function createPromoCode(
   });
   revalidatePath("/admin/promo");
   for (const customer of allowed) revalidatePath(`/admin/customers/${customer.id}`);
-  if (parsed.sendEmail) {
+  // An already-expired code can't be used, so there's nothing to announce.
+  if (parsed.sendEmail && !hasEnded(endsAt)) {
     if (allowed.length > 0) {
       const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
       emailAllowedCustomers(allowed, {
@@ -554,9 +561,10 @@ export async function updatePromoCode(
   for (const userId of new Set([...previousAllowedUserIds, ...allowed.map((customer) => customer.id)])) {
     revalidatePath(`/admin/customers/${userId}`);
   }
-  // A deactivated code has no eligible recipients regardless of the checkbox
-  // — nobody can use it, so there's nothing worth emailing about.
-  if (parsed.sendEmail && current.isActive) {
+  // A deactivated or already-expired code has no eligible recipients
+  // regardless of the checkbox — nobody can use it, so there's nothing worth
+  // emailing about.
+  if (parsed.sendEmail && current.isActive && !hasEnded(endsAt)) {
     if (allowed.length > 0) {
       const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
       emailAllowedCustomers(allowed, { code: parsed.code, offer, description, minSpendCentavos });

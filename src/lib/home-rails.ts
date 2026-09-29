@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { compareCardNames, loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
+import { compareByDiscount, compareByRating, loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
 
 const RAIL_SIZE = 10;
 /** New arrivals and decants cap each brand so one big drop (e.g. 19 Velixir
@@ -44,17 +44,14 @@ export const loadHomeRails = cache(async (): Promise<HomeRails> => {
   const cards = (await loadCatalogCards({ sort: "newest" })).filter((card) => !card.soldOut);
   const shown = new Set<string>();
   const deals = pick(
-    // Biggest saving first, equal savings A-Z (the shop's discount sort).
-    cards
-      .filter((card) => card.hasDiscount)
-      .sort((a, b) => (b.savePercent ?? 0) - (a.savePercent ?? 0) || compareCardNames(a, b)),
+    // The shop's "Biggest discount" order.
+    cards.filter((card) => card.hasDiscount).sort(compareByDiscount),
     shown,
   );
   const newArrivals = pick(cards, shown, PER_BRAND_CAP);
   const decants = pick(
-    cards
-      .filter((card) => card.type === "DECANT")
-      .sort((a, b) => (b.ratingValue ?? -1) - (a.ratingValue ?? -1) || compareCardNames(a, b)),
+    // The shop's "Most rated" order.
+    cards.filter((card) => card.type === "DECANT").sort(compareByRating),
     shown,
     PER_BRAND_CAP,
   );

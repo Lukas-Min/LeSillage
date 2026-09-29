@@ -39,8 +39,20 @@ describe("mergeMarketingRecipients", () => {
     expect(recipients).toEqual([]);
   });
 
-  it("skips an account that never verified its email, even with a newsletter row", () => {
-    expect(mergeMarketingRecipients([account({ verified: false })], ["ana@example.com"])).toEqual([]);
+  it("skips an unverified account on its own", () => {
+    expect(mergeMarketingRecipients([account({ verified: false })], [])).toEqual([]);
+  });
+
+  it("counts a confirmed newsletter sign-up for an unverified account, since the confirm link proves the address", () => {
+    expect(mergeMarketingRecipients([account({ verified: false })], ["ana@example.com"])).toEqual([
+      { email: "ana@example.com", name: "Ana" },
+    ]);
+  });
+
+  it("lets an unverified account that turned promotions off win over its newsletter row", () => {
+    expect(
+      mergeMarketingRecipients([account({ verified: false, marketingOptIn: false })], ["ana@example.com"]),
+    ).toEqual([]);
   });
 
   it("lists an address once, whatever its case", () => {

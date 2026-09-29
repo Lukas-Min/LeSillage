@@ -134,11 +134,15 @@ async function ShopResults({
     ...(stock ? { availability: stock } : {}),
     ...(gender ? { gender } : {}),
   };
-  const [total, cards] = await Promise.all([
-    countCatalogCards(baseFilter),
-    loadCatalogCards({ ...baseFilter, sort, limit: pageSize, offset: (page - 1) * pageSize }),
-  ]);
+  const loadPage = (target: number) =>
+    loadCatalogCards({ ...baseFilter, sort, limit: pageSize, offset: (target - 1) * pageSize });
+  const [total, requestedCards] = await Promise.all([countCatalogCards(baseFilter), loadPage(page)]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // A ?page= past the end (an old link, or the page size flipping between 20
+  // and 21 when the grid width changes) shows the last real page instead of
+  // an empty shelf.
+  const currentPage = Math.min(page, totalPages);
+  const cards = currentPage === page ? requestedCards : await loadPage(currentPage);
 
   function pageHref(target: number) {
     const params = new URLSearchParams();
@@ -162,7 +166,7 @@ async function ShopResults({
         activeGender={gender}
       />
       <CatalogResults cards={cards} emptyLabel="Nothing on this shelf yet." showCount={false} />
-      <CatalogPagination page={page} totalPages={totalPages} href={pageHref} />
+      <CatalogPagination page={currentPage} totalPages={totalPages} href={pageHref} />
     </div>
   );
 }

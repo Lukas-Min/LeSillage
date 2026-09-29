@@ -91,15 +91,30 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
         toggleRef.current?.focus();
       }
     }
+    // Clicking or tapping anywhere outside closes it. (Blur can't do this
+    // job: Safari doesn't focus a link on click, so clicking a card inside
+    // the menu also blurs to "nothing", and closing then would unmount the
+    // card before its click lands.)
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) close();
+    }
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
   }, [open, close]);
 
   return (
     <div
       ref={rootRef}
       onBlur={(event) => {
-        if (!rootRef.current?.contains(event.relatedTarget as Node | null)) close();
+        // Only when keyboard focus lands somewhere real outside the menu
+        // (Tab past its last card). A null relatedTarget is a click; the
+        // outside-press listener above handles those.
+        const next = event.relatedTarget as Node | null;
+        if (next && !rootRef.current?.contains(next)) close();
       }}
       className="flex items-center"
     >
@@ -133,11 +148,12 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
 
       {open ? (
         // `fixed`, but anchored to the sticky <header>, not the viewport: the
-        // header's backdrop-blur makes it the containing block for fixed
-        // descendants (and nothing between here and it has a transform —
-        // the nav is centred without one for exactly this reason). So
-        // inset-x-0/top-full = the header's full width, right under it and
-        // the promo bar, and it rides along with the sticky header.
+        // header sets `contain: layout`, which makes it the containing block
+        // for fixed descendants (and nothing between here and it has a
+        // transform — the nav is centred without one for exactly this
+        // reason). So inset-x-0/top-full = the header's full width, right
+        // under it and the promo bar, and it rides along with the sticky
+        // header.
         <div
           id={PANEL_ID}
           className="fixed inset-x-0 top-full z-40 border-y border-border bg-background shadow-[0_24px_48px_-24px_rgba(31,28,24,0.35)]"
