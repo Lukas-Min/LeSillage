@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { CatalogPagination } from "@/components/store/catalog-pagination";
 import { CatalogResults } from "@/components/store/catalog-grid";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
+import { ShopGridSync } from "@/components/store/shop-grid-sync";
 import { ShopToolbar } from "@/components/store/shop-toolbar";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
@@ -11,11 +13,11 @@ import { fragranceCategory as CATEGORIES } from "@/db/schema";
 import type { FragranceCategory, Fulfillment, ProductType } from "@/db/schema";
 import { GENDERS, type Gender } from "@/domain/gender";
 import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
+import { SHOP_COLS_COOKIE, shopPageSize } from "@/lib/shop-grid";
 
 export const dynamic = "force-dynamic";
 
 const VALID_TYPES: ProductType[] = ["DECANT", "FULL_BOTTLE", "PARTIAL"];
-const PAGE_SIZE = 20;
 
 interface ShopSearchParams {
   type?: string;
@@ -73,6 +75,10 @@ export default async function ShopPage({
   const gender = parseEnum(params.gender, GENDERS) as Gender | undefined;
   const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "name_asc";
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
+  // 21 per page while the grid is three columns wide, 20 otherwise, so
+  // every page ends on a full row (src/lib/shop-grid.ts).
+  const threeColumns = (await cookies()).get(SHOP_COLS_COOKIE)?.value === "3";
+  const pageSize = shopPageSize(threeColumns);
 
   return (
     <main className="flex w-full flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
@@ -83,14 +89,23 @@ export default async function ShopPage({
             : [{ label: "Home", href: "/" }, { label: "Shop" }]
         }
       />
-      {/* No visible header: breadcrumbs, then straight into the tabs and
-          products. The page still needs its h1 for screen readers. */}
+      {/* No visible header: breadcrumbs, then straight into the products.
+          The page still needs its h1 for screen readers. */}
       <h1 className="sr-only">Shop</h1>
+      <ShopGridSync threeColumns={threeColumns} />
       <Suspense
-        key={[type, category, stock, gender, sort, page].join("|")}
-        fallback={<CatalogResultsSkeleton toolbar />}
+        key={[type, category, stock, gender, sort, page, pageSize].join("|")}
+        fallback={<CatalogResultsSkeleton toolbar count={pageSize} />}
       >
-        <ShopResults type={type} category={category} stock={stock} gender={gender} sort={sort} page={page} />
+        <ShopResults
+          type={type}
+          category={category}
+          stock={stock}
+          gender={gender}
+          sort={sort}
+          page={page}
+          pageSize={pageSize}
+        />
       </Suspense>
     </main>
   );
@@ -103,6 +118,7 @@ async function ShopResults({
   gender,
   sort,
   page,
+  pageSize,
 }: {
   type?: ProductType;
   category?: FragranceCategory;
@@ -110,6 +126,7 @@ async function ShopResults({
   gender?: Gender;
   sort: CatalogSort;
   page: number;
+  pageSize: number;
 }) {
   const baseFilter = {
     ...(type ? { type } : {}),
@@ -119,9 +136,9 @@ async function ShopResults({
   };
   const [total, cards] = await Promise.all([
     countCatalogCards(baseFilter),
-    loadCatalogCards({ ...baseFilter, sort, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+    loadCatalogCards({ ...baseFilter, sort, limit: pageSize, offset: (page - 1) * pageSize }),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   function pageHref(target: number) {
     const params = new URLSearchParams();

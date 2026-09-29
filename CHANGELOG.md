@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- /shop shows 21 cards per page while its grid is three columns wide (640-1023px), and 20 otherwise, so every page ends on a full row (20 already divides evenly into 1, 2, 4, and 5 columns). The server can't see the screen, so a small client component (`ShopGridSync`) records the grid width in a `shop_cols` cookie and refreshes once when it changes (first visit, or a resize across the breakpoint); if cookies are blocked it stays on 20. Pagination, the results skeleton, and `loading.tsx` use the same size (`src/lib/shop-grid.ts`, `src/components/store/shop-grid-sync.tsx`, `src/app/(store)/shop/page.tsx`, `shop/loading.tsx`)
+### Changed
 - Every shop sort now breaks ties by name A-Z ("Biggest discount"/On sale lists all sale items alphabetically, then the rest alphabetically, instead of newest-added first; same for price and rating); "Newest" keeps creation order. The homepage deals and decants rails use the same tiebreak (`sortCards`/`compareCardNames` in `src/lib/catalog.ts`, `src/lib/home-rails.ts`)
 - The Shop menu (header dropdown and phone menu) gains an "All fragrances" card as the first of four, replacing the phone menu's separate "Shop all fragrances" link (`src/components/store/shop-menu.tsx`, `store-header.tsx`)
 ### Changed
