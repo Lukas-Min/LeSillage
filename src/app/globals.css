@@ -139,10 +139,14 @@
      button. 2.75rem is Tailwind's h-11. min-height (not height) so a
      size="sm" or h-7 utility cannot shrink a button back under the field
      it sits next to. Icon-only buttons opt out with data-size="icon*".
-     Textareas stay multi-line and are not in this list. */
+     Textareas stay multi-line and are not in this list.
+     Only the Button component (data-slot="button") — never every <button>:
+     the Checkbox, accordion rows and chip × buttons are <button>s too, and
+     44px broke them (Remember me sat above its label). A deliberately
+     compact inline Button (Clear bag, Customize) opts out with data-compact. */
   select,
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
-  button:not([data-size="icon"]):not([data-size="icon-xs"]):not([data-size="icon-sm"]):not([data-size="icon-lg"]) {
+  [data-slot="button"]:not([data-size="icon"]):not([data-size="icon-xs"]):not([data-size="icon-sm"]):not([data-size="icon-lg"]):not([data-compact]) {
     box-sizing: border-box;
     min-height: 2.75rem;
   }

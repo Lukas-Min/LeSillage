@@ -190,6 +190,7 @@ export function CartLineItem({
                 type="button"
                 variant="ghost"
                 size="sm"
+                data-compact
                 className="h-7 shrink-0 px-2 text-[11px] uppercase tracking-[0.15em]"
                 disabled={saving || locked}
                 onClick={customizing ? cancelCustomize : openCustomize}
@@ -300,6 +301,7 @@ export function CartLineItem({
               type="button"
               variant="gold"
               size="sm"
+              data-compact
               className="h-8 px-3 text-xs"
               disabled={saving || loadingSiblings}
               onClick={saveCustomize}

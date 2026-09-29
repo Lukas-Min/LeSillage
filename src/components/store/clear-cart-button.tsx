@@ -41,6 +41,7 @@ export function ClearCartButton({ className }: { className?: string }) {
           type="button"
           variant="ghost"
           size="sm"
+          data-compact
           className={cn("h-7 gap-1.5 px-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground", className)}
         >
           {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
