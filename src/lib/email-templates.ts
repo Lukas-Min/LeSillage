@@ -514,7 +514,6 @@ Unsubscribe: ${args.unsubscribeUrl}
     greeting: `Hi ${who},`,
     intro: args.window ? [lead, args.window] : [lead],
     cta: { label: "Shop now", url: shopUrl },
-    footnote: why,
   });
   return { subject, text, html };
 }

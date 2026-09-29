@@ -71,7 +71,8 @@ export interface OrderEmailHtmlArgs {
   outro?: string[];
   /** Trailing small print (URLs the text version spells out, "reply to this email"). */
   footnote?: string;
-  /** Marketing email only: adds an Unsubscribe link to the footer. */
+  /** Promotional email only (never order or account email): adds the
+   *  Unsubscribe button to the footer. */
   unsubscribeUrl?: string;
 }
 
@@ -164,6 +165,17 @@ function totalsTable(totals: EmailTotal[]): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:10px">${rows}</table>`;
 }
 
+/** Footer button on promotional email. Outlined rather than gold so it never
+ *  competes with the email's own call to action. */
+function unsubscribeButton(url: string): string {
+  return `
+    <div style="margin-top:14px">You're getting this because you subscribed to news and promotions.</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:10px auto 0"><tr><td style="border:1px solid ${GOLD};border-radius:999px">
+      <a href="${escapeHtml(url)}" style="display:inline-block;padding:9px 22px;font-family:${FONT};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${INK};text-decoration:none">Unsubscribe</a>
+    </td></tr></table>
+    <div style="margin-top:6px">Order emails still arrive.</div>`;
+}
+
 function ctaButton(cta: { label: string; url: string }): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px auto 6px"><tr>
   <td align="center" style="background:${GOLD};border-radius:999px">
@@ -206,11 +218,7 @@ ${parts.join("\n")}
   </td></tr>
   <tr><td align="center" style="padding:16px 28px 22px;background:${BG};border-radius:0 0 16px 16px;font-size:12px;line-height:1.6;color:${MUTED}">
     Decants, partials and full bottles · <a href="${site}" style="color:${GOLD};text-decoration:none">${escapeHtml(site.replace(/^https?:\/\//, ""))}</a><br>
-    Questions? Just reply to this email.${
-      args.unsubscribeUrl
-        ? `<br><a href="${escapeHtml(args.unsubscribeUrl)}" style="color:${MUTED};text-decoration:underline">Unsubscribe</a> from news and promotions.`
-        : ""
-    }
+    Questions? Just reply to this email.${args.unsubscribeUrl ? unsubscribeButton(args.unsubscribeUrl) : ""}
   </td></tr>
 </table>
 </td></tr></table>

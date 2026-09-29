@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Email is two kinds, written down in `.cursor/rules/email-types.mdc` (imported by `CLAUDE.md`): order and account email always goes to the customer; promotional email goes only to subscribers, through `enqueueMarketingEmails`, with an Unsubscribe button. Promotional email now has a real outlined Unsubscribe button in the footer ("You're getting this because you subscribed to news and promotions … Order emails still arrive") instead of a text link (`src/lib/email-html.ts`), and the queue refuses any promotional email that doesn't carry its recipient's unsubscribe link
 ### Added
 - Promo codes have an optional Description (up to 500 characters) on the code form and on a customer's "Add promo code" page. It goes in the email customers get about the code and under the code in Account → Promo codes (`promo_code.description`, **run its SQL before deploying**). Saving from a form that predates the field keeps the existing description
 - The promo code email shows the minimum order the code needs ("₱2,000.00 per order, counted after other discounts", or "None — any order qualifies"), in both the text and HTML versions (`promoAssignedEmail`)

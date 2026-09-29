@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { marketingEmails, notificationLog } from "@/db/schema";
 import { MARKETING_EMAILS_PER_RUN, MARKETING_SEND_STALE_MS } from "@/domain/marketing";
 import { sendEmail } from "@/lib/email";
-import { listUnsubscribeHeaders } from "@/lib/email-links";
+import { listUnsubscribeHeaders, unsubscribePageUrl } from "@/lib/email-links";
 import { loadMarketingRecipients } from "@/lib/marketing-recipients";
 
 export interface QueuedMarketingEmail {
@@ -15,7 +15,18 @@ export interface QueuedMarketingEmail {
   html: string;
 }
 
+/**
+ * The only way promotional email leaves the store: queued here, then sent by
+ * drainMarketingQueue to people who are still subscribed. Order and account
+ * email never comes through here (see .cursor/rules/email-types.mdc). Every
+ * email must carry its recipient's unsubscribe link in both versions.
+ */
 export async function enqueueMarketingEmails(emails: readonly QueuedMarketingEmail[]): Promise<void> {
+  const missing = emails.find((email) => {
+    const link = unsubscribePageUrl(email.recipient);
+    return !email.text.includes(link) || !email.html.includes(link.replaceAll("&", "&amp;"));
+  });
+  if (missing) throw new Error(`Promotional email "${missing.template}" has no unsubscribe link`);
   for (let start = 0; start < emails.length; start += 500) {
     await db()
       .insert(marketingEmails)

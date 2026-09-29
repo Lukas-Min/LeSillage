@@ -1,0 +1,22 @@
+---
+description: Two kinds of email — order/account email always goes out; promotional email only to subscribers, with an Unsubscribe button.
+alwaysApply: true
+---
+
+# Email types
+
+The store sends two kinds of email. Decide which one a new email is before writing it.
+
+## Order and account email — always sent
+
+Anything about the customer's own order or account: order placed, payment reminder, receipt received or rejected, payment verified, shipped, delivered, ready for pickup, the day-2 "did it arrive?", cancellations, sign-in and password codes, security notices, and the newsletter confirm link someone just asked for.
+
+- Send it with `sendEmail` straight to the customer. Never check `marketingOptIn` or the newsletter list.
+- No Unsubscribe button and no `unsubscribeUrl`. Unsubscribing never stops these.
+
+## Promotional email — subscribers only
+
+Anything that sells: sale announcements, promo codes, new arrivals, restocks, newsletters.
+
+- Build it with a template that takes `unsubscribeUrl` (`unsubscribePageUrl(email)` from `src/lib/email-links.ts`) and passes it to `renderOrderEmailHtml`, which draws the Unsubscribe button; the text version spells out the link.
+- Queue it with `enqueueMarketingEmails` (`src/lib/marketing-queue.ts`). Never call `sendEmail` for it directly. The queue refuses an email without its unsubscribe link, sends only to `loadMarketingRecipients` (verified opted-in accounts and confirmed newsletter sign-ups), adds the one-click `List-Unsubscribe` header, and paces sending under Gmail's daily limit.

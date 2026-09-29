@@ -101,4 +101,11 @@ describe("escapeHtml", () => {
   it("escapes the five HTML-significant characters", () => {
     expect(escapeHtml(`<a href="x">'&'</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
   });
+
+  it("adds the Unsubscribe button only to promotional email", () => {
+    const promo = renderOrderEmailHtml({ ...base, unsubscribeUrl: "https://example.com/unsubscribe?email=a%40b.c&token=t" });
+    expect(promo).toContain('href="https://example.com/unsubscribe?email=a%40b.c&amp;token=t"');
+    expect(promo).toContain(">Unsubscribe</a>");
+    expect(renderOrderEmailHtml(base)).not.toContain("Unsubscribe");
+  });
 });
