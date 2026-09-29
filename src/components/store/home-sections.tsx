@@ -257,19 +257,19 @@ export function ShelfTiles() {
   );
 }
 
-const FAMILIES: Array<{ slug: string; title: string }> = [
-  { slug: "middle-eastern", title: "Middle Eastern" },
-  { slug: "designer", title: "Designer" },
-  { slug: "niche", title: "Niche" },
+const FAMILIES: Array<{ slug: string; title: string; description: string }> = [
+  { slug: "middle-eastern", title: "Middle Eastern", description: "Rich oud, amber, and spice, made to linger" },
+  { slug: "designer", title: "Designer", description: "The names you know, polished and easy to wear" },
+  { slug: "niche", title: "Niche", description: "Independent houses with unexpected compositions" },
 ];
 
-/** Framed, gold-tinted tiles for the /collections pages: the name at the
- *  bottom, "Explore" in the top-right corner, drawn over the initial
+/** Framed, gold-tinted tiles for the /collections pages: name and a short
+ *  line at the bottom, "Explore" in the top-right corner, drawn over the initial
  *  as a large watermark behind it. */
 export function ScentFamilies() {
   return (
     <ul className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 sm:gap-4">
-      {FAMILIES.map(({ slug, title }) => (
+      {FAMILIES.map(({ slug, title, description }) => (
         <li key={slug}>
           <Link
             href={`/collections/${slug}`}
@@ -277,12 +277,13 @@ export function ScentFamilies() {
           >
             <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
             <span
-              className="pointer-events-none absolute -top-3 right-4 font-serif-display text-[6.5rem] leading-[0.8] text-gold/15 transition-colors group-hover:text-gold/25 sm:-top-4 sm:right-5 sm:text-[8rem]"
+              className="pointer-events-none absolute -top-7 right-4 font-serif-display text-[6.5rem] leading-[0.8] text-gold/15 transition-colors group-hover:text-gold/25 sm:-top-9 sm:right-5 sm:text-[8rem]"
               aria-hidden="true"
             >
               {title.charAt(0)}
             </span>
             <h3 className="relative font-serif-display text-2xl leading-tight sm:text-3xl">{title}</h3>
+            <p className="relative mt-1 text-sm text-muted-foreground">{description}</p>
             <span className="absolute right-5 top-5 inline-flex items-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink sm:right-6 sm:top-6">
               Explore
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
