@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight, ChevronRight, Droplet, PackageOpen, SprayCan } from "lucide-react";
 import type { FragranceCategory } from "@/db/schema";
 import { ProductCard } from "@/components/store/product-card";
-import { RailScroller } from "@/components/store/rail-scroller";
 import { ShopTile } from "@/components/store/shop-tile";
 import { CatalogCardSkeleton } from "@/components/store/loading";
 import { Eyebrow } from "@/components/ui/section";
@@ -84,13 +83,13 @@ function RailCards({ cards, emptyMessage }: { cards: CatalogCardModel[]; emptyMe
     );
   }
   return (
-    <RailScroller className={`${RAIL_LIST_CLASS} cursor-grab`}>
+    <ul className={RAIL_LIST_CLASS}>
       {cards.map((card) => (
         <li key={card.productId} className={RAIL_ITEM_CLASS}>
           <ProductCard card={card} headingLevel={3} />
         </li>
       ))}
-    </RailScroller>
+    </ul>
   );
 }
 
