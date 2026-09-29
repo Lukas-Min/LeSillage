@@ -197,6 +197,21 @@ function AccountMoreMenu({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+const ID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "7f0c…-…/skus/new" → "Details · Skus · New": a raw ID means nothing in a
+ *  breadcrumb (the page's own heading names the record), so it reads as
+ *  "Details". */
+function trailingCrumbLabel(trailing: string): string {
+  return trailing
+    .split("/")
+    .map((segment) => decodeURIComponent(segment))
+    .map((segment) =>
+      ID_SEGMENT.test(segment) ? "Details" : segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " "),
+    )
+    .join(" · ");
+}
+
 export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname() ?? "";
   const rootHref = isAdmin ? "/admin" : "/account";
@@ -215,7 +230,7 @@ export function SectionBreadcrumbs({ isAdmin = false }: { isAdmin?: boolean }) {
   if (match) {
     const trailing = pathname.slice(match.href.length).replace(/^\//, "");
     items.push(trailing ? { label: match.label, href: match.href } : { label: match.label });
-    if (trailing) items.push({ label: decodeURIComponent(trailing) });
+    if (trailing) items.push({ label: trailingCrumbLabel(trailing) });
   }
 
   return <Breadcrumbs items={items} className="2xl:mx-0 2xl:max-w-none" />;

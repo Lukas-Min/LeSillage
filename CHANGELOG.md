@@ -3,6 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Admin product page reworked: a header with brand · type · shelf, a Visible/Hidden badge, and View in shop beside Add SKU; the product form is split into Details and Pricing with Visible on storefront, Archive or delete (now a quiet outline button), and Save at the bottom of that same form instead of below the separate Adjust pool form; the decant pool is its own card (remaining and pending ml at a glance, then Adjust); each SKU is a bordered panel with its label, price, status badges, and SKU code in a header and Save at the bottom right; images show as thumbnails instead of URLs; the discount shows its current status first. From `xl` it's a main column (Product, SKUs) plus a side column (pool, discount, images); on phones one stack in that order. Empty SKU and image lists say so; the loading screen matches (`src/app/admin/products/[productId]/page.tsx`, `loading.tsx`)
+- Admin and account breadcrumbs show "Details" instead of a raw record ID (e.g. `7F0C7FB4-…`) for the last crumb (`SectionBreadcrumbs` in `src/components/store/account-nav.tsx`)
+- Phone menu: Sign in (or My account) is the first thing in the menu instead of the last (`MobileMenu` in `src/components/store/store-header.tsx`)
 ### Fixed
 - Admin form buttons with an icon ("Parse paste →" on the Fragrantica import) no longer wrap the icon onto its own line from `sm` up: `FORM_ACTION_CLASS` uses `sm:flex` instead of `sm:block`, which dropped the button's flex layout (`src/components/ui/form-action.ts`, `.cursor/rules/form-actions.mdc`)
 - Admin QR codes: Delete sits beside Save on each code's action row (Save last, on the right) instead of on its own line under the card; the loading screen matches (`src/app/admin/qr/page.tsx`, `qr/loading.tsx`)

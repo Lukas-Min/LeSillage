@@ -203,6 +203,19 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-5 overflow-y-auto px-4 pb-4">
+          {/* First, not last: signing in (or reaching the account) shouldn't
+              need a scroll past every menu group. */}
+          <div>
+            <SheetClose asChild>
+              <Link
+                href={signedIn ? "/account" : "/sign-in"}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-md bg-gold px-3 text-sm font-medium text-gold-foreground transition-colors hover:bg-gold/90"
+              >
+                {signedIn ? <UserCircle className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                {signedIn ? "My account" : "Sign in"}
+              </Link>
+            </SheetClose>
+          </div>
           <div className="space-y-1.5">
             <p className="px-3 text-[11px] sm:text-[10px] uppercase tracking-[0.3em] text-gold">Shop</p>
             <ul className="space-y-2">
@@ -249,17 +262,6 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
               </ul>
             </div>
           ))}
-          <div className="border-t border-border/60 pt-4">
-            <SheetClose asChild>
-              <Link
-                href={signedIn ? "/account" : "/sign-in"}
-                className="flex min-h-11 items-center justify-center gap-2 rounded-md bg-gold px-3 text-sm font-medium text-gold-foreground transition-colors hover:bg-gold/90"
-              >
-                {signedIn ? <UserCircle className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-                {signedIn ? "My account" : "Sign in"}
-              </Link>
-            </SheetClose>
-          </div>
         </nav>
       </SheetContent>
     </Sheet>
