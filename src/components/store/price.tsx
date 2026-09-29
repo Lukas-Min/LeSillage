@@ -118,7 +118,7 @@ export function CatalogPrice({
           longer price wraps instead of clipping. */}
       <p className="font-price-display text-2xl leading-none tracking-tight md:text-lg">
         {hasMoreOptions ? (
-          <span className="mr-1.5 font-sans text-xs uppercase tracking-[0.2em] text-muted-foreground">From</span>
+          <span className="mr-1 font-sans text-[11px] tracking-normal text-muted-foreground">From</span>
         ) : null}
         {formatPHP(minDiscountedCentavos)}
       </p>

@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- The product card's "From" label is smaller (11px) and sentence case instead of spaced-out capitals (`CatalogPrice` in `src/components/store/price.tsx`)
+### Changed
 - Product cards (shop grid and homepage rails) show one price instead of a range: the cheapest option, prefixed "From" when other sizes or options cost more, with that option's struck-through original when it's discounted (`CatalogPrice` in `src/components/store/price.tsx`; its unused `maxOriginalCentavos` prop removed)
 ### Changed
 - Homepage redesign: under the unchanged hero it now has a perks strip built from the admin's promo settings (free delivery and free tester over the decant threshold, decant sizes, free pickup, and any active site-wide sale), an "On sale now" deals rail, compact Browse-by-type tiles, "New arrivals" and "Try before the bottle" decant rails, "Shop by scent family" links to `/collections`, How it works, and the newsletter sign-up; the three rails come from one cached catalog read with no product repeated and at most two per brand outside deals (`src/lib/home-rails.ts`, `src/components/store/home-sections.tsx`, `src/app/page.tsx`), and each data region has its own card-shaped skeleton (`CatalogCardSkeleton` split out of `CatalogCardsSkeleton` in `src/components/store/loading.tsx`)
