@@ -42,13 +42,13 @@ export default function Home() {
           <p className="mx-auto -mt-4 max-w-xl text-center font-serif-display text-lg italic text-muted-foreground sm:mt-0">
             &ldquo;A curated trail of scent, in bottles and decants.&rdquo;
           </p>
+          {/* Perks close out the hero as a ribbon, not a separate box. */}
+          <section aria-label="Perks" className="mx-auto -mt-2 w-full max-w-4xl sm:mt-0">
+            <Suspense fallback={<PerksSkeleton />}>
+              <PerksStrip />
+            </Suspense>
+          </section>
         </div>
-      </section>
-
-      <section aria-label="Perks" className="w-full px-4 pt-6 sm:pt-10">
-        <Suspense fallback={<PerksSkeleton />}>
-          <PerksStrip />
-        </Suspense>
       </section>
 
       <section aria-labelledby="home-deals" className="flex w-full flex-col gap-5 pt-10 sm:pt-14">

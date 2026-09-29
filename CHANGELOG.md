@@ -4,6 +4,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Homepage perks are an editorial ribbon at the foot of the hero instead of a bordered box below it: thin gold rules above and below, centred items with a small gold icon, the perk in the display serif, and its detail in small caps (2×2 on phones, one row split by gold hairlines from `sm`); the decant-sizes detail is shortened to "3, 5, 10, 30 ml sizes" (`src/components/store/home-sections.tsx`, `src/app/page.tsx`)
+- Product card prices: a discounted card's struck-through original sits to the left of the price on one line, and only wraps onto its own line above the price when the card is too narrow; screen readers hear "Original price … Now …" (`CatalogPrice` in `src/components/store/price.tsx`)
+### Changed
 - Homepage Middle Eastern scent-family tile reads "Luxury scents, without the luxury price" to lead with value (`src/components/store/home-sections.tsx`)
 ### Changed
 - Homepage scent-family tiles get their one-line description back, rewritten ("Rich oud, amber, and spice, made to linger" / "The names you know, polished and easy to wear" / "Independent houses with unexpected compositions"), and the letter watermark sits higher still, cropped further by the tile's top edge (`src/components/store/home-sections.tsx`)

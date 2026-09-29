@@ -93,30 +93,29 @@ export function CatalogPrice({
   // price, the same pairing the card's "Save X%" badge is computed from.
   const hasMoreOptions = minDiscountedCentavos !== maxDiscountedCentavos;
   const fromIsDiscounted = minDiscountedCentavos < minOriginalCentavos;
-  const alignClass = align === "right" ? "text-right" : "text-left";
   const rowJustify = align === "right" ? "justify-end" : "justify-start";
+  // One wrapping row: the struck original sits to the LEFT of the price
+  // when the card has room, and wraps onto its own line ABOVE it when it
+  // doesn't (flex-wrap keeps DOM order, so the first item stays on top).
+  // Card content width (measured): ~130px on a two-column phone, ~230px+
+  // in the 576-767px tier, ~190px from md up — so the price is text-lg
+  // except text-2xl in that roomy middle tier. Each item is nowrap; the row
+  // wraps between them instead of breaking a price in half.
   return (
-    <div className={`space-y-1 ${alignClass}`}>
+    <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 ${rowJustify}`}>
       {fromIsDiscounted ? (
-        <p className={`flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground min-[576px]:text-xs ${rowJustify}`}>
-          <s>
+        <>
+          <s className="whitespace-nowrap text-[11px] text-muted-foreground min-[576px]:text-xs">
             <span className="sr-only">Original price </span>
             {formatPHP(minOriginalCentavos)}
           </s>
           {showSaveBadge && savePercent && savePercent > 0 ? (
-            <span className={SAVE_BADGE_CLASS}>
-              Save {savePercent}%
-            </span>
+            <span className={SAVE_BADGE_CLASS}>Save {savePercent}%</span>
           ) : null}
-        </p>
+        </>
       ) : null}
-      {/* Card content width (measured, not guessed): ~130px below 576px
-          (two columns on a phone), ~230px+ at the 2-column tier (576-767px),
-          then a roughly constant ~190px from md up (768px+) — 3/4/5 columns
-          grow with the viewport in lockstep. So the price is text-lg on
-          phones and from md, text-2xl only in the roomy 576-767px tier. No
-          whitespace-nowrap, so a longer price wraps instead of clipping. */}
-      <p className="font-price-display text-lg leading-none tracking-tight min-[576px]:text-2xl md:text-lg">
+      <p className="whitespace-nowrap font-price-display text-lg leading-none tracking-tight min-[576px]:text-2xl md:text-lg">
+        {fromIsDiscounted ? <span className="sr-only">Now </span> : null}
         {hasMoreOptions ? (
           <span className="mr-1 font-sans text-[11px] tracking-normal text-muted-foreground">From</span>
         ) : null}

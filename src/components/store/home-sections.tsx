@@ -137,14 +137,13 @@ function formatPesos(centavos: number): string {
   return formatPHP(centavos).replace(/\.00$/, "");
 }
 
+/** An editorial ribbon rather than a boxed widget: thin gold rules above
+ *  and below, centred items in the display serif. 2x2 on a phone (an odd
+ *  last perk spans both columns), one row split by gold hairlines from sm. */
 const PERKS_LIST_CLASS =
-  "grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-flow-col sm:auto-cols-fr sm:grid-cols-none";
-/** Same gold-circle treatment as the Browse-by-type icons. */
-const PERK_ICON_CLASS =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-ink";
-/** An odd last perk spans both phone columns instead of leaving a hole. */
+  "grid grid-cols-2 gap-x-3 gap-y-5 border-y border-gold/30 py-5 sm:flex sm:justify-center sm:gap-0 sm:divide-x sm:divide-gold/30 sm:py-6";
 const PERK_ITEM_CLASS =
-  "flex items-center gap-3 bg-card p-3 sm:p-4 [&:last-child:nth-child(odd)]:col-span-2 sm:[&:last-child:nth-child(odd)]:col-span-1";
+  "flex flex-col items-center px-1 text-center sm:flex-1 sm:px-6 [&:last-child:nth-child(odd)]:col-span-2";
 
 /** The store's live perks, from the admin's promo settings. */
 export async function PerksStrip() {
@@ -168,7 +167,7 @@ export async function PerksStrip() {
   perks.push({
     icon: Droplet,
     title: `Try from ${DECANT_SIZES_ML[0]} ml`,
-    detail: `Decants in ${DECANT_SIZES_ML.slice(0, -1).join(", ")} and ${DECANT_SIZES_ML.at(-1)} ml`,
+    detail: `${DECANT_SIZES_ML.join(", ")} ml sizes`,
   });
   perks.push({ icon: Store, title: "Free pickup", detail: `Or ${formatPesos(config.deliveryFeeCentavos)} flat delivery` });
 
@@ -176,13 +175,11 @@ export async function PerksStrip() {
     <ul className={PERKS_LIST_CLASS}>
       {perks.map(({ icon: Icon, title, detail }) => (
         <li key={title} className={PERK_ITEM_CLASS}>
-          <span className={PERK_ICON_CLASS}>
-            <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight">{title}</p>
-            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{detail}</p>
-          </div>
+          <Icon className="mb-2 h-4 w-4 text-gold-ink" aria-hidden="true" />
+          <p className="font-serif-display text-base leading-tight sm:text-lg">{title}</p>
+          <p className="mt-1 text-[11px] uppercase leading-snug tracking-[0.16em] text-muted-foreground sm:text-[10px]">
+            {detail}
+          </p>
         </li>
       ))}
     </ul>
@@ -195,11 +192,9 @@ export function PerksSkeleton() {
     <div className={PERKS_LIST_CLASS} aria-hidden="true">
       {Array.from({ length: 4 }).map((_, idx) => (
         <div key={idx} className={PERK_ITEM_CLASS}>
-          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-full" />
-          </div>
+          <Skeleton className="mb-2 h-4 w-4" />
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="mt-1.5 h-3 w-28" />
         </div>
       ))}
     </div>
