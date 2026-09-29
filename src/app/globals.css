@@ -135,17 +135,21 @@
   input[type="checkbox"] {
     accent-color: var(--primary);
   }
-  /* Hard rule: every text-like field defaults to the same height as a
-     Button (see button.tsx's default/lg sizes) — so a raw <select> or
-     <input> that forgets its own "h-11" still lines up with its
-     neighbors instead of silently regressing back to a shorter native
-     height. An explicit Tailwind height utility on the element (Input's
-     own component class included) still wins — Tailwind's utilities
-     layer is ordered after this base layer regardless of selector
-     specificity — this only fills in when nothing else sets a height. */
+  /* One control size for every text field, number, date, select, and
+     button. 2.75rem is Tailwind's h-11. min-height (not height) so a
+     size="sm" or h-7 utility cannot shrink a button back under the field
+     it sits next to. Icon-only buttons opt out with data-size="icon*".
+     Textareas stay multi-line and are not in this list. */
   select,
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  button:not([data-size="icon"]):not([data-size="icon-xs"]):not([data-size="icon-sm"]):not([data-size="icon-lg"]) {
+    box-sizing: border-box;
+    min-height: 2.75rem;
+  }
+  select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]) {
     height: 2.75rem;
+    width: 100%;
   }
   /* Every raw <select> across the admin forms carries its own "px-3" utility
      (left and right padding equal), which crowds the browser's native
@@ -181,6 +185,20 @@
   body[data-scroll-locked] {
     margin-right: 0 !important;
     padding-right: 0 !important;
+  }
+}
+
+@layer components {
+  /* One pill: photo badges, save badges, and order-status chips. */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    height: 1.75rem;
+    padding-inline: 0.625rem;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
   }
 }
 
