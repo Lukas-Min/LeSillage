@@ -20,6 +20,8 @@ interface PriceProps {
   discounts?: VariantDiscount[];
   suffix?: string;
   className?: string;
+  /** False when the caller shows "Save X%" elsewhere (e.g. on the photo). */
+  showSaveBadge?: boolean;
 }
 
 export function Price({
@@ -30,6 +32,7 @@ export function Price({
   discounts = [],
   suffix,
   className,
+  showSaveBadge = true,
 }: PriceProps) {
   const winner = pickHighestSaving(discounts, originalCentavos, quantity);
   const line = winner ? applyLineDiscount(originalCentavos, quantity, winner) : null;
@@ -57,9 +60,11 @@ export function Price({
           <span className="sr-only">Original price</span>
           {formatPHP(originalTotalCentavos)}
         </s>
-        <span className={SAVE_BADGE_CLASS}>
-          {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(totalSavedCentavos)}`}
-        </span>
+        {showSaveBadge ? (
+          <span className={SAVE_BADGE_CLASS}>
+            {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(totalSavedCentavos)}`}
+          </span>
+        ) : null}
       </span>
       {suffix ? <span className="ml-2 text-xs text-muted-foreground">{suffix}</span> : null}
     </span>

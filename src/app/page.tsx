@@ -6,7 +6,7 @@ import { Price } from "@/components/store/price";
 import { Button } from "@/components/ui/button";
 import { Eyebrow, SectionCard } from "@/components/ui/section";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
-import { OVERLAY_PILL_CLASS } from "@/components/store/overlay-pill";
+import { OVERLAY_PILL_CLASS, SAVE_BADGE_CLASS } from "@/components/store/overlay-pill";
 import { Skeleton } from "@/components/ui/skeleton";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory } from "@/domain/product-type";
@@ -39,7 +39,7 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
       <section className="surface-grid border-b border-border/60">
-        <div className="flex w-full flex-col gap-10 px-4 py-16 sm:py-24">
+        <div className="flex w-full flex-col gap-10 px-4 pb-8 pt-8 sm:py-24">
           <div className="flex flex-col items-center gap-3 text-center">
             <Eyebrow>Est. 2026 · Manila</Eyebrow>
             <h1 className="font-serif-display text-5xl leading-tight sm:text-6xl">Le Sillage Manila</h1>
@@ -47,7 +47,7 @@ export default function Home() {
           <Suspense fallback={<FlagshipSkeleton />}>
             <FlagshipPanel />
           </Suspense>
-          <p className="mx-auto max-w-xl text-center font-serif-display text-lg italic text-muted-foreground">
+          <p className="mx-auto -mt-4 max-w-xl text-center font-serif-display text-lg italic text-muted-foreground sm:mt-0">
             &ldquo;A curated trail of scent, in bottles and decants.&rdquo;
           </p>
         </div>
@@ -87,9 +87,14 @@ async function FlagshipPanel() {
   const cards = await loadCatalogCards({ type: "FULL_BOTTLE" });
   const flagship = pickFlagship(cards);
   if (!flagship) return null;
-  const concentrationGender = [concentrationLabel(flagship.concentration), flagship.gender ? capitalizeFirst(flagship.gender) : null]
-    .filter(Boolean)
-    .join(" · ");
+  const concentration = concentrationLabel(flagship.concentration);
+  const gender = flagship.gender ? capitalizeFirst(flagship.gender) : null;
+  const specs = [concentration, gender].filter(Boolean).join(" · ");
+  // Mobile splits the specs across the right-hand side: concentration beside
+  // the name, gender beside the perfumer line (or both beside the name when
+  // there's no perfumer line to pair with).
+  const nameRowSpec = flagship.description ? concentration : specs || null;
+  const descriptionRowSpec = flagship.description ? gender : null;
   return (
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
       <div className="relative mx-auto w-full max-w-xs">
@@ -97,6 +102,11 @@ async function FlagshipPanel() {
           <span className={`absolute left-2 top-2 gap-1 ${OVERLAY_PILL_CLASS}`}>
             <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden="true" />
             {flagship.ratingValue.toFixed(1)}
+          </span>
+        ) : null}
+        {flagship.savePercent && flagship.savePercent > 0 ? (
+          <span className={`absolute right-2 top-2 z-10 border border-gold-foreground/25 shadow-sm ${SAVE_BADGE_CLASS}`}>
+            Save {flagship.savePercent}%
           </span>
         ) : null}
         <span className={`absolute left-2 bottom-2 ${OVERLAY_PILL_CLASS} uppercase tracking-[0.2em]`}>
@@ -111,17 +121,34 @@ async function FlagshipPanel() {
           enableLightbox
         />
       </div>
-      <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
-        <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{flagship.brand}</p>
-        <h2 className="font-serif-display text-3xl leading-tight sm:text-4xl">{flagship.name}</h2>
-        {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
+      <div className="mx-auto flex w-full max-w-xs flex-col gap-2 sm:max-w-none">
+        {/* pl-[0.4em] offsets the tracking's trailing gap so the centered
+            brand is optically centered. */}
+        <p className="pl-[0.4em] text-center text-xs uppercase tracking-[0.4em] text-muted-foreground sm:pl-0 sm:text-left">
+          {flagship.brand}
+        </p>
+        {/* Mobile: name and perfumer line on the left, their specs on the
+            right. sm+: one "Eau de Parfum · Men" line under the name. */}
+        <div className="flex items-baseline-last justify-between gap-4">
+          <h2 className="min-w-0 font-serif-display text-3xl leading-tight sm:text-4xl">{flagship.name}</h2>
+          {nameRowSpec ? (
+            <p className="shrink-0 text-right text-sm text-muted-foreground sm:hidden">{nameRowSpec}</p>
+          ) : null}
+        </div>
+        {specs ? <p className="hidden text-sm text-muted-foreground sm:block">{specs}</p> : null}
         {flagship.description ? (
-          <p className="text-sm text-muted-foreground sm:text-base">{flagship.description}</p>
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="min-w-0 text-sm text-muted-foreground sm:text-base">{flagship.description}</p>
+            {descriptionRowSpec ? (
+              <p className="shrink-0 text-right text-sm text-muted-foreground sm:hidden">{descriptionRowSpec}</p>
+            ) : null}
+          </div>
         ) : null}
         <Price
-          className="pt-1"
+          className="self-end pt-1 sm:self-start"
           originalCentavos={flagship.minOriginalCentavos}
           discountedCentavos={flagship.minDiscountedCentavos}
+          showSaveBadge={false}
         />
         <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
           <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md sm:w-44">
@@ -150,15 +177,21 @@ function FlagshipSkeleton() {
   return (
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
       <Skeleton className="mx-auto aspect-square w-full max-w-xs rounded-md" />
-      <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-9 w-56 sm:h-11 sm:w-72" />
-        <Skeleton className="h-5 w-40" />
-        <div className="flex w-full flex-col items-center gap-1 sm:items-start">
-          <Skeleton className="h-4 w-full sm:h-5" />
-          <Skeleton className="h-4 w-2/3 sm:h-5" />
+      <div className="mx-auto flex w-full max-w-xs flex-col gap-2 sm:max-w-none">
+        <Skeleton className="mx-auto h-4 w-24 sm:mx-0" />
+        <div className="flex items-end justify-between gap-4">
+          <Skeleton className="h-9 w-40 sm:h-11 sm:w-72" />
+          <Skeleton className="mb-2 h-4 w-24 shrink-0 sm:hidden" />
         </div>
-        <Skeleton className="mt-1 h-8 w-48" />
+        <Skeleton className="hidden h-5 w-40 sm:block" />
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex w-full flex-col gap-1">
+            <Skeleton className="h-4 w-full sm:h-5" />
+            <Skeleton className="h-4 w-2/3 sm:h-5" />
+          </div>
+          <Skeleton className="h-4 w-12 shrink-0 sm:hidden" />
+        </div>
+        <Skeleton className="mt-1 h-8 w-48 self-end sm:self-start" />
         <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
           <Skeleton className="h-11 w-full rounded-md sm:w-44" />
           <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md sm:w-44">

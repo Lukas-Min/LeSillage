@@ -374,6 +374,24 @@ export function buildVariantOptions(
   return options.sort(compareSkuOrder);
 }
 
+/**
+ * Text-search condition over a product's name and brand. Every
+ * whitespace-separated word must appear in the name OR the brand, in any
+ * order — so "Velixir paladin" matches brand "Velixir" + name "Paladin",
+ * which a single `%whole query%` against one column at a time never could.
+ * Returns undefined for a blank query (no filter).
+ */
+function productSearchCondition(query: string | undefined): SQL | undefined {
+  const words = (query ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return undefined;
+  return and(
+    ...words.map((word) => {
+      const needle = `%${word}%`;
+      return or(ilike(products.name, needle), ilike(products.brand, needle));
+    }),
+  );
+}
+
 async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
   const client = db();
   const conditions: SQL[] = [eq(products.isActive, true)];
@@ -390,14 +408,8 @@ async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<Cat
   }
   if (filter.brand) conditions.push(eq(products.brand, filter.brand));
   if (filter.gender) conditions.push(ilike(products.gender, filter.gender));
-  if (filter.query && filter.query.trim().length > 0) {
-    const term = `%${filter.query.trim()}%`;
-    const search = or(
-      ilike(products.name, term),
-      ilike(products.brand, term),
-    );
-    if (search) conditions.push(search);
-  }
+  const search = productSearchCondition(filter.query);
+  if (search) conditions.push(search);
 
   const productRows = await client
     .select({
@@ -572,14 +584,8 @@ async function countCatalogCardsUncached(filter: Omit<CatalogFilter, "limit" | "
   }
   if (filter.brand) conditions.push(eq(products.brand, filter.brand));
   if (filter.gender) conditions.push(ilike(products.gender, filter.gender));
-  if (filter.query && filter.query.trim().length > 0) {
-    const term = `%${filter.query.trim()}%`;
-    const search = or(
-      ilike(products.name, term),
-      ilike(products.brand, term),
-    );
-    if (search) conditions.push(search);
-  }
+  const search = productSearchCondition(filter.query);
+  if (search) conditions.push(search);
 
   const productRows = await client
     .select({ id: products.id, type: products.type })
@@ -694,19 +700,13 @@ const SEARCH_QUERY_LIMIT = 100;
  * `SEARCH_RESULT_LIMIT`.
  */
 async function searchCatalogCardsUncached(query: string): Promise<SearchResultCard[]> {
-  const term = query.trim();
-  if (term.length === 0) return [];
+  const search = productSearchCondition(query);
+  if (!search) return [];
   const client = db();
-  const needle = `%${term}%`;
   const matches = await client
     .select({ id: products.id, name: products.name, brand: products.brand, type: products.type })
     .from(products)
-    .where(
-      and(
-        eq(products.isActive, true),
-        or(ilike(products.name, needle), ilike(products.brand, needle)),
-      ),
-    )
+    .where(and(eq(products.isActive, true), search))
     .orderBy(desc(products.createdAt))
     .limit(SEARCH_QUERY_LIMIT);
   if (matches.length === 0) return [];
