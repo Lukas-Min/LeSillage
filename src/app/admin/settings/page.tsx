@@ -1,12 +1,16 @@
 import { db } from "@/db/client";
 import { optionLists, optionValues } from "@/db/schema";
 import { asc } from "drizzle-orm";
-import { OptionListEditor } from "@/components/admin/option-list-editor";
+import { OptionListEditor, type OptionRow } from "@/components/admin/option-list-editor";
+import { loadOptionValuesInUse } from "@/lib/option-usage";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-  const lists = await db().select().from(optionLists).orderBy(asc(optionLists.key));
+  const [lists, inUse] = await Promise.all([
+    db().select().from(optionLists).orderBy(asc(optionLists.key)),
+    loadOptionValuesInUse(),
+  ]);
   const values = lists.length
     ? await db()
         .select({
@@ -20,10 +24,10 @@ export default async function AdminSettingsPage() {
         .from(optionValues)
         .orderBy(asc(optionValues.listKey), asc(optionValues.position))
     : [];
-  const group = new Map<string, typeof values>();
+  const group = new Map<string, OptionRow[]>();
   for (const v of values) {
     const arr = group.get(v.listKey) ?? [];
-    arr.push(v);
+    arr.push({ id: v.id, value: v.value, label: v.label, isActive: v.isActive, inUse: inUse.get(v.listKey)?.has(v.value) ?? false });
     group.set(v.listKey, arr);
   }
   return (
