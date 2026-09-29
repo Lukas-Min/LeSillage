@@ -44,6 +44,38 @@ export function CatalogResults({
   );
 }
 
+/**
+ * The catalog pages' header (/shop, /collections/*, and the type shelves):
+ * left-aligned and compact, matching the homepage section headers, so the
+ * products start higher on a phone. `subtitle` accepts a node so a loading
+ * state can pass skeleton lines in its place.
+ */
+export function CatalogHeader({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+}) {
+  return (
+    <header className="mb-6 flex flex-col gap-1.5 sm:mb-8 sm:gap-2">
+      {eyebrow}
+      {typeof title === "string" ? (
+        <h1 className="font-serif-display text-3xl leading-tight sm:text-5xl">{title}</h1>
+      ) : (
+        title
+      )}
+      {typeof subtitle === "string" ? (
+        <p className="max-w-xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>
+      ) : (
+        subtitle
+      )}
+    </header>
+  );
+}
+
 export function CatalogGrid({
   title,
   subtitle,
@@ -64,13 +96,7 @@ export function CatalogGrid({
   return (
     <main className="flex w-full flex-1 flex-col px-4 py-10 sm:py-14">
       {breadcrumbs ? <Breadcrumbs items={breadcrumbs} className="mb-6" /> : null}
-      <header className="mb-8 flex flex-col items-center gap-3 text-center">
-        {eyebrow ? eyebrow : <Eyebrow>Le Sillage Manila</Eyebrow>}
-        <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">{title}</h1>
-        {subtitle ? (
-          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>
-        ) : null}
-      </header>
+      <CatalogHeader eyebrow={eyebrow ?? <Eyebrow>Le Sillage Manila</Eyebrow>} title={title} subtitle={subtitle} />
       {filters ? <div className="mb-4 flex justify-center">{filters}</div> : null}
       <CatalogResults cards={cards} emptyLabel={emptyLabel} />
     </main>

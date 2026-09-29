@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Catalog page headers (/shop, the type shelves, and /collections/*) are one shared, compact, left-aligned `CatalogHeader` matching the homepage section headers (30px title on phones instead of a centred 36px), so products start above the fold on a phone; the /shop line drops its "— filter to find yours" tail (also its meta description) (`src/components/store/catalog-grid.tsx`, `src/app/(store)/shop/page.tsx`, `shop/loading.tsx`, `collections/[category]/loading.tsx`, `src/lib/faq-copy.ts`)
+### Changed
 - Homepage perks are an editorial ribbon at the foot of the hero instead of a bordered box below it: thin gold rules above and below, centred items with a small gold icon, the perk in the display serif, and its detail in small caps (2×2 on phones, one row split by gold hairlines from `sm`); the decant-sizes detail is shortened to "3, 5, 10, 30 ml sizes" (`src/components/store/home-sections.tsx`, `src/app/page.tsx`)
 - Product card prices: a discounted card's struck-through original sits to the left of the price on one line, and only wraps onto its own line above the price when the card is too narrow; screen readers hear "Original price … Now …" (`CatalogPrice` in `src/components/store/price.tsx`)
 ### Changed

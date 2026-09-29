@@ -3,6 +3,7 @@ import { Eyebrow } from "@/components/ui/section";
 import { ShopFilters } from "@/components/store/shop-filters";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
 import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
+import { CatalogHeader } from "@/components/store/catalog-grid";
 
 // The header/eyebrow/subtitle and shelf tabs are the same regardless of
 // which filters are selected, so they render for real here — `loading.tsx`
@@ -14,13 +15,7 @@ export default function ShopLoading() {
   return (
     <main className="flex w-full flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }]} />
-      <header className="mb-8 flex flex-col items-center gap-3 text-center">
-        <Eyebrow>The catalog</Eyebrow>
-        <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">Shop</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-          {SHOP_CATALOG_SUBTITLE}
-        </p>
-      </header>
+      <CatalogHeader eyebrow={<Eyebrow>The catalog</Eyebrow>} title="Shop" subtitle={SHOP_CATALOG_SUBTITLE} />
       <div className="mb-4 flex justify-center">
         <ShopFilters />
       </div>

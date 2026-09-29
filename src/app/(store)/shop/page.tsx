@@ -13,6 +13,7 @@ import { concentration as CONCENTRATIONS, fragranceCategory as CATEGORIES } from
 import type { Concentration, FragranceCategory, ProductType } from "@/db/schema";
 import { GENDERS, type Gender } from "@/domain/gender";
 import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
+import { CatalogHeader } from "@/components/store/catalog-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -76,13 +77,7 @@ export default async function ShopPage({
       <Breadcrumbs
         items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: labelForType(type) }]}
       />
-      <header className="mb-8 flex flex-col items-center gap-3 text-center">
-        <Eyebrow>The catalog</Eyebrow>
-        <h1 className="font-serif-display text-4xl leading-tight sm:text-5xl">Shop</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-          {SHOP_CATALOG_SUBTITLE}
-        </p>
-      </header>
+      <CatalogHeader eyebrow={<Eyebrow>The catalog</Eyebrow>} title="Shop" subtitle={SHOP_CATALOG_SUBTITLE} />
       <div className="mb-4 flex justify-center">
         <ShopFilters activeType={type} />
       </div>

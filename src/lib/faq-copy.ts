@@ -185,4 +185,4 @@ export const FAQ_GROUPS = [
 ] as const;
 
 export const SHOP_CATALOG_SUBTITLE =
-  "Decants, partials, and full bottles from niche, designer, and Middle Eastern houses — filter to find yours.";
+  "Decants, partials, and full bottles from niche, designer, and Middle Eastern houses.";
