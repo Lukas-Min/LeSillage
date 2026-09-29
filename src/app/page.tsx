@@ -101,7 +101,7 @@ export default function Home() {
       </section>
 
       <div className="w-full px-4 pb-16 pt-10 sm:pt-14">
-        <SubscribeHero />
+        <SubscribeHero compact />
       </div>
     </main>
   );
