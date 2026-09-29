@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
@@ -23,15 +22,16 @@ const PANEL_ID = "shop-mega-menu";
 const CLOSE_DELAY_MS = 150;
 
 /**
- * Desktop (md+) "Shop" nav item: hovering it, or the panel, opens a
- * full-width menu under the header. Keyboard: the chevron button toggles it
- * (aria-expanded), focus moving out closes it, and Escape closes it and
- * returns focus to the button. "Shop" itself stays a plain link to /shop.
+ * Desktop (md+) "Shop" nav item: a dropdown button, not a link. Hovering it,
+ * or the panel, opens a full-width menu under the header; clicking or
+ * Enter/Space toggles it (aria-expanded), focus moving out closes it, and
+ * Escape closes it and returns focus to the button.
  */
 export function ShopMegaMenu({ active }: { active: boolean }) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const hoverOpened = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -49,6 +49,7 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
   }, [cancelClose]);
   const close = useCallback(() => {
     cancelClose();
+    hoverOpened.current = false;
     setOpen(false);
   }, [cancelClose]);
 
@@ -67,7 +68,9 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
     const root = rootRef.current;
     if (!root) return;
     const onEnter = (event: PointerEvent) => {
-      if (event.pointerType === "mouse") openNow();
+      if (event.pointerType !== "mouse") return;
+      hoverOpened.current = true;
+      openNow();
     };
     const onLeave = (event: PointerEvent) => {
       if (event.pointerType === "mouse") closeSoon();
@@ -100,28 +103,32 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
       }}
       className="flex items-center"
     >
-      <Link
-        href="/shop"
-        onClick={close}
-        className={cn(
-          "relative inline-flex min-h-11 items-center transition-colors hover:text-foreground",
-          active || open ? "text-foreground" : "text-muted-foreground",
-        )}
-      >
-        Shop
-        {active ? <span className="absolute inset-x-0 -bottom-px h-px bg-gold" /> : null}
-      </Link>
+      {/* Not a link: "Shop" only opens the menu (its "All fragrances" card is
+          the way to /shop). Hover opens it with a mouse; a click, Enter, or
+          Space toggles it, except that a mouse click right after hover
+          opened it keeps it open instead of snapping it shut. */}
       <button
         ref={toggleRef}
         type="button"
         data-size="icon"
         aria-expanded={open}
         aria-controls={PANEL_ID}
-        aria-label={open ? "Hide shop menu" : "Show shop menu"}
-        onClick={() => (open ? close() : openNow())}
-        className="inline-flex h-11 w-6 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-gold-ink"
+        onClick={(event) => {
+          if (event.detail > 0 && hoverOpened.current) {
+            hoverOpened.current = false;
+            return;
+          }
+          if (open) close();
+          else openNow();
+        }}
+        className={cn(
+          "relative inline-flex min-h-11 items-center gap-1 uppercase tracking-[0.22em] transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-ink",
+          active || open ? "text-foreground" : "text-muted-foreground",
+        )}
       >
+        Shop
         <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} aria-hidden="true" />
+        {active ? <span className="absolute inset-x-0 -bottom-px h-px bg-gold" /> : null}
       </button>
 
       {open ? (

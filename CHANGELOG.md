@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Header "Shop" is a dropdown button, not a link to /shop: one control (label + chevron, `aria-expanded`) replaces the link and the separate chevron toggle. Hover opens the menu, click/Enter/Space toggles it, and a mouse click right after hover opened it keeps it open rather than snapping it shut; the menu's "All fragrances" card is the way to /shop (`src/components/store/shop-menu.tsx`)
+### Changed
 - Homepage newsletter sign-up is a slim band instead of a full-width boxed card: no box (hairlines above and below), heading and a shorter line on the left, and a one-line email + Subscribe form on the right from `md` (stacked on phones); /contact keeps the boxed card via `SubscribeHero`'s new `compact` option (`src/components/store/subscribe-hero.tsx`, `src/app/page.tsx`)
 ### Changed
 - Homepage flagship: from `sm` up (photo beside the text) the brand, name, specs, perfumer line, price, and buttons are centred in their column instead of left-aligned; phones keep their layout, and the skeleton matches (`src/app/page.tsx`)
