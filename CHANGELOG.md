@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Homepage product rails are mouse-draggable and wheel-scrollable at every screen size: press-and-drag moves the row (snap paused during the drag, then it settles on the nearest card, and the click ending a drag never opens a card), and while hovering a rail the wheel steps one card per notch (down = next, up = previous, throttled for trackpads), handing the wheel back to the page at either end so it can't trap page scrolling. Touch swiping and sideways trackpad scrolling stay native (`src/components/store/rail-scroller.tsx`, `home-sections.tsx`)
 ### Changed
 - Homepage rail headers: "See all" sits on the same line as the header's last line of text (last-baseline alignment) instead of floating above it inside its 44px tap area (`HomeSectionHeader` in `src/components/store/home-sections.tsx`)
 ### Changed
