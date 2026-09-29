@@ -1,19 +1,35 @@
-import { SectionCard } from "@/components/ui/section";
+import { Button } from "@/components/ui/button";
+import { Eyebrow, SectionCard } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+// Spans, not <Skeleton> (a div): they sit inside headings and paragraphs.
+const inlineSkeleton = "skeleton-shine inline-block rounded-md bg-muted align-middle";
 
 // Mirrors page.tsx: header, Items + totals, then Status and Estimated arrival.
-// The Pickup and Payment cards are left out — whether they render depends on
-// the order itself, so a skeleton for them would be wrong on most orders.
+// Everything else that depends on the order itself (Confirm received,
+// Cancel, Re-order, the rejection note, "You saved", Pickup, Payment) is left
+// out, since a skeleton for it would be wrong on most orders.
 export default function OrderDetailLoading() {
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-9 w-40 sm:h-10" />
-        <Skeleton className="h-4 w-64 max-w-full" />
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Skeleton className="h-11 w-36" />
-          <Skeleton className="h-11 w-28" />
+      {/* PageHeader's markup, inline: its title prop only takes a string. */}
+      <header className="flex flex-col gap-3 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <Eyebrow>
+            <span className={cn(inlineSkeleton, "h-2.5 w-24")} />
+          </Eyebrow>
+          <h1 className="font-serif-display text-3xl leading-tight sm:text-4xl">
+            <span className={cn(inlineSkeleton, "h-7 w-36 sm:h-8")} />
+          </h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            <span className={cn(inlineSkeleton, "h-3.5 w-64 max-w-full")} />
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" className="h-11 w-full rounded-md sm:w-auto">
+            Ask about this order
+          </Button>
         </div>
       </header>
 
@@ -23,9 +39,9 @@ export default function OrderDetailLoading() {
             {Array.from({ length: 2 }).map((_, index) => (
               <li key={index} className="flex gap-3 py-3">
                 <Skeleton className="h-16 w-16 shrink-0 rounded-md" />
-                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-40" />
+                <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-40 max-w-full" />
                     <Skeleton className="h-3 w-28" />
                   </div>
                   <Skeleton className="h-4 w-20" />
@@ -34,34 +50,45 @@ export default function OrderDetailLoading() {
             ))}
           </ul>
           <div className="mt-auto border-t border-border/60 text-sm">
-            <div className="flex justify-between py-3">
+            <p className="flex justify-between py-3">
               <span className="text-muted-foreground">Subtotal</span>
-              <Skeleton className="h-4 w-20" />
-            </div>
-            <div className="flex justify-between py-3">
+              <span className={cn(inlineSkeleton, "h-3.5 w-20 self-center")} />
+            </p>
+            <p className="flex justify-between gap-3 py-3">
               <span className="text-muted-foreground">Delivery</span>
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <div className="flex items-baseline justify-between border-t border-border/60 py-3">
+              <span className={cn(inlineSkeleton, "h-3.5 w-16 self-center")} />
+            </p>
+            <p className="flex items-baseline justify-between border-t border-border/60 py-3">
               <span className="font-serif-display text-lg">Total</span>
-              <Skeleton className="h-7 w-28" />
-            </div>
+              <span className="font-price-display text-2xl">
+                <span className={cn(inlineSkeleton, "h-6 w-28")} />
+              </span>
+            </p>
           </div>
         </SectionCard>
 
         <div className="space-y-4">
-          {/* A span, not <Skeleton> (a div): the title renders inside an <h2>. */}
-          <SectionCard eyebrow="Status" title={<span className="skeleton-shine block h-5 w-32 rounded-md bg-muted" />}>
-            <ol className="space-y-2">
+          <SectionCard
+            eyebrow="Status"
+            title={<span className={cn(inlineSkeleton, "h-4 w-40")} />}
+            description="Updated by the team as your order moves through verification and shipping."
+          >
+            {/* Delivery has six steps, pickup five; draw the shorter list. */}
+            <ol className="space-y-2 text-sm">
               {Array.from({ length: 5 }).map((_, index) => (
                 <li key={index}>
-                  <Skeleton className="h-4 w-36" />
+                  <span className={cn(inlineSkeleton, "h-3.5 w-32")} />
                 </li>
               ))}
             </ol>
           </SectionCard>
           <SectionCard eyebrow="Estimated arrival" title="When to expect it">
-            <Skeleton className="h-4 w-48" />
+            <ul className="space-y-1 text-sm">
+              <li className="flex items-center gap-2">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-gold" />
+                <span className={cn(inlineSkeleton, "h-3.5 w-24")} />
+              </li>
+            </ul>
           </SectionCard>
         </div>
       </div>

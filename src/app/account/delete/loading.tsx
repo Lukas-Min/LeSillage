@@ -1,5 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 
 export default function DeleteAccountLoading() {
@@ -22,9 +24,36 @@ export default function DeleteAccountLoading() {
           <li>You will receive a final confirmation email after deletion.</li>
         </ul>
       </SectionCard>
-      {/* Only the confirm-delete form (email confirmation) depends on the
-          session's real email — everything above is static. */}
-      <Skeleton className="h-32 w-full" />
+      {/* Mirrors DeleteAccountForm. Only the email comes from the session;
+          the inputs stay skeletons so nothing typed early is lost. */}
+      <div className="space-y-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
+        <p className="text-sm text-destructive">
+          Type{" "}
+          <span className="skeleton-shine inline-block h-3.5 w-40 rounded-md bg-muted align-middle" /> to
+          confirm. Then enter the 6-digit code we email you.
+        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
+          <p className="text-xs text-muted-foreground">
+            We will email a confirmation code to your current email.
+          </p>
+          <Button type="button" variant="outline" size="sm">
+            Email code
+          </Button>
+        </div>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Confirm email</Label>
+            <Skeleton className="h-11 w-full rounded-lg" />
+          </div>
+          <div className="space-y-1">
+            <Label>6-digit code</Label>
+            <Skeleton className="h-11 w-full rounded-lg" />
+          </div>
+          <Button type="button" variant="destructive">
+            Delete my account
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

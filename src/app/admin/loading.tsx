@@ -35,10 +35,16 @@ export default function AdminLoading() {
         <CardHeader>
           <CardTitle className="text-sm">Low stock</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1.5">
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-full" />
+        <CardContent className="space-y-1.5 text-sm">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2"
+            >
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-16 shrink-0" />
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

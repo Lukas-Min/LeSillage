@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { db } from "@/db/client";
 import { products, skus, promoSettings, type ProductType } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,15 +13,9 @@ import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domai
 import { labelForType } from "@/domain/product-type";
 import { compareSkuOrder } from "@/domain/variant-options";
 import { cn } from "@/lib/utils";
+import { PRODUCT_TYPE_TABS, ProductsListSkeleton } from "@/components/admin/products-skeleton";
 
 export const dynamic = "force-dynamic";
-
-const TYPE_TABS: { value: ProductType | "ALL"; label: string }[] = [
-  { value: "ALL", label: "All" },
-  { value: "DECANT", label: "Decants" },
-  { value: "FULL_BOTTLE", label: "Full bottles" },
-  { value: "PARTIAL", label: "Partials" },
-];
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +30,37 @@ export default async function ProductsAdminPage({
   const query = (qParam ?? "").trim();
   const requestedPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
+  return (
+    <div className="flex flex-1 flex-col space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-serif-display text-2xl">Products</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/products/fragrantica" className="text-xs text-muted-foreground hover:underline">
+            Import from Fragrantica
+          </Link>
+          <Button asChild>
+            <Link href="/admin/products/new">New product</Link>
+          </Button>
+        </div>
+      </div>
+      {/* loading.tsx doesn't re-show for a query-string-only change on this
+          route, so the tab, search and page switches get their own boundary. */}
+      <Suspense key={`${activeType}:${query}:${requestedPage}`} fallback={<ProductsListSkeleton activeType={activeType} />}>
+        <ProductsList activeType={activeType} query={query} requestedPage={requestedPage} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ProductsList({
+  activeType,
+  query,
+  requestedPage,
+}: {
+  activeType: ProductType | "ALL";
+  query: string;
+  requestedPage: number;
+}) {
   const [allProductRows, skuRows, promoRow] = await Promise.all([
     db().select().from(products),
     db().select().from(skus),
@@ -75,20 +101,9 @@ export default async function ProductsAdminPage({
   }
 
   return (
-    <div className="flex flex-1 flex-col space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="font-serif-display text-2xl">Products</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/admin/products/fragrantica" className="text-xs text-muted-foreground hover:underline">
-            Import from Fragrantica
-          </Link>
-          <Button asChild>
-            <Link href="/admin/products/new">New product</Link>
-          </Button>
-        </div>
-      </div>
+    <>
       <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-border">
-        {TYPE_TABS.map((tab) => {
+        {PRODUCT_TYPE_TABS.map((tab) => {
           const count = tab.value === "ALL" ? allProductRows.length : (countByType.get(tab.value) ?? 0);
           const active = tab.value === activeType;
           return (
@@ -206,6 +221,6 @@ export default async function ProductsAdminPage({
           </Button>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

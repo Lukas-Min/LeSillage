@@ -1,26 +1,41 @@
+import Link from "next/link";
+import { CartLineItemSkeleton } from "@/components/store/cart-line-item";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { policyCopy } from "@/lib/policy-copy";
+import { cn } from "@/lib/utils";
 
+/** Matches ProductCard (src/components/store/product-card.tsx) — square
+ *  photo with its always-present category pill, brand/name/subtitle, the
+ *  fulfillment badge, then the ruled-off price and the View button. The
+ *  rating, "Save X%", Retail and Sold out extras are conditional per card,
+ *  so they aren't reserved. */
 export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
       {Array.from({ length: count }).map((_, idx) => (
-        <div key={idx} className="overflow-hidden rounded-md border border-border">
-          <Skeleton className="aspect-square w-full rounded-none" />
-          <div className="space-y-3 p-4">
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-1/3" />
-              <Skeleton className="h-5 w-2/3" />
-              <Skeleton className="h-3 w-1/4" />
+        <div key={idx} className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card">
+          <div className="relative">
+            <Skeleton className="aspect-square w-full rounded-none" />
+            <div className="absolute bottom-2 left-2 z-10">
+              <Skeleton className="h-[30px] w-24 rounded-none border border-foreground/25 bg-background/90 min-[576px]:h-[21px] min-[576px]:w-20" />
             </div>
-            {/* Up to 3 real badges now (fulfillment, Retail, Sold out) — see
-                ProductCard — so this reserves the same worst-case width and
-                the same h-6 height those badges now render at. */}
-            <div className="flex flex-wrap gap-1.5">
-              <Skeleton className="h-6 w-16 rounded-none" />
-              <Skeleton className="h-6 w-14 rounded-none" />
-              <Skeleton className="h-6 w-16 rounded-none" />
+          </div>
+          <div className="flex flex-1 flex-col gap-1.5 p-4">
+            <Skeleton className="h-3.5 w-1/3" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <div className="mt-auto space-y-3 pt-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Skeleton className="h-6 w-20 rounded-none" />
+              </div>
+              <div className="border-t border-border/60 pt-3">
+                <Skeleton className="ml-auto h-6 w-1/2 md:h-4.5" />
+              </div>
             </div>
-            <Skeleton className="ml-auto h-5 w-1/2" />
           </div>
           <div className="px-4 pb-4">
             <Skeleton className="h-11 w-full rounded-md" />
@@ -31,19 +46,18 @@ export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
   );
 }
 
-/** Matches CatalogPagination's shape (src/components/store/catalog-pagination.tsx) —
- *  First/Prev, three numbered pills, Next/Last on sm+, "Page X of Y" on mobile. */
+/** Matches CatalogPagination's page-1 shape (src/components/store/catalog-pagination.tsx) —
+ *  no First/Prev yet, numbered pills plus Next/Last on sm+, "Page X of Y"
+ *  plus Next on mobile. */
 export function CatalogPaginationSkeleton() {
   return (
     <div className="mt-8 flex items-center justify-center gap-1.5">
-      <Skeleton className="hidden h-11 w-11 rounded-md sm:block" />
-      <Skeleton className="h-11 w-11 rounded-md" />
       <div className="hidden items-center gap-1.5 sm:flex">
         <Skeleton className="h-11 w-11 rounded-md" />
         <Skeleton className="h-11 w-11 rounded-md" />
         <Skeleton className="h-11 w-11 rounded-md" />
       </div>
-      <Skeleton className="h-4 w-20 sm:hidden" />
+      <Skeleton className="mx-2 h-4 w-20 sm:hidden" />
       <Skeleton className="h-11 w-11 rounded-md" />
       <Skeleton className="hidden h-11 w-11 rounded-md sm:block" />
     </div>
@@ -68,6 +82,7 @@ export function CatalogResultsSkeleton({
   count = 20,
   showCount = true,
   toolbar = false,
+  pagination = true,
 }: {
   count?: number;
   /** Set false wherever the real results view is rendered with its own
@@ -79,26 +94,100 @@ export function CatalogResultsSkeleton({
    *  plus Filter/Sort buttons) instead of a plain count line — the shop page
    *  and its route-level loading.tsx. */
   toolbar?: boolean;
+  /** Set false wherever the real results view has no `CatalogPagination`
+   *  (e.g. /collections/[category], which loads every card in one page). */
+  pagination?: boolean;
 }) {
   return (
     <>
       {toolbar ? <ShopToolbarSkeleton /> : showCount ? <Skeleton className="mx-auto mb-6 h-3 w-24" /> : null}
       <CatalogCardsSkeleton count={count} />
-      <CatalogPaginationSkeleton />
+      {pagination ? <CatalogPaginationSkeleton /> : null}
     </>
   );
 }
 
-export function CatalogSkeleton() {
+/** The name / size · fulfillment / unit price rows and right-aligned line
+ *  total that both the cart page's and checkout's Order summary list. */
+export function SummaryLinesSkeleton({ count = 2, className }: { count?: number; className?: string }) {
   return (
-    <main className="w-full px-4 py-8 sm:py-12">
-      <Skeleton className="h-3 w-24" />
-      <Skeleton className="mt-2 h-8 w-1/2" />
-      <Skeleton className="mt-2 h-4 w-1/3" />
-      <div className="mt-6">
-        <CatalogCardsSkeleton />
-        <CatalogPaginationSkeleton />
-      </div>
-    </main>
+    <ul className={cn("space-y-4", className)}>
+      {Array.from({ length: count }).map((_, index) => (
+        <li key={index} className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          <Skeleton className="mt-0.5 h-4 w-16 shrink-0" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Matches the cart page's filled state (src/app/(store)/cart/page.tsx) —
+ *  line items, then the Order summary card with its static labels, footer
+ *  and policy accordion rendered for real and only the amounts skeletoned. */
+export function CartContentsSkeleton() {
+  return (
+    <div className="mt-6 space-y-4">
+      <CartLineItemSkeleton layout="page" />
+      <CartLineItemSkeleton layout="page" />
+      <Separator />
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif-display text-base">Order summary</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
+          <SummaryLinesSkeleton />
+          <Separator className="my-4" />
+          <div className="space-y-1.5 text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span>Subtotal</span>
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Delivery fee</span>
+              <Skeleton className="h-4 w-12" />
+            </div>
+          </div>
+          <Separator className="my-3" />
+          <div className="flex items-center justify-between">
+            <span className="font-serif-display text-lg text-foreground">Total</span>
+            <Skeleton className="h-8 w-28" />
+          </div>
+          <div className="mt-3 space-y-1 border-t pt-3">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3 sm:w-1/3" />
+            <Skeleton className="h-3 w-1/2 sm:hidden" />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">Sign in is required to checkout.</p>
+          <Button asChild variant="gold" size="lg" className="h-11 rounded-md">
+            <Link href="/checkout">Checkout</Link>
+          </Button>
+        </CardFooter>
+        <div className="border-t border-border/60 px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+          <DisclosureAccordion
+            items={[
+              {
+                id: "shipping",
+                label: policyCopy.shipping.label,
+                defaultOpen: true,
+                content: <p>{policyCopy.shipping.body}</p>,
+              },
+              {
+                id: "returns",
+                label: policyCopy.returns.label,
+                defaultOpen: true,
+                content: <p>{policyCopy.returns.body}</p>,
+              },
+            ]}
+          />
+        </div>
+      </Card>
+    </div>
   );
 }

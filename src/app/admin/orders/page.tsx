@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { orders, receipts, users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
+import { Skeleton } from "@/components/ui/skeleton";
 import { OrdersListSkeleton } from "@/components/admin/orders-skeleton";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
@@ -55,7 +56,21 @@ export default async function AdminOrdersPage({
       {/* Each tab fetches inside its own boundary, keyed to the tab (plus the
           userId/orderId filters): switching tabs is query-string navigation
           on this same route, which loading.tsx alone does not retrigger. */}
-      <Suspense key={`${activeTab}:${userId ?? ""}:${orderId ?? ""}`} fallback={<OrdersListSkeleton />}>
+      <Suspense
+        key={`${activeTab}:${userId ?? ""}:${orderId ?? ""}`}
+        fallback={
+          <>
+            {orderId ? (
+              <Link href={tabHref(activeTab)} className="text-xs text-muted-foreground hover:underline">
+                Showing this order · Clear filter
+              </Link>
+            ) : userId ? (
+              <Skeleton className="h-4 w-full max-w-xs" />
+            ) : null}
+            <OrdersListSkeleton rows={orderId ? 1 : 3} tier={activeTab} />
+          </>
+        }
+      >
         <OrdersTabContent tier={activeTab} userId={userId} orderId={orderId} />
       </Suspense>
     </div>

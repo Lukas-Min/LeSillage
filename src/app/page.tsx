@@ -150,14 +150,20 @@ function FlagshipSkeleton() {
   return (
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 items-center gap-8 sm:grid-cols-[1fr_1.2fr]">
       <Skeleton className="mx-auto aspect-square w-full max-w-xs rounded-md" />
-      <div className="flex flex-col items-center gap-3 sm:items-start">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-4 w-64" />
-        <Skeleton className="h-6 w-32" />
-        <div className="flex w-full gap-3 pt-2 sm:w-auto">
-          <Skeleton className="h-11 w-40" />
-          <Skeleton className="h-11 w-32" />
+      <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-9 w-56 sm:h-11 sm:w-72" />
+        <Skeleton className="h-5 w-40" />
+        <div className="flex w-full flex-col items-center gap-1 sm:items-start">
+          <Skeleton className="h-4 w-full sm:h-5" />
+          <Skeleton className="h-4 w-2/3 sm:h-5" />
+        </div>
+        <Skeleton className="mt-1 h-8 w-48" />
+        <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
+          <Skeleton className="h-11 w-full rounded-md sm:w-44" />
+          <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md sm:w-44">
+            <Link href="/shop">Shop the catalog</Link>
+          </Button>
         </div>
       </div>
     </div>

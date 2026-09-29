@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminNewProductLoading() {
   return (
@@ -12,15 +13,18 @@ export default function AdminNewProductLoading() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-0 flex-1 space-y-1">
-              <Label htmlFor="copyFrom">Choose a fragrance</Label>
-              <select id="copyFrom" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-sm">
-                <option>Loading products…</option>
-              </select>
+              <Label>Choose a fragrance</Label>
+              <Skeleton className="h-11 w-full" />
             </div>
             <Button type="button" variant="outline" disabled>
               Load details
             </Button>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Fills in Name/Brand/Category/Concentration/Gender/Description/Notes below — useful when adding
+            e.g. the Full Bottle of a fragrance you already have as a Decant. You still set type, size, and price
+            yourself.
+          </p>
         </CardContent>
       </Card>
       <Card>

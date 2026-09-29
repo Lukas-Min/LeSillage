@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useCart } from "@/components/store/cart-context";
 import { CartLineItem } from "@/components/store/cart-line-item";
 import { ClearCartButton } from "@/components/store/clear-cart-button";
+import { CartContentsSkeleton } from "@/components/store/loading";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
 import { formatPHP, DECANT_PROMO_THRESHOLD_CENTAVOS } from "@/domain/money";
 import { policyCopy } from "@/lib/policy-copy";
@@ -24,12 +24,7 @@ export default function CartPage() {
         <ClearCartButton />
       </div>
       {cart.loading ? (
-        <div className="mt-6 space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Separator />
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <CartContentsSkeleton />
       ) : cart.items.length === 0 ? (
         <Card className="mt-6">
           <CardContent className="space-y-3 p-6 text-center">

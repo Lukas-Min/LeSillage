@@ -3,7 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { Loader2, ShoppingBag } from "lucide-react";
 import { useCart, useCartCount } from "@/components/store/cart-context";
-import { CartLineItem } from "@/components/store/cart-line-item";
+import { CartLineItem, CartLineItemSkeleton } from "@/components/store/cart-line-item";
 import { ClearCartButton } from "@/components/store/clear-cart-button";
 import { Button } from "@/components/ui/button";
 import { DisclosureAccordion } from "@/components/ui/disclosure-accordion";
@@ -34,6 +34,38 @@ function CheckoutLinkLabel() {
   );
 }
 
+// Everything under the subtotal is static, so the loading state renders it
+// for real too.
+function BagActions() {
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">Delivery fee calculated at checkout.</p>
+      <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
+        <Link href="/checkout">
+          <CheckoutLinkLabel />
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md">
+        <Link href="/cart">View full cart</Link>
+      </Button>
+      <DisclosureAccordion
+        items={[
+          {
+            id: "shipping",
+            label: policyCopy.shipping.label,
+            content: <p>{policyCopy.shipping.body}</p>,
+          },
+          {
+            id: "returns",
+            label: policyCopy.returns.label,
+            content: <p>{policyCopy.returns.body}</p>,
+          },
+        ]}
+      />
+    </>
+  );
+}
+
 export function CartDrawer({ mounted }: { mounted: boolean }) {
   const cart = useCart();
   const count = useCartCount();
@@ -54,9 +86,25 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
           <SheetTitle className="font-serif-display text-2xl">Your bag</SheetTitle>
         </SheetHeader>
         {cart.loading ? (
-          <div className="flex-1 space-y-3 px-4 py-4">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center justify-between px-4 pt-3">
+              <Skeleton className="h-4 w-14" />
+              <Skeleton className="h-7 w-24" />
+            </div>
+            <ul className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <li key={index}>
+                  <CartLineItemSkeleton layout="drawer" />
+                </li>
+              ))}
+            </ul>
+            <div className="space-y-3 border-t border-border/60 px-4 py-4">
+              <div className="flex items-center justify-between text-sm">
+                <span>Subtotal</span>
+                <Skeleton className="h-7 w-24" />
+              </div>
+              <BagActions />
+            </div>
           </div>
         ) : cart.items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
@@ -98,29 +146,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
                   {formatPHP(cart.totals.merchandiseSubtotalCentavos)}
                 </span>
               </p>
-              <p className="text-xs text-muted-foreground">Delivery fee calculated at checkout.</p>
-              <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
-                <Link href="/checkout">
-                  <CheckoutLinkLabel />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md">
-                <Link href="/cart">View full cart</Link>
-              </Button>
-              <DisclosureAccordion
-                items={[
-                  {
-                    id: "shipping",
-                    label: policyCopy.shipping.label,
-                    content: <p>{policyCopy.shipping.body}</p>,
-                  },
-                  {
-                    id: "returns",
-                    label: policyCopy.returns.label,
-                    content: <p>{policyCopy.returns.body}</p>,
-                  },
-                ]}
-              />
+              <BagActions />
             </div>
           </div>
         )}

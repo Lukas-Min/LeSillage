@@ -1,5 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ForgotPasswordLoading() {
   return (
@@ -9,9 +11,16 @@ export default function ForgotPasswordLoading() {
         If an account exists, we will email a 6-digit reset code.
       </p>
       <Card className="mt-6">
-        <CardContent className="space-y-3 p-6">
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full" />
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" disabled className="h-11" />
+            </div>
+            <Button type="button" disabled className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold">
+              Reset
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </main>

@@ -1,5 +1,9 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
 export default function NewPromoCodeLoading() {
   return (
@@ -9,12 +13,66 @@ export default function NewPromoCodeLoading() {
         <CardHeader>
           <CardTitle className="text-base">New code</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-11 w-full sm:col-span-2 sm:ml-auto sm:w-20" />
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Code</Label>
+              <Input placeholder="WELCOME10" disabled className="font-price-display uppercase" />
+            </div>
+            <div className="space-y-1">
+              <Label>Discounts</Label>
+              <select disabled className={selectClass}>
+                <option>Order subtotal</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Type</Label>
+              <select disabled className={selectClass}>
+                <option>Percentage</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Amount (%)</Label>
+              <Input type="number" disabled />
+            </div>
+            <div className="space-y-1">
+              <Label>Minimum spend (₱, optional)</Label>
+              <Input type="number" placeholder="e.g. 2000" disabled />
+            </div>
+            <div className="space-y-1">
+              <Label>Max redemptions (optional)</Label>
+              <Input type="number" placeholder="Unlimited" disabled />
+            </div>
+            <div className="space-y-1">
+              <Label>Starts (optional)</Label>
+              <Input type="date" disabled />
+            </div>
+            <div className="space-y-1">
+              <Label>Ends (optional)</Label>
+              <Input type="date" disabled />
+            </div>
+            <label className="flex min-h-11 items-center gap-2 text-sm">
+              <input type="checkbox" disabled className="size-4" />
+              First order only
+            </label>
+            <label className="flex min-h-11 items-center gap-2 text-sm">
+              <input type="checkbox" disabled className="size-4" />
+              Once per customer
+            </label>
+            <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" disabled className="size-4" />
+              Email the customer(s) who can still use this code
+            </label>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always
+              pesos.
+            </p>
+            <div className="sm:col-span-2">
+              <Button type="button" disabled>
+                Create code
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
