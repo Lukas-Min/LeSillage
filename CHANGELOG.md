@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Before-redesign checkpoint of the landing page in `docs/checkpoints/2026-09-29-landing-before-redesign/` (screenshots plus a WCAG 2.1 AA audit), with git tag `landing-before-redesign` on the matching code
 ### Fixed
 - Catalog search (header search overlay, and `loadCatalogCards`/`countCatalogCards`'s `query` filter) matched the whole query as one substring against name or brand, so "Velixir paladin" found nothing. It now splits the query into words and requires each word to appear in the name or brand, in any order (`productSearchCondition` in `src/lib/catalog.ts`)
 ### Changed
