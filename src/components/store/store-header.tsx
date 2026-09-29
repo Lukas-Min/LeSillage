@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  ArrowRight,
   Menu,
   HelpCircle,
   MessageCircle,
@@ -209,15 +208,6 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
                 </li>
               ))}
             </ul>
-            <SheetClose asChild>
-              <Link
-                href="/shop"
-                className="flex min-h-11 items-center justify-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink"
-              >
-                Shop all fragrances
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
-            </SheetClose>
           </div>
           {/* Only below 576px — from there up, the header's own icon button
               (hidden min-[576px]:inline-flex above) already covers this, and

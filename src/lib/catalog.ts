@@ -620,26 +620,36 @@ async function countCatalogCardsUncached(filter: Omit<CatalogFilter, "limit" | "
   return count;
 }
 
+/** Name A-Z, numbers in natural order ("No. 5" before "No. 10"), ignoring case and accents. */
+export function compareCardNames(a: { name: string }, b: { name: string }): number {
+  return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+}
+
+/**
+ * Every sort breaks ties by name A-Z, so equal prices, ratings, or discounts
+ * (e.g. 19 bottles all at 10% off) read alphabetically instead of in the
+ * order they happened to be added. "newest" keeps pure creation order.
+ */
 function sortCards(cards: CatalogCardModel[], sort: CatalogSort): CatalogCardModel[] {
   const sorted = [...cards];
   switch (sort) {
     case "price_asc":
-      sorted.sort((a, b) => a.minDiscountedCentavos - b.minDiscountedCentavos);
+      sorted.sort((a, b) => a.minDiscountedCentavos - b.minDiscountedCentavos || compareCardNames(a, b));
       return sorted;
     case "price_desc":
-      sorted.sort((a, b) => b.minDiscountedCentavos - a.minDiscountedCentavos);
+      sorted.sort((a, b) => b.minDiscountedCentavos - a.minDiscountedCentavos || compareCardNames(a, b));
       return sorted;
     case "rating":
-      sorted.sort((a, b) => (b.ratingValue ?? -1) - (a.ratingValue ?? -1));
+      sorted.sort((a, b) => (b.ratingValue ?? -1) - (a.ratingValue ?? -1) || compareCardNames(a, b));
       return sorted;
     case "discount_desc":
-      sorted.sort((a, b) => (b.savePercent ?? -1) - (a.savePercent ?? -1));
+      sorted.sort((a, b) => (b.savePercent ?? -1) - (a.savePercent ?? -1) || compareCardNames(a, b));
       return sorted;
     case "name_asc":
-      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+      sorted.sort(compareCardNames);
       return sorted;
     case "name_desc":
-      sorted.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: "base" }));
+      sorted.sort((a, b) => compareCardNames(b, a));
       return sorted;
     case "newest":
       return sorted;

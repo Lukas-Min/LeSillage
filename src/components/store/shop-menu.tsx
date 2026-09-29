@@ -8,11 +8,11 @@ import { ShopTile } from "@/components/store/shop-tile";
 import { cn } from "@/lib/utils";
 
 /**
- * The shop's three shelves as cards, shared by the header's Shop menu and
- * the phone hamburger menu. Same copy as the homepage Browse-by-type rows.
- * "All fragrances" is the "Shop" link itself.
+ * The shop's shelves as cards (All first), shared by the header's Shop menu
+ * and the phone hamburger menu. Same copy as the homepage Browse-by-type rows.
  */
 export const SHOP_TYPE_TILES: Array<{ href: string; title: string; description: string }> = [
+  { href: "/shop", title: "All fragrances", description: "Every bottle, partial, and decant" },
   { href: "/shop?type=DECANT", title: "Decants", description: "Try before the full bottle" },
   { href: "/shop?type=FULL_BOTTLE", title: "Full bottles", description: "Sealed, ready to ship" },
   { href: "/shop?type=PARTIAL", title: "Partials", description: "Opened once, priced to move" },
@@ -135,7 +135,7 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
           id={PANEL_ID}
           className="fixed inset-x-0 top-full z-40 border-y border-border bg-background shadow-[0_24px_48px_-24px_rgba(31,28,24,0.35)]"
         >
-          <ul className="grid grid-cols-3 gap-4 px-8 py-6 normal-case tracking-normal 2xl:mx-auto 2xl:max-w-[80vw]">
+          <ul className="grid grid-cols-4 gap-4 px-8 py-6 normal-case tracking-normal 2xl:mx-auto 2xl:max-w-[80vw]">
             {SHOP_TYPE_TILES.map((tile) => (
               <li key={tile.href}>
                 <ShopTile {...tile} size="menu" as="p" onClick={close} />
