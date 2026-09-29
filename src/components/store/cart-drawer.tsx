@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link, { useLinkStatus } from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, ShoppingBag } from "lucide-react";
 import { useCart, useCartCount } from "@/components/store/cart-context";
 import { CartLineItem, CartLineItemSkeleton } from "@/components/store/cart-line-item";
@@ -35,18 +37,21 @@ function CheckoutLinkLabel() {
 }
 
 // Everything under the subtotal is static, so the loading state renders it
-// for real too.
-function BagActions() {
+// for real too. `closeIfHere` shuts the drawer when a link points at the page
+// already open, since no page change will do it.
+function BagActions({ closeIfHere }: { closeIfHere: (href: string) => void }) {
   return (
     <>
       <p className="text-xs text-muted-foreground">Delivery fee calculated at checkout.</p>
       <Button asChild variant="gold" size="lg" className="h-11 w-full rounded-md">
-        <Link href="/checkout">
+        <Link href="/checkout" onClick={() => closeIfHere("/checkout")}>
           <CheckoutLinkLabel />
         </Link>
       </Button>
       <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md">
-        <Link href="/cart">View full cart</Link>
+        <Link href="/cart" onClick={() => closeIfHere("/cart")}>
+          View full cart
+        </Link>
       </Button>
       <DisclosureAccordion
         items={[
@@ -69,8 +74,23 @@ function BagActions() {
 export function CartDrawer({ mounted }: { mounted: boolean }) {
   const cart = useCart();
   const count = useCartCount();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  // The header lives in the root layout, so this drawer outlives navigation.
+  // Close it whenever the page changes — Checkout, the sign-in page a
+  // signed-out Checkout redirects to, a product link — rather than on tap, so
+  // the Checkout button's own pending state still shows while /checkout loads.
+  // Adjusting state during render is React's supported way to follow a change.
+  const [openOn, setOpenOn] = useState(pathname);
+  if (pathname !== openOn) {
+    setOpenOn(pathname);
+    setOpen(false);
+  }
+  const closeIfHere = (href: string) => {
+    if (pathname === href) setOpen(false);
+  };
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon-lg" aria-label="Cart" className="relative min-h-11 min-w-11">
           <ShoppingBag className="h-5 w-5" />
@@ -103,7 +123,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
                 <span>Subtotal</span>
                 <Skeleton className="h-7 w-24" />
               </div>
-              <BagActions />
+              <BagActions closeIfHere={closeIfHere} />
             </div>
           </div>
         ) : cart.items.length === 0 ? (
@@ -146,7 +166,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
                   {formatPHP(cart.totals.merchandiseSubtotalCentavos)}
                 </span>
               </p>
-              <BagActions />
+              <BagActions closeIfHere={closeIfHere} />
             </div>
           </div>
         )}
