@@ -165,7 +165,9 @@ async function SettingsTab() {
                 Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not
                 centavos.
               </p>
-              <Button type="submit">Save</Button>
+              <SubmitButton className="h-11 w-full sm:ml-auto sm:block sm:w-fit" pendingLabel="Saving…">
+                Save
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>

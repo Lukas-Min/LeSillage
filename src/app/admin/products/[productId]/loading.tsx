@@ -153,8 +153,8 @@ export default function AdminProductLoading() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Field label="Type" />
               <Field label="Amount (% or ₱) — 0 to remove" />
-              <Field label="Start date" />
-              <Field label="End date (empty = no expiration)" />
+              <Field label="Start date" className="col-span-2 sm:col-span-1" />
+              <Field label="End date (empty = no expiration)" className="col-span-2 sm:col-span-1" />
             </div>
             <Skeleton className="h-11 w-32" />
           </div>

@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- On a phone, the site-wide discount's Starts/Ends date fields no longer overflow the card (iPhone Safari gives date inputs a native minimum width). Date inputs drop their native appearance so they fit their box (`src/components/ui/input.tsx`), and on phones the Starts/Ends fields on `/admin/promo` and a product's discount dates take the full row. The Delivery & tester and Site-wide discount Save buttons now match the Announcement bar's (full width on a phone, right-aligned wider), and the site-wide "Saved" line sits beside Save instead of leaving a gap above it; loading screens match
 ### Changed
 - Email is two kinds, written down in `.cursor/rules/email-types.mdc` (imported by `CLAUDE.md`): order and account email always goes to the customer; promotional email goes only to subscribers, through `enqueueMarketingEmails`, with an Unsubscribe button. Promotional email now has a real outlined Unsubscribe button in the footer ("You're getting this because you subscribed to news and promotions … Order emails still arrive") instead of a text link (`src/lib/email-html.ts`), and the queue refuses any promotional email that doesn't carry its recipient's unsubscribe link
 ### Added

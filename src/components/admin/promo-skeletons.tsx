@@ -50,7 +50,7 @@ export function PromoSettingsSkeleton() {
         <p className="text-xs text-muted-foreground">
           Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not centavos.
         </p>
-        <Button type="button" disabled>
+        <Button type="button" disabled className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
           Save
         </Button>
       </CardContent>
@@ -75,7 +75,7 @@ export function PromoSettingsSkeleton() {
             <Skeleton className="h-11 w-full" />
           </div>
           {["Starts (optional)", "Ends (optional)"].map((label) => (
-            <div key={label} className="space-y-1">
+            <div key={label} className="col-span-2 space-y-1 sm:col-span-1">
               <Label>{label}</Label>
               <Skeleton className="h-11 w-full" />
             </div>
@@ -87,7 +87,7 @@ export function PromoSettingsSkeleton() {
           days, and the end date is the last full day of the sale. Turning it on emails everyone subscribed to news and
           promotions once; saving it again while it&apos;s on doesn&apos;t.
         </p>
-        <Button type="button" disabled>
+        <Button type="button" disabled className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
           Save
         </Button>
       </CardContent>

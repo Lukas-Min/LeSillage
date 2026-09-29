@@ -446,7 +446,7 @@ export default async function AdminProductDetailPage({
                   }
                 />
               </Field>
-              <Field label="Start date" htmlFor="new-discount-starts-at">
+              <Field label="Start date" htmlFor="new-discount-starts-at" className="col-span-2 min-w-0 sm:col-span-1">
                 <Input
                   id="new-discount-starts-at"
                   name="startsAt"
@@ -456,7 +456,11 @@ export default async function AdminProductDetailPage({
                   }
                 />
               </Field>
-              <Field label="End date (empty = no expiration)" htmlFor="new-discount-ends-at">
+              <Field
+                label="End date (empty = no expiration)"
+                htmlFor="new-discount-ends-at"
+                className="col-span-2 min-w-0 sm:col-span-1"
+              >
                 <Input
                   id="new-discount-ends-at"
                   name="endsAt"

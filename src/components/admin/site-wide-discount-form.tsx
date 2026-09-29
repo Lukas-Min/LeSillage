@@ -50,7 +50,7 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
         On (applies to every fragrance)
       </label>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <Label htmlFor="siteWideDiscountType">Type</Label>
           <select
             id="siteWideDiscountType"
@@ -63,7 +63,7 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
             <option value="FIXED">Fixed ₱ off</option>
           </select>
         </div>
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <Label htmlFor="siteWideDiscountAmount">{type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"}</Label>
           <Input
             id="siteWideDiscountAmount"
@@ -76,11 +76,11 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
             onChange={(event) => setAmount(event.target.value)}
           />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
           <Label htmlFor="siteWideDiscountStartsAt">Starts (optional)</Label>
           <Input id="siteWideDiscountStartsAt" name="startsAt" type="date" defaultValue={values.startsAt} />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
           <Label htmlFor="siteWideDiscountEndsAt">Ends (optional)</Label>
           <Input id="siteWideDiscountEndsAt" name="endsAt" type="date" defaultValue={values.endsAt} />
         </div>
@@ -96,18 +96,23 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
           {state.error}
         </p>
       ) : null}
-      {/* Always on the page, so a screen reader announces each new save; the
-          key makes a second identical "Saved." still count as a change. */}
-      <p role="status" className="min-h-4 text-xs text-muted-foreground">
-        {wasSaved ? (
-          <span key={state.savedAt}>
-            {state.announcedTo
-              ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
-              : "Saved."}
-          </span>
-        ) : null}
-      </p>
-      <SubmitButton pendingLabel="Saving…">Save</SubmitButton>
+      {/* The status line sits beside Save (below it on a phone) and is always on
+          the page, so a screen reader announces each new save; the key makes a
+          second identical "Saved." still count as a change. */}
+      <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center">
+        <SubmitButton className="h-11 w-full sm:ml-auto sm:block sm:w-fit" pendingLabel="Saving…">
+          Save
+        </SubmitButton>
+        <p role="status" className="text-xs text-muted-foreground sm:mr-auto">
+          {wasSaved ? (
+            <span key={state.savedAt}>
+              {state.announcedTo
+                ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
+                : "Saved."}
+            </span>
+          ) : null}
+        </p>
+      </div>
     </form>
   );
 }
