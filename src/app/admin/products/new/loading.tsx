@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export default function AdminNewProductLoading() {
   return (
@@ -75,7 +76,7 @@ export default function AdminNewProductLoading() {
               <input type="checkbox" defaultChecked disabled />
               Visible on storefront
             </label>
-            <Button type="button" disabled>
+            <Button type="button" disabled className={FORM_ACTION_CLASS}>
               Create
             </Button>
           </div>

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { createQrCode, deleteQrCode, updateQrCode } from "@/actions/admin-qr-actions";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +47,8 @@ export default async function QrAdminPage() {
                   <input type="checkbox" name="isActive" defaultChecked={qr.isActive} />
                   Active
                 </label>
-                <div className="flex gap-2 sm:col-span-2">
-                  <SubmitButton>Save</SubmitButton>
+                <div className="flex sm:col-span-2">
+                  <SubmitButton className={FORM_ACTION_CLASS}>Save</SubmitButton>
                 </div>
               </div>
             </form>
@@ -84,7 +85,7 @@ export default async function QrAdminPage() {
               Active
             </label>
             <div className="sm:col-span-2">
-              <SubmitButton>Add QR code</SubmitButton>
+              <SubmitButton className={FORM_ACTION_CLASS}>Add QR code</SubmitButton>
             </div>
           </form>
         </CardContent>

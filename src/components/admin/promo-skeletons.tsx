@@ -1,7 +1,9 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MAX_ANNOUNCEMENT_LENGTH, MAX_ANNOUNCEMENT_MESSAGES } from "@/domain/announcement";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 /**
  * The two /admin/promo tabs are query-string navigation on one route, so
@@ -31,7 +33,6 @@ export function PromoSettingsSkeleton() {
             <Label>Decant pre-order threshold (ml)</Label>
             <Skeleton className="h-11 w-full" />
           </div>
-          <Skeleton className="h-11 w-full" />
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Skeleton className="size-3.5 rounded-sm" />
@@ -52,6 +53,9 @@ export function PromoSettingsSkeleton() {
         <p className="text-xs text-muted-foreground">
           Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not centavos.
         </p>
+        <Button type="button" disabled className={FORM_ACTION_CLASS}>
+          Save
+        </Button>
       </CardContent>
     </Card>
     <Card>
@@ -74,12 +78,11 @@ export function PromoSettingsSkeleton() {
             <Skeleton className="h-11 w-full" />
           </div>
           {["Starts (optional)", "Ends (optional)"].map((label) => (
-            <div key={label} className="col-span-2 space-y-1 sm:col-span-1">
+            <div key={label} className="space-y-1">
               <Label>{label}</Label>
               <Skeleton className="h-11 w-full" />
             </div>
           ))}
-          <Skeleton className="h-11 w-full" />
         </div>
         <p className="text-xs text-muted-foreground">
           Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
@@ -87,6 +90,9 @@ export function PromoSettingsSkeleton() {
           days, and the end date is the last full day of the sale. Turning it on emails everyone subscribed to news and
           promotions once; saving it again while it&apos;s on doesn&apos;t.
         </p>
+        <Button type="button" disabled className={FORM_ACTION_CLASS}>
+          Save
+        </Button>
       </CardContent>
     </Card>
     <Card>
@@ -108,9 +114,9 @@ export function PromoSettingsSkeleton() {
             page — customers read this before anything else.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2">
-          <Skeleton className="h-11 w-full" />
-        </div>
+        <Button type="button" disabled className={FORM_ACTION_CLASS}>
+          Save
+        </Button>
       </CardContent>
     </Card>
     </>

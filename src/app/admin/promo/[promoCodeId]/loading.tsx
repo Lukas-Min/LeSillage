@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 const inlineSkeleton = "skeleton-shine inline-block rounded-md bg-muted align-middle";
 
@@ -75,7 +76,7 @@ export default function EditPromoCodeLoading() {
               <span className={`${inlineSkeleton} h-3 w-3`} /> redemption(s) already recorded are never changed here.
             </p>
             <div className="sm:col-span-2">
-              <Button type="button" disabled>
+              <Button type="button" disabled className={FORM_ACTION_CLASS}>
                 Save changes
               </Button>
             </div>

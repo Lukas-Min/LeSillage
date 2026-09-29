@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Every form's main button (Save, Create, Add image, Add discount, Parse paste, Delete my account, Unsubscribe…) is full width on a phone and on the right from `sm` up, through one shared `FORM_ACTION_CLASS` (`src/components/ui/form-action.ts`), written down in `.cursor/rules/form-actions.mdc` (imported by `CLAUDE.md`). The Delivery & tester, Site-wide discount and Announcement bar Saves move out of the field grid to the end of their forms; the product page's image and discount buttons, QR codes, promo code form, new product, Fragrantica paste, archive/delete account, unsubscribe and newsletter confirm all follow. Sign in and Sign up keep their full-width buttons. The site-wide Starts/Ends fields no longer force a second column on phones. Loading screens match
 ### Fixed
 - Import from Fragrantica works on the live site: the pasted details waiting for review are kept in the database (`site_content`, 15-minute expiry) instead of one server's memory (`src/lib/fragella-pending-store.ts`), so Save product no longer fails with a server error when it lands on a different Vercel instance. An imported product now starts hidden from the shop, since its first SKU is ₱0 until priced, and its page says to set the price and size and then tick Visible on storefront
 ### Changed

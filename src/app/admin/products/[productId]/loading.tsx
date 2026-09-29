@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 function Field({ label, className }: { label?: string; className?: string }) {
   return (
@@ -107,7 +108,7 @@ export default function AdminProductLoading() {
                       <Skeleton className="size-3.5 rounded-sm" /> Active
                     </div>
                   </div>
-                  <Button type="button" disabled className="h-11 w-full sm:w-auto">
+                  <Button type="button" disabled className={FORM_ACTION_CLASS}>
                     Save
                   </Button>
                 </div>
@@ -138,7 +139,7 @@ export default function AdminProductLoading() {
               <Label>Alt text</Label>
               <Input placeholder="e.g. Brand — Perfume name" disabled />
             </div>
-            <Button type="button" disabled>
+            <Button type="button" disabled className={FORM_ACTION_CLASS}>
               Add image
             </Button>
           </div>
@@ -156,7 +157,7 @@ export default function AdminProductLoading() {
               <Field label="Start date" className="col-span-2 sm:col-span-1" />
               <Field label="End date (empty = no expiration)" className="col-span-2 sm:col-span-1" />
             </div>
-            <Skeleton className="h-11 w-32" />
+            <Skeleton className="h-11 w-full sm:ml-auto sm:w-32" />
           </div>
         </CardContent>
       </Card>

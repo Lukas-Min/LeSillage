@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { updateAnnouncement } from "@/actions/admin-announcement-actions";
 import { MAX_ANNOUNCEMENT_LENGTH, MAX_ANNOUNCEMENT_MESSAGES } from "@/domain/announcement";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 /**
  * Edits the scrolling bar at the top of the storefront. One line per message,
@@ -51,11 +52,9 @@ export function AnnouncementForm({ enabled, messages }: { enabled: boolean; mess
           Saved — the bar updates on the storefront right away.
         </p>
       ) : null}
-      <div className="grid grid-cols-1 sm:grid-cols-2">
-        <SubmitButton className="w-full" pendingLabel="Saving…">
-          Save
-        </SubmitButton>
-      </div>
+      <SubmitButton className={FORM_ACTION_CLASS} pendingLabel="Saving…">
+        Save
+      </SubmitButton>
     </form>
   );
 }

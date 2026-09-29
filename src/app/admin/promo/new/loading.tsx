@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
@@ -95,7 +96,7 @@ export default function NewPromoCodeLoading() {
               pesos.
             </p>
             <div className="sm:col-span-2">
-              <Button type="button" disabled>
+              <Button type="button" disabled className={FORM_ACTION_CLASS}>
                 Create code
               </Button>
             </div>

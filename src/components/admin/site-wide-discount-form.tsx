@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { updateSiteWideDiscount, type SiteWideDiscountFormState } from "@/actions/admin-actions";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 const selectClass =
   "h-11 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
@@ -77,17 +78,14 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
             onChange={(event) => setAmount(event.target.value)}
           />
         </div>
-        <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
+        <div className="min-w-0 space-y-1">
           <Label htmlFor="siteWideDiscountStartsAt">Starts (optional)</Label>
           <Input id="siteWideDiscountStartsAt" name="startsAt" type="date" defaultValue={values.startsAt} />
         </div>
-        <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
+        <div className="min-w-0 space-y-1">
           <Label htmlFor="siteWideDiscountEndsAt">Ends (optional)</Label>
           <Input id="siteWideDiscountEndsAt" name="endsAt" type="date" defaultValue={values.endsAt} />
         </div>
-        <SubmitButton className="w-full" pendingLabel="Saving…">
-          Save
-        </SubmitButton>
       </div>
       <p id="siteWideDiscountHelp" className="text-xs text-muted-foreground">
         Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
@@ -100,15 +98,22 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
           {state.error}
         </p>
       ) : null}
-      <p role="status" className="min-h-4 text-xs text-muted-foreground">
-        {wasSaved ? (
-          <span key={state.savedAt}>
-            {state.announcedTo
-              ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
-              : "Saved."}
-          </span>
-        ) : null}
-      </p>
+      {/* Always on the page, so a screen reader announces each new save; the key
+          makes a second identical "Saved." still count as a change. */}
+      <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center">
+        <SubmitButton className={FORM_ACTION_CLASS} pendingLabel="Saving…">
+          Save
+        </SubmitButton>
+        <p role="status" className="text-xs text-muted-foreground sm:mr-auto">
+          {wasSaved ? (
+            <span key={state.savedAt}>
+              {state.announcedTo
+                ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
+                : "Saved."}
+            </span>
+          ) : null}
+        </p>
+      </div>
     </form>
   );
 }

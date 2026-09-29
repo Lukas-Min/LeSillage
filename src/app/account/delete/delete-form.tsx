@@ -9,6 +9,7 @@ import {
   deleteAccount,
   requestReauthCode,
 } from "@/actions/account-actions";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export function DeleteAccountForm({ email }: { email: string }) {
   const [confirmEmail, setConfirmEmail] = useState("");
@@ -94,7 +95,7 @@ export function DeleteAccountForm({ email }: { email: string }) {
           />
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" variant="destructive" disabled={busy !== null}>
+        <Button type="submit" variant="destructive" disabled={busy !== null} className={FORM_ACTION_CLASS}>
           {busy === "delete" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {busy === "delete" ? "Deleting…" : "Delete my account"}
         </Button>

@@ -21,6 +21,7 @@ import { siteWideDiscountFromSettings, siteWideDiscountStatus, type SiteWideDisc
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { formatDate } from "@/lib/utils";
 import { withAllowedUsers } from "@/lib/promo-code-access";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const dynamic = "force-dynamic";
 
@@ -138,9 +139,6 @@ async function SettingsTab() {
                     defaultValue={row?.decantPreOrderThresholdMl ?? 10}
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Save
-                </Button>
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -170,6 +168,9 @@ async function SettingsTab() {
                 Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not
                 centavos.
               </p>
+              <SubmitButton className={FORM_ACTION_CLASS} pendingLabel="Saving…">
+                Save
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>

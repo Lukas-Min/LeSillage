@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PageHeader, SectionCard } from "@/components/ui/section";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export default function DeleteAccountLoading() {
   return (
@@ -49,7 +50,7 @@ export default function DeleteAccountLoading() {
             <Label>6-digit code</Label>
             <Skeleton className="h-11 w-full rounded-lg" />
           </div>
-          <Button type="button" variant="destructive">
+          <Button type="button" variant="destructive" className={FORM_ACTION_CLASS}>
             Delete my account
           </Button>
         </div>

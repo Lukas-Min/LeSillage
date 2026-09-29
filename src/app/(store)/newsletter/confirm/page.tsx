@@ -3,6 +3,7 @@ import { confirmNewsletter } from "@/actions/newsletter-actions";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { isValidEmailLink } from "@/lib/email-links";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const metadata = { title: "Confirm your subscription" };
 
@@ -40,7 +41,7 @@ export default async function NewsletterConfirmPage({
             Confirm news and promotions for <span className="font-medium break-all">{email}</span>. You can unsubscribe
             from any of our emails.
           </p>
-          <SubmitButton variant="gold" pendingLabel="Confirming…" className="h-11 w-full sm:w-auto">
+          <SubmitButton variant="gold" pendingLabel="Confirming…" className={FORM_ACTION_CLASS}>
             Confirm
           </SubmitButton>
         </form>

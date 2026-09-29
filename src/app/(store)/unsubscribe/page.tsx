@@ -3,6 +3,7 @@ import { unsubscribeFromEmails } from "@/actions/newsletter-actions";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { isValidEmailLink } from "@/lib/email-links";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const metadata = { title: "Unsubscribe" };
 
@@ -41,7 +42,7 @@ export default async function UnsubscribePage({
             Stop news and promotions to <span className="font-medium break-all">{email}</span>? Order emails still
             arrive as usual.
           </p>
-          <SubmitButton pendingLabel="Unsubscribing…" className="h-11 w-full sm:w-auto">
+          <SubmitButton pendingLabel="Unsubscribing…" className={FORM_ACTION_CLASS}>
             Unsubscribe
           </SubmitButton>
         </form>

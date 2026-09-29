@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { previewPasteFragrantica } from "@/actions/fragrantica-actions";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default function FragranticaImportPage() {
               required
             />
           </div>
-          <Button type="submit" variant="outline">
+          <Button type="submit" variant="outline" className={FORM_ACTION_CLASS}>
             Parse paste
             <ArrowRight className="h-4 w-4" />
           </Button>

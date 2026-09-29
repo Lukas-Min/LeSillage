@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { archiveAccount, requestReauthCode } from "@/actions/account-actions";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export function ArchiveAccountForm({ hasPassword }: { hasPassword: boolean }) {
   const [password, setPassword] = useState("");
@@ -72,7 +73,7 @@ export function ArchiveAccountForm({ hasPassword }: { hasPassword: boolean }) {
             />
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <Button type="submit" variant="destructive" disabled={busy !== null}>
+          <Button type="submit" variant="destructive" disabled={busy !== null} className={FORM_ACTION_CLASS}>
             {busy === "archive" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {busy === "archive" ? "Archiving…" : "Archive my account"}
           </Button>
@@ -104,7 +105,7 @@ export function ArchiveAccountForm({ hasPassword }: { hasPassword: boolean }) {
               />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" variant="destructive" disabled={busy !== null}>
+            <Button type="submit" variant="destructive" disabled={busy !== null} className={FORM_ACTION_CLASS}>
               {busy === "archive" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {busy === "archive" ? "Archiving…" : "Archive my account"}
             </Button>

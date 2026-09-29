@@ -4,6 +4,7 @@ import { PageHeader, SectionCard } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export default function AdminFragranticaLoading() {
   return (
@@ -29,7 +30,7 @@ export default function AdminFragranticaLoading() {
             <Label htmlFor="paste">Page source or JSON blob</Label>
             <Textarea id="paste" rows={8} placeholder="<html>... or { ... }" disabled />
           </div>
-          <Button type="button" variant="outline" disabled>
+          <Button type="button" variant="outline" disabled className={FORM_ACTION_CLASS}>
             Parse paste
             <ArrowRight className="h-4 w-4" />
           </Button>

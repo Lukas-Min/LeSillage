@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const dynamic = "force-dynamic";
 
@@ -170,7 +171,7 @@ export default async function NewProductPage({
               <input type="checkbox" name="isActive" defaultChecked />
               Visible on storefront
             </label>
-            <SubmitButton>Create</SubmitButton>
+            <SubmitButton className={FORM_ACTION_CLASS}>Create</SubmitButton>
           </form>
         </CardContent>
       </Card>

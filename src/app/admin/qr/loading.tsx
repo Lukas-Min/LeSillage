@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export default function AdminQrLoading() {
   return (
@@ -29,7 +30,7 @@ export default function AdminQrLoading() {
                   Active
                 </div>
                 <div className="flex gap-2 sm:col-span-2">
-                  <Skeleton className="h-11 w-20" />
+                  <Skeleton className="h-11 w-full sm:ml-auto sm:w-20" />
                 </div>
               </div>
             </div>
@@ -56,7 +57,7 @@ export default function AdminQrLoading() {
             Active
           </label>
           <div className="sm:col-span-2">
-            <Button type="button" disabled>
+            <Button type="button" disabled className={FORM_ACTION_CLASS}>
               Add QR code
             </Button>
           </div>

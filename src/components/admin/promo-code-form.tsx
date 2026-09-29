@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/lib/utils";
 import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/customer-multi-select";
 import type { PromoCodeFormState } from "@/actions/admin-promo-code-actions";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
@@ -278,7 +279,9 @@ export function PromoCodeForm({
         </p>
       ) : null}
       <div className="sm:col-span-2">
-        <SubmitButton pendingLabel="Saving…">{mode === "edit" ? "Save changes" : "Create code"}</SubmitButton>
+        <SubmitButton pendingLabel="Saving…" className={FORM_ACTION_CLASS}>
+          {mode === "edit" ? "Save changes" : "Create code"}
+        </SubmitButton>
       </div>
     </form>
   );

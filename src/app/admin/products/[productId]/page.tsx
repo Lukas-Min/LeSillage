@@ -28,6 +28,7 @@ import { isTerminal } from "@/domain/order-state";
 import { labelForType } from "@/domain/product-type";
 import { formatPhDateBoundary, todayPhDateString, toDisplayDate } from "@/domain/ph-date";
 import { formatDate } from "@/lib/utils";
+import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export const dynamic = "force-dynamic";
 
@@ -370,7 +371,7 @@ export default async function AdminProductDetailPage({
                     <input type="checkbox" name="isActive" defaultChecked={sku.isActive} /> Active
                   </label>
                 </div>
-                <SubmitButton className="h-11 w-full sm:w-auto">Save</SubmitButton>
+                <SubmitButton className={FORM_ACTION_CLASS}>Save</SubmitButton>
               </div>
             </form>
               <form id={`delete-sku-form-${sku.id}`} action={archiveOrDeleteSku}>
@@ -405,7 +406,7 @@ export default async function AdminProductDetailPage({
             <Field label="Alt text" htmlFor="new-image-alt">
               <Input id="new-image-alt" name="alt" placeholder="e.g. Brand — Perfume name" />
             </Field>
-            <SubmitButton>Add image</SubmitButton>
+            <SubmitButton className={FORM_ACTION_CLASS}>Add image</SubmitButton>
           </form>
         </CardContent>
       </Card>
@@ -478,7 +479,7 @@ export default async function AdminProductDetailPage({
                 />
               </Field>
             </div>
-            <SubmitButton>{activeDiscount ? "Update discount" : "Add discount"}</SubmitButton>
+            <SubmitButton className={FORM_ACTION_CLASS}>{activeDiscount ? "Update discount" : "Add discount"}</SubmitButton>
           </form>
         </CardContent>
       </Card>
