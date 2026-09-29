@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Import from Fragrantica works on the live site: the pasted details waiting for review are kept in the database (`site_content`, 15-minute expiry) instead of one server's memory (`src/lib/fragella-pending-store.ts`), so Save product no longer fails with a server error when it lands on a different Vercel instance. An imported product now starts hidden from the shop, since its first SKU is ₱0 until priced, and its page says to set the price and size and then tick Visible on storefront
 ### Changed
 - `/admin/settings` shows each dropdown list as one form: a Value | Label | Active table with a single Save for the whole list (enabled once something changes), instead of a Save and an Activate/Deactivate button on every row (`src/components/admin/option-list-editor.tsx`, `saveOptionList`). Add value opens its own page, `/admin/settings/new?list=…` (`createOptionValue`, `option-value-form.tsx`). A value products or SKUs still store is shown greyed out: only its label can change and it stays active (`src/lib/option-usage.ts`); the server enforces the same, since renaming it would leave those products pointing at nothing. Errors come back as messages on the form instead of thrown toasts, which production hid. Loading screens match
 ### Changed

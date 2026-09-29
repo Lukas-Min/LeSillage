@@ -54,10 +54,13 @@ const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
 
 export default async function AdminProductDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ productId: string }>;
+  searchParams: Promise<{ welcome?: string }>;
 }) {
   const { productId } = await params;
+  const { welcome } = await searchParams;
   const product = (await db().select().from(products).where(eq(products.id, productId)))[0];
   if (!product) return notFound();
   const [skuList, discountList, imageList] = await Promise.all([
@@ -98,6 +101,12 @@ export default async function AdminProductDetailPage({
           <Link href={`/admin/products/${product.id}/skus/new`}>Add SKU</Link>
         </Button>
       </div>
+      {welcome && !product.isActive ? (
+        <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm">
+          Imported and hidden from the shop for now. Set the cost and pricing below, set the SKU&apos;s size, then tick
+          Visible on storefront and Save product.
+        </p>
+      ) : null}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Product</CardTitle>

@@ -156,7 +156,9 @@ export async function saveFragranticaImport(formData: FormData) {
     releaseYear: releaseYear ?? null,
     gender: merged.gender ?? gender,
     fragranticaUrl: payload.fragranticaUrl,
-    isActive: true,
+    // Hidden until the admin prices it: the Default SKU below starts at ₱0, and
+    // a full bottle's pre-order default would otherwise list it for sale at ₱0.
+    isActive: false,
     updatedAt: now,
   });
   await db().insert(skus).values({
