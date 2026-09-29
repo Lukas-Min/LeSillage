@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Payment reminders and the day-2 delivery email now go out on time. The Cloudflare Worker in `workers/auto-reject-cron` runs every cron route hourly (auto-reject, payment reminders, delivery auto-complete, delivery follow-ups, archive sweep), not only auto-reject, and `vercel.json` keeps each daily run as a fallback. A reminder arrives 2–3 hours after the order, 22 hours before the 24-hour auto-cancel. Before, an order placed 08:00–10:00 PHT got no reminder, one placed just after 10:00 got it minutes before cancellation, and an order delivered 13:00–14:00 PHT got its "did it arrive?" email an hour before it auto-completed
 ### Added
 - A promo code limited to one customer is created from Add on that customer's admin page and listed with the public codes they can use. The customer gets an email; the code in it opens `/promo-code` and can be copied
 - Editing a promo code opens `/admin/promo/[promoCodeId]` instead of a dialog
