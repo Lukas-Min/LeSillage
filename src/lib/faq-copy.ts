@@ -87,7 +87,7 @@ export const FAQ_GROUPS = [
             "Delivery — Awaiting payment → Receipt submitted → Confirmed → Shipped → Delivered → Completed.",
             "Pickup — Awaiting payment → Receipt submitted → Confirmed → Ready for pickup → Completed.",
           ],
-          note: "We also email you at each step.",
+          note: "We email you from Receipt submitted onward, plus one payment reminder if an order is still unpaid two hours in.",
         } satisfies FaqAnswer,
       },
     ],
@@ -110,7 +110,7 @@ export const FAQ_GROUPS = [
             "Upload your receipt on the order's payment page within 24 hours of placing the order.",
             "We verify it by hand — stock is reserved only once we do.",
           ],
-          note: "An order with no receipt after 24 hours is cancelled automatically, and we'll usually send a reminder email before then. Changed your mind? Cancel it yourself from Account → Orders.",
+          note: "An order with no receipt after 24 hours is cancelled automatically. Still unpaid two hours in? We'll send one reminder email with the exact time to pay by. Changed your mind? Cancel it yourself from Account → Orders.",
         } satisfies FaqAnswer,
       },
       {
