@@ -507,6 +507,10 @@ async function main() {
   await db.execute(
     `ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountAmount" integer NOT NULL DEFAULT 0`,
   );
+  // Optional schedule for the site-wide discount, like a promo code's dates:
+  // null on either side means no limit, so existing behavior is unchanged.
+  await db.execute(`ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountStartsAt" timestamp`);
+  await db.execute(`ALTER TABLE "promo_setting" ADD COLUMN IF NOT EXISTS "siteWideDiscountEndsAt" timestamp`);
 
   // Pricing moved from per-SKU to one reference formula per product (costPrice/pricingMode/
   // pricingInput), from which every SKU's retail price is derived: referencePrice / sourceMl * sizeMl.
@@ -628,6 +632,14 @@ async function main() {
   // approval instead of an instant self-cancel — see customerCancelMode in
   // src/domain/order-state.ts. Mirrors the promoTesterResult "side flag,
   // order status unchanged while pending" pattern rather than a new status.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "newsletter_subscriber" (
+      "id" text PRIMARY KEY,
+      "email" text NOT NULL UNIQUE,
+      "createdAt" timestamp NOT NULL DEFAULT now()
+    )
+  `);
+
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestedAt" timestamp`);
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestReason" text`);
 
@@ -644,6 +656,8 @@ async function main() {
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountEnabled";
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountType";
 // ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountAmount";
+// ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountStartsAt";
+// ALTER TABLE "promo_setting" DROP COLUMN IF EXISTS "siteWideDiscountEndsAt";
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "costPrice";
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "pricingMode";
 // ALTER TABLE "product" DROP COLUMN IF EXISTS "pricingInput";
@@ -661,6 +675,7 @@ async function main() {
 // ALTER TABLE "sku" DROP COLUMN IF EXISTS "availableForPreOrder";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestedAt";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestReason";
+// DROP TABLE IF EXISTS "newsletter_subscriber";
 
 main().catch((error) => {
   console.error(error);

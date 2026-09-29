@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CatalogPrice } from "@/components/store/price";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
-import { OVERLAY_PILL_CLASS } from "@/components/store/overlay-pill";
+import { OVERLAY_PILL_CLASS, SAVE_BADGE_CLASS } from "@/components/store/overlay-pill";
 import { concentrationLabel } from "@/domain/concentration";
 import { labelForCategory, labelForType } from "@/domain/product-type";
 import { capitalizeFirst } from "@/lib/utils";
@@ -39,7 +39,7 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
             </span>
           ) : null}
           {card.savePercent && card.savePercent > 0 ? (
-            <span className="absolute right-2 top-2 z-10 rounded-none border border-charcoal/25 bg-gold px-2.5 py-1 text-[13px] font-medium text-charcoal shadow-sm min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[11px]">
+            <span className={`absolute right-2 top-2 z-10 border border-gold-foreground/25 shadow-sm ${SAVE_BADGE_CLASS} min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[11px]`}>
               Save {card.savePercent}%
             </span>
           ) : null}

@@ -5,7 +5,7 @@ import { CredentialsSignin } from "next-auth";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
-import { notificationLog, users } from "@/db/schema";
+import { newsletterSubscribers, notificationLog, users } from "@/db/schema";
 import { signIn } from "@/auth";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { hashPassword, validatePassword } from "@/lib/password";
@@ -86,6 +86,7 @@ export async function registerWithEmail(formData: FormData) {
       const name = z.string().min(2).max(120).parse(String(formData.get("name") ?? ""));
       const email = emailSchema.parse(String(formData.get("email") ?? ""));
       const password = String(formData.get("password") ?? "");
+      const marketingOptIn = formData.get("marketingOptIn") === "on";
       const passwordError = validatePassword(password);
       if (passwordError) throw new Error(passwordError);
       const client = db();
@@ -102,10 +103,13 @@ export async function registerWithEmail(formData: FormData) {
       if (existing) {
         await client
           .update(users)
-          .set({ name, passwordHash, role })
+          .set({ name, passwordHash, role, marketingOptIn })
           .where(eq(users.id, existing.id));
       } else {
-        await client.insert(users).values({ name, email, passwordHash, role });
+        await client.insert(users).values({ name, email, passwordHash, role, marketingOptIn });
+      }
+      if (marketingOptIn) {
+        await client.insert(newsletterSubscribers).values({ email }).onConflictDoNothing({ target: newsletterSubscribers.email });
       }
       const issued = await issueVerificationCode({ identifier: email, purpose: "SIGNUP" });
       if (!issued.resentTooSoon && issued.code) {

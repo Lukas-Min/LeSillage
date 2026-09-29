@@ -73,7 +73,7 @@ export const FAQ_GROUPS = [
       },
       {
         q: "Can I buy a tester bottle?",
-        a: "Yes — testers are listed in the shop like any other bottle, just look for the size marked Tester. You can also earn one free: spend ₱2,000 or more on discounted decants in a delivered order and we'll include a complimentary tester.",
+        a: "Yes — testers are listed in the shop like any other bottle, just look for the size marked Tester. You can also earn one free: spend ₱2,000 or more on decants (after discounts) in a delivered order and we'll include a complimentary tester.",
       },
       {
         q: "Do I need an account to order?",
@@ -81,7 +81,14 @@ export const FAQ_GROUPS = [
       },
       {
         q: "How do I know what's happening with my order?",
-        a: "Every order moves through the same stages — Awaiting payment → Receipt submitted → Confirmed → Shipped → Completed — visible anytime under Account → Orders. We also email you at each step.",
+        a: {
+          lead: "Every order moves through the same stages, visible anytime under Account → Orders:",
+          bullets: [
+            "Delivery — Awaiting payment → Receipt submitted → Confirmed → Shipped → Delivered → Completed.",
+            "Pickup — Awaiting payment → Receipt submitted → Confirmed → Ready for pickup → Completed.",
+          ],
+          note: "We also email you at each step.",
+        } satisfies FaqAnswer,
       },
     ],
   },
@@ -100,15 +107,23 @@ export const FAQ_GROUPS = [
           lead: "Payment is the only thing left:",
           bullets: [
             "Scan the QR code and send the total.",
-            "Upload your receipt on the order's payment page.",
+            "Upload your receipt on the order's payment page within 24 hours of placing the order.",
             "We verify it by hand — stock is reserved only once we do.",
           ],
-          note: "Still unpaid after two hours? We'll send one reminder email. Changed your mind? Cancel anytime from Account → Orders.",
+          note: "An order with no receipt after 24 hours is cancelled automatically, and we'll usually send a reminder email before then. Changed your mind? Cancel it yourself from Account → Orders.",
         } satisfies FaqAnswer,
       },
       {
         q: "Can I change or cancel my order?",
-        a: "Email le.sillage.mnl@gmail.com before your payment is verified and we can adjust or cancel it easily. After verification, cancellation is still possible — we'll just ask for a reason first, and it may take a little longer.",
+        a: {
+          lead: "Cancelling is done from Account → Orders:",
+          bullets: [
+            "Before your payment is verified — cancel it yourself, instantly.",
+            "After it's confirmed — request a cancellation with a reason, and we'll review it.",
+            "Once it has shipped or is ready for pickup, it can't be cancelled from your account.",
+          ],
+          note: "Want to change something instead of cancelling? Message us on Messenger or Instagram, or email us — everything is on the Contact page.",
+        } satisfies FaqAnswer,
       },
     ],
   },
@@ -142,12 +157,23 @@ export const FAQ_GROUPS = [
       {
         q: "How does the tester promo work?",
         a: {
-          lead: "Spend ₱2,000 or more on discounted decants in one delivered order, and you get:",
+          lead: "Spend ₱2,000 or more on decants (counted after discounts) in one delivered order, and you get:",
           bullets: [
             "Free delivery",
             "One complimentary tester, matched to a brand in your order",
           ],
           note: "Testers are also sold on their own in the shop — this promo is a bonus, not the only way to get one. Pickup is already free but doesn't include the tester, and we'll follow up if no matching tester is in stock.",
+        } satisfies FaqAnswer,
+      },
+      {
+        q: "How do promo codes work?",
+        a: {
+          lead: "At checkout you can use one order code and one delivery code together:",
+          bullets: [
+            "Order code — takes money off items that aren't already on sale.",
+            "Delivery code — takes money off the delivery fee, so it has nothing to discount on pickup or once delivery is already free.",
+          ],
+          note: "A code can also have a minimum spend (counted after your other discounts), start and end dates, or be limited to a first order or one use per customer. Codes you can use, including any made just for you, are under Account → Promo codes. To get new codes by email, turn on \"Send me news and promotions\" under Account → Notifications.",
         } satisfies FaqAnswer,
       },
       {

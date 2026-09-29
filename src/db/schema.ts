@@ -198,6 +198,15 @@ export const users = pgTable("user", {
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
 });
 
+/** Emails that asked for promo codes and news, including people without an account. */
+export const newsletterSubscribers = pgTable("newsletter_subscriber", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+});
+
 export const emailVerificationCodes = pgTable(
   "email_verification_code",
   {
@@ -489,6 +498,10 @@ export const promoSettings = pgTable("promo_setting", {
   siteWideDiscountEnabled: boolean("siteWideDiscountEnabled").notNull().default(false),
   siteWideDiscountType: text("siteWideDiscountType").$type<DiscountType>().notNull().default("PERCENTAGE"),
   siteWideDiscountAmount: integer("siteWideDiscountAmount").notNull().default(0),
+  // Null means no limit on that side. Stored as PHT day boundaries
+  // (parsePhDateBoundary), same as promo codes and product discounts.
+  siteWideDiscountStartsAt: timestamp("siteWideDiscountStartsAt", { mode: "date" }),
+  siteWideDiscountEndsAt: timestamp("siteWideDiscountEndsAt", { mode: "date" }),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 

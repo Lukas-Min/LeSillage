@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
-import { notificationLog, promoCodes, users } from "@/db/schema";
+import { notificationLog, orders, promoCodeRedemptions, promoCodes, users, type PromoCode } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { formatPHP, toCentavos } from "@/domain/money";
@@ -34,6 +34,7 @@ const createSchema = z.object({
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
   restrictedUserId: z.string().min(1).optional(),
+  sendEmail: z.coerce.boolean(),
 });
 
 // Editing reuses every create field; only the target row id is extra.
@@ -53,7 +54,78 @@ function readCodeFields(formData: FormData) {
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
     restrictedUserId: formData.get("restrictedUserId") || undefined,
+    sendEmail: formData.get("sendEmail") === "on",
   };
+}
+
+/**
+ * Customers who can actually still use this code, independent of any one
+ * order's contents — everyone who opted into marketing email, minus whoever
+ * the code's own rules (onePerCustomer/firstOrderOnly) have already used up.
+ * Mirrors the same "counts as an order" definition checkPromoCodeEligibility's
+ * callers use (src/actions/promo-code-actions.ts, src/lib/orders.ts): every
+ * order except REJECTED/CANCELLED. Not used for a restricted code — that one
+ * has exactly one intended recipient, looked up directly by id instead.
+ */
+async function loadEligibleSubscribers(
+  code: Pick<PromoCode, "id" | "firstOrderOnly" | "onePerCustomer">,
+): Promise<Array<{ email: string; name: string | null }>> {
+  const client = db();
+  const candidates = await client
+    .select({ id: users.id, email: users.email, name: users.name })
+    .from(users)
+    .where(and(eq(users.marketingOptIn, true), isNull(users.deletedAt), isNull(users.archivedAt)));
+
+  let eligible = candidates;
+  if (code.onePerCustomer) {
+    const redeemed = await client
+      .select({ userId: promoCodeRedemptions.userId })
+      .from(promoCodeRedemptions)
+      .where(eq(promoCodeRedemptions.promoCodeId, code.id));
+    const redeemedIds = new Set(redeemed.map((r) => r.userId));
+    eligible = eligible.filter((u) => !redeemedIds.has(u.id));
+  }
+  if (code.firstOrderOnly) {
+    const ordered = await client
+      .select({ userId: orders.userId })
+      .from(orders)
+      .where(notInArray(orders.status, ["REJECTED", "CANCELLED"]));
+    const orderedIds = new Set(ordered.map((r) => r.userId));
+    eligible = eligible.filter((u) => !orderedIds.has(u.id));
+  }
+  return eligible.filter((u): u is { id: string; email: string; name: string | null } => u.email !== null);
+}
+
+/** Fire-and-forget a promo email to every still-eligible subscriber, logging
+ *  each attempt individually — same audit trail shape as the single-customer
+ *  send below, just one row per recipient instead of one row total. */
+function broadcastPromoEmail(code: {
+  id: string;
+  code: string;
+  type: "PERCENTAGE" | "FIXED";
+  amount: number;
+  scope: "ORDER" | "DELIVERY";
+  maxRedemptions: number | null;
+  redemptionCount: number;
+  firstOrderOnly: boolean;
+  onePerCustomer: boolean;
+}) {
+  // Nobody can redeem an exhausted code, so there's nothing to announce.
+  if (code.maxRedemptions !== null && code.redemptionCount >= code.maxRedemptions) return;
+  const offer = describeCustomerOffer(code.type, code.amount, code.scope, code.maxRedemptions);
+  after(async () => {
+    const recipients = await loadEligibleSubscribers(code);
+    for (const recipient of recipients) {
+      const message = promoAssignedEmail({ name: recipient.name, code: code.code, offer });
+      const result = await sendEmail({ to: recipient.email, subject: message.subject, text: message.text, html: message.html });
+      await db().insert(notificationLog).values({
+        recipient: recipient.email,
+        template: "promo_code_broadcast",
+        status: result.ok ? "SENT" : "FAILED",
+        error: result.ok ? null : result.error ?? "unknown",
+      });
+    }
+  });
 }
 
 /**
@@ -167,23 +239,38 @@ export async function createPromoCode(
   revalidatePath("/admin/promo");
   if (restrictedUserId && customerEmail) {
     revalidatePath(`/admin/customers/${restrictedUserId}`);
-    const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
-    const email = customerEmail;
-    const name = customerName;
-    const code = parsed.code;
-    after(async () => {
-      const message = promoAssignedEmail({ name, code, offer });
-      const result = await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html });
-      await db().insert(notificationLog).values({
-        recipient: email,
-        template: "promo_code_assigned",
-        status: result.ok ? "SENT" : "FAILED",
-        error: result.ok ? null : result.error ?? "unknown",
+    if (parsed.sendEmail) {
+      const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
+      const email = customerEmail;
+      const name = customerName;
+      const code = parsed.code;
+      after(async () => {
+        const message = promoAssignedEmail({ name, code, offer });
+        const result = await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html });
+        await db().insert(notificationLog).values({
+          recipient: email,
+          template: "promo_code_assigned",
+          status: result.ok ? "SENT" : "FAILED",
+          error: result.ok ? null : result.error ?? "unknown",
+        });
       });
-    });
+    }
     redirect(`/admin/customers/${restrictedUserId}`);
   }
-  return saved();
+  if (parsed.sendEmail) {
+    broadcastPromoEmail({
+      id: created[0].id,
+      code: parsed.code,
+      type: parsed.type,
+      amount,
+      scope: parsed.scope,
+      maxRedemptions: parsed.maxRedemptions ?? null,
+      redemptionCount: 0,
+      firstOrderOnly: parsed.firstOrderOnly,
+      onePerCustomer: parsed.onePerCustomer,
+    });
+  }
+  redirect("/admin/promo?tab=codes");
 }
 
 function describeCustomerOffer(
@@ -233,6 +320,8 @@ export async function updatePromoCode(
         startsAt: promoCodes.startsAt,
         endsAt: promoCodes.endsAt,
         redemptionCount: promoCodes.redemptionCount,
+        isActive: promoCodes.isActive,
+        restrictedUserId: promoCodes.restrictedUserId,
       })
       .from(promoCodes)
       .where(eq(promoCodes.id, parsed.id))
@@ -337,6 +426,46 @@ export async function updatePromoCode(
     },
   });
   revalidatePath("/admin/promo");
+  // A deactivated code has no eligible recipients regardless of the checkbox
+  // — nobody can use it, so there's nothing worth emailing about.
+  if (parsed.sendEmail && current.isActive) {
+    if (current.restrictedUserId) {
+      const customer = (
+        await db()
+          .select({ email: users.email, name: users.name })
+          .from(users)
+          .where(eq(users.id, current.restrictedUserId))
+      )[0];
+      if (customer?.email) {
+        const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
+        const email = customer.email;
+        const name = customer.name;
+        const code = parsed.code;
+        after(async () => {
+          const message = promoAssignedEmail({ name, code, offer });
+          const result = await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html });
+          await db().insert(notificationLog).values({
+            recipient: email,
+            template: "promo_code_assigned",
+            status: result.ok ? "SENT" : "FAILED",
+            error: result.ok ? null : result.error ?? "unknown",
+          });
+        });
+      }
+    } else {
+      broadcastPromoEmail({
+        id: parsed.id,
+        code: parsed.code,
+        type: parsed.type,
+        amount,
+        scope: parsed.scope,
+        maxRedemptions: parsed.maxRedemptions ?? null,
+        redemptionCount: current.redemptionCount,
+        firstOrderOnly: parsed.firstOrderOnly,
+        onePerCustomer: parsed.onePerCustomer,
+      });
+    }
+  }
   redirect("/admin/promo?tab=codes");
 }
 

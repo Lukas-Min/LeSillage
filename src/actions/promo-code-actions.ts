@@ -1,11 +1,16 @@
 "use server";
 
-import { and, count, eq, notInArray } from "drizzle-orm";
+import { and, count, eq, inArray, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, promoCodes, promoCodeRedemptions } from "@/db/schema";
-import { calculatePromoCodeDiscount, checkPromoCodeEligibility } from "@/domain/promo-code";
+import {
+  calculatePromoCodeDiscount,
+  checkPromoCodeSet,
+  groupPromoCodesByScope,
+  MAX_PROMO_CODES_PER_ORDER,
+} from "@/domain/promo-code";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { loadCartViewForBothMethods, loadDirectItemViewForBothMethods, resolveActiveCart } from "@/lib/cart";
 
@@ -24,7 +29,10 @@ export interface PromoCodePreview {
  * would reach the checkout form unreadable. Only unexpected failures (DB
  * down) still throw.
  */
-export type PromoCodePreviewResult = { ok: true; preview: PromoCodePreview } | { ok: false; error: string };
+export type PromoCodePreviewResult =
+  | { ok: true; previews: PromoCodePreview[] }
+  // `code` names which of the submitted codes failed, when it's one specific code.
+  | { ok: false; error: string; code?: string };
 
 // Same shape createCheckoutOrder accepts for its Buy Now item, so the
 // preview is priced against exactly what the order will be.
@@ -42,9 +50,14 @@ const directItemSchema = z.object({ skuId: z.string().min(1), quantity: z.number
  * `directItem` is the Buy Now case: the preview prices that one item, never
  * the customer's (possibly empty, possibly unrelated) cart — mirroring the
  * `directItems` branch of createOrderFromCart.
+ *
+ * `rawCodes` is every code the customer wants on the order — the ones
+ * already applied plus the one being added — checked together through the
+ * same checkPromoCodeSet the order itself uses, because adding an order
+ * code can push an applied delivery code under its minimum spend.
  */
-export async function previewPromoCode(
-  rawCode: string,
+export async function previewPromoCodes(
+  rawCodes: readonly string[],
   fulfillmentMethod: "DELIVERY" | "PICKUP",
   directItem: { skuId: string; quantity: number } | null = null,
 ): Promise<PromoCodePreviewResult> {
@@ -58,8 +71,11 @@ export async function previewPromoCode(
   });
   if (!decision.allowed) return { ok: false, error: "Too many requests. Please slow down." };
 
-  const normalizedCode = rawCode.trim().toUpperCase();
-  if (!normalizedCode) return { ok: false, error: "Enter a code" };
+  const normalizedCodes = [...new Set(rawCodes.map((code) => code.trim().toUpperCase()).filter(Boolean))];
+  if (normalizedCodes.length === 0) return { ok: false, error: "Enter a code" };
+  if (normalizedCodes.length > MAX_PROMO_CODES_PER_ORDER) {
+    return { ok: false, error: "Use at most one order code and one delivery code" };
+  }
 
   const parsedDirectItem = directItem ? directItemSchema.safeParse(directItem) : null;
   if (parsedDirectItem && !parsedDirectItem.success) {
@@ -67,8 +83,15 @@ export async function previewPromoCode(
   }
 
   const client = db();
-  const [codeRow] = await client.select().from(promoCodes).where(eq(promoCodes.code, normalizedCode));
-  if (!codeRow) return { ok: false, error: "Invalid promo code" };
+  const codeRows = await client.select().from(promoCodes).where(inArray(promoCodes.code, normalizedCodes));
+  const missing = normalizedCodes.find((code) => !codeRows.some((row) => row.code === code));
+  if (missing) return { ok: false, error: `Invalid promo code: ${missing}`, code: missing };
+  // Grouped in the order the customer entered them (applied codes first, the
+  // new one last), so a same-scope clash names the applied one to remove.
+  const grouped = groupPromoCodesByScope(
+    normalizedCodes.map((code) => codeRows.find((row) => row.code === code)!),
+  );
+  if (!grouped.ok) return { ok: false, error: grouped.error };
 
   const view = parsedDirectItem
     ? await loadDirectItemViewForBothMethods(parsedDirectItem.data.skuId, parsedDirectItem.data.quantity)
@@ -78,40 +101,56 @@ export async function previewPromoCode(
     return { ok: false, error: parsedDirectItem ? "This item is no longer available" : "Your bag is empty" };
   }
 
-  const [priorOrderCount, priorRedemption] = await Promise.all([
+  const [priorOrderCount, priorRedemptions] = await Promise.all([
     client
       .select({ value: count() })
       .from(orders)
       .where(and(eq(orders.userId, session.user.id), notInArray(orders.status, ["REJECTED", "CANCELLED"]))),
     client
-      .select({ id: promoCodeRedemptions.id })
+      .select({ promoCodeId: promoCodeRedemptions.promoCodeId })
       .from(promoCodeRedemptions)
       .where(
-        and(eq(promoCodeRedemptions.promoCodeId, codeRow.id), eq(promoCodeRedemptions.userId, session.user.id)),
-      )
-      .limit(1),
+        and(
+          inArray(
+            promoCodeRedemptions.promoCodeId,
+            codeRows.map((row) => row.id),
+          ),
+          eq(promoCodeRedemptions.userId, session.user.id),
+        ),
+      ),
   ]);
 
-  const eligibility = checkPromoCodeEligibility(codeRow, {
-    merchandiseSubtotalCentavos: totals.merchandiseSubtotalCentavos,
-    orderDiscountEligibleSubtotalCentavos: totals.orderDiscountEligibleSubtotalCentavos,
-    deliveryFeeCentavos: totals.deliveryFeeCentavos,
+  const eligibility = checkPromoCodeSet(grouped.codes, {
+    preCodeTotals: totals,
     isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
-    hasPriorRedemption: priorRedemption.length > 0,
     userId: session.user.id,
+    previouslyRedeemedCodeIds: new Set(priorRedemptions.map((row) => row.promoCodeId)),
   });
-  if (!eligibility.ok) return { ok: false, error: eligibility.error };
+  if (!eligibility.ok) return { ok: false, error: eligibility.error, code: eligibility.code };
 
-  const baseCentavos = codeRow.scope === "ORDER" ? totals.orderDiscountEligibleSubtotalCentavos : totals.deliveryFeeCentavos;
-  const discountCentavos = calculatePromoCodeDiscount(codeRow.type, codeRow.amount, baseCentavos);
-
-  return {
-    ok: true,
-    preview: {
-      code: codeRow.code,
-      scope: codeRow.scope,
-      orderDiscountCentavos: codeRow.scope === "ORDER" ? discountCentavos : 0,
-      deliveryDiscountCentavos: codeRow.scope === "DELIVERY" ? discountCentavos : 0,
-    },
-  };
+  // Same bases buildCartTotals discounts from: an ORDER code against the
+  // regular-price lines, a DELIVERY code against the fee before any code.
+  const previews: PromoCodePreview[] = [];
+  const { order, delivery } = grouped.codes;
+  if (order) {
+    previews.push({
+      code: order.code,
+      scope: "ORDER",
+      orderDiscountCentavos: calculatePromoCodeDiscount(
+        order.type,
+        order.amount,
+        totals.orderDiscountEligibleSubtotalCentavos,
+      ),
+      deliveryDiscountCentavos: 0,
+    });
+  }
+  if (delivery) {
+    previews.push({
+      code: delivery.code,
+      scope: "DELIVERY",
+      orderDiscountCentavos: 0,
+      deliveryDiscountCentavos: calculatePromoCodeDiscount(delivery.type, delivery.amount, totals.deliveryFeeCentavos),
+    });
+  }
+  return { ok: true, previews };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatPHP } from "@/domain/money";
 import { PHONE_COUNTRY, PHONE_PLACEHOLDER } from "@/domain/phone";
 import { createCheckoutOrder } from "@/actions/order-actions";
-import { previewPromoCode, type PromoCodePreview } from "@/actions/promo-code-actions";
+import { previewPromoCodes, type PromoCodePreview } from "@/actions/promo-code-actions";
 import { PhAddressFields, type PhAddressValues } from "@/components/store/ph-address-fields";
 import type { CartLineView } from "@/lib/cart";
 import type { CheckoutTotals } from "@/domain/checkout-totals";
@@ -59,6 +59,8 @@ export function CheckoutForm({
 }) {
   const router = useRouter();
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
+  // Read by an in-flight promo preview, which outlives the render it started in.
+  const fulfillmentMethodRef = useRef<"DELIVERY" | "PICKUP">("DELIVERY");
   const [savedAddressId, setSavedAddressId] = useState<string>(defaultAddressId ?? "");
   const selected = addresses.find((address) => address.id === savedAddressId);
   const [name, setName] = useState(selected?.recipientName ?? defaultName);
@@ -80,45 +82,67 @@ export function CheckoutForm({
   const [accepted, setAccepted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [promoCodeInput, setPromoCodeInput] = useState("");
-  const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCodePreview | null>(null);
+  // At most one ORDER-scope and one DELIVERY-scope code (see
+  // groupPromoCodesByScope) — the server enforces it; this list just mirrors it.
+  const [appliedPromoCodes, setAppliedPromoCodes] = useState<PromoCodePreview[]>([]);
   const [promoCodeError, setPromoCodeError] = useState<string | null>(null);
   const [promoCodePending, startPromoCodeTransition] = useTransition();
   const totals = fulfillmentMethod === "PICKUP" ? pickupTotals : deliveryTotals;
-  const promoDiscountCentavos = appliedPromoCode
-    ? appliedPromoCode.orderDiscountCentavos + appliedPromoCode.deliveryDiscountCentavos
-    : 0;
+  const orderCodePreview = appliedPromoCodes.find((preview) => preview.scope === "ORDER") ?? null;
+  const deliveryCodePreview = appliedPromoCodes.find((preview) => preview.scope === "DELIVERY") ?? null;
+  const promoDiscountCentavos = appliedPromoCodes.reduce(
+    (sum, preview) => sum + preview.orderDiscountCentavos + preview.deliveryDiscountCentavos,
+    0,
+  );
   const displayedTotalCentavos = Math.max(0, totals.totalCentavos - promoDiscountCentavos);
 
   function applyPromoCode() {
-    const code = promoCodeInput.trim();
+    const code = promoCodeInput.trim().toUpperCase();
     if (!code) return;
+    if (appliedPromoCodes.some((preview) => preview.code === code)) {
+      setPromoCodeError(`${code} is already applied`);
+      return;
+    }
     setPromoCodeError(null);
+    const requestedMethod = fulfillmentMethod;
     startPromoCodeTransition(async () => {
       try {
-        const result = await previewPromoCode(code, fulfillmentMethod, directItem ?? null);
+        // Checked together with what's already applied: a new order code can
+        // push an applied delivery code under its minimum spend.
+        const result = await previewPromoCodes(
+          [...appliedPromoCodes.map((preview) => preview.code), code],
+          requestedMethod,
+          directItem ?? null,
+        );
+        // Priced for the method the customer had when they pressed Apply —
+        // if they switched since, it would re-add a delivery code on pickup.
+        if (fulfillmentMethodRef.current !== requestedMethod) return;
         if (result.ok) {
-          setAppliedPromoCode(result.preview);
+          setAppliedPromoCodes(result.previews);
+          setPromoCodeInput("");
         } else {
-          setAppliedPromoCode(null);
+          // Codes already applied stay applied — each was valid on its own,
+          // and the message names the failing one when there are two.
           setPromoCodeError(result.error);
         }
       } catch {
         // Only unexpected failures throw — and in production Next.js swaps
         // a thrown Server Action error's message for React #441 boilerplate,
         // so never show `error.message` here.
-        setAppliedPromoCode(null);
         setPromoCodeError("We couldn't check that code right now. Please try again.");
       }
     });
   }
 
-  function removePromoCode() {
-    setAppliedPromoCode(null);
-    setPromoCodeInput("");
+  // Removing a code never invalidates the other: dropping the order code only
+  // raises the subtotal a delivery code's minimum spend is measured against.
+  function removePromoCode(code: string) {
+    setAppliedPromoCodes((current) => current.filter((preview) => preview.code !== code));
     setPromoCodeError(null);
   }
 
   function changeFulfillmentMethod(next: "DELIVERY" | "PICKUP") {
+    fulfillmentMethodRef.current = next;
     setFulfillmentMethod(next);
     // A DELIVERY-scope code's discount depends on the delivery fee, which
     // goes to zero on pickup (and back on delivery) — clear it so a stale
@@ -126,7 +150,7 @@ export function CheckoutForm({
     // fulfillment method, so it's left applied. Any rejection message is
     // dropped either way: "nothing to discount — delivery is already free"
     // stops being true the moment the customer switches back to delivery.
-    if (appliedPromoCode?.scope === "DELIVERY") setAppliedPromoCode(null);
+    setAppliedPromoCodes((current) => current.filter((preview) => preview.scope !== "DELIVERY"));
     setPromoCodeError(null);
   }
 
@@ -195,18 +219,17 @@ export function CheckoutForm({
           pickupNotes: fulfillmentMethod === "PICKUP" ? pickupNotes : null,
           notes: notes || null,
           acceptedTerms: true,
-          promoCode: appliedPromoCode?.code ?? null,
+          promoCodes: appliedPromoCodes.map((preview) => preview.code),
           directItem: directItem ?? null,
         });
         if (!result.ok) {
           if (result.field === "promoCode") {
-            // The code stopped qualifying between preview and submit (cap
-            // hit by someone else, deactivated…): drop the chip and the
-            // discounted total, and put the reason next to the code field
-            // — the input still holds the code — so a retry doesn't fail
-            // identically until the customer works out that "Remove" is
-            // the fix.
-            setAppliedPromoCode(null);
+            // A code stopped qualifying between preview and submit (cap hit
+            // by someone else, deactivated…): drop that chip and its
+            // discount — the other code, if any, stays — and put the reason
+            // next to the code field, so a retry doesn't fail identically.
+            const failed = result.promoCode;
+            setAppliedPromoCodes((current) => (failed ? current.filter((preview) => preview.code !== failed) : []));
             setPromoCodeError(result.error);
           }
           toast.error(result.error);
@@ -361,15 +384,31 @@ export function CheckoutForm({
       </Card>
       <Card>
         <CardContent className="space-y-3 p-4">
-          <Label htmlFor="promoCode">Promo code</Label>
-          {appliedPromoCode ? (
-            <div className="flex items-center justify-between gap-2 rounded-md border border-gold/40 bg-gold/5 px-3 py-2 text-sm">
-              <span className="font-price-display">{appliedPromoCode.code}</span>
-              <button type="button" onClick={removePromoCode} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+          <div className="space-y-1">
+            <Label htmlFor="promoCode">Promo codes</Label>
+            <p className="text-xs text-muted-foreground">One order code and one delivery code can be used together.</p>
+          </div>
+          {appliedPromoCodes.map((preview) => (
+            <div
+              key={preview.code}
+              className="flex items-center justify-between gap-2 rounded-md border border-gold/40 bg-gold/5 px-3 py-2 text-sm"
+            >
+              <span className="min-w-0">
+                <span className="font-price-display">{preview.code}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {preview.scope === "ORDER" ? "Order" : "Delivery"}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => removePromoCode(preview.code)}
+                className="min-h-11 shrink-0 px-1 text-xs text-muted-foreground underline-offset-4 hover:underline"
+              >
                 Remove
               </button>
             </div>
-          ) : (
+          ))}
+          {orderCodePreview && deliveryCodePreview ? null : (
             <div className="flex gap-2">
               <Input
                 id="promoCode"
@@ -429,10 +468,10 @@ export function CheckoutForm({
               <span>Merchandise subtotal</span>
               <span className="tabular-nums text-foreground">{formatPHP(totals.merchandiseSubtotalCentavos)}</span>
             </p>
-            {appliedPromoCode && appliedPromoCode.orderDiscountCentavos > 0 ? (
+            {orderCodePreview && orderCodePreview.orderDiscountCentavos > 0 ? (
               <p className="flex justify-between">
-                <span>Promo code ({appliedPromoCode.code})</span>
-                <span className="tabular-nums text-foreground">-{formatPHP(appliedPromoCode.orderDiscountCentavos)}</span>
+                <span>Promo code ({orderCodePreview.code})</span>
+                <span className="tabular-nums text-foreground">-{formatPHP(orderCodePreview.orderDiscountCentavos)}</span>
               </p>
             ) : null}
             <p className="flex justify-between">
@@ -441,10 +480,10 @@ export function CheckoutForm({
                 {totals.deliveryFeeCentavos === 0 ? "Free" : formatPHP(totals.deliveryFeeCentavos)}
               </span>
             </p>
-            {appliedPromoCode && appliedPromoCode.deliveryDiscountCentavos > 0 ? (
+            {deliveryCodePreview && deliveryCodePreview.deliveryDiscountCentavos > 0 ? (
               <p className="flex justify-between">
-                <span>Delivery discount ({appliedPromoCode.code})</span>
-                <span className="tabular-nums text-foreground">-{formatPHP(appliedPromoCode.deliveryDiscountCentavos)}</span>
+                <span>Delivery discount ({deliveryCodePreview.code})</span>
+                <span className="tabular-nums text-foreground">-{formatPHP(deliveryCodePreview.deliveryDiscountCentavos)}</span>
               </p>
             ) : null}
           </div>
@@ -477,7 +516,7 @@ export function CheckoutForm({
           size="lg"
           className="h-11 w-full rounded-md sm:w-auto"
           // Also held while a promo preview is in flight: submitting then
-          // would send promoCode: null and silently drop the discount.
+          // would leave out the code being checked and silently drop its discount.
           disabled={isPending || promoCodePending || !accepted}
         >
           {isPending ? "Placing order…" : "Place order"}

@@ -40,8 +40,17 @@ export default async function SignUpPage({
               <Input id="password" name="password" type="password" required minLength={6} className="h-11" />
               <p className="text-xs text-muted-foreground">At least 6 characters, with a letter and a number.</p>
             </div>
+            <label className="flex min-h-11 items-start gap-3 text-sm">
+              <input type="checkbox" name="marketingOptIn" className="mt-1 size-4 shrink-0 accent-current" />
+              <span>
+                <span className="font-medium">Send me news and promotions</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Occasional updates about new fragrances, restocks, and limited offers. No more than once a week.
+                </span>
+              </span>
+            </label>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <SubmitButton className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold" pendingLabel="Creating…">
+            <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Creating…">
               Create account
             </SubmitButton>
           </form>

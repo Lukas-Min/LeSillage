@@ -29,6 +29,10 @@ export function CustomerPromoCodeForm({ userId }: { userId: string }) {
         <Label htmlFor="customer-promo-cap">Redemptions</Label>
         <Input id="customer-promo-cap" name="maxRedemptions" type="number" min={1} defaultValue={1} required />
       </div>
+      <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-3">
+        <input type="checkbox" name="sendEmail" className="size-4" />
+        Email this customer their code
+      </label>
       {state.error ? <p className="text-sm text-destructive sm:col-span-3">{state.error}</p> : null}
       <div className="flex justify-end sm:col-span-3">
         <SubmitButton className="h-11 w-full sm:w-auto">Save</SubmitButton>

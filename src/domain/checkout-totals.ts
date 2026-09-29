@@ -1,5 +1,5 @@
 import type { CartTotals, PricedLine } from "./cart";
-import { applyPromoCode } from "./promo-code";
+import { applyPromoCode, type PromoCodesByScope } from "./promo-code";
 import {
   isFreeShippingEligible,
   isTesterBonusEligible,
@@ -40,18 +40,20 @@ export interface CheckoutTotals {
 }
 
 /**
- * `promoCode` is the already-validated, currently-redeemable code (or
- * undefined/null for none) — callers re-validate eligibility themselves
- * (src/domain/promo-code.ts's checkPromoCodeEligibility) before ever passing
- * one in here; this function only computes the resulting numbers, it does
- * not decide whether the code is allowed.
+ * `promoCodes` are the already-validated, currently-redeemable codes, at
+ * most one per scope (or undefined/null for none) — callers re-validate
+ * eligibility themselves (src/domain/promo-code.ts's checkPromoCodeSet)
+ * before ever passing them in here; this function only computes the
+ * resulting numbers, it does not decide whether a code is allowed.
  */
 export function buildCartTotals(
   priced: CartTotals,
   promoConfig: PromoConfig,
   fulfillmentMethod: FulfillmentMethod,
-  promoCode?: ActivePromoCode | null,
+  promoCodes?: PromoCodesByScope<ActivePromoCode> | null,
 ): CheckoutTotals {
+  const orderCode = promoCodes?.order ?? null;
+  const deliveryCode = promoCodes?.delivery ?? null;
   const lines = priced.lines.map((line: PricedLine) => ({
     productType: line.productType,
     discountedLineTotalCentavos: line.lineSubtotalCentavos,
@@ -65,10 +67,9 @@ export function buildCartTotals(
   );
   // An ORDER-scope code's discount depends only on that eligible subtotal,
   // so it's the same for pickup and delivery — computed once, up front.
-  const orderDiscountCentavos =
-    promoCode && promoCode.scope === "ORDER"
-      ? applyPromoCode(promoCode, orderDiscountEligibleSubtotalCentavos, 0).orderDiscountCentavos
-      : 0;
+  const orderDiscountCentavos = orderCode
+    ? applyPromoCode(orderCode, orderDiscountEligibleSubtotalCentavos, 0).orderDiscountCentavos
+    : 0;
   const merchandiseAfterOrderDiscount = Math.max(
     0,
     priced.merchandiseSubtotalCentavos - orderDiscountCentavos,
@@ -90,10 +91,9 @@ export function buildCartTotals(
   }
   const freeShipping = isFreeShippingEligible(lines, promoConfig);
   const deliveryFeeBeforeCode = freeShipping ? 0 : promoConfig.deliveryFeeCentavos;
-  const deliveryDiscountCentavos =
-    promoCode && promoCode.scope === "DELIVERY"
-      ? applyPromoCode(promoCode, 0, deliveryFeeBeforeCode).deliveryDiscountCentavos
-      : 0;
+  const deliveryDiscountCentavos = deliveryCode
+    ? applyPromoCode(deliveryCode, 0, deliveryFeeBeforeCode).deliveryDiscountCentavos
+    : 0;
   const deliveryFeeCentavos = deliveryFeeBeforeCode - deliveryDiscountCentavos;
   return {
     merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,

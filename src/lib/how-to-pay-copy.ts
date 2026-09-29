@@ -12,7 +12,7 @@ export const HOW_TO_PAY_STEPS = [
   {
     number: "03",
     title: "Upload your receipt",
-    body: "Upload a screenshot of the receipt on the same payment page.",
+    body: "Upload a screenshot of the receipt on the same payment page within 24 hours of ordering — an order with no receipt by then is cancelled automatically.",
   },
   {
     number: "04",

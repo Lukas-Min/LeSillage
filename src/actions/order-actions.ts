@@ -19,6 +19,7 @@ import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { phMobileRequiredSchema } from "@/domain/phone";
 import { customerCancelMode, isTerminal } from "@/domain/order-state";
+import { MAX_PROMO_CODES_PER_ORDER } from "@/domain/promo-code";
 
 const checkoutSchema = z.object({
   fulfillmentMethod: z.enum(["DELIVERY", "PICKUP"]),
@@ -41,7 +42,7 @@ const checkoutSchema = z.object({
   acceptedTerms: z.literal(true),
   savedAddressId: z.string().min(1).nullable().optional(),
   saveAddress: z.boolean().optional(),
-  promoCode: z.string().max(40).nullable().optional(),
+  promoCodes: z.array(z.string().max(40)).max(MAX_PROMO_CODES_PER_ORDER).optional(),
   // Buy Now: present only when checkout is for one direct item, bypassing
   // the cart entirely (see createOrderFromCart's directItems).
   directItem: z.object({ skuId: z.string().min(1), quantity: z.number().int().min(1) }).nullable().optional(),
@@ -59,7 +60,7 @@ export type CheckoutResult =
   // `field` names the form field the rejection is about, when it's one the
   // form can mark inline (see CheckoutError); absent for whole-order
   // rejections that only make sense as a toast.
-  | { ok: false; error: string; field?: CheckoutErrorField };
+  | { ok: false; error: string; field?: CheckoutErrorField; promoCode?: string };
 
 export async function createCheckoutOrder(input: unknown): Promise<CheckoutResult> {
   const session = await auth();
@@ -96,7 +97,7 @@ export async function createCheckoutOrder(input: unknown): Promise<CheckoutResul
       notes: parsed.data.notes ?? null,
       savedAddressId: parsed.data.savedAddressId ?? null,
       saveAddress: parsed.data.saveAddress ?? false,
-      promoCode: parsed.data.promoCode ?? null,
+      promoCodes: parsed.data.promoCodes ?? [],
       directItems: parsed.data.directItem ? [parsed.data.directItem] : undefined,
     });
     // Only the pages that read cart/order data server-side. Revalidating the
@@ -108,7 +109,9 @@ export async function createCheckoutOrder(input: unknown): Promise<CheckoutResul
     revalidatePath(`/account/orders/${result.order.id}`);
     return { ok: true, orderId: result.order.id, orderNumber: result.order.orderNumber };
   } catch (error) {
-    if (error instanceof CheckoutError) return { ok: false, error: error.message, field: error.field };
+    if (error instanceof CheckoutError) {
+      return { ok: false, error: error.message, field: error.field, promoCode: error.promoCode };
+    }
     throw error;
   }
 }
@@ -204,7 +207,7 @@ export async function requestOrderCancellation(orderId: string, reason: string):
     if (error instanceof Error) return { ok: false, error: error.message };
     throw error;
   }
-  auditLogSubject({
+  await auditLogSubject({
     actor: session.user.id as string,
     action: "ORDER_CANCEL_REQUEST",
     targetType: "order",

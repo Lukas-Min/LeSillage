@@ -79,10 +79,10 @@ function deliveryLine(input: OrderEmailInput): string {
   if (input.deliveryFeeCentavos === 0) {
     const reason = freeDeliveryNote(input);
     const original = input.defaultDeliveryFeeCentavos ?? input.deliveryFeeCentavos;
-    if (original > 0) return `- ~~${formatPHP(original)}~~ Free · ${reason}`;
-    return `- Free · ${reason}`;
+    if (original > 0) return `~~${formatPHP(original)}~~ Free · ${reason}`;
+    return `Free · ${reason}`;
   }
-  return `- ${formatPHP(input.deliveryFeeCentavos)}`;
+  return formatPHP(input.deliveryFeeCentavos);
 }
 
 function siteUrl(): string {
@@ -522,7 +522,7 @@ Total to pay: ${formatPHP(input.totalCentavos)}
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 Delivery: ${deliveryLine(input)}
-
+${pickupTextBlock(input)}
 Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.
 
 — Le Sillage Manila`;

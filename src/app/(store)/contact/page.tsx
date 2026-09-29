@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HelpCircle, Mail, MapPin, Phone } from "lucide-react";
 import { FacebookIcon, InstagramIcon, MessengerIcon } from "@/components/store/brand-icons";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { SubscribeHero } from "@/components/store/subscribe-hero";
 import { PageHeader, SectionCard } from "@/components/ui/section";
 import { getEnv } from "@/lib/env";
 import { FACEBOOK_URL, MESSENGER_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/social-links";
@@ -38,6 +39,7 @@ export default function ContactPage() {
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
       <div className="mx-auto max-w-3xl space-y-6">
         <PageHeader eyebrow="Help" title="Contact" />
+        <SubscribeHero />
         <SectionCard
           eyebrow="Response time"
           title="Usually within one business day"

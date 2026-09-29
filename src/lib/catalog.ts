@@ -17,7 +17,7 @@ import {
   type Provenance,
 } from "@/db/schema";
 import { applyDiscount, bestDiscount, isDiscountActive, withSiteWideDiscount } from "@/domain/discount";
-import type { SiteWideDiscountConfig } from "@/domain/promo";
+import { siteWideDiscountFromSettings } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
 import {
@@ -453,11 +453,7 @@ async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<Cat
 
   const threshold =
     promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
-  const siteWideDiscount: SiteWideDiscountConfig = {
-    enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
-    type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
-    amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
-  };
+  const siteWideDiscount = siteWideDiscountFromSettings(promoRow[0]);
   const skusByProduct = groupBy(skuRows, (row) => row.productId);
   const imageByProduct = new Map<string, { url: string; alt: string | null }>();
   for (const img of imageRows.sort((a, b) => a.position - b.position)) {
@@ -724,11 +720,7 @@ async function searchCatalogCardsUncached(query: string): Promise<SearchResultCa
     client.select().from(productDiscounts).where(inArray(productDiscounts.productId, productIds)),
     client.select().from(promoSettings).where(eq(promoSettings.id, "singleton")),
   ]);
-  const siteWideDiscount: SiteWideDiscountConfig = {
-    enabled: promoRow[0]?.siteWideDiscountEnabled ?? false,
-    type: promoRow[0]?.siteWideDiscountType ?? "PERCENTAGE",
-    amount: promoRow[0]?.siteWideDiscountAmount ?? 0,
-  };
+  const siteWideDiscount = siteWideDiscountFromSettings(promoRow[0]);
   const skusByProduct = groupBy(skuRows, (row) => row.productId);
   const discountsByProduct = groupBy(discountRows, (row) => row.productId);
 
@@ -837,6 +829,10 @@ async function loadProductPageCatalogUncached(skuId: string) {
           siteWideDiscountEnabled: promoRow[0].siteWideDiscountEnabled,
           siteWideDiscountType: promoRow[0].siteWideDiscountType,
           siteWideDiscountAmount: promoRow[0].siteWideDiscountAmount,
+          // Come back from the cache as ISO strings — the PDP reads them
+          // through siteWideDiscountFromSettings, which revives them.
+          siteWideDiscountStartsAt: promoRow[0].siteWideDiscountStartsAt,
+          siteWideDiscountEndsAt: promoRow[0].siteWideDiscountEndsAt,
         }
       : null,
     image: image[0] ?? null,

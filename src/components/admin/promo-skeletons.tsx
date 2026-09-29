@@ -11,8 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function PromoSettingsSkeleton() {
   return (
+    <>
     <Card>
-      <CardContent className="space-y-3 p-4">
+      <CardHeader>
+        <CardTitle className="text-base">Delivery & tester</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
         <div className="space-y-1">
           <Label>Free-shipping threshold (₱)</Label>
           <Skeleton className="h-11 w-full" />
@@ -31,23 +35,36 @@ export function PromoSettingsSkeleton() {
             pre-order. Retail decants ignore this pool and use their own stock.
           </p>
         </div>
-        <Skeleton className="h-5 w-64" />
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label>Type</Label>
-            <Skeleton className="h-11 w-full" />
-          </div>
-          <div className="space-y-1">
-            <Label>Amount</Label>
-            <Skeleton className="h-11 w-full" />
-          </div>
-        </div>
         <p className="text-xs text-muted-foreground">
-          Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack.
+          Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not centavos.
         </p>
         <Skeleton className="h-10 w-24" />
       </CardContent>
     </Card>
+    <Card>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-base">Site-wide discount</CardTitle>
+        <Skeleton className="h-3 w-56" />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Skeleton className="h-5 w-56" />
+        <div className="grid grid-cols-2 gap-3">
+          {["Type", "Amount", "Starts (optional)", "Ends (optional)"].map((label) => (
+            <div key={label} className="space-y-1">
+              <Label>{label}</Label>
+              <Skeleton className="h-11 w-full" />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
+          start date means it starts as soon as it&apos;s on; no end date means it doesn&apos;t expire. Dates are Manila
+          days, and the end date is the last full day of the sale.
+        </p>
+        <Skeleton className="h-10 w-24" />
+      </CardContent>
+    </Card>
+    </>
   );
 }
 
@@ -74,24 +91,6 @@ export function PromoCodesSkeleton({ rows = 3 }: { rows?: number }) {
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">New code</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="space-y-1">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-11 w-full" />
-              </div>
-            ))}
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-10 w-28 sm:col-span-2" />
-          </div>
         </CardContent>
       </Card>
     </>

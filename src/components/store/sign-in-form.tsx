@@ -100,7 +100,7 @@ export function SignInForm({
             </Link>
           </div>
           {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-          <SubmitButton className="h-11 w-full rounded-md sm:ml-auto sm:block sm:w-fit" variant="gold" pendingLabel="Signing in…">
+          <SubmitButton className="h-11 w-full rounded-md" variant="gold" pendingLabel="Signing in…">
             Sign in
           </SubmitButton>
         </form>

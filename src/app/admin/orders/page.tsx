@@ -9,7 +9,8 @@ import { OrdersListSkeleton } from "@/components/admin/orders-skeleton";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { ORDER_STATUSES_BY_TIER, type OrderTier } from "@/domain/order-state";
-import { cn, formatDate } from "@/lib/utils";
+import { AdminTabs } from "@/components/admin/admin-tabs";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -46,22 +47,10 @@ export default async function AdminOrdersPage({
   return (
     <div className="flex flex-1 flex-col space-y-4">
       <h1 className="font-serif-display text-2xl">Orders</h1>
-      <div className="flex flex-wrap items-center gap-1 border-b border-border">
-        {TABS.map((tab) => (
-          <Link
-            key={tab.value}
-            href={tabHref(tab.value, userId, orderId)}
-            className={cn(
-              "min-h-11 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] transition-colors",
-              activeTab === tab.value
-                ? "border-gold text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
+      <AdminTabs
+        tabs={TABS.map((tab) => ({ ...tab, href: tabHref(tab.value, userId, orderId) }))}
+        active={activeTab}
+      />
 
       {/* Each tab fetches inside its own boundary, keyed to the tab (plus the
           userId/orderId filters): switching tabs is query-string navigation
@@ -120,12 +109,14 @@ async function OrdersTabContent({
       latestReceiptByOrder.set(r.orderId, { blobUrl: r.blobUrl, submittedAt: r.submittedAt });
     }
   }
+  const tierNoun = tier === "ONGOING" ? "ongoing" : tier === "COMPLETED" ? "completed" : "cancelled";
+  // A customer filter still applies the selected tab, so the label says which
+  // tab — otherwise "no orders" on Ongoing reads as "this customer has none".
   const filterLabel = orderId
     ? "this order"
     : customer
-      ? `orders for ${customer.name ?? customer.email}`
+      ? `${tierNoun} orders for ${customer.name ?? customer.email}`
       : null;
-  const tierNoun = tier === "ONGOING" ? "ongoing" : tier === "COMPLETED" ? "completed" : "cancelled";
 
   return (
     <>
@@ -137,7 +128,11 @@ async function OrdersTabContent({
       {rows.length === 0 ? (
         <Card className="flex flex-1 flex-col">
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
-            {filterLabel ? "No matching orders." : `No ${tierNoun} orders yet.`}
+            {orderId
+              ? "No matching orders."
+              : filterLabel
+                ? `No ${filterLabel} — check the other tabs.`
+                : `No ${tierNoun} orders yet.`}
           </CardContent>
         </Card>
       ) : null}

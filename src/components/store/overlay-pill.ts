@@ -12,3 +12,9 @@
 // plain module lets both server and client components import it safely.
 export const OVERLAY_PILL_CLASS =
   "z-10 inline-flex items-center rounded-none border border-foreground/25 bg-background/90 px-2.5 py-1 text-[13px] font-medium text-foreground shadow-sm backdrop-blur-sm";
+
+// "Save X%" — solid gold rather than the translucent pill above, for
+// contrast. gold-foreground, not charcoal: charcoal turns near-white in dark
+// mode, which put light text on the gold badge.
+export const SAVE_BADGE_CLASS =
+  "inline-flex items-center rounded-none bg-gold px-2.5 py-1 text-[13px] font-medium text-gold-foreground";

@@ -41,7 +41,9 @@ export function FacebookIcon({ className }: IconProps) {
 export function InstagramIcon({ className }: IconProps) {
   const id = useId().replace(/:/g, "");
   return (
-    <svg viewBox="0 0 448 512" className={className} aria-hidden="true">
+    // Font Awesome draws this as a 448×448 glyph centred in a 448×512 box;
+    // cropped to the square so it fills the same icon box as Facebook/Messenger.
+    <svg viewBox="0 32 448 448" className={className} aria-hidden="true">
       <defs>
         <radialGradient id={id} cx="30%" cy="107%" r="150%">
           <stop offset="0%" stopColor="#fdf497" />

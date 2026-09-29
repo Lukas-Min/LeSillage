@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { orderItems, productImages, skus } from "@/db/schema";
-import type { EmailLine } from "@/lib/email-templates";
+import { orderItems, orders, productImages, skus, type OrderStatus } from "@/db/schema";
+import type { EmailLine, OrderEmailInput } from "@/lib/email-templates";
 
 /**
  * Primary product photo per SKU, for the order emails' HTML version.
@@ -59,4 +59,32 @@ export async function toEmailLines(rows: OrderItemRow[]): Promise<EmailLine[]> {
     fulfillment: row.fulfillment,
     imageUrl: images.get(row.skuId) ?? null,
   }));
+}
+
+/**
+ * The order-email input every post-checkout email reads straight off the
+ * order row plus its items. Built in one place because three hand-built
+ * copies once drifted apart (a field added for one email was missing from
+ * the others). Callers add what differs: the status the email describes,
+ * its reason, and anything email-specific such as testerAwarded.
+ */
+export async function orderEmailInputFromRow(
+  order: typeof orders.$inferSelect,
+  extra: { status: OrderStatus; reason: string | null } & Partial<OrderEmailInput>,
+): Promise<OrderEmailInput> {
+  const items = await db().select().from(orderItems).where(eq(orderItems.orderId, order.id));
+  return {
+    orderNumber: order.orderNumber,
+    recipientName: order.recipientName,
+    email: order.email,
+    fulfillmentMethod: order.fulfillmentMethod,
+    lines: await toEmailLines(items),
+    subtotalCentavos: order.subtotalCentavos,
+    discountCentavos: order.discountCentavos,
+    deliveryFeeCentavos: order.deliveryFeeCentavos,
+    totalCentavos: order.totalCentavos,
+    orderedAt: order.createdAt,
+    pickupNotes: order.pickupNotes,
+    ...extra,
+  };
 }

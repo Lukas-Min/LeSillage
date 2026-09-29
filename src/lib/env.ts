@@ -23,9 +23,9 @@ const baseSchema = z.object({
     .string()
     .min(6, "ADMIN_PASSWORD must be at least 6 characters")
     .regex(/[0-9]/, "ADMIN_PASSWORD must contain at least one digit"),
-  GMAIL_USER: z.string().email().default("le.sillage.mnl@gmail.com"),
+  GMAIL_USER: z.string().email().default("lesillagemanila@gmail.com"),
   GMAIL_APP_PASSWORD: z.string().min(8, "GMAIL_APP_PASSWORD is required"),
-  ADMIN_EMAIL: z.string().email().default("le.sillage.mnl@gmail.com"),
+  ADMIN_EMAIL: z.string().email().default("lesillagemanila@gmail.com"),
   NEXT_PUBLIC_SUPABASE_URL: optionalString,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalString,
   SUPABASE_SERVICE_ROLE_KEY: optionalString,

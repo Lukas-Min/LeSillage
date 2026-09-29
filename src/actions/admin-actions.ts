@@ -12,20 +12,34 @@ import { assignTesterToOrder, resolveCancellationRequest as resolveCancellationR
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { toCentavos } from "@/domain/money";
+import { parsePhDateBoundary } from "@/domain/ph-date";
 
-// decantThresholdCentavos/deliveryFeeCentavos/siteWideDiscountAmount (when FIXED)
-// are entered in pesos here (decimals allowed for centavos) and converted below
-// via toCentavos — the field names keep their DB-column spelling, not their unit.
+// decantThresholdCentavos/deliveryFeeCentavos are entered in pesos here
+// (decimals allowed for centavos) and converted below via toCentavos — the
+// field names keep their DB-column spelling, not their unit.
 const promoSchema = z.object({
   decantThresholdCentavos: z.coerce.number().min(0).max(1_000_000),
   deliveryFeeCentavos: z.coerce.number().min(0).max(1_000_000),
   freeDeliveryEnabled: z.coerce.boolean(),
   testerBonusEnabled: z.coerce.boolean(),
   decantPreOrderThresholdMl: z.coerce.number().int().min(0).max(1000),
-  siteWideDiscountEnabled: z.coerce.boolean(),
-  siteWideDiscountType: z.enum(["PERCENTAGE", "FIXED"]),
-  siteWideDiscountAmount: z.coerce.number().min(0),
 });
+
+// Amount is pesos for FIXED (converted via toCentavos), a plain percent for PERCENTAGE.
+const siteWideDiscountSchema = z.object({
+  enabled: z.coerce.boolean(),
+  type: z.enum(["PERCENTAGE", "FIXED"]),
+  amount: z.coerce.number().min(0),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional(),
+});
+
+/** Reported back to the form rather than thrown — a thrown Server Action
+ *  error's message is redacted in production (see PromoCodeFormState). */
+export interface SiteWideDiscountFormState {
+  savedAt: number;
+  error: string | null;
+}
 
 export async function adminOAuthSignIn(provider: "google" | "facebook", returnTo?: string) {
   const decision = await rateLimit({
@@ -53,23 +67,13 @@ export async function updatePromoSettings(formData: FormData) {
     freeDeliveryEnabled: formData.get("freeDeliveryEnabled") === "on",
     testerBonusEnabled: formData.get("testerBonusEnabled") === "on",
     decantPreOrderThresholdMl: formData.get("decantPreOrderThresholdMl"),
-    siteWideDiscountEnabled: formData.get("siteWideDiscountEnabled") === "on",
-    siteWideDiscountType: formData.get("siteWideDiscountType"),
-    siteWideDiscountAmount: formData.get("siteWideDiscountAmount") || 0,
   });
-  if (parsed.siteWideDiscountType === "PERCENTAGE" && parsed.siteWideDiscountAmount > 100) {
-    throw new Error("Percentage discounts can't exceed 100%");
-  }
   const values = {
     decantThresholdCentavos: toCentavos(parsed.decantThresholdCentavos),
     deliveryFeeCentavos: toCentavos(parsed.deliveryFeeCentavos),
     freeDeliveryEnabled: parsed.freeDeliveryEnabled,
     testerBonusEnabled: parsed.testerBonusEnabled,
     decantPreOrderThresholdMl: parsed.decantPreOrderThresholdMl,
-    siteWideDiscountEnabled: parsed.siteWideDiscountEnabled,
-    siteWideDiscountType: parsed.siteWideDiscountType,
-    siteWideDiscountAmount:
-      parsed.siteWideDiscountType === "FIXED" ? toCentavos(parsed.siteWideDiscountAmount) : Math.round(parsed.siteWideDiscountAmount),
   };
   await db()
     .update(promoSettings)
@@ -85,6 +89,58 @@ export async function updatePromoSettings(formData: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/promo");
   invalidateCatalog();
+}
+
+export async function updateSiteWideDiscount(
+  _prev: SiteWideDiscountFormState,
+  formData: FormData,
+): Promise<SiteWideDiscountFormState> {
+  const admin = await requireAdmin();
+  const failed = (error: string): SiteWideDiscountFormState => ({ savedAt: 0, error });
+  const decision = await rateLimit({
+    bucket: "PASSWORD",
+    key: await getRequestKey("promo-update", admin.id),
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!decision.allowed) return failed("Too many requests. Please slow down.");
+  const result = siteWideDiscountSchema.safeParse({
+    enabled: formData.get("enabled") === "on",
+    type: formData.get("type"),
+    amount: formData.get("amount") || 0,
+    startsAt: formData.get("startsAt") || undefined,
+    endsAt: formData.get("endsAt") || undefined,
+  });
+  if (!result.success) return failed("Check the type and amount.");
+  const parsed = result.data;
+  if (parsed.type === "PERCENTAGE" && parsed.amount > 100) return failed("Percentage discounts can't exceed 100%");
+  if (parsed.enabled && parsed.amount <= 0) return failed("Enter an amount above 0 to turn the discount on");
+  const startsAt = parsePhDateBoundary(parsed.startsAt, "start");
+  const endsAt = parsePhDateBoundary(parsed.endsAt, "end");
+  if (startsAt && endsAt && endsAt <= startsAt) {
+    return failed("This discount would end before it starts — check the start and end dates");
+  }
+  const values = {
+    siteWideDiscountEnabled: parsed.enabled,
+    siteWideDiscountType: parsed.type,
+    siteWideDiscountAmount: parsed.type === "FIXED" ? toCentavos(parsed.amount) : Math.round(parsed.amount),
+    siteWideDiscountStartsAt: startsAt,
+    siteWideDiscountEndsAt: endsAt,
+  };
+  await db()
+    .update(promoSettings)
+    .set({ ...values, updatedAt: new Date() })
+    .where(eq(promoSettings.id, "singleton"));
+  await auditLogSubject({
+    actor: admin.id,
+    action: "PROMO_UPDATE",
+    targetType: "promo_setting",
+    targetId: "singleton",
+    metadata: values,
+  });
+  revalidatePath("/admin/promo");
+  invalidateCatalog();
+  return { savedAt: Date.now(), error: null };
 }
 
 const transitionSchema = z.object({
@@ -147,7 +203,7 @@ export async function adminAssignTester(formData: FormData): Promise<OrderAction
   }
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${parsed.data.orderId}`);
-  auditLogSubject({
+  await auditLogSubject({
     actor: admin.id,
     action: "ORDER_TESTER_ASSIGN",
     targetType: "order",
@@ -182,7 +238,7 @@ export async function adminTransitionOrder(formData: FormData): Promise<OrderAct
     throw error;
   }
   revalidatePath("/admin/orders");
-  auditLogSubject({
+  await auditLogSubject({
     actor: admin.id,
     action: "ORDER_STATUS",
     targetType: "order",
@@ -221,7 +277,7 @@ export async function resolveCancellationRequest(formData: FormData): Promise<Or
   }
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${parsed.orderId}`);
-  auditLogSubject({
+  await auditLogSubject({
     actor: admin.id,
     action: "ORDER_CANCEL_RESOLVE",
     targetType: "order",
