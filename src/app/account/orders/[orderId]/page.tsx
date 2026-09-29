@@ -17,6 +17,7 @@ import { getEnv } from "@/lib/env";
 import { instagramChatUrl, messengerChatUrl } from "@/lib/social-links";
 import { formatDateTime } from "@/lib/utils";
 import { computeEtaSummary } from "@/domain/eta";
+import { summarizeOrderTotals } from "@/domain/order-summary";
 import {
   canRevealPickupAddress,
   pickupAddressPlaceholder,
@@ -49,6 +50,13 @@ export default async function OrderDetailPage({
   )[0];
   if (!order) return notFound();
   const items = await client.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+  const summary = summarizeOrderTotals({
+    lines: items,
+    subtotalCentavos: order.subtotalCentavos,
+    deliveryFeeCentavos: order.deliveryFeeCentavos,
+    totalCentavos: order.totalCentavos,
+    discountCentavos: order.discountCentavos,
+  });
   const imageBySku = new Map<string, { url: string; alt: string | null }>();
   const skuIds = [...new Set(items.map((item) => item.skuId))];
   if (skuIds.length > 0) {
@@ -185,16 +193,20 @@ export default async function OrderDetailPage({
             })}
           </ul>
           <div className="mt-auto border-t border-border/60 text-sm">
-            {/* subtotalCentavos and deliveryFeeCentavos already have every
-                discount (item, promo-code order, promo-code delivery) baked
-                in — totalCentavos is exactly their sum, nothing further to
-                subtract here. discountCentavos below is shown separately as
-                an informational "amount saved" figure, not as a deduction,
-                so this can't misread as double-discounting. */}
+            {/* Subtotal is the lines above (item discounts already in their
+                prices); a promo code comes off on its own line, and "You saved"
+                below is every saving combined, shown but not subtracted
+                (summarizeOrderTotals). */}
             <p className="flex justify-between py-3">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatPHP(order.subtotalCentavos)}</span>
+              <span>{formatPHP(summary.itemsCentavos)}</span>
             </p>
+            {summary.promoCodeCentavos > 0 ? (
+              <p className="flex justify-between py-3">
+                <span className="text-muted-foreground">Promo code</span>
+                <span>-{formatPHP(summary.promoCodeCentavos)}</span>
+              </p>
+            ) : null}
             <p className="flex justify-between gap-3 py-3">
               <span className="text-muted-foreground">Delivery</span>
               <span className="text-right">

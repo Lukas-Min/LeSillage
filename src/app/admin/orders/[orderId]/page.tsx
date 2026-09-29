@@ -10,6 +10,7 @@ import { formatDateTime } from "@/lib/utils";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
 import { loadTesterOptions } from "@/lib/orders";
+import { summarizeOrderTotals } from "@/domain/order-summary";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -97,6 +98,14 @@ export default async function AdminOrderDetailPage({
 
   const address = (order.addressSnapshot ?? null) as AddressSnapshot | null;
   const latestReceipt = receiptRows[0];
+
+  const summary = summarizeOrderTotals({
+    lines: items,
+    subtotalCentavos: order.subtotalCentavos,
+    deliveryFeeCentavos: order.deliveryFeeCentavos,
+    totalCentavos: order.totalCentavos,
+    discountCentavos: order.discountCentavos,
+  });
 
   return (
     <div className="space-y-4">
@@ -202,14 +211,16 @@ export default async function AdminOrderDetailPage({
             </div>
           ))}
           <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
+            {/* Subtotal is the lines above; only the promo code comes off here.
+                Item discounts are already in the line prices (summarizeOrderTotals). */}
             <p className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="tabular-nums">{formatPHP(order.subtotalCentavos)}</span>
+              <span className="tabular-nums">{formatPHP(summary.itemsCentavos)}</span>
             </p>
-            {order.discountCentavos > 0 ? (
+            {summary.promoCodeCentavos > 0 ? (
               <p className="flex justify-between">
-                <span className="text-muted-foreground">Discount</span>
-                <span className="tabular-nums">-{formatPHP(order.discountCentavos)}</span>
+                <span className="text-muted-foreground">Promo code</span>
+                <span className="tabular-nums">-{formatPHP(summary.promoCodeCentavos)}</span>
               </p>
             ) : null}
             <p className="flex justify-between">

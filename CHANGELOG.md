@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Orders with a promo code showed the wrong Subtotal: the stored subtotal already has the code's discount taken off, so "Subtotal ₱901, Discount −₱159, Total ₱901" didn't add up (Rica's PAYDAYSALE15 order: items ₱1,060). The admin order page, the customer's order page and every order email now show Subtotal as the items (₱1,060), a separate "Promo code −₱159" line, Delivery and Total, via `summarizeOrderTotals` (`src/domain/order-summary.ts`). "You saved" stays an informational line, never subtracted, and the admin page no longer subtracts item discounts that are already in the line prices. Stored order amounts are unchanged
 ### Changed
 - Every form's main button (Save, Create, Add image, Add discount, Parse paste, Delete my account, Unsubscribe…) is full width on a phone and on the right from `sm` up, through one shared `FORM_ACTION_CLASS` (`src/components/ui/form-action.ts`), written down in `.cursor/rules/form-actions.mdc` (imported by `CLAUDE.md`). The Delivery & tester, Site-wide discount and Announcement bar Saves move out of the field grid to the end of their forms; the product page's image and discount buttons, QR codes, promo code form, new product, Fragrantica paste, archive/delete account, unsubscribe and newsletter confirm all follow. Sign in and Sign up keep their full-width buttons. The site-wide Starts/Ends fields no longer force a second column on phones. Loading screens match
 ### Fixed

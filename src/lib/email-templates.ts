@@ -1,6 +1,7 @@
 import { describeStatus } from "@/domain/order-state";
 import { computeEtaSummary } from "@/domain/eta";
 import { formatPHP } from "@/domain/money";
+import { summarizeOrderTotals } from "@/domain/order-summary";
 import { pickupAddressLine } from "@/domain/pickup";
 import type { Fulfillment, OrderStatus, ProductType } from "@/db/schema";
 import { getEnv } from "@/lib/env";
@@ -143,11 +144,33 @@ function deliveryTotal(input: OrderEmailInput): EmailTotal {
   return { label: "Delivery", value: formatPHP(input.deliveryFeeCentavos) };
 }
 
+// Subtotal is the lines as listed, and only a promo code's part is shown as a
+// deduction — the stored subtotal already has it taken off, so showing that as
+// "Subtotal" read as the code coming off twice (see summarizeOrderTotals).
 function orderTotals(input: OrderEmailInput, totalLabel: string): EmailTotal[] {
-  const rows: EmailTotal[] = [{ label: "Subtotal", value: formatPHP(input.subtotalCentavos) }, deliveryTotal(input)];
-  if (input.discountCentavos > 0) rows.push({ label: "You saved", value: formatPHP(input.discountCentavos) });
-  rows.push({ label: totalLabel, value: formatPHP(input.totalCentavos), strong: true });
+  const summary = summarizeOrderTotals(input);
+  const rows: EmailTotal[] = [{ label: "Subtotal", value: formatPHP(summary.itemsCentavos) }];
+  if (summary.promoCodeCentavos > 0) {
+    rows.push({ label: "Promo code", value: `-${formatPHP(summary.promoCodeCentavos)}` });
+  }
+  rows.push(deliveryTotal(input));
+  if (summary.savedCentavos > 0) rows.push({ label: "You saved", value: formatPHP(summary.savedCentavos) });
+  rows.push({ label: totalLabel, value: formatPHP(summary.totalCentavos), strong: true });
   return rows;
+}
+
+/** The text version of orderTotals. */
+function textTotals(input: OrderEmailInput, totalLabel: string): string {
+  const summary = summarizeOrderTotals(input);
+  return [
+    `Subtotal: ${formatPHP(summary.itemsCentavos)}`,
+    summary.promoCodeCentavos > 0 ? `Promo code: -${formatPHP(summary.promoCodeCentavos)}` : null,
+    `Delivery: ${deliveryLine(input)}`,
+    `${totalLabel}: ${formatPHP(summary.totalCentavos)}`,
+    summary.savedCentavos > 0 ? `You saved: ${formatPHP(summary.savedCentavos)}` : null,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
 }
 
 export function receiptSubmittedEmail(input: OrderEmailInput): OrderEmail {
@@ -164,9 +187,7 @@ Status: ${describeStatus(input.status)}
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
-Subtotal: ${formatPHP(input.subtotalCentavos)}
-Delivery: ${deliveryLine(input)}
-Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${textTotals(input, "Total paid")}
 
 Estimated arrival: ${eta}
 ${tester}
@@ -231,9 +252,7 @@ We verified your payment for order ${input.orderNumber}. We are preparing it now
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
-Subtotal: ${formatPHP(input.subtotalCentavos)}
-Delivery: ${deliveryLine(input)}
-Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${textTotals(input, "Total paid")}
 
 Estimated arrival: ${eta}
 ${tester}${pickupTextBlock(input)}
@@ -265,9 +284,7 @@ Order ${input.orderNumber} is on its way. We will message you again when it is m
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
-Subtotal: ${formatPHP(input.subtotalCentavos)}
-Delivery: ${deliveryLine(input)}
-Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${textTotals(input, "Total paid")}
 
 ${input.fulfillmentMethod === "PICKUP" ? "Pickup details will follow in a separate email." : "Track your delivery via your courier updates."}
 
@@ -299,9 +316,7 @@ Order ${input.orderNumber} has been marked delivered. We hope it arrived in perf
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
-Subtotal: ${formatPHP(input.subtotalCentavos)}
-Delivery: ${deliveryLine(input)}
-Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${textTotals(input, "Total paid")}
 
 Once you've had a chance to check it over, you can mark it received any time from Account → Orders. If we don't hear from you, we'll check in by email in a couple of days.
 
@@ -331,9 +346,7 @@ Order ${input.orderNumber} is ready for you to collect.
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
-Subtotal: ${formatPHP(input.subtotalCentavos)}
-Delivery: ${deliveryLine(input)}
-Total paid: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${textTotals(input, "Total paid")}
 ${pickupTextBlock(input)}
 — Le Sillage Manila`;
   const html = renderOrderEmailHtml({
@@ -618,9 +631,7 @@ ${deadline}
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
 
-Subtotal: ${formatPHP(input.subtotalCentavos)}
-Delivery: ${deliveryLine(input)}
-Total to pay: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${textTotals(input, "Total to pay")}
 ${pickupTextBlock(input)}
 Pay here (sign in if asked): ${payUrl}
 
