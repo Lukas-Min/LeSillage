@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Homepage scent-family tiles drop their one-line description (just the family name and "Explore"), and the letter watermark sits higher, partly cropped by the tile's top edge behind "Explore" (`src/components/store/home-sections.tsx`)
+### Changed
 - Homepage polish: perk icons sit in the same gold circles as the Browse-by-type icons, centred against their text; each scent-family tile's letter watermark sits behind "Explore" in the top-right corner (smaller on phones); "How it works" is a numbered timeline under a standard section header (an `ol` with gold number badges joined by a line on phones, three cards from `sm`) instead of a tall `SectionCard` (`src/components/store/home-sections.tsx`, `src/app/page.tsx`)
 ### Fixed
 - Admin on phones: every `<select>` (product, SKU, decant, Fragrantica review, promo code, and tester-picker forms, plus their loading skeletons) is 16px below `md` instead of 14px, so iOS Safari no longer zooms the page when one is tapped; the Products header, product list rows, promo code action buttons, and the product image URL row now wrap or truncate instead of overflowing a narrow screen
