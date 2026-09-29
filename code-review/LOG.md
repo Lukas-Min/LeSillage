@@ -38,6 +38,23 @@ Entry template:
 
 ---
 
+## 2026-09-29 — Promo stacking, site-wide dates, and account promo codes
+
+- **Commit range reviewed:** `5c0e045acec28228c1be4f287d0005e90c23d327...e0e5970f9aebfd1cdb5ef3c93dd1b9e344e30b93`
+- **Effort:** medium
+- **Scope / areas covered:** `src/domain/promo-code.ts`, `src/domain/promo.ts`, `src/domain/discount.ts`, `src/lib/orders.ts`, `src/actions/promo-code-actions.ts`, checkout form, account promo-code list, admin promo pages. One ORDER code plus one DELIVERY code, lock order, and releasing every redemption match the intended rules.
+- **Findings:**
+  - [medium] Checkout re-checks product-discount rows inside the order transaction but not the site-wide discount on `promo_setting`, so a discount that ends or is turned off during checkout can still be charged — `src/lib/orders.ts:171` — status: confirmed
+  - [medium] Enter in the checkout promo field submits Place order. A typed code that was never applied is left off the order if policies are already accepted — `src/components/store/checkout-form.tsx:413` — status: confirmed
+  - [medium] Account promo codes format `endsAt` directly. That value is the exclusive next-day boundary, so the last valid day shows one day late. Admin uses `toDisplayDate(..., "end")` — `src/app/account/promo-codes/page.tsx:67` — status: confirmed
+  - [low] The promo label stays tied to `#promoCode` after both codes are applied and the input is removed — `src/components/store/checkout-form.tsx:388` — status: confirmed
+  - [low] The copy control's name is only `Copy {code}`. "Copied" is not announced — `src/app/account/promo-codes/promo-code-list.tsx:78` — status: confirmed
+  - [low] A code that has not started is still grouped under Valid. The note says "Not open yet"; checkout rejects it until the start — `src/app/account/promo-codes/page.tsx:51` — status: confirmed
+  - [low] Archive "Email code" is under the 44px touch target — `src/app/account/archive/archive-form.tsx:89` — status: skipped. That file is not in this commit range
+- **Checkpoint advanced to:** `e0e5970f9aebfd1cdb5ef3c93dd1b9e344e30b93`
+
+---
+
 ## 2026-09-29 — Applied fixes for the open 2026-09-24 findings (not a new review)
 
 - **Commit range reviewed:** none — fix pass only, so the checkpoint does not move. Each 2026-09-24 finding was re-checked against current code first.
