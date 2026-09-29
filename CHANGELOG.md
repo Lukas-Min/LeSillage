@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Shop shelf tabs: only the active tab is underlined (full cell width); the rule under the inactive tabs and the hover underline are removed (`src/components/store/shop-filters.tsx`)
+### Changed
 - Shop shelf tabs go back to the underlined uppercase style (instead of the segmented bar), now as one connected row: a 1px rule runs under all four tabs, cells sit edge to edge, and the active tab's 2px underline spans its whole cell rather than just the word (`src/components/store/shop-filters.tsx`)
 ### Changed
 - Shop pagination shows numbered page buttons at every size instead of switching to a "Page X of Y" readout below 640px; phones use a tighter window (current page only between the ellipses) so the row fits, and the pagination skeleton matches (`src/components/store/catalog-pagination.tsx`, `loading.tsx`)
