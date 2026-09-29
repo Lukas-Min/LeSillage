@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  *  so they aren't reserved. */
 export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 min-[576px]:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
       {Array.from({ length: count }).map((_, idx) => (
         <CatalogCardSkeleton key={idx} />
       ))}
@@ -30,23 +30,23 @@ export function CatalogCardSkeleton() {
       <div className="relative">
         <Skeleton className="aspect-square w-full rounded-none" />
         <div className="absolute bottom-2 left-2 z-10">
-          <Skeleton className="h-[30px] w-24 rounded-none border border-foreground/25 bg-background/90 min-[576px]:h-[21px] min-[576px]:w-20" />
+          <Skeleton className="h-6 w-20 rounded-none border border-foreground/25 bg-background/90" />
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
+      <div className="flex flex-1 flex-col gap-1 p-3 min-[576px]:gap-1.5 min-[576px]:p-4">
         <Skeleton className="h-3.5 w-1/3" />
-        <Skeleton className="h-6 w-2/3" />
+        <Skeleton className="h-5 w-2/3 min-[576px]:h-6" />
         <Skeleton className="h-4 w-1/2" />
-        <div className="mt-auto space-y-3 pt-3">
+        <div className="mt-auto space-y-2 pt-2 min-[576px]:space-y-3 min-[576px]:pt-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Skeleton className="h-6 w-20 rounded-none" />
+            <Skeleton className="h-5 w-16 rounded-none min-[576px]:h-6 min-[576px]:w-20" />
           </div>
-          <div className="border-t border-border/60 pt-3">
-            <Skeleton className="ml-auto h-6 w-1/2 md:h-4.5" />
+          <div className="border-t border-border/60 pt-2 min-[576px]:pt-3">
+            <Skeleton className="ml-auto h-4.5 w-2/3 min-[576px]:h-6 min-[576px]:w-1/2 md:h-4.5" />
           </div>
         </div>
       </div>
-      <div className="px-4 pb-4">
+      <div className="px-3 pb-3 min-[576px]:px-4 min-[576px]:pb-4">
         <Skeleton className="h-11 w-full rounded-md" />
       </div>
     </div>

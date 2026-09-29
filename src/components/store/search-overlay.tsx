@@ -74,7 +74,7 @@ export function SearchOverlay() {
                 className="flex items-center justify-between gap-3 rounded-md border border-transparent px-3 py-2 hover:border-border hover:bg-muted/60"
               >
                 <span>
-                  <span className="block text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                  <span className="block text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                     {card.brand} · {labelForType(card.type)}
                   </span>
                   <span className="font-serif-display text-base">{card.name}</span>

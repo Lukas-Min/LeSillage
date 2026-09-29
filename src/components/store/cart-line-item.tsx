@@ -181,7 +181,7 @@ export function CartLineItem({
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-serif-display text-base leading-tight">{item.name}</p>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"}
               </p>
             </div>

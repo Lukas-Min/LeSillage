@@ -36,16 +36,16 @@ export default function AdminNewProductLoading() {
               <Input id="name" disabled />
             </div>
             <Input placeholder="Brand" disabled />
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
+            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
               <option>Decant</option>
             </select>
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
+            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
               <option>Niche</option>
             </select>
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
+            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
               <option>No concentration set</option>
             </select>
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-sm">
+            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
               <option>Gender not set</option>
             </select>
             <Input type="number" placeholder="Reference size, ml (e.g. 100 for a 100ml bottle)" disabled />
@@ -58,7 +58,7 @@ export default function AdminNewProductLoading() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="new-pricingMode">Pricing formula</Label>
-              <select id="new-pricingMode" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-sm">
+              <select id="new-pricingMode" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm">
                 <option>Percentage markup</option>
               </select>
             </div>

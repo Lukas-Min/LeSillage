@@ -59,7 +59,7 @@ export default async function NewProductPage({
                   id="copyFrom"
                   name="copyFrom"
                   defaultValue={copyFrom ?? ""}
-                  className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
+                  className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
                 >
                   {existingProducts.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -88,14 +88,14 @@ export default async function NewProductPage({
               <Input id="name" name="name" defaultValue={copySource?.name ?? ""} required />
             </div>
             <Input name="brand" placeholder="Brand" defaultValue={copySource?.brand ?? ""} required />
-            <select name="type" className="h-11 rounded-lg border bg-background px-3 text-sm" defaultValue="DECANT">
+            <select name="type" className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue="DECANT">
               <option value="DECANT">Decant</option>
               <option value="FULL_BOTTLE">Full bottle</option>
               <option value="PARTIAL">Partial</option>
             </select>
             <select
               name="fragranceCategory"
-              className="h-11 rounded-lg border bg-background px-3 text-sm"
+              className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
               defaultValue={copySource?.fragranceCategory ?? "NICHE"}
             >
               <option value="NICHE">Niche</option>
@@ -104,7 +104,7 @@ export default async function NewProductPage({
             </select>
             <select
               name="concentration"
-              className="h-11 rounded-lg border bg-background px-3 text-sm"
+              className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
               defaultValue={copySource?.concentration ?? ""}
             >
               <option value="">No concentration set</option>
@@ -116,7 +116,7 @@ export default async function NewProductPage({
             </select>
             <select
               name="gender"
-              className="h-11 rounded-lg border bg-background px-3 text-sm"
+              className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
               defaultValue={copySource?.gender ?? ""}
             >
               <option value="">Gender not set</option>
@@ -150,7 +150,7 @@ export default async function NewProductPage({
                 id="new-pricingMode"
                 name="pricingMode"
                 defaultValue="PERCENTAGE"
-                className="h-11 w-full rounded-lg border bg-background px-3 text-sm"
+                className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
               >
                 <option value="PERCENTAGE">Percentage markup</option>
                 <option value="FIXED">Fixed ₱ increment</option>

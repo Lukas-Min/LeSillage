@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgePercent, Droplet, Gift, PackageOpen, SprayCan, Store, Truck, type LucideIcon } from "lucide-react";
-import type { FragranceCategory } from "@/db/schema";
+import { ArrowRight, BadgePercent, ChevronRight, Droplet, Gift, PackageOpen, SprayCan, Store, Truck, type LucideIcon } from "lucide-react";
 import { ProductCard } from "@/components/store/product-card";
 import { CatalogCardSkeleton } from "@/components/store/loading";
 import { Eyebrow } from "@/components/ui/section";
@@ -10,7 +9,6 @@ import { formatPHP } from "@/domain/money";
 import { siteWideDiscountStatus } from "@/domain/promo";
 import type { CatalogCardModel } from "@/lib/catalog";
 import { loadPromoConfig } from "@/lib/cart";
-import { FRAGRANCE_CATEGORY_BLURBS } from "@/lib/faq-copy";
 import { loadHomeRails } from "@/lib/home-rails";
 import { formatDate } from "@/lib/utils";
 
@@ -63,12 +61,18 @@ export function HomeSectionHeader({
 // Product rails
 // ---------------------------------------------------------------------------
 
-/** One card per slot: most of a phone's width (the next card peeks in to
- *  show the row scrolls), then more, narrower slots as the screen widens. */
+/** Phones: one full card plus half of the next (16px lead + card + 12px
+ *  gap + half a card fills the screen when the card is ~67% of the row), so
+ *  the row reads as swipeable without cramming two narrow cards in. Wider
+ *  screens fit more, narrower slots. */
 const RAIL_ITEM_CLASS =
-  "w-[72%] max-w-[18rem] shrink-0 snap-start min-[576px]:w-[45%] md:w-[31%] lg:w-[23.5%] xl:w-[18.8%]";
+  "w-[67%] max-w-[18rem] shrink-0 snap-start min-[576px]:w-[40%] md:w-[31%] lg:w-[23.5%] xl:w-[18.8%]";
+/** Scrollbar hidden (Firefox + WebKit); rows still scroll by swipe, trackpad,
+ *  shift+wheel, and tabbing to a card, and the peeking card shows they scroll.
+ *  pt-2/pb-3 leave room for the card's hover lift and shadow: overflow-x
+ *  scrolling clips vertically too, which cut off the lifted card's top. */
 const RAIL_LIST_CLASS =
-  "flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto overscroll-x-contain px-4 pb-3 [scrollbar-width:thin]";
+  "flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 pt-2 [scrollbar-width:none] min-[576px]:gap-4 [&::-webkit-scrollbar]:hidden";
 
 function RailCards({ cards, emptyMessage }: { cards: CatalogCardModel[]; emptyMessage: string }) {
   if (cards.length === 0) {
@@ -135,9 +139,12 @@ function formatPesos(centavos: number): string {
 
 const PERKS_LIST_CLASS =
   "grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-flow-col sm:auto-cols-fr sm:grid-cols-none";
+/** Same gold-circle treatment as the Browse-by-type icons. */
+const PERK_ICON_CLASS =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-ink";
 /** An odd last perk spans both phone columns instead of leaving a hole. */
 const PERK_ITEM_CLASS =
-  "flex items-start gap-3 bg-card p-3 sm:p-4 [&:last-child:nth-child(odd)]:col-span-2 sm:[&:last-child:nth-child(odd)]:col-span-1";
+  "flex items-center gap-3 bg-card p-3 sm:p-4 [&:last-child:nth-child(odd)]:col-span-2 sm:[&:last-child:nth-child(odd)]:col-span-1";
 
 /** The store's live perks, from the admin's promo settings. */
 export async function PerksStrip() {
@@ -169,10 +176,12 @@ export async function PerksStrip() {
     <ul className={PERKS_LIST_CLASS}>
       {perks.map(({ icon: Icon, title, detail }) => (
         <li key={title} className={PERK_ITEM_CLASS}>
-          <Icon className="mt-0.5 h-5 w-5 shrink-0 text-gold-ink" aria-hidden="true" />
+          <span className={PERK_ICON_CLASS}>
+            <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
           <div className="min-w-0">
-            <p className="text-sm font-medium leading-tight">{title}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+            <p className="text-sm font-semibold leading-tight">{title}</p>
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{detail}</p>
           </div>
         </li>
       ))}
@@ -186,7 +195,7 @@ export function PerksSkeleton() {
     <div className={PERKS_LIST_CLASS} aria-hidden="true">
       {Array.from({ length: 4 }).map((_, idx) => (
         <div key={idx} className={PERK_ITEM_CLASS}>
-          <Skeleton className="mt-0.5 h-5 w-5 shrink-0" />
+          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3 w-full" />
@@ -207,21 +216,78 @@ const SHELVES = [
   { title: "Partials", subtitle: "Opened once, priced to move", href: "/shop?type=PARTIAL", icon: PackageOpen },
 ] as const;
 
-/** Three compact tiles in one row, even on a phone. */
+/** Inset ring for links inside an overflow-hidden panel, where an outside
+ *  outline would be clipped. */
+const INSET_FOCUS_RING = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold-ink";
+
+/**
+ * One joined panel: full-width rows on a phone (icon, name and line, chevron
+ * — each row a 72px tap target), three columns side by side from sm.
+ */
 export function ShelfTiles() {
   return (
-    <ul className="grid grid-cols-3 gap-3 px-4 sm:gap-4">
-      {SHELVES.map(({ title, subtitle, href, icon: Icon }) => (
-        <li key={title}>
+    <div className="px-4">
+      <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        {SHELVES.map(({ title, subtitle, href, icon: Icon }) => (
+          <li key={title}>
+            <Link
+              href={href}
+              className={`group flex min-h-[4.5rem] items-center gap-4 px-4 py-3 transition-colors hover:bg-[color-mix(in_oklch,var(--card),var(--gold)_6%)] sm:h-full sm:flex-col sm:items-start sm:gap-3 sm:p-6 ${INSET_FOCUS_RING}`}
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-ink transition-colors group-hover:border-gold">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-serif-display text-lg leading-tight sm:text-2xl">{title}</h3>
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+              </div>
+              <ChevronRight
+                className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-gold-ink sm:hidden"
+                aria-hidden="true"
+              />
+              <span className="hidden items-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink sm:inline-flex">
+                Shop
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const FAMILIES: Array<{ slug: string; title: string; mood: string }> = [
+  { slug: "middle-eastern", title: "Middle Eastern", mood: "Oud, amber, and spice that lasts" },
+  { slug: "designer", title: "Designer", mood: "Polished, familiar, easy to wear" },
+  { slug: "niche", title: "Niche", mood: "Small-batch and out of the ordinary" },
+];
+
+/** Framed, gold-tinted tiles for the /collections pages: name and mood at
+ *  the bottom, "Explore" in the top-right corner, drawn over the initial
+ *  as a large watermark behind it. */
+export function ScentFamilies() {
+  return (
+    <ul className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 sm:gap-4">
+      {FAMILIES.map(({ slug, title, mood }) => (
+        <li key={slug}>
           <Link
-            href={href}
-            className={`group flex h-full flex-col items-center gap-2 rounded-md border border-border bg-card px-2 py-4 text-center transition-colors hover:border-gold/60 sm:gap-3 sm:p-6 ${HOME_FOCUS_RING}`}
+            href={`/collections/${slug}`}
+            className={`group relative flex h-full min-h-40 flex-col justify-end overflow-hidden rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] p-5 transition-colors hover:border-gold sm:min-h-56 sm:p-6 ${HOME_FOCUS_RING}`}
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/35 bg-[color-mix(in_oklch,var(--cream),var(--gold)_8%)] text-gold-ink transition-colors group-hover:border-gold sm:h-14 sm:w-14">
-              <Icon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
+            <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
+            <span
+              className="pointer-events-none absolute right-4 top-2 font-serif-display text-[6.5rem] leading-[0.8] text-gold/15 transition-colors group-hover:text-gold/25 sm:right-5 sm:top-2 sm:text-[8rem]"
+              aria-hidden="true"
+            >
+              {title.charAt(0)}
             </span>
-            <h3 className="font-serif-display text-base leading-tight sm:text-2xl">{title}</h3>
-            <p className="hidden text-xs uppercase tracking-[0.2em] text-muted-foreground sm:block">{subtitle}</p>
+            <h3 className="relative font-serif-display text-2xl leading-tight sm:text-3xl">{title}</h3>
+            <p className="relative mt-1 text-sm text-muted-foreground">{mood}</p>
+            <span className="absolute right-5 top-5 inline-flex items-center gap-1 text-xs uppercase tracking-[0.2em] text-gold-ink sm:right-6 sm:top-6">
+              Explore
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </span>
           </Link>
         </li>
       ))}
@@ -229,37 +295,38 @@ export function ShelfTiles() {
   );
 }
 
-const FAMILIES: Array<{ slug: string; category: FragranceCategory; title: string }> = [
-  { slug: "middle-eastern", category: "MIDDLE_EASTERN", title: "Middle Eastern" },
-  { slug: "designer", category: "DESIGNER", title: "Designer" },
-  { slug: "niche", category: "NICHE", title: "Niche" },
-];
+const STEPS = [
+  { title: "Browse the catalog", body: "Use the shop or the shelves above to pick full bottles, testers, partials, and decants." },
+  { title: "Place your order", body: "Sign in, confirm delivery or pickup, and we email your QR codes." },
+  { title: "Upload payment receipt", body: "Stock is reserved the moment your receipt is submitted." },
+] as const;
 
-/** The /collections pages, with the same blurbs the FAQ and collection pages use. */
-export function ScentFamilies() {
+/** Numbered timeline on a phone (gold badges joined by a line), three
+ *  cards side by side from sm. An `ol`, so screen readers get the order;
+ *  the visible numbers are decorative. */
+export function HowItWorksSteps() {
   return (
-    <ul className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 sm:gap-4">
-      {FAMILIES.map(({ slug, category, title }) => {
-        const blurb = FRAGRANCE_CATEGORY_BLURBS[category];
-        return (
-          <li key={slug}>
-            <Link
-              href={`/collections/${slug}`}
-              className={`group flex h-full items-start justify-between gap-4 rounded-md border border-border bg-card p-4 transition-colors hover:border-gold/60 sm:p-6 ${HOME_FOCUS_RING}`}
-            >
-              <div className="min-w-0 space-y-1">
-                <h3 className="font-serif-display text-xl leading-tight">{title}</h3>
-                {/* Stored lower-case-initial for the FAQ's "Niche — …" lead-in. */}
-                <p className="text-sm text-muted-foreground">{blurb.charAt(0).toUpperCase() + blurb.slice(1)}</p>
-              </div>
-              <ArrowRight
-                className="mt-1 h-4 w-4 shrink-0 text-gold-ink transition-transform group-hover:translate-x-0.5"
-                aria-hidden="true"
-              />
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <ol className="grid grid-cols-1 px-4 sm:grid-cols-3 sm:gap-4">
+      {STEPS.map(({ title, body }, index) => (
+        <li
+          key={title}
+          className="relative flex gap-4 pb-6 last:pb-0 sm:flex-col sm:gap-3 sm:rounded-md sm:border sm:border-border sm:bg-card sm:p-6 sm:last:pb-6"
+        >
+          {index < STEPS.length - 1 ? (
+            <span className="absolute bottom-0 left-5 top-10 w-px bg-gold/35 sm:hidden" aria-hidden="true" />
+          ) : null}
+          <span
+            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/50 bg-[color-mix(in_oklch,var(--cream),var(--gold)_10%)] font-price-display text-sm text-gold-ink"
+            aria-hidden="true"
+          >
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          <div className="min-w-0 pt-1.5 sm:pt-0">
+            <h3 className="font-serif-display text-lg leading-tight">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }

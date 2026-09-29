@@ -24,7 +24,7 @@ export function AccordStrip({ accords }: { accords: ProductAccords }) {
         {visible.map((item, index) => (
           <span
             key={`${item.name}-${index}`}
-            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground"
+            className="inline-flex items-center gap-1.5 text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground"
           >
             <span
               className="inline-block h-2 w-2 rounded-full"

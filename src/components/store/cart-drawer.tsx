@@ -95,7 +95,7 @@ export function CartDrawer({ mounted }: { mounted: boolean }) {
         <Button variant="ghost" size="icon-lg" aria-label="Cart" className="relative min-h-11 min-w-11">
           <ShoppingBag className="h-5 w-5" />
           {mounted && count > 0 ? (
-            <span className="absolute top-1 right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-charcoal">
+            <span className="absolute top-1 right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[11px] sm:text-[10px] font-semibold text-charcoal">
               {count}
             </span>
           ) : null}

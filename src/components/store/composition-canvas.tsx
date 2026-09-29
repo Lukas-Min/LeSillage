@@ -274,7 +274,7 @@ export function CompositionCanvas({
     >
       {cornerLabel ? <CornerLabel>{cornerLabel}</CornerLabel> : null}
       <div className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
-      <p className="relative text-center text-[10px] uppercase tracking-[0.42em] text-gold">
+      <p className="relative text-center text-[11px] sm:text-[10px] uppercase tracking-[0.42em] text-gold">
         {brand}
       </p>
       <div className="relative flex flex-1 items-center justify-center px-2 py-4">
@@ -286,7 +286,7 @@ export function CompositionCanvas({
               <PyramidColumn label="Base" notes={pyramid.base} accent="#2c2a4a" />
             </div>
           ) : (
-            <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            <p className="text-center text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
               No composition yet
             </p>
           )
@@ -334,9 +334,9 @@ function PyramidColumn({
   return (
     <div className="flex min-w-0 flex-col items-center gap-2">
       <span className="h-1 w-full rounded-none" style={{ backgroundColor: accent }} aria-hidden="true" />
-      <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
+      <p className="text-[10px] sm:text-[9px] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
       {notes.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground">—</p>
+        <p className="text-[11px] sm:text-[10px] text-muted-foreground">—</p>
       ) : (
         <p className="line-clamp-4 text-center text-[11px] leading-snug text-foreground/80">
           {notes.join(" · ")}

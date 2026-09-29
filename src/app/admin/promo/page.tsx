@@ -247,7 +247,7 @@ async function CodesTab() {
                           {code.endsAt ? ` · ends ${formatDate(toDisplayDate(code.endsAt, "end")!)}` : ""}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button asChild variant="outline" className="h-11">
                           <Link href={`/admin/promo/${code.id}`}>Edit</Link>
                         </Button>

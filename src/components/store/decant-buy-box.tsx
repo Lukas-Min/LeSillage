@@ -41,7 +41,7 @@ export function DecantBuyBox({
       </div>
 
       <div className="space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
+        <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
         <SizePicker options={options} selectedSkuId={selected.skuId} onSelect={select} />
       </div>
 

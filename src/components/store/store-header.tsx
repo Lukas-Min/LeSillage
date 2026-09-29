@@ -117,7 +117,7 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
             <span className="hidden min-[360px]:flex min-[360px]:flex-col min-[360px]:leading-none">
               <span className="whitespace-nowrap">Le Sillage</span>
-              <span className="font-sans text-[10px] tracking-[0.32em] text-gold">Manila</span>
+              <span className="font-sans text-[11px] sm:text-[10px] tracking-[0.32em] text-gold">Manila</span>
             </span>
           </Link>
         </div>
@@ -187,7 +187,7 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-6 w-auto" />
             <span className="flex flex-col leading-none">
               <span>Le Sillage</span>
-              <span className="font-sans text-[10px] tracking-[0.32em] text-gold">Manila</span>
+              <span className="font-sans text-[11px] sm:text-[10px] tracking-[0.32em] text-gold">Manila</span>
             </span>
           </SheetTitle>
         </SheetHeader>
@@ -196,12 +196,12 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
               (hidden min-[576px]:inline-flex above) already covers this, and
               showing both would be a confusing duplicate control. */}
           <div className="space-y-1.5 min-[576px]:hidden">
-            <p className="px-3 text-[10px] uppercase tracking-[0.3em] text-gold">Preferences</p>
+            <p className="px-3 text-[11px] sm:text-[10px] uppercase tracking-[0.3em] text-gold">Preferences</p>
             <ThemeToggle showLabel />
           </div>
           {MENU_GROUPS.map((group) => (
             <div key={group.title} className="space-y-1.5">
-              <p className="px-3 text-[10px] uppercase tracking-[0.3em] text-gold">{group.title}</p>
+              <p className="px-3 text-[11px] sm:text-[10px] uppercase tracking-[0.3em] text-gold">{group.title}</p>
               <ul className="space-y-0.5">
                 {group.links.map((link) => {
                   const Icon = link.icon;

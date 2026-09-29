@@ -75,7 +75,7 @@ export function FragranticaReviewForm({
                 id="type"
                 name="type"
                 defaultValue={defaults.type}
-                className="h-11 rounded-lg border bg-background px-3 text-sm"
+                className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
               >
                 <option value="DECANT">Decant</option>
                 <option value="FULL_BOTTLE">Full bottle</option>
@@ -88,7 +88,7 @@ export function FragranticaReviewForm({
                 id="fragranceCategory"
                 name="fragranceCategory"
                 defaultValue={defaults.fragranceCategory}
-                className="h-11 rounded-lg border bg-background px-3 text-sm"
+                className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
               >
                 <option value="NICHE">Niche</option>
                 <option value="DESIGNER">Designer</option>
@@ -109,7 +109,7 @@ export function FragranticaReviewForm({
                 id="concentration"
                 name="concentration"
                 defaultValue={defaults.concentration}
-                className="h-11 rounded-lg border bg-background px-3 text-sm"
+                className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
               >
                 <option value="">No concentration set</option>
                 <option value="EAU_DE_COLOGNE">Eau de Cologne</option>

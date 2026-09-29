@@ -13,7 +13,7 @@ import { products } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
+const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm";
 
 function Field({
   label,

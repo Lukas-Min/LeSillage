@@ -32,9 +32,9 @@ export default async function ProductsAdminPage({
 
   return (
     <div className="flex flex-1 flex-col space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif-display text-2xl">Products</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/admin/products/fragrantica" className="text-xs text-muted-foreground hover:underline">
             Import from Fragrantica
           </Link>
@@ -165,9 +165,9 @@ async function ProductsList({
           <Link key={product.id} href={`/admin/products/${product.id}`} className="block">
             <Card className="transition-colors hover:border-gold/40 hover:bg-muted/30">
               <CardContent className="space-y-2 p-4 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-serif-display text-base">{product.name}</p>
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <p className="min-w-0 font-serif-display text-base">{product.name}</p>
+                  <div className="flex shrink-0 items-center gap-2">
                     {concentrationLabel(product.concentration) ? (
                       <Badge variant="outline">{concentrationLabel(product.concentration)}</Badge>
                     ) : (

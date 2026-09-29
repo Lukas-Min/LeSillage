@@ -4,6 +4,21 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Homepage polish: perk icons sit in the same gold circles as the Browse-by-type icons, centred against their text; each scent-family tile's letter watermark sits behind "Explore" in the top-right corner (smaller on phones); "How it works" is a numbered timeline under a standard section header (an `ol` with gold number badges joined by a line on phones, three cards from `sm`) instead of a tall `SectionCard` (`src/components/store/home-sections.tsx`, `src/app/page.tsx`)
+### Fixed
+- Admin on phones: every `<select>` (product, SKU, decant, Fragrantica review, promo code, and tester-picker forms, plus their loading skeletons) is 16px below `md` instead of 14px, so iOS Safari no longer zooms the page when one is tapped; the Products header, product list rows, promo code action buttons, and the product image URL row now wrap or truncate instead of overflowing a narrow screen
+### Changed
+- Mobile typography pass: every 9px/10px label on the storefront, account, and shared components (eyebrows, card brands and photo labels, breadcrumbs, accords, size picker, header/footer, cart) is one step larger below `sm` (10px→11px, 9px→10px) and unchanged from 640px up; the product page title is 30px on phones instead of 36px (skeleton matched), and the card's category label tightens its letter-spacing on phones so "MIDDLE EASTERN" fits a 158px card
+### Fixed
+- Homepage rail cards had their top edge cut off when lifted on hover or after a tap: the rails' horizontal scroller also clips vertically, so they now have 8px of headroom (`src/components/store/home-sections.tsx`)
+### Changed
+- Homepage product rails no longer show a scrollbar (hidden in Firefox and WebKit/Blink); they still scroll by swipe, trackpad, shift+wheel, or keyboard focus (`src/components/store/home-sections.tsx`)
+### Changed
+- Phones show the shop grid (and its skeleton) two cards to a row from 360px, one column only below that; the homepage rails show one full card plus half of the next on a phone; `ProductCard`/`CatalogPrice` default to compact sizes for narrow cards (smaller pills, badges, name, and price; a two-line subtitle), stepping back up from 576px, and a discounted card's struck-through original price is smaller (11px on phones) (`src/components/store/catalog-grid.tsx`, `product-card.tsx`, `price.tsx`, `loading.tsx`, `home-sections.tsx`)
+- Homepage "Browse by type" is one joined panel of full-width rows on a phone (icon, name and line, chevron; 72px tap targets) and three columns from `sm`; "Shop by scent family" tiles are framed, gold-tinted cards with just the family name and a one-line mood, "Explore" in the top-right corner, and a large initial watermark bottom-right, instead of the long FAQ blurbs (`src/components/store/home-sections.tsx`)
+### Fixed
+- Homepage scrolled sideways on phones: the product card's screen-reader "Original price" text is absolutely positioned and, with no positioned ancestor, escaped the rails' horizontal scroller and widened the page; `ProductCard`'s article is now `relative` so it stays inside the card (`src/components/store/product-card.tsx`)
+### Changed
 - The product card's "From" label is smaller (11px) and sentence case instead of spaced-out capitals (`CatalogPrice` in `src/components/store/price.tsx`)
 ### Changed
 - Product cards (shop grid and homepage rails) show one price instead of a range: the cheapest option, prefixed "From" when other sizes or options cost more, with that option's struck-through original when it's discounted (`CatalogPrice` in `src/components/store/price.tsx`; its unused `maxOriginalCentavos` prop removed)

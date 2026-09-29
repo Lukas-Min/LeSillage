@@ -14,7 +14,7 @@ export type { SizePickerOption, VariantSubOption } from "@/domain/variant-option
 
 const DENSITY = {
   default: "h-11 min-w-[3.5rem] px-4 text-xs",
-  compact: "h-9 min-w-[2.75rem] px-2.5 text-[10px]",
+  compact: "h-9 min-w-[2.75rem] px-2.5 text-[11px] sm:text-[10px]",
 } as const;
 
 export function SizePicker({
@@ -79,7 +79,7 @@ export function SizePicker({
                 }}
                 aria-pressed={isSelected}
                 className={cn(
-                  "inline-flex h-8 items-center justify-center rounded-md border px-3 text-[10px] uppercase tracking-[0.15em] transition-colors",
+                  "inline-flex h-8 items-center justify-center rounded-md border px-3 text-[11px] sm:text-[10px] uppercase tracking-[0.15em] transition-colors",
                   isSelected
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background hover:bg-muted",

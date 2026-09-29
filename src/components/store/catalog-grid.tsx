@@ -18,7 +18,7 @@ export function CatalogResults({
   return (
     <div className="flex flex-1 flex-col">
       {showCount ? (
-        <p className="mb-6 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <p className="mb-6 text-center text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           {countLabel}
         </p>
       ) : null}
@@ -30,10 +30,11 @@ export function CatalogResults({
           </Link>
         </div>
       ) : (
-        // Single column below 576px, scaling up to 5 columns, the max, on
-        // wide desktop (xl). CatalogPrice's own text size shrinks once cards
-        // reach their narrowest, roughly-constant width from md (768px) up.
-        <div className="grid grid-cols-1 gap-4 min-[576px]:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
+        // One column only on very small screens (under 360px, e.g. 320px
+        // phones or heavy zoom); two on every common phone, scaling up to 5
+        // columns, the max, on wide desktop (xl). ProductCard and CatalogPrice size themselves for the
+        // narrow phone cards and step up in the roomier 576-767px tier.
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 min-[576px]:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
           {cards.map((card) => (
             <ProductCard key={card.productId} card={card} />
           ))}

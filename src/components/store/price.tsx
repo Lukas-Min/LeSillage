@@ -98,7 +98,7 @@ export function CatalogPrice({
   return (
     <div className={`space-y-1 ${alignClass}`}>
       {fromIsDiscounted ? (
-        <p className={`flex flex-wrap items-center gap-2 text-sm text-muted-foreground ${rowJustify}`}>
+        <p className={`flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground min-[576px]:text-xs ${rowJustify}`}>
           <s>
             <span className="sr-only">Original price </span>
             {formatPHP(minOriginalCentavos)}
@@ -110,13 +110,13 @@ export function CatalogPrice({
           ) : null}
         </p>
       ) : null}
-      {/* Card content width (measured, not guessed): ~309px below 576px,
-          ~230px at the 2-column tier (576-767px), then a roughly constant
-          ~190px from md up (768px+) — 3/4/5 columns grow with the viewport
-          in lockstep, so the per-card width barely changes once >=768px.
-          "From ₱12,345.00" fits both sizes; no whitespace-nowrap, so a
-          longer price wraps instead of clipping. */}
-      <p className="font-price-display text-2xl leading-none tracking-tight md:text-lg">
+      {/* Card content width (measured, not guessed): ~130px below 576px
+          (two columns on a phone), ~230px+ at the 2-column tier (576-767px),
+          then a roughly constant ~190px from md up (768px+) — 3/4/5 columns
+          grow with the viewport in lockstep. So the price is text-lg on
+          phones and from md, text-2xl only in the roomy 576-767px tier. No
+          whitespace-nowrap, so a longer price wraps instead of clipping. */}
+      <p className="font-price-display text-lg leading-none tracking-tight min-[576px]:text-2xl md:text-lg">
         {hasMoreOptions ? (
           <span className="mr-1 font-sans text-[11px] tracking-normal text-muted-foreground">From</span>
         ) : null}

@@ -51,7 +51,7 @@ function Field({
   );
 }
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
+const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm";
 
 export default async function AdminProductDetailPage({
   params,
@@ -390,7 +390,7 @@ export default async function AdminProductDetailPage({
         <CardContent className="space-y-3">
           {imageList.map((image) => (
             <form action={removeProductImage} key={image.id} className="flex items-center justify-between gap-2">
-              <p className="truncate text-xs">{image.url}</p>
+              <p className="min-w-0 truncate text-xs">{image.url}</p>
               <input type="hidden" name="imageId" value={image.id} />
               <input type="hidden" name="productId" value={product.id} />
               <SubmitButton variant="outline">Remove</SubmitButton>

@@ -200,7 +200,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
           {accords && accords.length > 0 ? (
             <div className="order-3 space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
+              <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
               <AccordStrip accords={accords} />
             </div>
           ) : null}
@@ -217,13 +217,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             <div className="order-5 grid grid-cols-2 gap-4 border-t border-border/60 pt-4">
               {topSeasons ? (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Seasons</p>
+                  <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Seasons</p>
                   <p className="text-sm text-foreground">{topSeasons}</p>
                 </div>
               ) : null}
               {row.longevity ? (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Longevity</p>
+                  <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Longevity</p>
                   <p className="text-sm text-foreground">{row.longevity}</p>
                 </div>
               ) : null}
@@ -313,7 +313,7 @@ function ProductTitleText({
   return (
     <div className={cn("space-y-1.5", className)}>
       <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{brand}</p>
-      <h1 className="font-serif-display text-4xl leading-[1.05] sm:text-5xl">{name}</h1>
+      <h1 className="font-serif-display text-3xl leading-[1.05] sm:text-5xl">{name}</h1>
       {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
     </div>
   );
@@ -344,7 +344,7 @@ function VariantSection({
     <div className="space-y-4">
       {conditionOptions ? (
         <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Condition</p>
+          <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Condition</p>
           <div className="flex flex-wrap gap-2">
             {conditionOptions.map((sub) => (
               <Link
@@ -364,7 +364,7 @@ function VariantSection({
         </div>
       ) : null}
       <div className="space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
+        <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
         <div className="flex flex-wrap gap-2">
           {options.map((option) => (
             <Link
@@ -406,9 +406,9 @@ function CompositionContent({
   const base = pyramid?.base ?? [];
   return (
     <div className="space-y-4 border-t border-border/60 pt-4">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Notes</p>
+      <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Notes</p>
       <div className="space-y-3">
-        <div className="hidden border-b border-border/40 pb-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:grid sm:grid-cols-3 sm:gap-2">
+        <div className="hidden border-b border-border/40 pb-2 text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:grid sm:grid-cols-3 sm:gap-2">
           <span className="text-center">Top</span>
           <span className="text-center">Heart</span>
           <span className="text-center">Base</span>
@@ -428,7 +428,7 @@ function NoteColumn({ label, notes }: { label: string; notes: string[] }) {
     <div className="space-y-2 sm:space-y-1">
       {/* Only the mobile, stacked layout needs its own label — sm: and up
           shares the header row above instead. */}
-      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:hidden">{label}</p>
+      <p className="text-center text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:hidden">{label}</p>
       {notes.length === 0 ? (
         <p className="text-center text-xs text-muted-foreground">—</p>
       ) : (

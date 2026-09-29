@@ -7,7 +7,7 @@ export function Eyebrow({ className, ...props }: EyebrowProps) {
   return (
     <p
       className={cn(
-        "text-[10px] uppercase tracking-[0.32em] text-gold-ink",
+        "text-[11px] sm:text-[10px] uppercase tracking-[0.32em] text-gold-ink",
         className,
       )}
       {...props}
@@ -174,7 +174,7 @@ export function StatTile({ className, label, value, hint, ...props }: StatTilePr
       )}
       {...props}
     >
-      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
+      <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
       <p className="font-serif-display text-2xl leading-tight">{value}</p>
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>

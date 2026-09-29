@@ -7,7 +7,7 @@ import { fromCentavos } from "@/domain/money";
 import { pricingInputLabel } from "@/domain/pricing";
 import type { PricingMode } from "@/db/schema";
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
+const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm";
 
 /**
  * Provenance/Fulfillment/Stock for one decant SKU, as a single client

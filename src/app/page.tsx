@@ -4,12 +4,13 @@ import { Star } from "lucide-react";
 import { loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
 import { Price } from "@/components/store/price";
 import { Button } from "@/components/ui/button";
-import { Eyebrow, SectionCard } from "@/components/ui/section";
+import { Eyebrow } from "@/components/ui/section";
 import { CompositionCanvas } from "@/components/store/composition-canvas";
 import {
   DealsRail,
   DecantsRail,
   HomeSectionHeader,
+  HowItWorksSteps,
   NewArrivalsRail,
   PerksSkeleton,
   PerksStrip,
@@ -102,16 +103,9 @@ export default function Home() {
         <ScentFamilies />
       </section>
 
-      <section aria-label="How it works" className="w-full px-4 pt-10 sm:pt-14">
-        <SectionCard
-          eyebrow="How it works"
-          title="From browsing to bottle, in three steps"
-          contentClassName="grid grid-cols-1 gap-4 sm:grid-cols-3"
-        >
-          <Step number="01" title="Browse the catalog" body="Use the shop or the shelves above to pick full bottles, testers, partials, and decants." />
-          <Step number="02" title="Place your order" body="Sign in, confirm delivery or pickup, and we email your QR codes." />
-          <Step number="03" title="Upload payment receipt" body="Stock is reserved the moment your receipt is submitted." />
-        </SectionCard>
+      <section aria-labelledby="home-how" className="flex w-full flex-col gap-5 pt-10 sm:pt-14">
+        <HomeSectionHeader id="home-how" eyebrow="How it works" title="From browsing to bottle, in three steps" />
+        <HowItWorksSteps />
       </section>
 
       <div className="w-full px-4 pb-16 pt-10 sm:pt-14">
@@ -239,16 +233,6 @@ function FlagshipSkeleton() {
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Step({ number, title, body }: { number: string; title: string; body: string }) {
-  return (
-    <div className="space-y-2">
-      <Eyebrow>{number}</Eyebrow>
-      <h3 className="font-serif-display text-lg leading-tight">{title}</h3>
-      <p className="text-sm text-muted-foreground">{body}</p>
     </div>
   );
 }

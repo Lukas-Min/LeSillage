@@ -34,7 +34,7 @@ const SORT_LABELS: Record<CatalogSort, string> = {
 // so the accessible name is unchanged. Same `sr-only min-[…]:not-sr-only`
 // pattern the header uses for its wordmark.
 const TOOLBAR_BUTTON_CLASS =
-  "min-h-11 min-w-11 gap-1.5 rounded-md px-0 text-[10px] uppercase tracking-[0.2em] min-[400px]:px-2.5";
+  "min-h-11 min-w-11 gap-1.5 rounded-md px-0 text-[11px] sm:text-[10px] uppercase tracking-[0.2em] min-[400px]:px-2.5";
 const TOOLBAR_LABEL_CLASS = "sr-only min-[400px]:not-sr-only";
 
 const CATEGORY_LABELS: Record<FragranceCategory, string> = {
@@ -82,7 +82,7 @@ export function ShopToolbar({
 
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+      <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         {count} fragrance{count === 1 ? "" : "s"}
       </p>
       <div className="flex items-center gap-2">

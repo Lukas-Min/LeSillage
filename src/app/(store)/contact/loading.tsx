@@ -48,7 +48,7 @@ export default function ContactLoading() {
                 <row.icon className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{row.label}</p>
+                <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{row.label}</p>
                 {row.href ? (
                   <a
                     href={row.href}

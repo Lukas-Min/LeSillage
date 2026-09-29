@@ -15,7 +15,7 @@ export interface TesterPickerOption {
   unitsAvailable: number;
 }
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm sm:max-w-md";
+const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm sm:max-w-md";
 
 /**
  * The admin's hand pick for an order's free tester. Shown while the order is

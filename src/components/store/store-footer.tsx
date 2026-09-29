@@ -46,7 +46,7 @@ export function StoreFooter() {
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />
             <span className="flex flex-col leading-none">
               <span>Le Sillage</span>
-              <span className="font-sans text-[10px] tracking-[0.32em] text-gold">Manila</span>
+              <span className="font-sans text-[11px] sm:text-[10px] tracking-[0.32em] text-gold">Manila</span>
             </span>
           </Link>
           <p className="text-sm text-muted-foreground">

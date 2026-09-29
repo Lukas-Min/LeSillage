@@ -10,7 +10,7 @@ import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/cus
 import type { PromoCodeFormState } from "@/actions/admin-promo-code-actions";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
+const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm";
 
 /** Everything the form needs, already converted to what the inputs display:
  *  `amount`/`minSpend` in pesos for a FIXED code and plain numbers for a

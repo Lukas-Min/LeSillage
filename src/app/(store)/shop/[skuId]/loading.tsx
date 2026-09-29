@@ -20,7 +20,7 @@ export default function ProductLoading() {
             </div>
           </div>
           <div className="order-3 space-y-2">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
+            <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Main accords</p>
             <div className="space-y-3">
               <Skeleton className="h-1.5 w-full rounded-none" />
               <div className="flex flex-wrap gap-x-5 gap-y-1">
@@ -34,9 +34,9 @@ export default function ProductLoading() {
           </div>
           <div className="order-4">
             <div className="space-y-4 border-t border-border/60 pt-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Notes</p>
+              <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Notes</p>
               <div className="space-y-3">
-                <div className="hidden border-b border-border/40 pb-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:grid sm:grid-cols-3 sm:gap-2">
+                <div className="hidden border-b border-border/40 pb-2 text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:grid sm:grid-cols-3 sm:gap-2">
                   <span className="text-center">Top</span>
                   <span className="text-center">Heart</span>
                   <span className="text-center">Base</span>
@@ -44,7 +44,7 @@ export default function ProductLoading() {
                 <div className="grid grid-cols-1 gap-4 text-sm leading-relaxed sm:grid-cols-3 sm:gap-2 sm:gap-y-0">
                   {["Top", "Heart", "Base"].map((label) => (
                     <div key={label} className="space-y-2 sm:space-y-1">
-                      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:hidden">
+                      <p className="text-center text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground sm:hidden">
                         {label}
                       </p>
                       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:flex-col sm:flex-nowrap sm:gap-1">
@@ -64,7 +64,7 @@ export default function ProductLoading() {
           <div className="order-2 flex items-start justify-between gap-3">
             <div className="space-y-1.5">
               <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-9.5 w-56 sm:h-12.5 sm:w-72" />
+              <Skeleton className="h-8 w-56 sm:h-12.5 sm:w-72" />
               <Skeleton className="h-5 w-32" />
             </div>
             <Skeleton className="h-11 w-11 shrink-0" />
@@ -75,7 +75,7 @@ export default function ProductLoading() {
               <Skeleton className="h-8.5 w-44 rounded-none" />
             </div>
             <div className="space-y-3">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
+              <p className="text-[11px] sm:text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Size</p>
               <div className="flex flex-wrap gap-2">
                 <Skeleton className="h-11 w-16 rounded-none" />
                 <Skeleton className="h-11 w-16 rounded-none" />

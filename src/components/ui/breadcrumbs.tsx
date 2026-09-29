@@ -18,7 +18,7 @@ export function Breadcrumbs({ items, className }: { items: BreadcrumbItem[]; cla
     // this would shrink to the text's own content width instead of filling
     // the row and then being clamped/centered by max-w.
     <nav aria-label="Breadcrumb" className={cn("mb-4 w-full 2xl:mx-auto 2xl:max-w-[80vw]", className)}>
-      <ol className="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <ol className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
