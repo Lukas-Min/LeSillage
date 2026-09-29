@@ -3,17 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { and, eq, isNull, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
-import { notificationLog, orders, promoCodeRedemptions, promoCodes, users, type PromoCode } from "@/db/schema";
+import {
+  notificationLog,
+  orders,
+  promoCodeAllowedUsers,
+  promoCodeRedemptions,
+  promoCodes,
+  users,
+  type PromoCode,
+} from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { formatPHP, toCentavos } from "@/domain/money";
 import { parsePhDateBoundary } from "@/domain/ph-date";
 import { sendEmail } from "@/lib/email";
 import { promoAssignedEmail } from "@/lib/email-templates";
+import { withAllowedUsers } from "@/lib/promo-code-access";
 
 const createSchema = z.object({
   code: z
@@ -33,7 +42,8 @@ const createSchema = z.object({
   maxRedemptions: z.coerce.number().int().min(1).optional(),
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
-  restrictedUserId: z.string().min(1).optional(),
+  // Customers who may use the code; empty means every customer.
+  allowedUserIds: z.array(z.string().min(1)).max(500),
   sendEmail: z.coerce.boolean(),
 });
 
@@ -53,7 +63,13 @@ function readCodeFields(formData: FormData) {
     maxRedemptions: formData.get("maxRedemptions") || undefined,
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
-    restrictedUserId: formData.get("restrictedUserId") || undefined,
+    // restrictedUserId is what the one-customer form posted before the list
+    // existed; a tab opened before a deploy can still send it.
+    allowedUserIds: [
+      ...new Set(
+        [...formData.getAll("allowedUserIds"), formData.get("restrictedUserId") ?? ""].map(String).filter(Boolean),
+      ),
+    ],
     sendEmail: formData.get("sendEmail") === "on",
   };
 }
@@ -64,8 +80,8 @@ function readCodeFields(formData: FormData) {
  * the code's own rules (onePerCustomer/firstOrderOnly) have already used up.
  * Mirrors the same "counts as an order" definition checkPromoCodeEligibility's
  * callers use (src/actions/promo-code-actions.ts, src/lib/orders.ts): every
- * order except REJECTED/CANCELLED. Not used for a restricted code — that one
- * has exactly one intended recipient, looked up directly by id instead.
+ * order except REJECTED/CANCELLED. Not used for a code limited to chosen
+ * customers — those customers are emailed directly (emailAllowedCustomers).
  */
 async function loadEligibleSubscribers(
   code: Pick<PromoCode, "id" | "firstOrderOnly" | "onePerCustomer">,
@@ -121,6 +137,73 @@ function broadcastPromoEmail(code: {
       await db().insert(notificationLog).values({
         recipient: recipient.email,
         template: "promo_code_broadcast",
+        status: result.ok ? "SENT" : "FAILED",
+        error: result.ok ? null : result.error ?? "unknown",
+      });
+    }
+  });
+}
+
+interface AllowedCustomer {
+  id: string;
+  email: string | null;
+  name: string | null;
+  deletedAt: Date | null;
+  archivedAt: Date | null;
+  marketingOptIn: boolean;
+}
+
+/**
+ * The chosen customers, or an error if one can't be added. A customer whose
+ * account was deleted after being listed stays on the list (they can't sign
+ * in, so it's inert) — dropping them could empty the list, which would open
+ * the code to everyone. Only newly added customers must have a live account.
+ */
+async function loadAllowedCustomers(
+  ids: readonly string[],
+  alreadyAllowed: readonly string[] = [],
+): Promise<AllowedCustomer[] | string> {
+  if (ids.length === 0) return [];
+  const found = await db()
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      deletedAt: users.deletedAt,
+      archivedAt: users.archivedAt,
+      marketingOptIn: users.marketingOptIn,
+    })
+    .from(users)
+    .where(inArray(users.id, [...ids]));
+  const unusable = ids.some((id) => {
+    const customer = found.find((row) => row.id === id);
+    return !customer || (customer.deletedAt !== null && !alreadyAllowed.includes(id));
+  });
+  if (unusable) return "One of the chosen customers no longer has an account — remove them and save again";
+  return found;
+}
+
+/** Kept in the old single-customer column too, so an older build (a rollback,
+ *  or a tab from before the deploy) limits the code instead of opening it. */
+function legacyRestrictedUserId(customers: readonly AllowedCustomer[]): string | null {
+  return (customers.find((customer) => customer.deletedAt === null) ?? customers[0])?.id ?? null;
+}
+
+/** Emails each chosen customer their code, one audit row per recipient.
+ *  Skips anyone who turned promotions off or whose account is archived or deleted. */
+function emailAllowedCustomers(customers: readonly AllowedCustomer[], code: string, offer: string) {
+  const recipients = customers.filter(
+    (customer): customer is AllowedCustomer & { email: string } =>
+      Boolean(customer.email) && customer.marketingOptIn && !customer.deletedAt && !customer.archivedAt,
+  );
+  if (recipients.length === 0) return;
+  after(async () => {
+    for (const recipient of recipients) {
+      const message = promoAssignedEmail({ name: recipient.name, code, offer });
+      const result = await sendEmail({ to: recipient.email, subject: message.subject, text: message.text, html: message.html });
+      await db().insert(notificationLog).values({
+        recipient: recipient.email,
+        template: "promo_code_assigned",
         status: result.ok ? "SENT" : "FAILED",
         error: result.ok ? null : result.error ?? "unknown",
       });
@@ -195,80 +278,73 @@ export async function createPromoCode(
   const existing = (await db().select({ id: promoCodes.id }).from(promoCodes).where(eq(promoCodes.code, parsed.code)))[0];
   if (existing) return failed(`Code "${parsed.code}" already exists`);
 
-  let restrictedUserId: string | null = null;
-  let customerEmail: string | null = null;
-  let customerName: string | null = null;
-  if (parsed.restrictedUserId) {
-    const customer = (
-      await db()
-        .select({ id: users.id, email: users.email, name: users.name })
-        .from(users)
-        .where(eq(users.id, parsed.restrictedUserId))
-    )[0];
-    if (!customer?.email) return failed("That customer no longer exists");
-    restrictedUserId = customer.id;
-    customerEmail = customer.email;
-    customerName = customer.name;
-  }
+  const allowed = await loadAllowedCustomers(parsed.allowedUserIds);
+  if (typeof allowed === "string") return failed(allowed);
 
-  const created = await db()
-    .insert(promoCodes)
-    .values({
-      code: parsed.code,
-      type: parsed.type,
-      amount,
-      scope: parsed.scope,
-      minSpendCentavos,
-      firstOrderOnly: parsed.firstOrderOnly,
-      onePerCustomer: parsed.onePerCustomer,
-      maxRedemptions: parsed.maxRedemptions ?? null,
-      startsAt,
-      endsAt,
-      isActive: true,
-      restrictedUserId,
-    })
-    .returning({ id: promoCodes.id });
+  const createdId = await db().transaction(async (tx) => {
+    const created = await tx
+      .insert(promoCodes)
+      .values({
+        code: parsed.code,
+        type: parsed.type,
+        amount,
+        scope: parsed.scope,
+        minSpendCentavos,
+        firstOrderOnly: parsed.firstOrderOnly,
+        onePerCustomer: parsed.onePerCustomer,
+        maxRedemptions: parsed.maxRedemptions ?? null,
+        startsAt,
+        endsAt,
+        isActive: true,
+        restrictedUserId: legacyRestrictedUserId(allowed),
+      })
+      .returning({ id: promoCodes.id });
+    const id = created[0].id;
+    if (allowed.length > 0) {
+      await tx
+        .insert(promoCodeAllowedUsers)
+        .values(allowed.map((customer) => ({ promoCodeId: id, userId: customer.id })));
+    }
+    return id;
+  });
 
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_CODE_CREATE",
     targetType: "promo_code",
-    targetId: created[0].id,
-    metadata: { code: parsed.code, type: parsed.type, amount, scope: parsed.scope, restrictedUserId },
-  });
-  revalidatePath("/admin/promo");
-  if (restrictedUserId && customerEmail) {
-    revalidatePath(`/admin/customers/${restrictedUserId}`);
-    if (parsed.sendEmail) {
-      const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
-      const email = customerEmail;
-      const name = customerName;
-      const code = parsed.code;
-      after(async () => {
-        const message = promoAssignedEmail({ name, code, offer });
-        const result = await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html });
-        await db().insert(notificationLog).values({
-          recipient: email,
-          template: "promo_code_assigned",
-          status: result.ok ? "SENT" : "FAILED",
-          error: result.ok ? null : result.error ?? "unknown",
-        });
-      });
-    }
-    redirect(`/admin/customers/${restrictedUserId}`);
-  }
-  if (parsed.sendEmail) {
-    broadcastPromoEmail({
-      id: created[0].id,
+    targetId: createdId,
+    metadata: {
       code: parsed.code,
       type: parsed.type,
       amount,
       scope: parsed.scope,
-      maxRedemptions: parsed.maxRedemptions ?? null,
-      redemptionCount: 0,
-      firstOrderOnly: parsed.firstOrderOnly,
-      onePerCustomer: parsed.onePerCustomer,
-    });
+      allowedUserIds: allowed.map((customer) => customer.id),
+    },
+  });
+  revalidatePath("/admin/promo");
+  for (const customer of allowed) revalidatePath(`/admin/customers/${customer.id}`);
+  if (parsed.sendEmail) {
+    if (allowed.length > 0) {
+      const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
+      emailAllowedCustomers(allowed, parsed.code, offer);
+    } else {
+      broadcastPromoEmail({
+        id: createdId,
+        code: parsed.code,
+        type: parsed.type,
+        amount,
+        scope: parsed.scope,
+        maxRedemptions: parsed.maxRedemptions ?? null,
+        redemptionCount: 0,
+        firstOrderOnly: parsed.firstOrderOnly,
+        onePerCustomer: parsed.onePerCustomer,
+      });
+    }
+  }
+  // "Add promo code" on a customer's page sends them back there.
+  const returnTo = formData.get("returnToCustomer");
+  if (typeof returnTo === "string" && allowed.some((customer) => customer.id === returnTo)) {
+    redirect(`/admin/customers/${returnTo}`);
   }
   redirect("/admin/promo?tab=codes");
 }
@@ -321,12 +397,23 @@ export async function updatePromoCode(
         endsAt: promoCodes.endsAt,
         redemptionCount: promoCodes.redemptionCount,
         isActive: promoCodes.isActive,
+        id: promoCodes.id,
         restrictedUserId: promoCodes.restrictedUserId,
       })
       .from(promoCodes)
       .where(eq(promoCodes.id, parsed.id))
   )[0];
   if (!current) return failed("Promo code not found");
+  const [{ allowedUserIds: previousAllowedUserIds }] = await withAllowedUsers([current]);
+  // Only the current form posts this marker. A post without it (a tab from
+  // before the list existed) leaves who can use the code untouched, rather
+  // than reading the missing field as "list cleared" and opening the code.
+  const replaceList = formData.get("allowedUsersField") === "1";
+  const allowed = await loadAllowedCustomers(
+    replaceList ? parsed.allowedUserIds : previousAllowedUserIds,
+    previousAllowedUserIds,
+  );
+  if (typeof allowed === "string") return failed(allowed);
 
   // Switching PERCENTAGE <-> FIXED re-reads the same number in a different
   // unit — a ₱50 fixed code (prefilled as "50") silently becomes 50% off, and
@@ -381,25 +468,36 @@ export async function updatePromoCode(
     return failed("This code would end before it starts — check the start and end dates");
   }
 
-  const written = await db()
-    .update(promoCodes)
-    .set({
-      code: parsed.code,
-      type: parsed.type,
-      amount,
-      scope: parsed.scope,
-      minSpendCentavos,
-      firstOrderOnly: parsed.firstOrderOnly,
-      onePerCustomer: parsed.onePerCustomer,
-      maxRedemptions: parsed.maxRedemptions ?? null,
-      startsAt,
-      endsAt,
-      // isActive and redemptionCount are deliberately left alone: activation is
-      // the Activate/Deactivate button's job, and the count is ledger data that
-      // must keep matching the promo_code_redemption rows.
-    })
-    .where(eq(promoCodes.id, parsed.id))
-    .returning({ id: promoCodes.id });
+  const written = await db().transaction(async (tx) => {
+    const rows = await tx
+      .update(promoCodes)
+      .set({
+        code: parsed.code,
+        type: parsed.type,
+        amount,
+        scope: parsed.scope,
+        minSpendCentavos,
+        firstOrderOnly: parsed.firstOrderOnly,
+        onePerCustomer: parsed.onePerCustomer,
+        maxRedemptions: parsed.maxRedemptions ?? null,
+        startsAt,
+        endsAt,
+        ...(replaceList ? { restrictedUserId: legacyRestrictedUserId(allowed) } : {}),
+        // isActive and redemptionCount are deliberately left alone: activation is
+        // the Activate/Deactivate button's job, and the count is ledger data that
+        // must keep matching the promo_code_redemption rows.
+      })
+      .where(eq(promoCodes.id, parsed.id))
+      .returning({ id: promoCodes.id });
+    if (rows.length === 0 || !replaceList) return rows;
+    await tx.delete(promoCodeAllowedUsers).where(eq(promoCodeAllowedUsers.promoCodeId, parsed.id));
+    if (allowed.length > 0) {
+      await tx
+        .insert(promoCodeAllowedUsers)
+        .values(allowed.map((customer) => ({ promoCodeId: parsed.id, userId: customer.id })));
+    }
+    return rows;
+  });
   // The row can be deleted between the read above and this write.
   if (written.length === 0) return failed("Promo code not found");
 
@@ -423,35 +521,20 @@ export async function updatePromoCode(
       firstOrderOnly: parsed.firstOrderOnly,
       onePerCustomer: parsed.onePerCustomer,
       redemptionCount: current.redemptionCount,
+      allowedUserIds: allowed.map((customer) => customer.id),
+      previousAllowedUserIds,
     },
   });
   revalidatePath("/admin/promo");
+  for (const userId of new Set([...previousAllowedUserIds, ...allowed.map((customer) => customer.id)])) {
+    revalidatePath(`/admin/customers/${userId}`);
+  }
   // A deactivated code has no eligible recipients regardless of the checkbox
   // — nobody can use it, so there's nothing worth emailing about.
   if (parsed.sendEmail && current.isActive) {
-    if (current.restrictedUserId) {
-      const customer = (
-        await db()
-          .select({ email: users.email, name: users.name })
-          .from(users)
-          .where(eq(users.id, current.restrictedUserId))
-      )[0];
-      if (customer?.email) {
-        const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
-        const email = customer.email;
-        const name = customer.name;
-        const code = parsed.code;
-        after(async () => {
-          const message = promoAssignedEmail({ name, code, offer });
-          const result = await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html });
-          await db().insert(notificationLog).values({
-            recipient: email,
-            template: "promo_code_assigned",
-            status: result.ok ? "SENT" : "FAILED",
-            error: result.ok ? null : result.error ?? "unknown",
-          });
-        });
-      }
+    if (allowed.length > 0) {
+      const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
+      emailAllowedCustomers(allowed, parsed.code, offer);
     } else {
       broadcastPromoEmail({
         id: parsed.id,

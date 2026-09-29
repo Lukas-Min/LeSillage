@@ -9,6 +9,7 @@ import { fromCentavos } from "@/domain/money";
 import { formatPhDateBoundary } from "@/domain/ph-date";
 import { db } from "@/db/client";
 import { promoCodes } from "@/db/schema";
+import { loadCustomerOptions, withAllowedUsers } from "@/lib/promo-code-access";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,10 @@ export default async function EditPromoCodePage({
   params: Promise<{ promoCodeId: string }>;
 }) {
   const { promoCodeId } = await params;
-  const code = (await db().select().from(promoCodes).where(eq(promoCodes.id, promoCodeId)))[0];
-  if (!code) return notFound();
+  const row = (await db().select().from(promoCodes).where(eq(promoCodes.id, promoCodeId)))[0];
+  if (!row) return notFound();
+  const [code] = await withAllowedUsers([row]);
+  const customers = await loadCustomerOptions(code.allowedUserIds);
 
   return (
     <div className="space-y-4">
@@ -41,6 +44,7 @@ export default async function EditPromoCodePage({
           <PromoCodeForm
             action={updatePromoCode}
             mode="edit"
+            customers={customers}
             values={{
               id: code.id,
               code: code.code,
@@ -54,6 +58,7 @@ export default async function EditPromoCodePage({
               firstOrderOnly: code.firstOrderOnly,
               onePerCustomer: code.onePerCustomer,
               redemptionCount: code.redemptionCount,
+              allowedUserIds: code.allowedUserIds,
             }}
           />
         </CardContent>

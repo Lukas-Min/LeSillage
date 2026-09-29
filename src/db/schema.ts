@@ -530,7 +530,9 @@ export const promoCodes = pgTable(
     startsAt: timestamp("startsAt", { mode: "date" }),
     endsAt: timestamp("endsAt", { mode: "date" }),
     isActive: boolean("isActive").notNull().default(true),
-    // Null means any customer can use it. Set means only that account can.
+    // The single-customer lock from before promo_code_allowed_user existed.
+    // Still honoured (merged into the allowed list by withAllowedUsers in
+    // src/lib/promo-code-access.ts), and cleared once the code is saved again.
     restrictedUserId: text("restrictedUserId").references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
@@ -566,6 +568,26 @@ export const promoCodeRedemptions = pgTable(
     // the race a plain unconditional DB constraint here couldn't express.
     codeUserIdx: index("promo_code_redemption_code_user_idx").on(t.promoCodeId, t.userId),
     orderIdx: index("promo_code_redemption_order_idx").on(t.orderId),
+  }),
+);
+
+// Customers allowed to use a promo code. No rows means every customer can.
+// userId is RESTRICT, like orders.userId: accounts are anonymized, never
+// hard-deleted, and a cascade here could silently open a code to everyone.
+export const promoCodeAllowedUsers = pgTable(
+  "promo_code_allowed_user",
+  {
+    promoCodeId: text("promoCodeId")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.promoCodeId, t.userId] }),
+    userIdx: index("promo_code_allowed_user_user_idx").on(t.userId),
   }),
 );
 

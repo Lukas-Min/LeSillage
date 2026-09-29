@@ -20,6 +20,7 @@ import { formatPhDateBoundary, toDisplayDate } from "@/domain/ph-date";
 import { siteWideDiscountFromSettings, siteWideDiscountStatus, type SiteWideDiscountConfig } from "@/domain/promo";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { formatDate } from "@/lib/utils";
+import { withAllowedUsers } from "@/lib/promo-code-access";
 
 export const dynamic = "force-dynamic";
 
@@ -197,9 +198,17 @@ async function SettingsTab() {
   );
 }
 
+/** " · only Ana" / " · only Ana, Ben and 2 others", or nothing for a code open to everyone. */
+function allowedLabel(allowedUserIds: readonly string[], customerById: Map<string, string | null>): string {
+  if (allowedUserIds.length === 0) return "";
+  const names = allowedUserIds.map((id) => customerById.get(id) ?? "a customer");
+  if (names.length <= 2) return ` · only ${names.join(" and ")}`;
+  return ` · only ${names.slice(0, 2).join(", ")} and ${names.length - 2} other${names.length === 3 ? "" : "s"}`;
+}
+
 async function CodesTab() {
-  const codes = await db().select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
-  const restrictedIds = [...new Set(codes.flatMap((code) => (code.restrictedUserId ? [code.restrictedUserId] : [])))];
+  const codes = await withAllowedUsers(await db().select().from(promoCodes).orderBy(desc(promoCodes.createdAt)));
+  const restrictedIds = [...new Set(codes.flatMap((code) => code.allowedUserIds))];
   const customers = restrictedIds.length
     ? await db()
         .select({ id: users.id, name: users.name, email: users.email })
@@ -228,7 +237,7 @@ async function CodesTab() {
                           {code.firstOrderOnly ? " · first order only" : ""}
                           {code.onePerCustomer ? " · once per customer" : ""}
                           {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
-                          {code.restrictedUserId ? ` · only ${customerById.get(code.restrictedUserId) ?? "one customer"}` : ""}
+                          {allowedLabel(code.allowedUserIds, customerById)}
                           {code.startsAt ? ` · starts ${formatDate(code.startsAt)}` : ""}
                           {code.endsAt ? ` · ends ${formatDate(toDisplayDate(code.endsAt, "end")!)}` : ""}
                         </p>

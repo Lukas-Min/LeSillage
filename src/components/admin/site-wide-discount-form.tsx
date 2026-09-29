@@ -40,7 +40,13 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
   return (
     <form action={formAction} className="space-y-3">
       <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" name="enabled" defaultChecked={values.enabled} className="size-4" />
+        <input
+          type="checkbox"
+          name="enabled"
+          defaultChecked={values.enabled}
+          aria-describedby="siteWideDiscountHelp"
+          className="size-4"
+        />
         On (applies to every fragrance)
       </label>
       <div className="grid grid-cols-2 gap-3">
@@ -79,21 +85,28 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
           <Input id="siteWideDiscountEndsAt" name="endsAt" type="date" defaultValue={values.endsAt} />
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p id="siteWideDiscountHelp" className="text-xs text-muted-foreground">
         Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
         start date means it starts as soon as it&apos;s on; no end date means it doesn&apos;t expire. Dates are Manila
-        days, and the end date is the last full day of the sale.
+        days, and the end date is the last full day of the sale. Turning it on emails everyone subscribed to news and
+        promotions once; saving it again while it&apos;s on doesn&apos;t.
       </p>
       {state.error ? (
         <p role="alert" className="text-xs text-destructive">
           {state.error}
         </p>
       ) : null}
-      {wasSaved ? (
-        <p role="status" className="text-xs text-muted-foreground">
-          Saved.
-        </p>
-      ) : null}
+      {/* Always on the page, so a screen reader announces each new save; the
+          key makes a second identical "Saved." still count as a change. */}
+      <p role="status" className="min-h-4 text-xs text-muted-foreground">
+        {wasSaved ? (
+          <span key={state.savedAt}>
+            {state.announcedTo
+              ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
+              : "Saved."}
+          </span>
+        ) : null}
+      </p>
       <SubmitButton pendingLabel="Saving…">Save</SubmitButton>
     </form>
   );

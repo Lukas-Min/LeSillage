@@ -84,7 +84,8 @@ export function PromoSettingsSkeleton() {
         <p className="text-xs text-muted-foreground">
           Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
           start date means it starts as soon as it&apos;s on; no end date means it doesn&apos;t expire. Dates are Manila
-          days, and the end date is the last full day of the sale.
+          days, and the end date is the last full day of the sale. Turning it on emails everyone subscribed to news and
+          promotions once; saving it again while it&apos;s on doesn&apos;t.
         </p>
         <Button type="button" disabled>
           Save

@@ -1,9 +1,10 @@
-import { desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { promoCodes, promoCodeRedemptions } from "@/db/schema";
 import { formatPHP } from "@/domain/money";
 import { formatDate } from "@/lib/utils";
+import { isAllowedFor, withAllowedUsers } from "@/lib/promo-code-access";
 import { PageHeader } from "@/components/ui/section";
 import { PromoCodeList, type ProfilePromoCode } from "./promo-code-list";
 
@@ -26,21 +27,18 @@ export default async function AccountPromoCodesPage() {
 
 async function loadAccountPromoCodes(userId: string): Promise<ProfilePromoCode[]> {
   const client = db();
-  const [listed, redeemed] = await Promise.all([
-    client
-      .select()
-      .from(promoCodes)
-      .where(or(isNull(promoCodes.restrictedUserId), eq(promoCodes.restrictedUserId, userId)))
-      .orderBy(desc(promoCodes.createdAt)),
+  const [allCodes, redeemed] = await Promise.all([
+    client.select().from(promoCodes).orderBy(desc(promoCodes.createdAt)).then((rows) => withAllowedUsers(rows)),
     client
       .select({ promoCodeId: promoCodeRedemptions.promoCodeId })
       .from(promoCodeRedemptions)
       .where(eq(promoCodeRedemptions.userId, userId)),
   ]);
+  const listed = allCodes.filter((code) => isAllowedFor(code.allowedUserIds, userId));
   const redeemedIds = new Set(redeemed.map((row) => row.promoCodeId));
   const missingIds = [...redeemedIds].filter((id) => !listed.some((code) => code.id === id));
   const redeemedCodes = missingIds.length
-    ? await client.select().from(promoCodes).where(inArray(promoCodes.id, missingIds))
+    ? await withAllowedUsers(await client.select().from(promoCodes).where(inArray(promoCodes.id, missingIds)))
     : [];
   const now = new Date();
   return [...listed, ...redeemedCodes].flatMap((code) => {
@@ -49,7 +47,8 @@ async function loadAccountPromoCodes(userId: string): Promise<ProfilePromoCode[]
     const notStarted = Boolean(code.startsAt && code.startsAt > now);
     const exhausted = code.maxRedemptions !== null && code.redemptionCount >= code.maxRedemptions;
     const valid = code.isActive && !expired && !exhausted && !usedByCustomer;
-    if (code.restrictedUserId === null && !usedByCustomer && !valid) return [];
+    const limited = code.allowedUserIds.length > 0;
+    if (!limited && !usedByCustomer && !valid) return [];
     const offer = code.type === "PERCENTAGE" ? `${code.amount}%` : formatPHP(code.amount);
     const target = code.scope === "ORDER" ? "off the order" : "off delivery";
     const conditions = [
@@ -62,7 +61,11 @@ async function loadAccountPromoCodes(userId: string): Promise<ProfilePromoCode[]
         : code.maxRedemptions
           ? `Up to ${code.maxRedemptions} redemptions.`
           : null,
-      code.restrictedUserId ? "Only for your account." : "Available to every customer.",
+      !limited
+        ? "Available to every customer."
+        : code.allowedUserIds.length === 1
+          ? "Only for your account."
+          : "Only for selected customers.",
       code.startsAt ? `Starts ${formatDate(code.startsAt)}.` : null,
       code.endsAt ? `Ends ${formatDate(code.endsAt)}.` : null,
     ]

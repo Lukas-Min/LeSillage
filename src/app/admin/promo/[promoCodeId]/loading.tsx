@@ -43,6 +43,13 @@ export default function EditPromoCodeLoading() {
                 </div>
               ),
             )}
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Customers who can use it</Label>
+              <Skeleton className="h-11 w-full" />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for every customer. Add even one and only the customers listed here can use the code.
+              </p>
+            </div>
             {["First order only", "Once per customer"].map((label) => (
               <div key={label} className="flex min-h-11 items-center gap-2 text-sm">
                 <Skeleton className="size-4 rounded-sm" />
@@ -53,6 +60,10 @@ export default function EditPromoCodeLoading() {
               <input type="checkbox" disabled className="size-4" />
               Email the customer(s) who can still use this code
             </label>
+            <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
+              Customers who turned off news and promotions aren&apos;t emailed. They still see the code under Account →
+              Promo codes.
+            </p>
             <p className="text-xs text-muted-foreground sm:col-span-2">
               Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always
               pesos. Active or inactive stays on the promo codes list, and the{" "}

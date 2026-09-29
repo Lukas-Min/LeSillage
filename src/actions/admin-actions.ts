@@ -1,18 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { invalidateCatalog } from "@/lib/catalog";
 import { signIn } from "@/auth";
 import { db } from "@/db/client";
-import { promoSettings } from "@/db/schema";
+import { notificationLog, promoSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { assignTesterToOrder, resolveCancellationRequest as resolveCancellationRequestLib, transitionOrderStatus } from "@/lib/orders";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
-import { toCentavos } from "@/domain/money";
-import { parsePhDateBoundary } from "@/domain/ph-date";
+import { formatPHP, toCentavos } from "@/domain/money";
+import { parsePhDateBoundary, toDisplayDate } from "@/domain/ph-date";
+import { siteWideDiscountFromSettings, type SiteWideDiscountConfig } from "@/domain/promo";
+import { shouldAnnounceSiteWideDiscount } from "@/domain/marketing";
+import { sendEmail } from "@/lib/email";
+import { siteWideDiscountEmail } from "@/lib/email-templates";
+import { loadMarketingRecipients } from "@/lib/marketing-recipients";
+import { formatDate } from "@/lib/utils";
 
 // decantThresholdCentavos/deliveryFeeCentavos are entered in pesos here
 // (decimals allowed for centavos) and converted below via toCentavos — the
@@ -39,6 +46,40 @@ const siteWideDiscountSchema = z.object({
 export interface SiteWideDiscountFormState {
   savedAt: number;
   error: string | null;
+  /** How many subscribers this save is emailing, when it turned the sale on. */
+  announcedTo?: number;
+}
+
+/** "From Oct 1 through Oct 5." / "Through Oct 5." / "Starts Oct 1." — Manila days, end date inclusive. */
+function describeSaleWindow(config: SiteWideDiscountConfig, now: Date): string | null {
+  const start = config.startsAt && config.startsAt > now ? formatDate(config.startsAt) : null;
+  const end = config.endsAt ? formatDate(toDisplayDate(config.endsAt, "end")!) : null;
+  if (start && end) return `From ${start} through ${end}.`;
+  if (end) return `Through ${end}.`;
+  if (start) return `Starts ${start}.`;
+  return null;
+}
+
+/** Emails every marketing subscriber once, after the response has gone out,
+ *  with one notification_log row per recipient. Returns how many it's sending to. */
+async function announceSiteWideDiscount(config: SiteWideDiscountConfig, now: Date): Promise<number> {
+  const recipients = await loadMarketingRecipients();
+  if (recipients.length === 0) return 0;
+  const offer = `${config.type === "PERCENTAGE" ? `${config.amount}%` : formatPHP(config.amount)} off every fragrance`;
+  const window = describeSaleWindow(config, now);
+  after(async () => {
+    for (const recipient of recipients) {
+      const message = siteWideDiscountEmail({ name: recipient.name, offer, window });
+      const result = await sendEmail({ to: recipient.email, subject: message.subject, text: message.text, html: message.html });
+      await db().insert(notificationLog).values({
+        recipient: recipient.email,
+        template: "site_wide_discount_broadcast",
+        status: result.ok ? "SENT" : "FAILED",
+        error: result.ok ? null : result.error ?? "unknown",
+      });
+    }
+  });
+  return recipients.length;
 }
 
 export async function adminOAuthSignIn(provider: "google" | "facebook", returnTo?: string) {
@@ -127,20 +168,37 @@ export async function updateSiteWideDiscount(
     siteWideDiscountStartsAt: startsAt,
     siteWideDiscountEndsAt: endsAt,
   };
-  await db()
-    .update(promoSettings)
-    .set({ ...values, updatedAt: new Date() })
-    .where(eq(promoSettings.id, "singleton"));
+  // 0.4% rounds to 0 — that would save as "on" but discount nothing.
+  if (parsed.enabled && values.siteWideDiscountAmount <= 0) {
+    return failed("Enter an amount above 0 to turn the discount on");
+  }
+  // Read and write under the row lock, so two saves at once can't both see
+  // the sale as off and both email every subscriber.
+  const previousRow = await db().transaction(async (tx) => {
+    const row = (await tx.select().from(promoSettings).where(eq(promoSettings.id, "singleton")).for("update"))[0];
+    if (row) {
+      await tx
+        .update(promoSettings)
+        .set({ ...values, updatedAt: new Date() })
+        .where(eq(promoSettings.id, "singleton"));
+    }
+    return row;
+  });
+  if (!previousRow) return failed("Promo settings are missing, so nothing was saved");
+  const previous = siteWideDiscountFromSettings(previousRow);
+  const now = new Date();
+  const next = siteWideDiscountFromSettings(values);
+  const announcedTo = shouldAnnounceSiteWideDiscount(previous, next, now) ? await announceSiteWideDiscount(next, now) : 0;
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_UPDATE",
     targetType: "promo_setting",
     targetId: "singleton",
-    metadata: values,
+    metadata: { ...values, announcedTo },
   });
   revalidatePath("/admin/promo");
   invalidateCatalog();
-  return { savedAt: Date.now(), error: null };
+  return { savedAt: Date.now(), error: null, announcedTo };
 }
 
 const transitionSchema = z.object({

@@ -640,6 +640,26 @@ async function main() {
     )
   `);
 
+  // Promo codes can be limited to a list of customers instead of one
+  // (restrictedUserId). The INSERT copies each existing single-customer lock
+  // into the list; restrictedUserId itself is left alone and still honoured.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "promo_code_allowed_user" (
+      "promoCodeId" text NOT NULL REFERENCES "promo_code"("id") ON DELETE CASCADE,
+      "userId" text NOT NULL REFERENCES "user"("id") ON DELETE RESTRICT,
+      "createdAt" timestamp NOT NULL DEFAULT now(),
+      PRIMARY KEY ("promoCodeId", "userId")
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "promo_code_allowed_user_user_idx" ON "promo_code_allowed_user" ("userId")`,
+  );
+  await db.execute(`
+    INSERT INTO "promo_code_allowed_user" ("promoCodeId", "userId")
+    SELECT "id", "restrictedUserId" FROM "promo_code" WHERE "restrictedUserId" IS NOT NULL
+    ON CONFLICT DO NOTHING
+  `);
+
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestedAt" timestamp`);
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestReason" text`);
 
@@ -676,6 +696,7 @@ async function main() {
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestedAt";
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestReason";
 // DROP TABLE IF EXISTS "newsletter_subscriber";
+// DROP TABLE IF EXISTS "promo_code_allowed_user";
 
 main().catch((error) => {
   console.error(error);

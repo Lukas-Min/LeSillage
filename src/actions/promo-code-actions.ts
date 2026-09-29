@@ -13,6 +13,7 @@ import {
 } from "@/domain/promo-code";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { loadCartViewForBothMethods, loadDirectItemViewForBothMethods, resolveActiveCart } from "@/lib/cart";
+import { withAllowedUsers } from "@/lib/promo-code-access";
 
 export interface PromoCodePreview {
   code: string;
@@ -83,7 +84,9 @@ export async function previewPromoCodes(
   }
 
   const client = db();
-  const codeRows = await client.select().from(promoCodes).where(inArray(promoCodes.code, normalizedCodes));
+  const codeRows = await withAllowedUsers(
+    await client.select().from(promoCodes).where(inArray(promoCodes.code, normalizedCodes)),
+  );
   const missing = normalizedCodes.find((code) => !codeRows.some((row) => row.code === code));
   if (missing) return { ok: false, error: `Invalid promo code: ${missing}`, code: missing };
   // Grouped in the order the customer entered them (applied codes first, the

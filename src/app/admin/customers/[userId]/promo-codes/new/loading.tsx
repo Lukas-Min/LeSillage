@@ -30,7 +30,7 @@ export default function NewCustomerPromoCodeLoading() {
             ))}
             <div className="flex min-h-11 items-center gap-2 text-sm sm:col-span-3">
               <Skeleton className="size-4" />
-              Email this customer their code
+              Email this customer their code (if they get news and promotions)
             </div>
             <div className="flex justify-end sm:col-span-3">
               <Button asChild className="h-11 w-full sm:w-auto">

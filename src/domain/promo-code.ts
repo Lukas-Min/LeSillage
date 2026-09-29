@@ -27,7 +27,7 @@ export interface PromoCodeEligibilityInput {
   isFirstOrder: boolean;
   /** This specific customer has already redeemed this exact code before. */
   hasPriorRedemption: boolean;
-  /** The customer trying to use the code. Required so a code locked to one account cannot be used by anyone else. */
+  /** The customer trying to use the code. Required so a code limited to some customers cannot be used by anyone else. */
   userId: string;
 }
 
@@ -41,13 +41,16 @@ const ELIGIBILITY_FIELDS = [
   "maxRedemptions",
   "redemptionCount",
   "onePerCustomer",
-  "restrictedUserId",
   "minSpendCentavos",
   "scope",
   "type",
   "amount",
 ] as const;
-type EligibilityCode = Pick<PromoCode, (typeof ELIGIBILITY_FIELDS)[number]>;
+export type EligibilityCode = Pick<PromoCode, (typeof ELIGIBILITY_FIELDS)[number]> & {
+  /** Customers allowed to use the code; empty means every customer. Loaded
+   *  with withAllowedUsers (src/lib/promo-code-access.ts). */
+  allowedUserIds: readonly string[];
+};
 
 /**
  * Pure eligibility check — no DB access. Callers re-run this at order
@@ -60,14 +63,15 @@ export function checkPromoCodeEligibility(
   input: PromoCodeEligibilityInput,
   now: Date = new Date(),
 ): PromoCodeEligibility {
+  // First, so a customer who isn't on the list learns nothing else about the code.
+  if (code.allowedUserIds.length > 0 && !code.allowedUserIds.includes(input.userId)) {
+    return { ok: false, error: "This code can't be used on this account" };
+  }
   if (!code.isActive) return { ok: false, error: "This code is no longer active" };
   if (code.startsAt && code.startsAt > now) return { ok: false, error: "This code isn't active yet" };
   if (code.endsAt && code.endsAt < now) return { ok: false, error: "This code has expired" };
   if (code.firstOrderOnly && !input.isFirstOrder) {
     return { ok: false, error: "This code is only for a customer's first order" };
-  }
-  if (code.restrictedUserId && code.restrictedUserId !== input.userId) {
-    return { ok: false, error: "This code can't be used on this account" };
   }
   if (code.onePerCustomer && input.hasPriorRedemption) {
     return { ok: false, error: "You've already used this code" };

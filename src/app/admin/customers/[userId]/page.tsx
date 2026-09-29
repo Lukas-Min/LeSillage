@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { desc, eq, isNull, or } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users, orders, promoCodes } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
 import { formatDate } from "@/lib/utils";
+import { isAllowedFor, withAllowedUsers } from "@/lib/promo-code-access";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,9 @@ export default async function AdminCustomerDetailPage({
     db()
       .select()
       .from(promoCodes)
-      .where(or(isNull(promoCodes.restrictedUserId), eq(promoCodes.restrictedUserId, userId)))
-      .orderBy(desc(promoCodes.createdAt)),
+      .orderBy(desc(promoCodes.createdAt))
+      .then((rows) => withAllowedUsers(rows))
+      .then((rows) => rows.filter((code) => isAllowedFor(code.allowedUserIds, userId))),
   ]);
 
   const completedOrders = rows.filter((o) => o.status === "COMPLETED");
@@ -106,7 +108,11 @@ export default async function AdminCustomerDetailPage({
                   <span className="text-xs text-muted-foreground">
                     {code.type === "PERCENTAGE" ? `${code.amount}%` : formatPHP(code.amount)} off {code.scope === "ORDER" ? "the order" : "delivery"}
                     {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
-                    {code.restrictedUserId ? " · only this customer" : " · everyone"}
+                    {code.allowedUserIds.length === 0
+                      ? " · everyone"
+                      : code.allowedUserIds.length === 1
+                        ? " · only this customer"
+                        : ` · this customer and ${code.allowedUserIds.length - 1} other${code.allowedUserIds.length === 2 ? "" : "s"}`}
                     {code.isActive ? "" : " · inactive"}
                   </span>
                 </li>

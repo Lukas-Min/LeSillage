@@ -12,7 +12,9 @@ import { buildCartTotals } from "../checkout-totals";
 import { priceCart, type CartSkuInput } from "../cart";
 import type { PromoCode, Sku } from "@/db/schema";
 
-function makeCode(overrides: Partial<PromoCode> = {}): PromoCode {
+type TestCode = PromoCode & { allowedUserIds: string[] };
+
+function makeCode(overrides: Partial<TestCode> = {}): TestCode {
   return {
     id: "promo1",
     code: "TESTCODE",
@@ -28,6 +30,7 @@ function makeCode(overrides: Partial<PromoCode> = {}): PromoCode {
     endsAt: null,
     isActive: true,
     restrictedUserId: null,
+    allowedUserIds: [],
     createdAt: new Date(),
     ...overrides,
   };
@@ -44,9 +47,31 @@ const baseEligibility: PromoCodeEligibilityInput = {
 
 describe("checkPromoCodeEligibility", () => {
   it("rejects a code locked to another customer", () => {
-    const code = makeCode({ restrictedUserId: "user1" });
+    const code = makeCode({ allowedUserIds: ["user1"] });
     expect(checkPromoCodeEligibility(code, baseEligibility).ok).toBe(true);
     expect(checkPromoCodeEligibility(code, { ...baseEligibility, userId: "someone-else" }).ok).toBe(false);
+  });
+
+  it("lets every customer on the allowed list use the code, and only them", () => {
+    const code = makeCode({ allowedUserIds: ["user1", "user2", "user3"] });
+    for (const userId of ["user1", "user2", "user3"]) {
+      expect(checkPromoCodeEligibility(code, { ...baseEligibility, userId }).ok).toBe(true);
+    }
+    const outsider = checkPromoCodeEligibility(code, { ...baseEligibility, userId: "user4" });
+    expect(outsider).toEqual({ ok: false, error: "This code can't be used on this account" });
+  });
+
+  it("tells a customer who isn't on the list only that, not why else the code fails", () => {
+    const code = makeCode({ allowedUserIds: ["user1"], isActive: false, firstOrderOnly: true });
+    expect(checkPromoCodeEligibility(code, { ...baseEligibility, userId: "user2" })).toEqual({
+      ok: false,
+      error: "This code can't be used on this account",
+    });
+  });
+
+  it("treats an empty allowed list as open to every customer", () => {
+    const code = makeCode({ allowedUserIds: [] });
+    expect(checkPromoCodeEligibility(code, { ...baseEligibility, userId: "anyone" }).ok).toBe(true);
   });
 
   it("rejects an inactive code", () => {

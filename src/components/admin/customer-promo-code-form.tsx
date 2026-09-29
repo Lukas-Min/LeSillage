@@ -13,7 +13,8 @@ export function CustomerPromoCodeForm({ userId }: { userId: string }) {
 
   return (
     <form action={action} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <input type="hidden" name="restrictedUserId" value={userId} />
+      <input type="hidden" name="allowedUserIds" value={userId} />
+      <input type="hidden" name="returnToCustomer" value={userId} />
       <input type="hidden" name="type" value="PERCENTAGE" />
       <input type="hidden" name="scope" value="ORDER" />
       <input type="hidden" name="onePerCustomer" value="on" />
@@ -31,7 +32,7 @@ export function CustomerPromoCodeForm({ userId }: { userId: string }) {
       </div>
       <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-3">
         <input type="checkbox" name="sendEmail" className="size-4" />
-        Email this customer their code
+        Email this customer their code (if they get news and promotions)
       </label>
       {state.error ? <p className="text-sm text-destructive sm:col-span-3">{state.error}</p> : null}
       <div className="flex justify-end sm:col-span-3">

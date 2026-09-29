@@ -57,6 +57,7 @@ import {
   type OrderEmailInput,
 } from "@/lib/email-templates";
 import { orderEmailInputFromRow, toEmailLines } from "@/lib/order-email-lines";
+import { withAllowedUsers } from "@/lib/promo-code-access";
 
 /**
  * A rejection the customer is meant to read — empty bag, item sold out,
@@ -337,16 +338,19 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     if (requestedCodes.length > MAX_PROMO_CODES_PER_ORDER) {
       throw new CheckoutError("Use at most one order code and one delivery code", "promoCode");
     }
-    let lockedCodes: PromoCodesByScope<PromoCode> = { order: null, delivery: null };
+    let lockedCodes: PromoCodesByScope<PromoCode & { allowedUserIds: string[] }> = { order: null, delivery: null };
     if (requestedCodes.length > 0) {
       // Locked in id order so two checkouts using the same pair of codes
       // always take the row locks in the same order and can't deadlock.
-      const codeRows = await tx
-        .select()
-        .from(promoCodes)
-        .where(inArray(promoCodes.code, requestedCodes))
-        .orderBy(asc(promoCodes.id))
-        .for("update");
+      const codeRows = await withAllowedUsers(
+        await tx
+          .select()
+          .from(promoCodes)
+          .where(inArray(promoCodes.code, requestedCodes))
+          .orderBy(asc(promoCodes.id))
+          .for("update"),
+        tx,
+      );
       const missing = requestedCodes.find((code) => !codeRows.some((row) => row.code === code));
       if (missing) throw new CheckoutError(`Invalid promo code: ${missing}`, "promoCode", missing);
       // Grouped in the customer's order, not the lock order above, so a

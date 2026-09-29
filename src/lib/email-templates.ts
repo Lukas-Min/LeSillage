@@ -464,6 +464,42 @@ If you were not expecting this, you can ignore this email.
   return { subject, text, html };
 }
 
+/** Sent to every marketing subscriber when the site-wide discount goes on
+ *  (loadMarketingRecipients in src/lib/marketing-recipients.ts). */
+export function siteWideDiscountEmail(args: {
+  name: string | null;
+  /** "10% off every fragrance" / "₱100 off every fragrance". */
+  offer: string;
+  /** "From Oct 1 through Oct 5." and the like, or null when it has no dates. */
+  window: string | null;
+}): { subject: string; text: string; html: string } {
+  const who = args.name?.trim() || "there";
+  const subject = `${args.offer} at Le Sillage Manila`;
+  const shopUrl = `${siteUrl()}/shop`;
+  const lead = `${args.offer}. It comes off the price automatically, no code needed.`;
+  const unsubscribe =
+    "You're getting this because you signed up for news and promotions. To stop, turn them off under Account → Notifications, or reply to this email and we'll take you off the list.";
+  const text = `Hi ${who},
+
+${lead}
+${args.window ? `\n${args.window}\n` : ""}
+Shop now: ${shopUrl}
+
+${unsubscribe}
+
+— Le Sillage Manila`;
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: "Sale",
+    title: args.offer,
+    greeting: `Hi ${who},`,
+    intro: args.window ? [lead, args.window] : [lead],
+    cta: { label: "Shop now", url: shopUrl },
+    footnote: unsubscribe,
+  });
+  return { subject, text, html };
+}
+
 export function confirmSignupEmail(code: string): { subject: string; text: string; html: string } {
   return brandedCodeEmail({
     subject: "Confirm your Le Sillage Manila account",

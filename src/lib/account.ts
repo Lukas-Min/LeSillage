@@ -1,6 +1,6 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accounts, addresses, carts, cartItems, sessions, users, wishlists } from "@/db/schema";
+import { accounts, addresses, carts, cartItems, newsletterSubscribers, sessions, users, wishlists } from "@/db/schema";
 
 /**
  * Anonymizes and erases a user account: scrubs PII off the `users` row
@@ -12,6 +12,12 @@ import { accounts, addresses, carts, cartItems, sessions, users, wishlists } fro
 export async function eraseUserAccount(userId: string): Promise<void> {
   const client = db();
   await client.transaction(async (tx) => {
+    // Read before the email is anonymized below: a newsletter sign-up under
+    // this address would otherwise keep receiving marketing email.
+    const before = (await tx.select({ email: users.email }).from(users).where(eq(users.id, userId)))[0];
+    if (before?.email) {
+      await tx.delete(newsletterSubscribers).where(eq(newsletterSubscribers.email, before.email.trim().toLowerCase()));
+    }
     await tx
       .update(users)
       .set({

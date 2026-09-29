@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/lib/utils";
+import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/customer-multi-select";
 import type { PromoCodeFormState } from "@/actions/admin-promo-code-actions";
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
@@ -25,6 +26,8 @@ export interface PromoCodeFormValues {
   firstOrderOnly: boolean;
   onePerCustomer: boolean;
   redemptionCount: number;
+  /** Customers who can use the code; empty means every customer. */
+  allowedUserIds: string[];
 }
 
 const BLANK: PromoCodeFormValues = {
@@ -40,6 +43,7 @@ const BLANK: PromoCodeFormValues = {
   firstOrderOnly: false,
   onePerCustomer: false,
   redemptionCount: 0,
+  allowedUserIds: [],
 };
 
 function Field({
@@ -71,11 +75,14 @@ export function PromoCodeForm({
   action,
   mode,
   values = BLANK,
+  customers,
   onSaved,
 }: {
   action: (prev: PromoCodeFormState, formData: FormData) => Promise<PromoCodeFormState>;
   mode: "create" | "edit";
   values?: PromoCodeFormValues;
+  /** Everyone who can be added to the allowed list. */
+  customers: readonly CustomerOption[];
   /** Fires once, right after a successful edit save — lets a modal wrapper
    *  close itself. Not used in "create" mode, which stays open for the next
    *  entry instead. */
@@ -203,6 +210,21 @@ export function PromoCodeForm({
       <Field label="Ends (optional)" htmlFor={id("endsAt")}>
         <Input id={id("endsAt")} name="endsAt" type="date" defaultValue={values.endsAt} />
       </Field>
+      <div className="space-y-1 sm:col-span-2">
+        <input type="hidden" name="allowedUsersField" value="1" />
+        <Label htmlFor={id("allowedUserIds")}>Customers who can use it</Label>
+        <CustomerMultiSelect
+          id={id("allowedUserIds")}
+          name="allowedUserIds"
+          options={customers}
+          defaultSelected={values.allowedUserIds}
+          emptyLabel="Every customer"
+          describedBy={id("allowedUserIdsHelp")}
+        />
+        <p id={id("allowedUserIdsHelp")} className="text-xs text-muted-foreground">
+          Leave empty for every customer. Add even one and only the customers listed here can use the code.
+        </p>
+      </div>
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input type="checkbox" name="firstOrderOnly" defaultChecked={values.firstOrderOnly} className="size-4" />
         First order only
@@ -217,6 +239,10 @@ export function PromoCodeForm({
         <input type="checkbox" name="sendEmail" className="size-4" />
         Email the customer(s) who can still use this code
       </label>
+      <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
+        Customers who turned off news and promotions aren&apos;t emailed. They still see the code under Account → Promo
+        codes.
+      </p>
 
       <p className="text-xs text-muted-foreground sm:col-span-2">
         Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always pesos.

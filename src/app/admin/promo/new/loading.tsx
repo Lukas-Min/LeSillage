@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,19 @@ export default function NewPromoCodeLoading() {
               <Label>Ends (optional)</Label>
               <Input type="date" disabled />
             </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Customers who can use it</Label>
+              <div
+                aria-disabled="true"
+                className="flex min-h-11 w-full cursor-not-allowed items-center gap-2 rounded-lg border border-input px-2 py-1.5 text-sm opacity-50"
+              >
+                <span className="flex-1 px-1 text-muted-foreground">Every customer</span>
+                <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Leave empty for every customer. Add even one and only the customers listed here can use the code.
+              </p>
+            </div>
             <label className="flex min-h-11 items-center gap-2 text-sm">
               <input type="checkbox" disabled className="size-4" />
               First order only
@@ -63,6 +77,10 @@ export default function NewPromoCodeLoading() {
               <input type="checkbox" disabled className="size-4" />
               Email the customer(s) who can still use this code
             </label>
+            <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
+              Customers who turned off news and promotions aren&apos;t emailed. They still see the code under Account →
+              Promo codes.
+            </p>
             <p className="text-xs text-muted-foreground sm:col-span-2">
               Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always
               pesos.
