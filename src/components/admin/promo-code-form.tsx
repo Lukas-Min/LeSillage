@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/lib/utils";
 import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/customer-multi-select";
@@ -28,6 +29,7 @@ export interface PromoCodeFormValues {
   redemptionCount: number;
   /** Customers who can use the code; empty means every customer. */
   allowedUserIds: string[];
+  description: string;
 }
 
 const BLANK: PromoCodeFormValues = {
@@ -44,6 +46,7 @@ const BLANK: PromoCodeFormValues = {
   onePerCustomer: false,
   redemptionCount: 0,
   allowedUserIds: [],
+  description: "",
 };
 
 function Field({
@@ -223,6 +226,20 @@ export function PromoCodeForm({
         />
         <p id={id("allowedUserIdsHelp")} className="text-xs text-muted-foreground">
           Leave empty for every customer. Add even one and only the customers listed here can use the code.
+        </p>
+      </div>
+      <div className="space-y-1 sm:col-span-2">
+        <Label htmlFor={id("description")}>Description (optional)</Label>
+        <Textarea
+          id={id("description")}
+          name="description"
+          maxLength={500}
+          defaultValue={values.description}
+          placeholder="e.g. Thank you for being a loyal customer — enjoy this on your next order."
+          aria-describedby={id("descriptionHelp")}
+        />
+        <p id={id("descriptionHelp")} className="text-xs text-muted-foreground">
+          Goes in the email customers get about this code, and under the code in their Account → Promo codes.
         </p>
       </div>
       <label className="flex min-h-11 items-center gap-2 text-sm">

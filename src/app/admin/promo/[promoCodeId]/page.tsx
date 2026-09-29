@@ -59,6 +59,7 @@ export default async function EditPromoCodePage({
               onePerCustomer: code.onePerCustomer,
               redemptionCount: code.redemptionCount,
               allowedUserIds: code.allowedUserIds,
+              description: code.description ?? "",
             }}
           />
         </CardContent>

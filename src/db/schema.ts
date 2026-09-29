@@ -562,6 +562,9 @@ export const promoCodes = pgTable(
     startsAt: timestamp("startsAt", { mode: "date" }),
     endsAt: timestamp("endsAt", { mode: "date" }),
     isActive: boolean("isActive").notNull().default(true),
+    // Optional note from the admin, shown in the promo email and under the
+    // code in Account → Promo codes.
+    description: text("description"),
     // The single-customer lock from before promo_code_allowed_user existed.
     // Still honoured (merged into the allowed list by withAllowedUsers in
     // src/lib/promo-code-access.ts), and cleared once the code is saved again.

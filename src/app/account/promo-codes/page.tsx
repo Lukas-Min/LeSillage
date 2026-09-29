@@ -52,6 +52,7 @@ async function loadAccountPromoCodes(userId: string): Promise<ProfilePromoCode[]
     const offer = code.type === "PERCENTAGE" ? `${code.amount}%` : formatPHP(code.amount);
     const target = code.scope === "ORDER" ? "off the order" : "off delivery";
     const conditions = [
+      code.description?.trim() || null,
       `${offer} ${target}.`,
       code.minSpendCentavos ? `Minimum spend ${formatPHP(code.minSpendCentavos)}.` : "No minimum spend.",
       code.firstOrderOnly ? "First order only." : null,

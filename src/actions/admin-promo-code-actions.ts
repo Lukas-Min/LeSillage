@@ -42,6 +42,7 @@ const createSchema = z.object({
   maxRedemptions: z.coerce.number().int().min(1).optional(),
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
+  description: z.string().trim().max(500).optional(),
   // Customers who may use the code; empty means every customer.
   allowedUserIds: z.array(z.string().min(1)).max(500),
   sendEmail: z.coerce.boolean(),
@@ -63,6 +64,7 @@ function readCodeFields(formData: FormData) {
     maxRedemptions: formData.get("maxRedemptions") || undefined,
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
+    description: formData.has("description") ? String(formData.get("description")) : undefined,
     // restrictedUserId is what the one-customer form posted before the list
     // existed; a tab opened before a deploy can still send it.
     allowedUserIds: [
@@ -124,6 +126,8 @@ function broadcastPromoEmail(code: {
   redemptionCount: number;
   firstOrderOnly: boolean;
   onePerCustomer: boolean;
+  description: string | null;
+  minSpendCentavos: number | null;
 }) {
   // Nobody can redeem an exhausted code, so there's nothing to announce.
   if (code.maxRedemptions !== null && code.redemptionCount >= code.maxRedemptions) return;
@@ -138,6 +142,8 @@ function broadcastPromoEmail(code: {
           name: recipient.name,
           code: code.code,
           offer,
+          description: code.description,
+          minSpendCentavos: code.minSpendCentavos,
           unsubscribeUrl: unsubscribePageUrl(recipient.email),
         }),
       })),
@@ -193,7 +199,10 @@ function legacyRestrictedUserId(customers: readonly AllowedCustomer[]): string |
 
 /** Queues each chosen customer's code email (first batch sent right away).
  *  Skips anyone who turned promotions off or whose account is archived or deleted. */
-function emailAllowedCustomers(customers: readonly AllowedCustomer[], code: string, offer: string) {
+function emailAllowedCustomers(
+  customers: readonly AllowedCustomer[],
+  details: { code: string; offer: string; description: string | null; minSpendCentavos: number | null },
+) {
   const recipients = customers.filter(
     (customer): customer is AllowedCustomer & { email: string } =>
       Boolean(customer.email) && customer.marketingOptIn && !customer.deletedAt && !customer.archivedAt,
@@ -204,7 +213,11 @@ function emailAllowedCustomers(customers: readonly AllowedCustomer[], code: stri
       recipients.map((recipient) => ({
         recipient: recipient.email,
         template: "promo_code_assigned",
-        ...promoAssignedEmail({ name: recipient.name, code, offer, unsubscribeUrl: unsubscribePageUrl(recipient.email) }),
+        ...promoAssignedEmail({
+          name: recipient.name,
+          ...details,
+          unsubscribeUrl: unsubscribePageUrl(recipient.email),
+        }),
       })),
     );
     await drainMarketingQueue();
@@ -296,6 +309,7 @@ export async function createPromoCode(
         startsAt,
         endsAt,
         isActive: true,
+        description: parsed.description || null,
         restrictedUserId: legacyRestrictedUserId(allowed),
       })
       .returning({ id: promoCodes.id });
@@ -326,7 +340,12 @@ export async function createPromoCode(
   if (parsed.sendEmail) {
     if (allowed.length > 0) {
       const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
-      emailAllowedCustomers(allowed, parsed.code, offer);
+      emailAllowedCustomers(allowed, {
+        code: parsed.code,
+        offer,
+        description: parsed.description || null,
+        minSpendCentavos,
+      });
     } else {
       broadcastPromoEmail({
         id: createdId,
@@ -338,6 +357,8 @@ export async function createPromoCode(
         redemptionCount: 0,
         firstOrderOnly: parsed.firstOrderOnly,
         onePerCustomer: parsed.onePerCustomer,
+        description: parsed.description || null,
+        minSpendCentavos,
       });
     }
   }
@@ -397,6 +418,7 @@ export async function updatePromoCode(
         endsAt: promoCodes.endsAt,
         redemptionCount: promoCodes.redemptionCount,
         isActive: promoCodes.isActive,
+        description: promoCodes.description,
         id: promoCodes.id,
         restrictedUserId: promoCodes.restrictedUserId,
       })
@@ -414,6 +436,8 @@ export async function updatePromoCode(
     previousAllowedUserIds,
   );
   if (typeof allowed === "string") return failed(allowed);
+  // A form from before descriptions existed doesn't post the field; keep what's there.
+  const description = parsed.description !== undefined ? parsed.description || null : current.description;
 
   // Switching PERCENTAGE <-> FIXED re-reads the same number in a different
   // unit — a ₱50 fixed code (prefilled as "50") silently becomes 50% off, and
@@ -482,6 +506,7 @@ export async function updatePromoCode(
         maxRedemptions: parsed.maxRedemptions ?? null,
         startsAt,
         endsAt,
+        description,
         ...(replaceList ? { restrictedUserId: legacyRestrictedUserId(allowed) } : {}),
         // isActive and redemptionCount are deliberately left alone: activation is
         // the Activate/Deactivate button's job, and the count is ledger data that
@@ -534,7 +559,7 @@ export async function updatePromoCode(
   if (parsed.sendEmail && current.isActive) {
     if (allowed.length > 0) {
       const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
-      emailAllowedCustomers(allowed, parsed.code, offer);
+      emailAllowedCustomers(allowed, { code: parsed.code, offer, description, minSpendCentavos });
     } else {
       broadcastPromoEmail({
         id: parsed.id,
@@ -546,6 +571,8 @@ export async function updatePromoCode(
         redemptionCount: current.redemptionCount,
         firstOrderOnly: parsed.firstOrderOnly,
         onePerCustomer: parsed.onePerCustomer,
+        description,
+        minSpendCentavos,
       });
     }
   }

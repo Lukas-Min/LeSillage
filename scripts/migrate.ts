@@ -660,6 +660,9 @@ async function main() {
     ON CONFLICT DO NOTHING
   `);
 
+  // Optional admin-written description, shown in the promo email and in Account → Promo codes.
+  await db.execute(`ALTER TABLE "promo_code" ADD COLUMN IF NOT EXISTS "description" text`);
+
   // Newsletter double opt-in, and the queue bulk marketing email goes through.
   await db.execute(`ALTER TABLE "newsletter_subscriber" ADD COLUMN IF NOT EXISTS "confirmedAt" timestamp`);
   await db.execute(`
@@ -719,6 +722,7 @@ async function main() {
 // DROP TABLE IF EXISTS "newsletter_subscriber";
 // DROP TABLE IF EXISTS "promo_code_allowed_user";
 // DROP TABLE IF EXISTS "marketing_email";
+// ALTER TABLE "promo_code" DROP COLUMN IF EXISTS "description";
 // ALTER TABLE "newsletter_subscriber" DROP COLUMN IF EXISTS "confirmedAt";
 
 main().catch((error) => {

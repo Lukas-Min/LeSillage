@@ -30,6 +30,7 @@ function makeCode(overrides: Partial<TestCode> = {}): TestCode {
     endsAt: null,
     isActive: true,
     restrictedUserId: null,
+    description: null,
     allowedUserIds: [],
     createdAt: new Date(),
     ...overrides,

@@ -50,6 +50,11 @@ export default function EditPromoCodeLoading() {
                 Leave empty for every customer. Add even one and only the customers listed here can use the code.
               </p>
             </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Description (optional)</Label>
+              <Skeleton className="h-16 w-full" />
+              <p className="text-xs text-muted-foreground">Goes in the email customers get about this code, and under the code in their Account → Promo codes.</p>
+            </div>
             {["First order only", "Once per customer"].map((label) => (
               <div key={label} className="flex min-h-11 items-center gap-2 text-sm">
                 <Skeleton className="size-4 rounded-sm" />

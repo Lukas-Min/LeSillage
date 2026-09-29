@@ -435,16 +435,26 @@ export function promoAssignedEmail(args: {
   name: string | null;
   code: string;
   offer: string;
+  /** The admin's description of the code, if it has one. */
+  description?: string | null;
+  /** The order total the code needs before it applies; null means no minimum. */
+  minSpendCentavos: number | null;
   unsubscribeUrl: string;
 }): { subject: string; text: string; html: string } {
+  const description = args.description?.trim() || null;
+  // Same base checkout measures it against (see minSpendCentavos in schema.ts).
+  const minimum = args.minSpendCentavos
+    ? `${formatPHP(args.minSpendCentavos)} per order, counted after other discounts`
+    : "None — any order qualifies";
   const who = args.name?.trim() || "there";
   const subject = "A promo code for you";
   const copyUrl = `${siteUrl()}/promo-code?code=${encodeURIComponent(args.code)}`;
   const text = `Hi ${who},
 
 ${args.offer}
-
+${description ? `\n${description}\n` : ""}
 Your code: ${args.code}
+Minimum order: ${minimum}
 
 Tap the code to copy it, then use it at checkout:
 ${copyUrl}
@@ -460,8 +470,11 @@ Unsubscribe from news and promotions: ${args.unsubscribeUrl}
     eyebrow: "For you",
     title: "A promo code",
     greeting: `Hi ${who},`,
-    intro: [args.offer, "Tap the code to copy it, then use it at checkout."],
-    facts: [{ label: "Code", value: args.code }],
+    intro: [args.offer, ...(description ? [description] : []), "Tap the code to copy it, then use it at checkout."],
+    facts: [
+      { label: "Code", value: args.code },
+      { label: "Minimum order", value: minimum },
+    ],
     cta: { label: args.code, url: copyUrl },
     footnote: "If you were not expecting this, you can ignore this email.",
   });
