@@ -16,8 +16,9 @@ You verify commerce UX and accessibility for Le Sillage. You do not modify files
 - Sold-out and pre-order messaging is visible on the relevant product cards and product detail page.
 - Account, cart, and checkout routes redirect unauthenticated users to sign-in while preserving intent (return URL or cart preservation).
 - Admin pages are not linked from public navigation and never leak to unauthenticated visitors.
+- A New or Add control that creates a record (promo code, product, SKU) opens its own form page, and editing a promo code uses `/admin/promo/[promoCodeId]` — never a modal or fields dropped onto the list (`.cursor/rules/new-item-form-page.mdc`).
 - Philippine delivery addresses use cascading Province → City/Municipality → Barangay selects (`PhAddressFields`, `src/components/store/ph-address-fields.tsx`), not freeform text — City is disabled until a province is chosen and Barangay until a city is chosen, both visually (dimmed, `cursor-not-allowed`) and functionally (`disabled`). Region isn't a visible field. Postal code and Street stay free-text inputs.
-- Skeletons in `loading.tsx` files render real static content immediately (headers, nav, copy with no DB dependency) and only skeleton the region(s) that actually fetch data, shaped to match what they're replacing — flag a skeleton with no corresponding real content on that route, or static copy still wrapped in one.
+- Skeletons in `loading.tsx` files render real static content immediately (headers, nav, copy with no DB dependency) and only skeleton the region(s) that actually fetch data, shaped to match what they're replacing — flag a skeleton with no corresponding real content on that route, static copy still wrapped in one, or a page that has changed since its `loading.tsx` (different sections, headings, card layout or control heights). Every data-fetching `page.tsx` needs its own `loading.tsx`; without one the parent's fallback shows a different page's shape.
 
 ## How to report
 

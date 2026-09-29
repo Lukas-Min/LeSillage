@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- README, the store skill, and the domain and storefront reviewer agents (both `.claude/` and `.cursor/` copies) describe the store as it is now: one order code plus one delivery code per checkout, one-customer codes, the scheduled site-wide discount, Delivered and Ready for pickup, cancellation requests, no email at order placement, the hourly cron Worker, Facebook sign-in switched off, and no Supabase Storage. The README also says how to deploy, and warns that re-running `npm run db:migrate` against production re-runs old backfills that can undo admin edits
 - Placing an order no longer sends the "Pay for order" email. The payment reminder two hours later (`paymentReminderEmail` in `src/lib/email-templates.ts`) is the one payment email: it keeps its copy and adds the status, subtotal, delivery, savings, pickup details, when stock is reserved, and a "Pay by" time after which the unpaid order is cancelled automatically
 - The FAQ (`src/lib/faq-copy.ts`) promises one reminder email two hours into an unpaid order, with the exact time to pay by, instead of "we'll usually send a reminder". The order-stages answer says emails start at Receipt submitted, since placing an order no longer sends one
 ### Fixed
