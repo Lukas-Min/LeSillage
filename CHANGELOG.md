@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Homepage rails on phones: middle cards snap to the centre, showing about a quarter of the previous and next card on each side (1/4 · 1 · 1/4); the first card still snaps to the left edge (one full card plus half the next) and the last to the right edge. From 576px every card snaps to the left edge as before (`RAIL_ITEM_CLASS` in `src/components/store/home-sections.tsx`)
+### Changed
 - Product cards (shop grid and homepage rails) and the framed shop/scent-family cards are no longer text-selectable (`select-none`), so clicks, double-clicks, and drags on them don't highlight their text (`src/components/store/product-card.tsx`, `shop-tile.tsx`)
 ### Added
 - Homepage product rails get Previous/Next arrow buttons over their left and right edges from `md` up (hidden on phones, which swipe): one card per click, each arrow fades out and is disabled at its end of the row, both hide when the row already fits, labelled "Previous products"/"Next products" with `aria-controls` on the row. Replaces the reverted mouse-drag/wheel-scroll behaviour (`src/components/store/rail-carousel.tsx`, `home-sections.tsx`)

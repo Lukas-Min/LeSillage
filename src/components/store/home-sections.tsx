@@ -60,16 +60,13 @@ export function HomeSectionHeader({
 // Product rails
 // ---------------------------------------------------------------------------
 
-/** Phones: one full card plus half of the next (16px lead + card + 12px
- *  gap + half a card fills the screen when the card is ~67% of the row), so
- *  the row reads as swipeable without cramming two narrow cards in. Wider
- *  screens fit more, narrower slots. */
+/** Phones: cards ~67% of the row. The first card snaps to the left edge (one
+ *  full card plus half the next), middle cards snap to the centre (a quarter
+ *  of the previous and next card peeking in on each side), and the last snaps
+ *  to the right edge. From 576px every card snaps to the left edge (what the
+ *  md+ arrow buttons step through), with more, narrower slots as it widens. */
 const RAIL_ITEM_CLASS =
-  "w-[67%] max-w-[18rem] shrink-0 snap-start min-[576px]:w-[40%] md:w-[31%] lg:w-[23.5%] xl:w-[18.8%]";
-/** Scrollbar hidden (Firefox + WebKit); rows still scroll by swipe, trackpad,
- *  shift+wheel, and tabbing to a card, and the peeking card shows they scroll.
- *  pt-2/pb-3 leave room for the card's hover lift and shadow: overflow-x
- *  scrolling clips vertically too, which cut off the lifted card's top. */
+  "w-[67%] max-w-[18rem] shrink-0 snap-center first:snap-start last:snap-end min-[576px]:w-[40%] min-[576px]:snap-start md:w-[31%] lg:w-[23.5%] xl:w-[18.8%]";
 const RAIL_LIST_CLASS =
   "flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 pt-2 [scrollbar-width:none] min-[576px]:gap-4 [&::-webkit-scrollbar]:hidden";
 
