@@ -34,7 +34,7 @@ export function ProductCard({
   // (sr-only text included), so inside a scrolling rail they're clipped by
   // the rail instead of pushing the whole page wider.
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
+    <article className="group relative flex h-full select-none flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
       <Link
         href={card.href}
         className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold-ink"
