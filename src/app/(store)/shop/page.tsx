@@ -6,14 +6,12 @@ import { CatalogResultsSkeleton } from "@/components/store/loading";
 import { ShopFilters } from "@/components/store/shop-filters";
 import { ShopToolbar } from "@/components/store/shop-toolbar";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { Eyebrow } from "@/components/ui/section";
 import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
 import { labelForType } from "@/domain/product-type";
 import { fragranceCategory as CATEGORIES } from "@/db/schema";
 import type { FragranceCategory, Fulfillment, ProductType } from "@/db/schema";
 import { GENDERS, type Gender } from "@/domain/gender";
 import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
-import { CatalogHeader } from "@/components/store/catalog-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +84,9 @@ export default async function ShopPage({
             : [{ label: "Home", href: "/" }, { label: "Shop" }]
         }
       />
-      <CatalogHeader eyebrow={<Eyebrow>The catalog</Eyebrow>} title="Shop" subtitle={SHOP_CATALOG_SUBTITLE} />
+      {/* No visible header: breadcrumbs, then straight into the tabs and
+          products. The page still needs its h1 for screen readers. */}
+      <h1 className="sr-only">Shop</h1>
       <div className="mb-4 flex justify-center">
         <ShopFilters activeType={type} />
       </div>

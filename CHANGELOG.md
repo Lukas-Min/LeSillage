@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Shop pagination shows numbered page buttons at every size instead of switching to a "Page X of Y" readout below 640px; phones use a tighter window (current page only between the ellipses) so the row fits, and the pagination skeleton matches (`src/components/store/catalog-pagination.tsx`, `loading.tsx`)
+- /shop drops its visible "The catalog / Shop" header (the h1 stays, screen-reader only) so products start right under the breadcrumbs, and the All/Decants/Full bottles/Partials tabs are a segmented control: one bordered bar, 13px sentence case, the active shelf filled solid, full width with equal segments on phones and centred from `sm`, with `aria-current` on the active shelf (`src/components/store/shop-filters.tsx`, `src/app/(store)/shop/page.tsx`, `shop/loading.tsx`)
 ### Added
 - Shop "Stock" filter (All / On hand / Available for pre-order, `?stock=ON_HAND|PRE_ORDER`), matching each card's own fulfillment badge (on hand excludes sold-out); it replaces the Concentration filter, which is removed from the toolbar and the page's params. `CatalogFilter.availability` filters computed cards, and `countCatalogCards` counts real cards when it's set so pagination stays right (`src/lib/catalog.ts`, `src/app/(store)/shop/page.tsx`, `src/components/store/shop-toolbar.tsx`)
 - "All" tab back on /shop (first tab; tabs tighten their letter-spacing on phones so all four fit at 360px), and a plain /shop now lists every product type instead of silently defaulting to decants, so the footer's "All fragrances" and the homepage's deals/new-arrivals "See all" links show what they say (`src/components/store/shop-filters.tsx`, `src/app/(store)/shop/page.tsx`)

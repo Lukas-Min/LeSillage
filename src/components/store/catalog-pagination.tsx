@@ -3,13 +3,16 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/** Pages shown either side of the current one: none on a phone, so the
+ *  numbered row always fits; one from sm up. */
+const PHONE_SIBLINGS = 0;
 const SIBLINGS = 1;
 const ELLIPSIS = "…" as const;
 
 /** Windowed page list with ellipses, e.g. total=20 current=10 -> [1, …, 9, 10, 11, …, 20]. */
-function pageRange(current: number, total: number): Array<number | typeof ELLIPSIS> {
+function pageRange(current: number, total: number, siblings: number): Array<number | typeof ELLIPSIS> {
   const pages = new Set<number>([1, total, current]);
-  for (let i = 1; i <= SIBLINGS; i++) {
+  for (let i = 1; i <= siblings; i++) {
     if (current - i >= 1) pages.add(current - i);
     if (current + i <= total) pages.add(current + i);
   }
@@ -48,32 +51,10 @@ export function CatalogPagination({
         </>
       ) : null}
 
-      {/* Full numbered range on wider screens */}
-      <div className="hidden items-center gap-1.5 sm:flex">
-        {pageRange(page, totalPages).map((entry, i) =>
-          entry === ELLIPSIS ? (
-            <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">
-              {ELLIPSIS}
-            </span>
-          ) : (
-            <Button
-              key={entry}
-              asChild={entry !== page}
-              variant={entry === page ? "gold" : "outline"}
-              size="icon"
-              className={cn("min-h-11 min-w-11 rounded-md text-xs", entry === page && "pointer-events-none")}
-              aria-current={entry === page ? "page" : undefined}
-            >
-              {entry === page ? <span>{entry}</span> : <Link href={href(entry)}>{entry}</Link>}
-            </Button>
-          ),
-        )}
-      </div>
-
-      {/* Compact page readout on mobile */}
-      <span className="px-2 text-xs text-muted-foreground sm:hidden">
-        Page {page} of {totalPages}
-      </span>
+      {/* Numbered pages at every size: a tighter window on a phone (e.g.
+          1 … 10 … 20) so it fits, the wider one from sm up. */}
+      <PageNumbers page={page} totalPages={totalPages} href={href} siblings={PHONE_SIBLINGS} className="flex sm:hidden" />
+      <PageNumbers page={page} totalPages={totalPages} href={href} siblings={SIBLINGS} className="hidden sm:flex" />
 
       {hasNext ? (
         <>
@@ -86,6 +67,43 @@ export function CatalogPagination({
         </>
       ) : null}
     </nav>
+  );
+}
+
+function PageNumbers({
+  page,
+  totalPages,
+  href,
+  siblings,
+  className,
+}: {
+  page: number;
+  totalPages: number;
+  href: (page: number) => string;
+  siblings: number;
+  className: string;
+}) {
+  return (
+    <div className={cn("items-center gap-1.5", className)}>
+      {pageRange(page, totalPages, siblings).map((entry, i) =>
+        entry === ELLIPSIS ? (
+          <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">
+            {ELLIPSIS}
+          </span>
+        ) : (
+          <Button
+            key={entry}
+            asChild={entry !== page}
+            variant={entry === page ? "gold" : "outline"}
+            size="icon"
+            className={cn("min-h-11 min-w-11 rounded-md text-xs", entry === page && "pointer-events-none")}
+            aria-current={entry === page ? "page" : undefined}
+          >
+            {entry === page ? <span>{entry}</span> : <Link href={href(entry)}>{entry}</Link>}
+          </Button>
+        ),
+      )}
+    </div>
   );
 }
 

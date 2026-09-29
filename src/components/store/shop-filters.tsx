@@ -9,38 +9,37 @@ const TYPE_FILTERS: Array<{ type?: ProductType; label: string; href: string }> =
   { type: "PARTIAL", label: "Partials", href: "/shop?type=PARTIAL" },
 ];
 
+/**
+ * A segmented control: one bordered bar, the active shelf filled solid.
+ * Phone: the bar spans the content width with four equal segments
+ * (sentence case at 13px, so "Full bottles" fits a quarter of a 360px
+ * phone). sm+: the bar shrinks to its labels and centres. Each segment is a
+ * 40px-tall link inside the bar's 4px padding.
+ */
 export function ShopFilters({ activeType }: { activeType?: ProductType }) {
   return (
-    // Phone: the four tabs share the full content width (`flex-1` each,
-    // label centered in its cell) so the row reads centered and edge-to-edge
-    // with a `gap-x-3` floor (and tighter letter-spacing) so all four labels fit a 360px phone once the cells shrink
-    // to their content. `sm+`: back to a natural-width centered row with a
-    // wider fixed gap. Never wraps to a second line — `whitespace-nowrap` keeps
-    // each label intact, and if the viewport is too narrow for all four
-    // the row scrolls horizontally, scrollbar hidden, opening on "All"
-    // fully in view. `overflow-y-hidden` explicitly: `overflow-x-auto`
-    // alone forces the y-axis to `auto` too, and the old 1px underline poking
-    // outside the link box was enough to spawn a vertical scrollbar and clip
-    // it — the underline now sits inside the label box for the same reason.
-    <div className="scrollbar-hide flex w-full items-center gap-x-3 overflow-x-auto overflow-y-hidden sm:justify-center sm:gap-x-8">
+    <nav
+      aria-label="Shop shelves"
+      className="flex w-full rounded-md border border-border bg-card p-1 sm:w-auto"
+    >
       {TYPE_FILTERS.map((filter) => {
         const isActive = filter.type === activeType || (!filter.type && !activeType);
         return (
           <Link
             key={filter.href}
             href={filter.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "inline-flex min-h-11 flex-1 items-center justify-center text-xs uppercase tracking-[0.12em] whitespace-nowrap transition-colors sm:flex-none sm:tracking-[0.22em]",
-              isActive ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+              "inline-flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-sm px-2 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold-ink sm:flex-none sm:px-5",
+              isActive
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <span className="relative pb-2">
-              {filter.label}
-              {isActive ? <span className="absolute inset-x-0 bottom-0 h-[1.5px] bg-foreground" /> : null}
-            </span>
+            {filter.label}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

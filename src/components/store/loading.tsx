@@ -54,17 +54,16 @@ export function CatalogCardSkeleton() {
 }
 
 /** Matches CatalogPagination's page-1 shape (src/components/store/catalog-pagination.tsx) —
- *  no First/Prev yet, numbered pills plus Next/Last on sm+, "Page X of Y"
- *  plus Next on mobile. */
+ *  no First/Prev yet, numbered pills at every size, plus Next (and Last on
+ *  sm+). */
 export function CatalogPaginationSkeleton() {
   return (
     <div className="mt-8 flex items-center justify-center gap-1.5">
-      <div className="hidden items-center gap-1.5 sm:flex">
+      <div className="flex items-center gap-1.5">
         <Skeleton className="h-11 w-11 rounded-md" />
         <Skeleton className="h-11 w-11 rounded-md" />
         <Skeleton className="h-11 w-11 rounded-md" />
       </div>
-      <Skeleton className="mx-2 h-4 w-20 sm:hidden" />
       <Skeleton className="h-11 w-11 rounded-md" />
       <Skeleton className="hidden h-11 w-11 rounded-md sm:block" />
     </div>
