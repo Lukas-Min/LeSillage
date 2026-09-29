@@ -8,7 +8,7 @@ alwaysApply: true
 Every form's main submit button — Save, Save changes, Create, Add image, Add discount, Update, Confirm, Delete my account, Parse — uses `FORM_ACTION_CLASS` from `src/components/ui/form-action.ts`:
 
 - On a phone it is full width.
-- From `sm` up it takes its own width and sits on the **right** edge of the form (`sm:ml-auto sm:block sm:w-fit`). Never left-aligned, never stretched across a wide form, and never tucked into a spare cell of the field grid — it goes after the fields.
+- From `sm` up it takes its own width and sits on the **right** edge of the form (`sm:ml-auto sm:flex sm:w-fit`). Never left-aligned, never stretched across a wide form, and never tucked into a spare cell of the field grid — it goes after the fields.
 - With a secondary action beside it (Cancel, Back, Archive or delete), put both in a `flex flex-wrap justify-end gap-2` row with the main action last.
 - Its loading screen shows the same button in the same place (a disabled `<Button>` with the same class).
 

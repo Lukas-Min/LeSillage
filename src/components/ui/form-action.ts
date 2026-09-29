@@ -4,4 +4,6 @@
  * parents. See .cursor/rules/form-actions.mdc. Sign-in and sign-up keep their
  * full-width buttons.
  */
-export const FORM_ACTION_CLASS = "h-11 w-full sm:ml-auto sm:block sm:w-fit";
+// sm:flex, not sm:block: a Button is a flex row (label + icon), and `block`
+// dropped that layout, so an icon wrapped onto its own line ("Parse paste →").
+export const FORM_ACTION_CLASS = "h-11 w-full sm:ml-auto sm:flex sm:w-fit";

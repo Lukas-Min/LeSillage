@@ -247,7 +247,7 @@ export function CustomerMultiSelect({
                     index === active && "bg-muted",
                   )}
                 >
-                  <Check className={cn("size-4 shrink-0 text-gold", !isSelected && "invisible")} />
+                  <Check className={cn("size-4 shrink-0 text-gold-ink", !isSelected && "invisible")} />
                   <span className="min-w-0">
                     <span className="block truncate">{labelFor(option)}</span>
                     {option.name && option.email ? (

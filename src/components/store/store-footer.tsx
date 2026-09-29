@@ -39,8 +39,10 @@ export function StoreFooter() {
     <footer className="mt-auto border-t border-border bg-secondary/40">
       {/* Matches the page-content container's cap (root layout, 2xl:80vw) so
           the footer's columns align with the content above instead of
-          sitting flush against the edge of an ultra-wide screen. */}
-      <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4 2xl:mx-auto 2xl:max-w-[80vw]">
+          sitting flush against the edge of an ultra-wide screen. Four columns
+          only from lg: below that each is too narrow for the email line, so
+          it stays two columns rather than wrapping the address. */}
+      <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="space-y-3">
           <Link href="/" aria-label="Le Sillage Manila" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />
@@ -55,28 +57,28 @@ export function StoreFooter() {
           <ul className="space-y-1 text-sm text-muted-foreground">
             {phone ? (
               <li className="flex items-center gap-2">
-                <Phone className="h-3.5 w-3.5 text-gold" />
+                <Phone className="h-3.5 w-3.5 shrink-0 text-gold-ink" aria-hidden="true" />
                 <a href={`tel:${phone}`} className="hover:text-foreground">{phone}</a>
               </li>
             ) : null}
             <li className="flex items-center gap-2">
-              <Mail className="h-3.5 w-3.5 text-gold" />
-              <a href={`mailto:${email}`} className="hover:text-foreground">{email}</a>
+              <Mail className="h-3.5 w-3.5 shrink-0 text-gold-ink" aria-hidden="true" />
+              <a href={`mailto:${email}`} className="whitespace-nowrap hover:text-foreground">{email}</a>
             </li>
             <li className="flex items-center gap-2">
-              <InstagramIcon className="h-3.5 w-3.5" />
+              <InstagramIcon className="h-3.5 w-3.5 shrink-0" />
               <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 @{INSTAGRAM_HANDLE}
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <FacebookIcon className="h-3.5 w-3.5" />
+              <FacebookIcon className="h-3.5 w-3.5 shrink-0" />
               <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Facebook
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <MessengerIcon className="h-3.5 w-3.5" />
+              <MessengerIcon className="h-3.5 w-3.5 shrink-0" />
               <a href={MESSENGER_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
                 Messenger
               </a>

@@ -87,52 +87,72 @@ export default async function NewProductPage({
               <Label htmlFor="name">Name</Label>
               <Input id="name" name="name" defaultValue={copySource?.name ?? ""} required />
             </div>
-            <Input name="brand" placeholder="Brand" defaultValue={copySource?.brand ?? ""} required />
-            <select name="type" className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue="DECANT">
-              <option value="DECANT">Decant</option>
-              <option value="FULL_BOTTLE">Full bottle</option>
-              <option value="PARTIAL">Partial</option>
-            </select>
-            <select
-              name="fragranceCategory"
-              className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
-              defaultValue={copySource?.fragranceCategory ?? "NICHE"}
-            >
-              <option value="NICHE">Niche</option>
-              <option value="DESIGNER">Designer</option>
-              <option value="MIDDLE_EASTERN">Middle Eastern</option>
-            </select>
-            <select
-              name="concentration"
-              className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
-              defaultValue={copySource?.concentration ?? ""}
-            >
-              <option value="">No concentration set</option>
-              <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
-              <option value="EAU_DE_TOILETTE">Eau de Toilette</option>
-              <option value="EAU_DE_PARFUM">Eau de Parfum</option>
-              <option value="PARFUM">Parfum</option>
-              <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
-            </select>
-            <select
-              name="gender"
-              className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm"
-              defaultValue={copySource?.gender ?? ""}
-            >
-              <option value="">Gender not set</option>
-              <option value="men">Men</option>
-              <option value="women">Women</option>
-              <option value="unisex">Unisex</option>
-            </select>
-            <Input name="sourceMl" type="number" placeholder="Reference size, ml (e.g. 100 for a 100ml bottle)" />
-            <Input name="remainingMl" type="number" placeholder="Remaining ml (decants)" />
-            <Textarea
-              name="description"
-              placeholder="Description"
-              defaultValue={copySource?.description ?? ""}
-              className="sm:col-span-2"
-            />
-            <Textarea name="notes" placeholder="Notes" defaultValue={copySource?.notes ?? ""} className="sm:col-span-2" />
+            <div className="space-y-1">
+              <Label htmlFor="new-brand">Brand</Label>
+              <Input id="new-brand" name="brand" defaultValue={copySource?.brand ?? ""} required />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-type">Type</Label>
+              <select id="new-type" name="type" className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue="DECANT">
+                <option value="DECANT">Decant</option>
+                <option value="FULL_BOTTLE">Full bottle</option>
+                <option value="PARTIAL">Partial</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-fragranceCategory">Shelf</Label>
+              <select
+                id="new-fragranceCategory"
+                name="fragranceCategory"
+                className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
+                defaultValue={copySource?.fragranceCategory ?? "NICHE"}
+              >
+                <option value="NICHE">Niche</option>
+                <option value="DESIGNER">Designer</option>
+                <option value="MIDDLE_EASTERN">Middle Eastern</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-concentration">Concentration</Label>
+              <select
+                id="new-concentration"
+                name="concentration"
+                className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
+                defaultValue={copySource?.concentration ?? ""}
+              >
+                <option value="">No concentration set</option>
+                <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
+                <option value="EAU_DE_TOILETTE">Eau de Toilette</option>
+                <option value="EAU_DE_PARFUM">Eau de Parfum</option>
+                <option value="PARFUM">Parfum</option>
+                <option value="EXTRAIT_DE_PARFUM">Extrait de Parfum</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-gender">Gender</Label>
+              <select id="new-gender" name="gender" className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue={copySource?.gender ?? ""}>
+                <option value="">Gender not set</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+                <option value="unisex">Unisex</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-sourceMl">Reference size (ml)</Label>
+              <Input id="new-sourceMl" name="sourceMl" type="number" placeholder="e.g. 100 for a 100ml bottle" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-remainingMl">Remaining ml (decants)</Label>
+              <Input id="new-remainingMl" name="remainingMl" type="number" />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="new-description">Description</Label>
+              <Textarea id="new-description" name="description" defaultValue={copySource?.description ?? ""} />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="new-notes">Notes</Label>
+              <Textarea id="new-notes" name="notes" defaultValue={copySource?.notes ?? ""} />
+            </div>
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="new-costPrice">Cost price (₱, what you paid wholesale)</Label>
               <Input

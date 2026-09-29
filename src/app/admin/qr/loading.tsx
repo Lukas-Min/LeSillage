@@ -29,13 +29,12 @@ export default function AdminQrLoading() {
                   <Skeleton className="size-4" />
                   Active
                 </div>
-                <div className="flex gap-2 sm:col-span-2">
-                  <Skeleton className="h-11 w-full sm:ml-auto sm:w-20" />
+                <div className="flex flex-wrap justify-end gap-2 sm:col-span-2">
+                  <Skeleton className="h-11 w-24" />
+                  <Skeleton className="h-11 w-full sm:w-20" />
                 </div>
               </div>
             </div>
-            <div className="mt-3" />
-            <Skeleton className="h-11 w-24" />
           </CardContent>
         </Card>
       ))}

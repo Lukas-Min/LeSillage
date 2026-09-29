@@ -247,7 +247,7 @@ export default async function OrderDetailPage({
                   key={step.status}
                   className={
                     step.status === order.status
-                      ? "font-medium text-gold"
+                      ? "font-medium text-gold-ink"
                       : "text-muted-foreground"
                   }
                 >

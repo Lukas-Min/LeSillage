@@ -47,22 +47,28 @@ export default async function QrAdminPage() {
                   <input type="checkbox" name="isActive" defaultChecked={qr.isActive} />
                   Active
                 </label>
-                <div className="flex sm:col-span-2">
+                {/* Delete beside Save, main action last (.cursor/rules/form-actions.mdc).
+                    Its trigger is type="button" and its confirm submits the
+                    separate delete form below via `form=`, so it never
+                    submits this one. */}
+                <div className="flex flex-wrap justify-end gap-2 sm:col-span-2">
+                  <ConfirmSubmitButton
+                    formId={`delete-qr-form-${qr.id}`}
+                    triggerLabel="Delete"
+                    triggerVariant="outline"
+                    triggerClassName="h-11"
+                    title={`Delete the ${qr.bankName} QR code?`}
+                    description="This removes it from checkout immediately. This can't be undone."
+                    confirmLabel="Delete"
+                  />
                   <SubmitButton className={FORM_ACTION_CLASS}>Save</SubmitButton>
                 </div>
               </div>
             </form>
-            <form id={`delete-qr-form-${qr.id}`} action={deleteQrCode} className="mt-3">
+            {/* Outside the update form: forms can't nest. */}
+            <form id={`delete-qr-form-${qr.id}`} action={deleteQrCode}>
               <input type="hidden" name="id" value={qr.id} />
             </form>
-            <ConfirmSubmitButton
-              formId={`delete-qr-form-${qr.id}`}
-              triggerLabel="Delete"
-              triggerVariant="outline"
-              title={`Delete the ${qr.bankName} QR code?`}
-              description="This removes it from checkout immediately. This can't be undone."
-              confirmLabel="Delete"
-            />
           </CardContent>
         </Card>
       ))}

@@ -35,23 +35,50 @@ export default function AdminNewProductLoading() {
               <Label htmlFor="name">Name</Label>
               <Input id="name" disabled />
             </div>
-            <Input placeholder="Brand" disabled />
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
-              <option>Decant</option>
-            </select>
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
-              <option>Niche</option>
-            </select>
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
-              <option>No concentration set</option>
-            </select>
-            <select disabled className="h-11 rounded-lg border bg-background px-3 text-base md:text-sm">
-              <option>Gender not set</option>
-            </select>
-            <Input type="number" placeholder="Reference size, ml (e.g. 100 for a 100ml bottle)" disabled />
-            <Input type="number" placeholder="Remaining ml (decants)" disabled />
-            <Textarea placeholder="Description" className="sm:col-span-2" disabled />
-            <Textarea placeholder="Notes" className="sm:col-span-2" disabled />
+            <div className="space-y-1">
+              <Label htmlFor="new-brand">Brand</Label>
+              <Input id="new-brand" disabled />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-type">Type</Label>
+              <select id="new-type" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm">
+                <option>Decant</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-fragranceCategory">Shelf</Label>
+              <select id="new-fragranceCategory" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm">
+                <option>Niche</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-concentration">Concentration</Label>
+              <select id="new-concentration" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm">
+                <option>No concentration set</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-gender">Gender</Label>
+              <select id="new-gender" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm">
+                <option>Gender not set</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-sourceMl">Reference size (ml)</Label>
+              <Input id="new-sourceMl" type="number" placeholder="e.g. 100 for a 100ml bottle" disabled />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-remainingMl">Remaining ml (decants)</Label>
+              <Input id="new-remainingMl" type="number" disabled />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="new-description">Description</Label>
+              <Textarea id="new-description" disabled />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="new-notes">Notes</Label>
+              <Textarea id="new-notes" disabled />
+            </div>
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="new-costPrice">Cost price (₱, what you paid wholesale)</Label>
               <Input id="new-costPrice" type="number" placeholder="e.g. 3500 — add a period for centavos, e.g. 3500.50" disabled />
