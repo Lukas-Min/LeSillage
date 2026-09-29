@@ -14,8 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { CatalogSort } from "@/lib/catalog";
-import type { Concentration, FragranceCategory } from "@/db/schema";
-import { CONCENTRATION_LABELS } from "@/domain/concentration";
+import type { FragranceCategory, Fulfillment } from "@/db/schema";
 import { GENDERS, GENDER_LABELS, type Gender } from "@/domain/gender";
 
 const SORT_LABELS: Record<CatalogSort, string> = {
@@ -37,6 +36,12 @@ const TOOLBAR_BUTTON_CLASS =
   "min-h-11 min-w-11 gap-1.5 rounded-md px-0 text-[11px] sm:text-[10px] uppercase tracking-[0.2em] min-[400px]:px-2.5";
 const TOOLBAR_LABEL_CLASS = "sr-only min-[400px]:not-sr-only";
 
+/** Matches the card badges ("On hand" / "Pre-order"). */
+const STOCK_LABELS: Record<Fulfillment, string> = {
+  ON_HAND: "On hand",
+  PRE_ORDER: "Available for pre-order",
+};
+
 const CATEGORY_LABELS: Record<FragranceCategory, string> = {
   NICHE: "Niche",
   DESIGNER: "Designer",
@@ -47,20 +52,20 @@ export function ShopToolbar({
   count,
   activeSort,
   activeCategory,
-  activeConcentration,
+  activeStock,
   activeGender,
 }: {
   count: number;
   activeSort: CatalogSort;
   activeCategory?: FragranceCategory;
-  activeConcentration?: Concentration;
+  activeStock?: Fulfillment;
   activeGender?: Gender;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // Every caller here is a filter or sort change (Clear, gender, shelf,
-  // concentration, sort) — always drop `page` so it lands back on page 1
+  // stock, sort) — always drop `page` so it lands back on page 1
   // instead of keeping whatever page number the old filter/sort happened to
   // be on, which could now be out of range or just show a confusing slice
   // of the new result set.
@@ -74,10 +79,10 @@ export function ShopToolbar({
     router.push(`/shop?${params.toString()}`, { scroll: false });
   }
 
-  const filterActive = Boolean(activeCategory || activeConcentration || activeGender);
+  const filterActive = Boolean(activeCategory || activeStock || activeGender);
 
   function clearFilters() {
-    navigate({ gender: null, category: null, concentration: null });
+    navigate({ gender: null, category: null, stock: null });
   }
 
   return (
@@ -136,15 +141,15 @@ export function ShopToolbar({
               ))}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Concentration</DropdownMenuLabel>
+            <DropdownMenuLabel>Stock</DropdownMenuLabel>
             <DropdownMenuRadioGroup
-              value={activeConcentration ?? ""}
-              onValueChange={(value) => navigate({ concentration: value || null })}
+              value={activeStock ?? ""}
+              onValueChange={(value) => navigate({ stock: value || null })}
             >
-              <DropdownMenuRadioItem value="">Any concentration</DropdownMenuRadioItem>
-              {(Object.keys(CONCENTRATION_LABELS) as Concentration[]).map((key) => (
+              <DropdownMenuRadioItem value="">All</DropdownMenuRadioItem>
+              {(Object.keys(STOCK_LABELS) as Fulfillment[]).map((key) => (
                 <DropdownMenuRadioItem key={key} value={key}>
-                  {CONCENTRATION_LABELS[key]}
+                  {STOCK_LABELS[key]}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>

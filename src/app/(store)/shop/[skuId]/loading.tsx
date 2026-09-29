@@ -11,8 +11,8 @@ export default function ProductLoading() {
   return (
     <main className="w-full px-4 pt-4 pb-8 sm:pt-6 sm:pb-12 2xl:mx-auto 2xl:max-w-[80vw]">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }]} />
-      <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
-        <div className="contents md:flex md:flex-col md:gap-6 md:pr-12">
+      <div className="flex flex-col gap-8 sm:grid sm:grid-cols-2 sm:gap-8 sm:divide-x sm:divide-border/60 md:gap-12">
+        <div className="contents sm:flex sm:flex-col sm:gap-6 sm:pr-8 md:pr-12">
           <div className="relative order-1">
             <Skeleton className="aspect-square w-full rounded-none" />
             <div className="absolute left-2 top-2 z-10">
@@ -60,11 +60,11 @@ export default function ProductLoading() {
           </div>
         </div>
 
-        <div className="contents md:flex md:flex-col md:gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
+        <div className="contents sm:flex sm:flex-col sm:gap-6 sm:sticky sm:top-20 sm:self-stretch sm:pl-8 md:pl-12">
           <div className="order-2 flex items-start justify-between gap-3">
             <div className="space-y-1.5">
               <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-8 w-56 sm:h-12.5 sm:w-72" />
+              <Skeleton className="h-8 w-56 md:h-9.5 lg:h-12.5 lg:w-72" />
               <Skeleton className="h-5 w-32" />
             </div>
             <Skeleton className="h-11 w-11 shrink-0" />

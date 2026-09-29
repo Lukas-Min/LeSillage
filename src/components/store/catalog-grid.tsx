@@ -31,10 +31,11 @@ export function CatalogResults({
         </div>
       ) : (
         // One column only on very small screens (under 360px, e.g. 320px
-        // phones or heavy zoom); two on every common phone, scaling up to 5
-        // columns, the max, on wide desktop (xl). ProductCard and CatalogPrice size themselves for the
+        // phones or heavy zoom); two on every common phone, three from sm
+        // (640px, so tablets and narrow windows don't get two oversized cards),
+        // scaling up to 5 columns, the max, on wide desktop (xl). ProductCard and CatalogPrice size themselves for the
         // narrow phone cards and step up in the roomier 576-767px tier.
-        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 min-[576px]:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 min-[576px]:gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
           {cards.map((card) => (
             <ProductCard key={card.productId} card={card} />
           ))}

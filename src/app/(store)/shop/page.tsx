@@ -9,8 +9,8 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Eyebrow } from "@/components/ui/section";
 import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
 import { labelForType } from "@/domain/product-type";
-import { concentration as CONCENTRATIONS, fragranceCategory as CATEGORIES } from "@/db/schema";
-import type { Concentration, FragranceCategory, ProductType } from "@/db/schema";
+import { fragranceCategory as CATEGORIES } from "@/db/schema";
+import type { FragranceCategory, Fulfillment, ProductType } from "@/db/schema";
 import { GENDERS, type Gender } from "@/domain/gender";
 import { SHOP_CATALOG_SUBTITLE } from "@/lib/faq-copy";
 import { CatalogHeader } from "@/components/store/catalog-grid";
@@ -23,7 +23,7 @@ const PAGE_SIZE = 20;
 interface ShopSearchParams {
   type?: string;
   category?: string;
-  concentration?: string;
+  stock?: string;
   gender?: string;
   sort?: string;
   page?: string;
@@ -32,6 +32,9 @@ interface ShopSearchParams {
 // Matches the plural labels already used for this exact tab set elsewhere
 // (store-footer.tsx's Shop column, admin/products' type tabs) — not
 // derived from labelForType, which returns the singular breadcrumb form.
+/** `?stock=` values: the card's On hand / Pre-order badge. */
+const STOCK_FILTERS: Fulfillment[] = ["ON_HAND", "PRE_ORDER"];
+
 const TYPE_TITLES: Record<ProductType, string> = {
   DECANT: "Decants",
   FULL_BOTTLE: "Full Bottles",
@@ -40,7 +43,7 @@ const TYPE_TITLES: Record<ProductType, string> = {
 
 // Only `type` gets its own canonical URL — it's the one filter that changes
 // the actual catalog being shown (three genuinely distinct product sets).
-// category/concentration/gender/sort/page are refinements of that same
+// category/stock/gender/sort/page are refinements of that same
 // catalog, so they canonicalize back to it instead of each combination
 // competing as separate near-duplicate pages in search results.
 export async function generateMetadata({
@@ -65,9 +68,11 @@ export default async function ShopPage({
   searchParams: Promise<ShopSearchParams>;
 }) {
   const params = await searchParams;
-  const type = parseEnum(params.type, VALID_TYPES) ?? "DECANT";
+  // No `type` means every product type: the "All" tab, and every plain
+  // /shop link (footer "All fragrances", the homepage's "See all" links).
+  const type = parseEnum(params.type, VALID_TYPES);
   const category = parseEnum(params.category, [...CATEGORIES]) as FragranceCategory | undefined;
-  const concentration = parseEnum(params.concentration, [...CONCENTRATIONS]) as Concentration | undefined;
+  const stock = parseEnum(params.stock, STOCK_FILTERS) as Fulfillment | undefined;
   const gender = parseEnum(params.gender, GENDERS) as Gender | undefined;
   const sort = (parseEnum(params.sort, [...CATALOG_SORTS]) as CatalogSort | undefined) ?? "name_asc";
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
@@ -75,17 +80,21 @@ export default async function ShopPage({
   return (
     <main className="flex w-full flex-1 flex-col px-4 pt-4 pb-10 sm:pt-6 sm:pb-14">
       <Breadcrumbs
-        items={[{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: labelForType(type) }]}
+        items={
+          type
+            ? [{ label: "Home", href: "/" }, { label: "Shop", href: "/shop" }, { label: labelForType(type) }]
+            : [{ label: "Home", href: "/" }, { label: "Shop" }]
+        }
       />
       <CatalogHeader eyebrow={<Eyebrow>The catalog</Eyebrow>} title="Shop" subtitle={SHOP_CATALOG_SUBTITLE} />
       <div className="mb-4 flex justify-center">
         <ShopFilters activeType={type} />
       </div>
       <Suspense
-        key={[type, category, concentration, gender, sort, page].join("|")}
+        key={[type, category, stock, gender, sort, page].join("|")}
         fallback={<CatalogResultsSkeleton toolbar />}
       >
-        <ShopResults type={type} category={category} concentration={concentration} gender={gender} sort={sort} page={page} />
+        <ShopResults type={type} category={category} stock={stock} gender={gender} sort={sort} page={page} />
       </Suspense>
     </main>
   );
@@ -94,14 +103,14 @@ export default async function ShopPage({
 async function ShopResults({
   type,
   category,
-  concentration,
+  stock,
   gender,
   sort,
   page,
 }: {
   type?: ProductType;
   category?: FragranceCategory;
-  concentration?: Concentration;
+  stock?: Fulfillment;
   gender?: Gender;
   sort: CatalogSort;
   page: number;
@@ -109,7 +118,7 @@ async function ShopResults({
   const baseFilter = {
     ...(type ? { type } : {}),
     ...(category ? { fragranceCategory: category } : {}),
-    ...(concentration ? { concentration } : {}),
+    ...(stock ? { availability: stock } : {}),
     ...(gender ? { gender } : {}),
   };
   const [total, cards] = await Promise.all([
@@ -120,9 +129,9 @@ async function ShopResults({
 
   function pageHref(target: number) {
     const params = new URLSearchParams();
-    if (type && type !== "DECANT") params.set("type", type);
+    if (type) params.set("type", type);
     if (category) params.set("category", category);
-    if (concentration) params.set("concentration", concentration);
+    if (stock) params.set("stock", stock);
     if (gender) params.set("gender", gender);
     if (sort !== "name_asc") params.set("sort", sort);
     if (target > 1) params.set("page", String(target));
@@ -136,7 +145,7 @@ async function ShopResults({
         count={total}
         activeSort={sort}
         activeCategory={category}
-        activeConcentration={concentration}
+        activeStock={stock}
         activeGender={gender}
       />
       <CatalogResults cards={cards} emptyLabel="Nothing on this shelf yet." showCount={false} />

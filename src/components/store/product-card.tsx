@@ -57,7 +57,7 @@ export function ProductCard({
               Save {card.savePercent}%
             </span>
           ) : null}
-          <span className={`absolute left-2 bottom-2 h-6 max-w-[calc(100%-1rem)] truncate px-2 text-[11px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em] ${OVERLAY_PILL_CLASS}`}>
+          <span className={`absolute left-2 bottom-2 h-5 max-w-[calc(100%-1rem)] truncate px-1.5 text-[11px] min-[576px]:h-6 min-[576px]:px-2.5 min-[576px]:text-[13px] ${OVERLAY_PILL_CLASS}`}>
             {labelForCategory(card.fragranceCategory)}
           </span>
           <CompositionCanvas

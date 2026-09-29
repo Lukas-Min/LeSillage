@@ -180,8 +180,8 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           wishlist-button.tsx) sit right under the image on mobile while
           still opening the sticky right column on desktop, without ever
           rendering a second copy of it. */}
-      <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:gap-12 md:divide-x md:divide-border/60">
-        <div className="contents md:flex md:flex-col md:gap-6 md:pr-12">
+      <div className="flex flex-col gap-8 sm:grid sm:grid-cols-2 sm:gap-8 sm:divide-x sm:divide-border/60 md:gap-12">
+        <div className="contents sm:flex sm:flex-col sm:gap-6 sm:pr-8 md:pr-12">
           <CompositionCanvas
             brand={row.brand}
             name={row.name}
@@ -231,7 +231,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
           ) : null}
         </div>
 
-        <div className="contents md:flex md:flex-col md:gap-6 md:sticky md:top-20 md:self-stretch md:pl-12">
+        <div className="contents sm:flex sm:flex-col sm:gap-6 sm:sticky sm:top-20 sm:self-stretch sm:pl-8 md:pl-12">
           <div className="order-2 flex items-start justify-between gap-3">
             <ProductTitleText brand={row.brand} name={row.name} concentrationGender={concentrationGender} />
             <WishlistButton productId={row.productId} variant="icon" initiallySaved={wishlisted} />
@@ -313,7 +313,7 @@ function ProductTitleText({
   return (
     <div className={cn("space-y-1.5", className)}>
       <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{brand}</p>
-      <h1 className="font-serif-display text-3xl leading-[1.05] sm:text-5xl">{name}</h1>
+      <h1 className="font-serif-display text-3xl leading-[1.05] md:text-4xl lg:text-5xl">{name}</h1>
       {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
     </div>
   );

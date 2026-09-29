@@ -3,6 +3,13 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Shop "Stock" filter (All / On hand / Available for pre-order, `?stock=ON_HAND|PRE_ORDER`), matching each card's own fulfillment badge (on hand excludes sold-out); it replaces the Concentration filter, which is removed from the toolbar and the page's params. `CatalogFilter.availability` filters computed cards, and `countCatalogCards` counts real cards when it's set so pagination stays right (`src/lib/catalog.ts`, `src/app/(store)/shop/page.tsx`, `src/components/store/shop-toolbar.tsx`)
+- "All" tab back on /shop (first tab; tabs tighten their letter-spacing on phones so all four fit at 360px), and a plain /shop now lists every product type instead of silently defaulting to decants, so the footer's "All fragrances" and the homepage's deals/new-arrivals "See all" links show what they say (`src/components/store/shop-filters.tsx`, `src/app/(store)/shop/page.tsx`)
+### Changed
+- Homepage scent-family tiles open the shop's All tab filtered to that family (`/shop?category=…`) instead of the separate /collections pages, and the perks ribbon is removed from the hero (`src/components/store/home-sections.tsx`, `src/app/page.tsx`)
+- Wider phones and small tablets: the product page goes two-column from 640px (was 768px) so the photo no longer fills the screen, with its title stepping 30/36/48px across md/lg; the shop grid goes three columns from 640px instead of two oversized cards (`src/app/(store)/shop/[skuId]/page.tsx` + `loading.tsx`, `src/components/store/catalog-grid.tsx`, `loading.tsx`, `price.tsx`)
+- Product card category label is the same size as the Pre-order/On hand badge (20px, 11px sentence case on phones; 24px/13px from 576px) instead of a larger spaced-caps pill (`src/components/store/product-card.tsx`, `loading.tsx`)
 ### Changed
 - Catalog page headers (/shop, the type shelves, and /collections/*) are one shared, compact, left-aligned `CatalogHeader` matching the homepage section headers (30px title on phones instead of a centred 36px), so products start above the fold on a phone; the /shop line drops its "— filter to find yours" tail (also its meta description) (`src/components/store/catalog-grid.tsx`, `src/app/(store)/shop/page.tsx`, `shop/loading.tsx`, `collections/[category]/loading.tsx`, `src/lib/faq-copy.ts`)
 ### Changed

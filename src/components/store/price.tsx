@@ -98,8 +98,9 @@ export function CatalogPrice({
   // when the card has room, and wraps onto its own line ABOVE it when it
   // doesn't (flex-wrap keeps DOM order, so the first item stays on top).
   // Card content width (measured): ~130px on a two-column phone, ~230px+
-  // in the 576-767px tier, ~190px from md up — so the price is text-lg
-  // except text-2xl in that roomy middle tier. Each item is nowrap; the row
+  // in the two-column 576-639px tier, ~170-210px once the grid goes three
+  // columns at sm — so the price is text-lg except text-2xl in that one
+  // roomy tier. Each item is nowrap; the row
   // wraps between them instead of breaking a price in half.
   return (
     <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 ${rowJustify}`}>
@@ -114,7 +115,7 @@ export function CatalogPrice({
           ) : null}
         </>
       ) : null}
-      <p className="whitespace-nowrap font-price-display text-lg leading-none tracking-tight min-[576px]:text-2xl md:text-lg">
+      <p className="whitespace-nowrap font-price-display text-lg leading-none tracking-tight min-[576px]:text-2xl sm:text-lg">
         {fromIsDiscounted ? <span className="sr-only">Now </span> : null}
         {hasMoreOptions ? (
           <span className="mr-1 font-sans text-[11px] tracking-normal text-muted-foreground">From</span>

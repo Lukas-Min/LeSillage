@@ -61,6 +61,7 @@ const CATALOG_FILTER_KEYS = [
   "gender",
   "query",
   "sizeMl",
+  "availability",
   "sort",
   "limit",
   "offset",
@@ -85,6 +86,9 @@ export interface CatalogFilter {
   gender?: string;
   query?: string;
   sizeMl?: number;
+  /** Only cards whose shown fulfillment (the card's "On hand" /
+   *  "Pre-order" badge) matches; ON_HAND also excludes sold-out cards. */
+  availability?: Fulfillment;
   sort?: CatalogSort;
   limit?: number;
   /** Row to start returning from, for paging — see shop/page.tsx. Omit for
@@ -518,6 +522,8 @@ async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<Cat
       (product.type !== "DECANT" || destination.provenance === "RETAIL") &&
       destFulfillment === "ON_HAND" &&
       destination.stock <= 0;
+    if (filter.availability === "ON_HAND" && (destFulfillment !== "ON_HAND" || soldOut)) continue;
+    if (filter.availability === "PRE_ORDER" && destFulfillment !== "PRE_ORDER") continue;
     const savePercent =
       hasDiscount && minOriginal > 0
         ? Math.round(((minOriginal - minDiscounted) / minOriginal) * 100)
@@ -569,6 +575,10 @@ async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<Cat
  * image, discount, and pricing queries/computation, which a count doesn't need.
  */
 async function countCatalogCardsUncached(filter: Omit<CatalogFilter, "limit" | "offset"> = {}): Promise<number> {
+  // Availability depends on computed per-card fulfillment (stock, the decant
+  // ml pool, pre-order opt-ins), which the lightweight SQL count below
+  // doesn't derive, so count the real cards instead.
+  if (filter.availability) return (await loadCatalogCardsUncached(filter)).length;
   const client = db();
   const conditions: SQL[] = [eq(products.isActive, true)];
   if (filter.types && filter.types.length > 0) {

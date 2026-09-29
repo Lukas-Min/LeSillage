@@ -1,16 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, BadgePercent, ChevronRight, Droplet, Gift, PackageOpen, SprayCan, Store, Truck, type LucideIcon } from "lucide-react";
+import { ArrowRight, ChevronRight, Droplet, PackageOpen, SprayCan } from "lucide-react";
+import type { FragranceCategory } from "@/db/schema";
 import { ProductCard } from "@/components/store/product-card";
 import { CatalogCardSkeleton } from "@/components/store/loading";
 import { Eyebrow } from "@/components/ui/section";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DECANT_SIZES_ML } from "@/domain/decant";
-import { formatPHP } from "@/domain/money";
-import { siteWideDiscountStatus } from "@/domain/promo";
 import type { CatalogCardModel } from "@/lib/catalog";
-import { loadPromoConfig } from "@/lib/cart";
 import { loadHomeRails } from "@/lib/home-rails";
-import { formatDate } from "@/lib/utils";
 
 /** Shared focus ring for the homepage's own links (WCAG 2.4.7) — the global
  *  fallback is a 1px half-opacity outline that disappears against a border. */
@@ -123,85 +118,6 @@ export async function DecantsRail() {
 }
 
 // ---------------------------------------------------------------------------
-// Perks strip
-// ---------------------------------------------------------------------------
-
-interface Perk {
-  icon: LucideIcon;
-  title: string;
-  detail: string;
-}
-
-/** "₱2,000.00" → "₱2,000" — whole-peso amounts read cleaner in a headline. */
-function formatPesos(centavos: number): string {
-  return formatPHP(centavos).replace(/\.00$/, "");
-}
-
-/** An editorial ribbon rather than a boxed widget: thin gold rules above
- *  and below, centred items in the display serif. 2x2 on a phone (an odd
- *  last perk spans both columns), one row split by gold hairlines from sm. */
-const PERKS_LIST_CLASS =
-  "grid grid-cols-2 gap-x-3 gap-y-5 border-y border-gold/30 py-5 sm:flex sm:justify-center sm:gap-0 sm:divide-x sm:divide-gold/30 sm:py-6";
-const PERK_ITEM_CLASS =
-  "flex flex-col items-center px-1 text-center sm:flex-1 sm:px-6 [&:last-child:nth-child(odd)]:col-span-2";
-
-/** The store's live perks, from the admin's promo settings. */
-export async function PerksStrip() {
-  const config = await loadPromoConfig();
-  const threshold = formatPesos(config.decantThresholdCentavos);
-  const sale = config.siteWideDiscount;
-  const perks: Perk[] = [];
-  if (siteWideDiscountStatus(sale) === "ACTIVE") {
-    perks.push({
-      icon: BadgePercent,
-      title: sale.type === "PERCENTAGE" ? `${sale.amount}% off everything` : `${formatPesos(sale.amount)} off every item`,
-      detail: sale.endsAt ? `Until ${formatDate(sale.endsAt)}` : "Site-wide sale",
-    });
-  }
-  if (config.freeDeliveryEnabled) {
-    perks.push({ icon: Truck, title: "Free delivery", detail: `On ${threshold} of decants` });
-  }
-  if (config.testerBonusEnabled) {
-    perks.push({ icon: Gift, title: "A free tester", detail: `With ${threshold} of decants` });
-  }
-  perks.push({
-    icon: Droplet,
-    title: `Try from ${DECANT_SIZES_ML[0]} ml`,
-    detail: `${DECANT_SIZES_ML.join(", ")} ml sizes`,
-  });
-  perks.push({ icon: Store, title: "Free pickup", detail: `Or ${formatPesos(config.deliveryFeeCentavos)} flat delivery` });
-
-  return (
-    <ul className={PERKS_LIST_CLASS}>
-      {perks.map(({ icon: Icon, title, detail }) => (
-        <li key={title} className={PERK_ITEM_CLASS}>
-          <Icon className="mb-2 h-4 w-4 text-gold-ink" aria-hidden="true" />
-          <p className="font-serif-display text-base leading-tight sm:text-lg">{title}</p>
-          <p className="mt-1 text-[11px] uppercase leading-snug tracking-[0.16em] text-muted-foreground sm:text-[10px]">
-            {detail}
-          </p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** Four perks is the usual count (delivery, tester, sizes, pickup). */
-export function PerksSkeleton() {
-  return (
-    <div className={PERKS_LIST_CLASS} aria-hidden="true">
-      {Array.from({ length: 4 }).map((_, idx) => (
-        <div key={idx} className={PERK_ITEM_CLASS}>
-          <Skeleton className="mb-2 h-4 w-4" />
-          <Skeleton className="h-5 w-24" />
-          <Skeleton className="mt-1.5 h-3 w-28" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Static sections
 // ---------------------------------------------------------------------------
 
@@ -252,22 +168,24 @@ export function ShelfTiles() {
   );
 }
 
-const FAMILIES: Array<{ slug: string; title: string; description: string }> = [
-  { slug: "middle-eastern", title: "Middle Eastern", description: "Luxury scents, without the luxury price" },
-  { slug: "designer", title: "Designer", description: "The names you know, polished and easy to wear" },
-  { slug: "niche", title: "Niche", description: "Independent houses with unexpected compositions" },
+/** Each tile opens the shop's All tab filtered to that family, the same
+ *  filter the shop toolbar sets, rather than a separate collection page. */
+const FAMILIES: Array<{ category: FragranceCategory; title: string; description: string }> = [
+  { category: "MIDDLE_EASTERN", title: "Middle Eastern", description: "Luxury scents, without the luxury price" },
+  { category: "DESIGNER", title: "Designer", description: "The names you know, polished and easy to wear" },
+  { category: "NICHE", title: "Niche", description: "Independent houses with unexpected compositions" },
 ];
 
-/** Framed, gold-tinted tiles for the /collections pages: name and a short
+/** Framed, gold-tinted tiles into the shop's scent-family filter: name and a short
  *  line at the bottom, "Explore" in the top-right corner, drawn over the initial
  *  as a large watermark behind it. */
 export function ScentFamilies() {
   return (
     <ul className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 sm:gap-4">
-      {FAMILIES.map(({ slug, title, description }) => (
-        <li key={slug}>
+      {FAMILIES.map(({ category, title, description }) => (
+        <li key={category}>
           <Link
-            href={`/collections/${slug}`}
+            href={`/shop?category=${category}`}
             className={`group relative flex h-full min-h-40 flex-col justify-end overflow-hidden rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] p-5 transition-colors hover:border-gold sm:min-h-56 sm:p-6 ${HOME_FOCUS_RING}`}
           >
             <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
