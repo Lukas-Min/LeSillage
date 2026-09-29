@@ -13,7 +13,9 @@ import { loadHomeRails } from "@/lib/home-rails";
 export const HOME_FOCUS_RING =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-ink";
 
-/** Left-aligned section header, with an optional "See all" link on the right. */
+/** Left-aligned section header, with an optional "See all" link on the right
+ *  sitting on the same line as the header's last line of text (last-baseline
+ *  alignment, so its 44px tap area doesn't lift the words above that line). */
 export function HomeSectionHeader({
   id,
   eyebrow,
@@ -31,7 +33,7 @@ export function HomeSectionHeader({
   linkLabel?: string;
 }) {
   return (
-    <header className="flex items-end justify-between gap-4 px-4">
+    <header className="flex items-baseline-last justify-between gap-4 px-4">
       <div className="min-w-0 space-y-1">
         <Eyebrow>{eyebrow}</Eyebrow>
         <h2 id={id} className="font-serif-display text-2xl leading-tight sm:text-3xl">
