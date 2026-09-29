@@ -17,14 +17,25 @@ import type { CatalogCardModel } from "@/lib/catalog";
  * the server. Only `CompositionCanvas` below is a client component, and a
  * Server Component can render one of those directly.
  */
-export function ProductCard({ card }: { card: CatalogCardModel }) {
+export function ProductCard({
+  card,
+  headingLevel = 2,
+}: {
+  card: CatalogCardModel;
+  /** 3 when the card sits under a section's own h2 (the homepage rails). */
+  headingLevel?: 2 | 3;
+}) {
+  const Heading = headingLevel === 3 ? "h3" : "h2";
   const concentration = concentrationLabel(card.concentration);
   const genderLabel = card.gender ? capitalizeFirst(card.gender) : null;
   const subtitle =
     [concentration, genderLabel].filter(Boolean).join(" · ") || labelForType(card.type);
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-[0_20px_44px_-28px_rgba(31,28,24,0.4)]">
-      <Link href={card.href} className="flex flex-1 flex-col">
+      <Link
+        href={card.href}
+        className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold-ink"
+      >
         <div className="relative overflow-hidden">
           {/* Sized for a full-width mobile card (1-column grid) by default,
               then scaled back down from min-[576px] up — the shop grid packs
@@ -35,7 +46,9 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
           {card.ratingValue ? (
             <span className={`absolute left-2 top-2 gap-1 ${OVERLAY_PILL_CLASS} min-[576px]:gap-1 min-[576px]:px-2 min-[576px]:py-0.5 min-[576px]:text-[11px]`}>
               <Star className="h-3.5 w-3.5 fill-gold text-gold min-[576px]:h-3 min-[576px]:w-3" aria-hidden="true" />
+              <span className="sr-only">Rated </span>
               {card.ratingValue.toFixed(1)}
+              <span className="sr-only"> out of 5</span>
             </span>
           ) : null}
           {card.savePercent && card.savePercent > 0 ? (
@@ -56,9 +69,9 @@ export function ProductCard({ card }: { card: CatalogCardModel }) {
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-4">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">{card.brand}</p>
-          <h2 className="font-serif-display line-clamp-2 text-lg leading-snug font-semibold">
+          <Heading className="font-serif-display line-clamp-2 text-lg leading-snug font-semibold">
             {card.name}
-          </h2>
+          </Heading>
           <p className="line-clamp-1 text-xs text-muted-foreground">{subtitle}</p>
           <div className="mt-auto space-y-3 pt-3">
             <div className="flex flex-wrap items-center gap-1.5">

@@ -39,7 +39,7 @@ export function SubscribeHero() {
 
   return (
     <section className="rounded-2xl border border-gold/35 bg-gold/5 px-5 py-8 text-center sm:px-8">
-      <p className="text-[10px] uppercase tracking-[0.32em] text-gold">Subscribe</p>
+      <p className="text-[10px] uppercase tracking-[0.32em] text-gold-ink">Subscribe</p>
       <h2 className="mt-2 font-serif-display text-2xl leading-tight sm:text-3xl">News and promotions</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         The same emails as Account notifications: new fragrances, restocks, and limited offers. No more than once a week.

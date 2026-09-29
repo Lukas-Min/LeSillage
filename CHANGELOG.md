@@ -3,6 +3,11 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Homepage redesign: under the unchanged hero it now has a perks strip built from the admin's promo settings (free delivery and free tester over the decant threshold, decant sizes, free pickup, and any active site-wide sale), an "On sale now" deals rail, compact Browse-by-type tiles, "New arrivals" and "Try before the bottle" decant rails, "Shop by scent family" links to `/collections`, How it works, and the newsletter sign-up; the three rails come from one cached catalog read with no product repeated and at most two per brand outside deals (`src/lib/home-rails.ts`, `src/components/store/home-sections.tsx`, `src/app/page.tsx`), and each data region has its own card-shaped skeleton (`CatalogCardSkeleton` split out of `CatalogCardsSkeleton` in `src/components/store/loading.tsx`)
+### Fixed
+- Light-mode contrast (WCAG 1.4.3): small gold text measured 1.7–2.0:1 on the cream surfaces, so a new `--gold-ink` token (a deeper gold, 4.7:1 or better on every light surface; plain `--gold` in dark mode) now colours the shared `Eyebrow`, the footer column headings, the newsletter eyebrow, and the homepage's gold text and icons (`src/app/globals.css`, `src/components/ui/section.tsx`)
+- Accessibility follow-ups from the landing audit: a Skip to content link is the first tab stop (`src/app/layout.tsx`); product-card links and homepage links get a visible 2px gold focus ring; ratings are read as "Rated 4.3 out of 5"; `Price` announces "Now" through screen-reader text instead of an ignored `aria-label`; How it works step titles are `h3`; `ProductCard` takes a `headingLevel` so homepage cards nest under their section heading
 ### Added
 - Before-redesign checkpoint of the landing page in `docs/checkpoints/2026-09-29-landing-before-redesign/` (screenshots plus a WCAG 2.1 AA audit), with git tag `landing-before-redesign` on the matching code
 ### Fixed

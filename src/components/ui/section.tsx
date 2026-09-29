@@ -7,7 +7,7 @@ export function Eyebrow({ className, ...props }: EyebrowProps) {
   return (
     <p
       className={cn(
-        "text-[10px] uppercase tracking-[0.32em] text-gold",
+        "text-[10px] uppercase tracking-[0.32em] text-gold-ink",
         className,
       )}
       {...props}

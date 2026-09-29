@@ -53,7 +53,9 @@ export function Price({
   return (
     <span className={className}>
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="font-price-display text-2xl tracking-tight" aria-label="Now">
+        <span className="font-price-display text-2xl tracking-tight">
+          {/* sr-only text, not aria-label: screen readers ignore a label on a plain span. */}
+          <span className="sr-only">Now </span>
           {formatPHP(nowCentavos)}
         </span>
         <s className="text-sm text-muted-foreground">

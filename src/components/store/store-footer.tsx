@@ -85,7 +85,7 @@ export function StoreFooter() {
         </div>
         {COLUMNS.map((column) => (
           <div key={column.title} className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.3em] text-gold">{column.title}</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-gold-ink">{column.title}</p>
             <ul className="space-y-1 text-sm">
               {column.links.map((link) => (
                 <li key={link.href}>

@@ -84,12 +84,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <Providers>
           <div className="flex min-h-dvh flex-col">
+            {/* WCAG 2.4.1: first tab stop, visible only while focused. */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-background focus:px-4 focus:py-3 focus:text-sm focus:text-foreground focus:shadow-lg focus:outline-2 focus:outline-gold-ink"
+            >
+              Skip to content
+            </a>
             <StoreHeader announcement={announcement.enabled ? announcement.messages : []} />
             {/* No page-wide width cap here — only the header/footer (their
                 own components) and the PDP (shop/[skuId]/page.tsx) are
                 capped at 2xl:80vw. Every other page fills the viewport as
                 before. */}
-            <div className="flex flex-1 flex-col">{children}</div>
+            <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+              {children}
+            </div>
           </div>
           <StoreFooter />
           <Toaster position="top-center" />
