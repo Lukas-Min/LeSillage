@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { wishlists } from "@/db/schema";
 import { withSiteWideDiscount } from "@/domain/discount";
+import { siteWideDiscountFromSettings } from "@/domain/promo";
 import { DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { concentrationLabel, guessConcentration } from "@/domain/concentration";
 import { formatPHP, fromCentavos } from "@/domain/money";
@@ -85,11 +86,11 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
   const threshold = catalog.promo?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   const remainingMl = row.remainingMl ?? 0;
-  const discountsWithSiteWide = withSiteWideDiscount(catalog.discounts, row.productId, {
-    enabled: catalog.promo?.siteWideDiscountEnabled ?? false,
-    type: catalog.promo?.siteWideDiscountType ?? "PERCENTAGE",
-    amount: catalog.promo?.siteWideDiscountAmount ?? 0,
-  });
+  const discountsWithSiteWide = withSiteWideDiscount(
+    catalog.discounts,
+    row.productId,
+    siteWideDiscountFromSettings(catalog.promo),
+  );
   const isDecant = row.type === "DECANT";
   const variantOptions = buildVariantOptions(catalog.siblings, discountsWithSiteWide, {
     isDecant,

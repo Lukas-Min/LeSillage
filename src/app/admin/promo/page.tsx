@@ -9,14 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
-import { PromoCodeForm } from "@/components/admin/promo-code-form";
 import { PromoCodesSkeleton, PromoSettingsSkeleton } from "@/components/admin/promo-skeletons";
 import { AnnouncementForm } from "@/components/admin/announcement-form";
 import { readAnnouncement } from "@/lib/announcement";
 import { updatePromoSettings } from "@/actions/admin-actions";
-import { createPromoCode, deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-code-actions";
+import { deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-code-actions";
+import { SiteWideDiscountForm } from "@/components/admin/site-wide-discount-form";
 import { fromCentavos, formatPHP } from "@/domain/money";
-import { cn, formatDate } from "@/lib/utils";
+import { formatPhDateBoundary, toDisplayDate } from "@/domain/ph-date";
+import { siteWideDiscountFromSettings, siteWideDiscountStatus, type SiteWideDiscountConfig } from "@/domain/promo";
+import { AdminTabs } from "@/components/admin/admin-tabs";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +28,30 @@ const TABS = [
   { value: "codes", label: "Promo codes" },
 ] as const;
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
-
 function amountLabel(type: "PERCENTAGE" | "FIXED", amount: number) {
   return type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
+}
+
+function siteWideStatusText(config: SiteWideDiscountConfig): string {
+  const off = `${amountLabel(config.type, config.amount)} off`;
+  const starts = config.startsAt ? formatDate(config.startsAt) : null;
+  // endsAt is stored as the start of the day after the last valid one.
+  const lastDay = config.endsAt ? formatDate(toDisplayDate(config.endsAt, "end")!) : null;
+  const status = siteWideDiscountStatus(config);
+  switch (status) {
+    case "OFF":
+      return "Off — customers see regular prices.";
+    case "SCHEDULED":
+      return `Scheduled: ${off} from ${starts}${lastDay ? ` through ${lastDay}` : ", no end date"}.`;
+    case "ACTIVE":
+      return `On now: ${off}${lastDay ? ` through ${lastDay}` : ", no end date"}.`;
+    case "ENDED":
+      return `Ended: ${off} ran through ${lastDay}. Customers see regular prices.`;
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
 }
 
 export default async function PromoAdminPage({
@@ -41,23 +64,21 @@ export default async function PromoAdminPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif-display text-2xl">Promo & delivery</h1>
-      <div className="flex flex-wrap items-center gap-1 border-b border-border">
-        {TABS.map((tab) => (
-          <Link
-            key={tab.value}
-            href={tab.value === "settings" ? "/admin/promo" : `/admin/promo?tab=${tab.value}`}
-            className={cn(
-              "min-h-11 border-b-2 px-3 py-2 text-xs uppercase tracking-[0.15em] transition-colors",
-              activeTab === tab.value
-                ? "border-gold text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-serif-display text-2xl">Promo & delivery</h1>
+        {activeTab === "codes" ? (
+          <Button asChild className="h-11">
+            <Link href="/admin/promo/new">New</Link>
+          </Button>
+        ) : null}
       </div>
+      <AdminTabs
+        tabs={TABS.map((tab) => ({
+          ...tab,
+          href: tab.value === "settings" ? "/admin/promo" : `/admin/promo?tab=${tab.value}`,
+        }))}
+        active={activeTab}
+      />
 
       {/* Each tab fetches inside its own boundary, keyed to the tab: switching
           tabs is a query-string navigation on the same route, which loading.tsx
@@ -77,10 +98,14 @@ async function SettingsTab() {
     db().select().from(promoSettings).where(eq(promoSettings.id, "singleton")).then((rows) => rows[0]),
     readAnnouncement(),
   ]);
+  const siteWide = siteWideDiscountFromSettings(row);
   return (
     <>
         <Card>
-          <CardContent className="p-4">
+          <CardHeader>
+            <CardTitle className="text-base">Delivery & tester</CardTitle>
+          </CardHeader>
+          <CardContent>
             <form action={updatePromoSettings} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (₱)</Label>
@@ -135,52 +160,31 @@ async function SettingsTab() {
                   becomes pre-order. Retail decants ignore this pool and use their own stock.
                 </p>
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="siteWideDiscountEnabled"
-                  defaultChecked={row?.siteWideDiscountEnabled ?? false}
-                />
-                Site-wide discount enabled (applies to every fragrance)
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="siteWideDiscountType">Type</Label>
-                  <select
-                    id="siteWideDiscountType"
-                    name="siteWideDiscountType"
-                    defaultValue={row?.siteWideDiscountType ?? "PERCENTAGE"}
-                    className={selectClass}
-                  >
-                    <option value="PERCENTAGE">Percentage</option>
-                    <option value="FIXED">Fixed ₱ off</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="siteWideDiscountAmount">Amount (% or ₱)</Label>
-                  <Input
-                    id="siteWideDiscountAmount"
-                    name="siteWideDiscountAmount"
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    defaultValue={
-                      row?.siteWideDiscountType === "FIXED"
-                        ? fromCentavos(row?.siteWideDiscountAmount ?? 0)
-                        : row?.siteWideDiscountAmount ?? 0
-                    }
-                  />
-                </div>
-              </div>
               <p className="text-xs text-muted-foreground">
-                Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack.
-                Free-shipping threshold, delivery fee, and a Fixed discount amount are entered in pesos (add a period
-                for centavos) — not centavos.
+                Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not
+                centavos.
               </p>
               <Button type="submit">Save</Button>
             </form>
           </CardContent>
         </Card>
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-base">Site-wide discount</CardTitle>
+          <p className="text-xs text-muted-foreground">{siteWideStatusText(siteWide)}</p>
+        </CardHeader>
+        <CardContent>
+          <SiteWideDiscountForm
+            values={{
+              enabled: siteWide.enabled,
+              type: siteWide.type,
+              amount: siteWide.type === "FIXED" ? fromCentavos(siteWide.amount) : siteWide.amount,
+              startsAt: formatPhDateBoundary(siteWide.startsAt, "start"),
+              endsAt: formatPhDateBoundary(siteWide.endsAt, "end"),
+            }}
+          />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Announcement bar</CardTitle>
@@ -226,7 +230,7 @@ async function CodesTab() {
                           {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
                           {code.restrictedUserId ? ` · only ${customerById.get(code.restrictedUserId) ?? "one customer"}` : ""}
                           {code.startsAt ? ` · starts ${formatDate(code.startsAt)}` : ""}
-                          {code.endsAt ? ` · ends ${formatDate(code.endsAt)}` : ""}
+                          {code.endsAt ? ` · ends ${formatDate(toDisplayDate(code.endsAt, "end")!)}` : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -260,15 +264,6 @@ async function CodesTab() {
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">New code</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PromoCodeForm action={createPromoCode} mode="create" />
             </CardContent>
           </Card>
         </>

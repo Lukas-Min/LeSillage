@@ -22,7 +22,9 @@ export function isDiscountActive(discount: ProductDiscount, now: Date = new Date
  * "best discount wins" comparison as a product's own `productDiscounts`
  * rows — not a separate mechanism — so "only one item discount applies"
  * falls out of bestDiscount's existing pick-the-larger-saving logic below
- * instead of needing its own rule.
+ * instead of needing its own rule. Its start/end dates ride on the synthetic
+ * row, so isDiscountActive enforces the schedule the same way it does for a
+ * product's own discount.
  */
 export function withSiteWideDiscount(
   discounts: ProductDiscount[],
@@ -37,8 +39,8 @@ export function withSiteWideDiscount(
       productId,
       type: siteWide.type,
       amount: siteWide.amount,
-      startsAt: null,
-      endsAt: null,
+      startsAt: siteWide.startsAt,
+      endsAt: siteWide.endsAt,
       isActive: true,
       createdAt: new Date(),
     },

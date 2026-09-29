@@ -1,12 +1,14 @@
-import type { DiscountType, PromoCode } from "@/db/schema";
+import type { DiscountType, PromoCode, PromoCodeScope } from "@/db/schema";
+import type { CheckoutTotals } from "./checkout-totals";
 import { formatPHP } from "./money";
 
 export interface PromoCodeEligibilityInput {
   /** Merchandise subtotal after per-item (product/site-wide) discounts —
    *  never the original pre-discount price. For a DELIVERY-scope code this
-   *  is still the merchandise subtotal (not the delivery fee) — minimum
-   *  spend is always about how much the customer is buying, not how much
-   *  shipping costs. */
+   *  is still the merchandise subtotal (not the delivery fee), further
+   *  reduced by the order's ORDER-scope code if it has one (checkPromoCodeSet)
+   *  — minimum spend is always about how much the customer is buying, not
+   *  how much shipping costs. */
   merchandiseSubtotalCentavos: number;
   /** The portion of merchandiseSubtotalCentavos not already covered by an
    *  item discount — see CheckoutTotals.orderDiscountEligibleSubtotalCentavos
@@ -117,9 +119,8 @@ export interface PromoCodeApplication {
  * Applies an already-validated code to the order. Scope decides which base
  * it discounts — ORDER against the (already item-discounted) merchandise
  * subtotal, DELIVERY against the delivery fee — never both from one code.
- * Only one promo code can be active on an order at a time in v1 (a single
- * checkout code field), so this never has to reconcile two codes' discounts
- * against each other.
+ * An order can carry one code of each scope (see PromoCodesByScope); since
+ * they discount different bases, their discounts never overlap.
  */
 export function applyPromoCode(
   code: Pick<PromoCode, "scope" | "type" | "amount">,
@@ -136,4 +137,83 @@ export function applyPromoCode(
     orderDiscountCentavos: 0,
     deliveryDiscountCentavos: calculatePromoCodeDiscount(code.type, code.amount, deliveryFeeCentavos),
   };
+}
+
+/** An order takes at most one code per scope: an ORDER code and a DELIVERY
+ *  code discount different things, so they stack, but two codes of the same
+ *  scope would discount the same thing twice. */
+export interface PromoCodesByScope<T> {
+  order: T | null;
+  delivery: T | null;
+}
+
+export const MAX_PROMO_CODES_PER_ORDER = 2;
+
+export function groupPromoCodesByScope<T extends { code: string; scope: PromoCodeScope }>(
+  codes: readonly T[],
+): { ok: true; codes: PromoCodesByScope<T> } | { ok: false; error: string } {
+  const grouped: PromoCodesByScope<T> = { order: null, delivery: null };
+  for (const code of codes) {
+    const slot = code.scope === "ORDER" ? "order" : "delivery";
+    const taken = grouped[slot];
+    if (taken && taken.code !== code.code) {
+      return { ok: false, error: `Only one ${slot} code per order — remove ${taken.code} to use ${code.code}` };
+    }
+    grouped[slot] = code;
+  }
+  return { ok: true, codes: grouped };
+}
+
+export interface PromoCodeSetInput {
+  /** buildCartTotals with no code applied. */
+  preCodeTotals: Pick<
+    CheckoutTotals,
+    "merchandiseSubtotalCentavos" | "orderDiscountEligibleSubtotalCentavos" | "deliveryFeeCentavos"
+  >;
+  isFirstOrder: boolean;
+  userId: string;
+  /** Which of these codes this customer has already redeemed on an earlier order. */
+  previouslyRedeemedCodeIds: ReadonlySet<string>;
+}
+
+/**
+ * Checks an order's codes in pipeline order: the ORDER code first, then the
+ * DELIVERY code, whose minimum spend is measured after the ORDER code's
+ * discount (see minSpendCentavos in src/db/schema.ts). Adding an order code
+ * can therefore push an already-applied delivery code under its minimum, so
+ * the failing code is named in the error whenever there are two.
+ */
+export function checkPromoCodeSet(
+  codes: PromoCodesByScope<EligibilityCode & Pick<PromoCode, "id" | "code">>,
+  input: PromoCodeSetInput,
+  now: Date = new Date(),
+): { ok: true } | { ok: false; code: string; error: string } {
+  const both = codes.order !== null && codes.delivery !== null;
+  let orderDiscountCentavos = 0;
+  for (const code of [codes.order, codes.delivery]) {
+    if (!code) continue;
+    const eligibility = checkPromoCodeEligibility(
+      code,
+      {
+        merchandiseSubtotalCentavos: input.preCodeTotals.merchandiseSubtotalCentavos - orderDiscountCentavos,
+        orderDiscountEligibleSubtotalCentavos: input.preCodeTotals.orderDiscountEligibleSubtotalCentavos,
+        deliveryFeeCentavos: input.preCodeTotals.deliveryFeeCentavos,
+        isFirstOrder: input.isFirstOrder,
+        hasPriorRedemption: input.previouslyRedeemedCodeIds.has(code.id),
+        userId: input.userId,
+      },
+      now,
+    );
+    if (!eligibility.ok) {
+      return { ok: false, code: code.code, error: both ? `${code.code}: ${eligibility.error}` : eligibility.error };
+    }
+    if (code.scope === "ORDER") {
+      orderDiscountCentavos = calculatePromoCodeDiscount(
+        code.type,
+        code.amount,
+        input.preCodeTotals.orderDiscountEligibleSubtotalCentavos,
+      );
+    }
+  }
+  return { ok: true };
 }

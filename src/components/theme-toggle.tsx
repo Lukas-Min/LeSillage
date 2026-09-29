@@ -58,7 +58,7 @@ export function ThemeToggle({
         variant="ghost"
         aria-label={label}
         className={cn(
-          "flex min-h-11 w-full items-center justify-start gap-3 rounded-md px-3 text-sm font-normal text-muted-foreground hover:text-foreground",
+          "flex min-h-11 w-full items-center justify-center gap-3 rounded-md px-3 text-sm font-normal text-muted-foreground hover:text-foreground",
           className,
         )}
         onClick={toggle}

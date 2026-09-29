@@ -18,7 +18,7 @@ import { priceCart, type CartTotals } from "@/domain/cart";
 import { withSiteWideDiscount } from "@/domain/discount";
 import { buildCartTotals, type CheckoutTotals } from "@/domain/checkout-totals";
 import { clampQuantity } from "@/domain/money";
-import { DEFAULT_PROMO_CONFIG, type PromoConfig } from "@/domain/promo";
+import { DEFAULT_PROMO_CONFIG, siteWideDiscountFromSettings, type PromoConfig } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
 
@@ -58,11 +58,7 @@ export async function loadPromoConfig(): Promise<PromoConfig & { decantPreOrderT
     freeDeliveryEnabled: row?.freeDeliveryEnabled ?? DEFAULT_PROMO_CONFIG.freeDeliveryEnabled,
     testerBonusEnabled: row?.testerBonusEnabled ?? DEFAULT_PROMO_CONFIG.testerBonusEnabled,
     decantPreOrderThresholdMl: row?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML,
-    siteWideDiscount: {
-      enabled: row?.siteWideDiscountEnabled ?? DEFAULT_PROMO_CONFIG.siteWideDiscount.enabled,
-      type: row?.siteWideDiscountType ?? DEFAULT_PROMO_CONFIG.siteWideDiscount.type,
-      amount: row?.siteWideDiscountAmount ?? DEFAULT_PROMO_CONFIG.siteWideDiscount.amount,
-    },
+    siteWideDiscount: siteWideDiscountFromSettings(row),
   };
 }
 

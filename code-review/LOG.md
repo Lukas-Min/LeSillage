@@ -20,6 +20,19 @@ Entry template:
 
 ---
 
+## 2026-09-29 — Applied fixes for the open 2026-09-24 findings (not a new review)
+
+- **Commit range reviewed:** none — fix pass only, so the checkpoint does not move. Each 2026-09-24 finding was re-checked against current code first.
+- **Effort:** n/a
+- **Scope / areas covered:** the 15 findings in the 2026-09-24 entry below plus its carried backlog. Separately, the new two-promo-codes-per-order change got a domain-reviewer pass: 1 medium (release path took promo-code row locks in a different order than checkout — deadlock could strand both redemptions) and 2 low findings, the medium and one low fixed.
+- **Findings:**
+  - #1 pickup-address leak, #2 approve/deny race, #3 pending-request bypass, #4 PICKUP "Promo applied", #5 formatDate timezone, #9 promo dialog double toast — status: fixed by earlier commits (re-verified; #9's dialog no longer exists)
+  - #6 `/admin/orders?userId=` label, #7 cancellation-request failure log, #8 unawaited audit writes, #10 order-detail loading.tsx, #11 wishlist audit catch, #12 order-created text pickup block, #13 hand-built OrderEmailInput, #14 save-badge class (also a dark-mode contrast bug), #15 duplicated tab strip — status: fixed
+  - Backlog: Instagram icon viewBox — fixed; decant-script fulfillment helper — no-issue (scripts deleted); pill sizing past 576px — skipped, still plausible, not re-measured
+- **Checkpoint advanced to:** unchanged (`5c0e045`)
+
+---
+
 ## 2026-09-28 — Dead code, duplicates, and static scripts
 
 - **Commit range reviewed:** working tree on `1fea95d` (account, orders, auth, brand icons) plus `scripts/`. Not a line-by-line re-read of every domain file already covered at `748a30e`.

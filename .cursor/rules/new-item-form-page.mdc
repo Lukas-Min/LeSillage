@@ -1,0 +1,12 @@
+---
+description: Creating a new record opens its own form page, not a modal or an inline form.
+alwaysApply: true
+---
+
+# New item form page
+
+A New or Add control that creates a record (a promo code, a product, a SKU, and the same kind of thing) opens a form page. It does not open a modal, and it does not drop the fields onto the list.
+
+- The list keeps a button. The button links to a route such as `/admin/promo/new` or `/admin/products/[productId]/skus/new`.
+- That route renders the fields and a save action. After a successful save, return to the list.
+- Editing an existing promo code uses its own page too (`/admin/promo/[promoCodeId]`).

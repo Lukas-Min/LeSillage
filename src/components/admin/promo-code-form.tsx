@@ -211,6 +211,12 @@ export function PromoCodeForm({
         <input type="checkbox" name="onePerCustomer" defaultChecked={values.onePerCustomer} className="size-4" />
         Once per customer
       </label>
+      <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2">
+        {/* Always starts unchecked — this fires an email, it isn't a stored
+            setting, so there's nothing to prefill even when editing. */}
+        <input type="checkbox" name="sendEmail" className="size-4" />
+        Email the customer(s) who can still use this code
+      </label>
 
       <p className="text-xs text-muted-foreground sm:col-span-2">
         Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always pesos.

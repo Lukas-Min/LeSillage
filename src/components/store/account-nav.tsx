@@ -131,7 +131,7 @@ export function SidebarContent({ isAdmin, closeOnNavigate = false }: { isAdmin: 
   const items = isAdmin
     ? [adminHomeItem, ...adminNavItems]
     : accountNavItems.filter((item) => item.href !== "/account/archive");
-  const accountLinkClassName = "h-11 w-full justify-start gap-3 rounded-md px-3";
+  const accountLinkClassName = "h-11 w-full justify-center gap-3 rounded-md px-3";
   return (
     <>
       <NavList items={items} pathname={pathname ?? ""} closeOnNavigate={closeOnNavigate} />

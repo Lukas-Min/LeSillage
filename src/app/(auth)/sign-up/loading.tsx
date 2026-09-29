@@ -13,6 +13,13 @@ export default function SignUpLoading() {
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />
+          <div className="flex items-start gap-3">
+            <Skeleton className="mt-1 size-4" />
+            <div className="flex-1 space-y-1">
+              <Skeleton className="h-4 w-56" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          </div>
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-4 w-1/3 mx-auto" />
           <Skeleton className="h-11 w-full" />

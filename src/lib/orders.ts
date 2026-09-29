@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { and, count, eq, exists, gte, inArray, notInArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, exists, gte, inArray, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   carts,
@@ -27,7 +27,12 @@ import { priceCart } from "@/domain/cart";
 import { generateOrderNumber } from "@/domain/order-number";
 import { isTesterBonusEligible, pickTester, testerUnitsAvailable } from "@/domain/promo";
 import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
-import { checkPromoCodeEligibility } from "@/domain/promo-code";
+import {
+  checkPromoCodeSet,
+  groupPromoCodesByScope,
+  MAX_PROMO_CODES_PER_ORDER,
+  type PromoCodesByScope,
+} from "@/domain/promo-code";
 import { assertTransition, confirmBlockedReason, customerCancelMode } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment, resolveCartCap } from "@/lib/cart";
@@ -51,7 +56,7 @@ import {
   type OrderEmail,
   type OrderEmailInput,
 } from "@/lib/email-templates";
-import { toEmailLines } from "@/lib/order-email-lines";
+import { orderEmailInputFromRow, toEmailLines } from "@/lib/order-email-lines";
 
 /**
  * A rejection the customer is meant to read — empty bag, item sold out,
@@ -69,11 +74,15 @@ export class CheckoutError extends Error {
    *  qualifying between preview and submit clears its chip instead of
    *  leaving a stale discount on screen). */
   readonly field?: CheckoutErrorField;
+  /** With field "promoCode": which of the order's codes was rejected, so the
+   *  form drops only that one and keeps the other. */
+  readonly promoCode?: string;
 
-  constructor(message: string, field?: CheckoutErrorField) {
+  constructor(message: string, field?: CheckoutErrorField, promoCode?: string) {
     super(message);
     this.name = "CheckoutError";
     this.field = field;
+    this.promoCode = promoCode;
   }
 }
 
@@ -98,8 +107,9 @@ export interface CreateOrderInput {
   savedAddressId?: string | null;
   saveAddress?: boolean;
   /** Raw customer input, normalized (trim + uppercase) before lookup — never
-   *  trust a client-supplied discount amount, only the code string. */
-  promoCode?: string | null;
+   *  trust a client-supplied discount amount, only the code strings. At most
+   *  one ORDER-scope and one DELIVERY-scope code (groupPromoCodesByScope). */
+  promoCodes?: readonly string[] | null;
   /** Buy Now path: when set, the order is built from exactly these items
    *  instead of the customer's persisted cart, and the cart is left
    *  completely untouched (not read, not cleared). */
@@ -321,18 +331,31 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       throw new CheckoutError("Pricing changed while you were checking out — please review your order and try again");
     }
 
-    let activePromoCode: ActivePromoCode | null = null;
-    let lockedCode: PromoCode | null = null;
-    const rawCode = input.promoCode?.trim();
-    if (rawCode) {
-      const normalizedCode = rawCode.toUpperCase();
-      const [codeRow] = await tx
+    const requestedCodes = [
+      ...new Set((input.promoCodes ?? []).map((code) => code.trim().toUpperCase()).filter(Boolean)),
+    ];
+    if (requestedCodes.length > MAX_PROMO_CODES_PER_ORDER) {
+      throw new CheckoutError("Use at most one order code and one delivery code", "promoCode");
+    }
+    let lockedCodes: PromoCodesByScope<PromoCode> = { order: null, delivery: null };
+    if (requestedCodes.length > 0) {
+      // Locked in id order so two checkouts using the same pair of codes
+      // always take the row locks in the same order and can't deadlock.
+      const codeRows = await tx
         .select()
         .from(promoCodes)
-        .where(eq(promoCodes.code, normalizedCode))
+        .where(inArray(promoCodes.code, requestedCodes))
+        .orderBy(asc(promoCodes.id))
         .for("update");
-      if (!codeRow) throw new CheckoutError("Invalid promo code", "promoCode");
-      const [priorOrderCount, priorRedemption] = await Promise.all([
+      const missing = requestedCodes.find((code) => !codeRows.some((row) => row.code === code));
+      if (missing) throw new CheckoutError(`Invalid promo code: ${missing}`, "promoCode", missing);
+      // Grouped in the customer's order, not the lock order above, so a
+      // same-scope clash names the code they applied first.
+      const grouped = groupPromoCodesByScope(
+        requestedCodes.map((code) => codeRows.find((row) => row.code === code)!),
+      );
+      if (!grouped.ok) throw new CheckoutError(grouped.error, "promoCode");
+      const [priorOrderCount, priorRedemptions] = await Promise.all([
         tx
           .select({ value: count() })
           .from(orders)
@@ -343,15 +366,17 @@ export async function createOrderFromCart(input: CreateOrderInput) {
             ),
           ),
         tx
-          .select({ id: promoCodeRedemptions.id })
+          .select({ promoCodeId: promoCodeRedemptions.promoCodeId })
           .from(promoCodeRedemptions)
           .where(
             and(
-              eq(promoCodeRedemptions.promoCodeId, codeRow.id),
+              inArray(
+                promoCodeRedemptions.promoCodeId,
+                codeRows.map((row) => row.id),
+              ),
               eq(promoCodeRedemptions.userId, input.user.userId),
             ),
-          )
-          .limit(1),
+          ),
       ]);
       // Pre-code totals give the delivery fee a DELIVERY-scope code would
       // actually be discounting (e.g. 0 already, if free shipping kicked
@@ -359,20 +384,22 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       // so it doesn't burn a maxRedemptions/onePerCustomer slot for
       // nothing (see checkPromoCodeEligibility's zero-benefit guard).
       const preCodeTotals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, null);
-      const eligibility = checkPromoCodeEligibility(codeRow, {
-        merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
-        orderDiscountEligibleSubtotalCentavos: preCodeTotals.orderDiscountEligibleSubtotalCentavos,
-        deliveryFeeCentavos: preCodeTotals.deliveryFeeCentavos,
+      const eligibility = checkPromoCodeSet(grouped.codes, {
+        preCodeTotals,
         isFirstOrder: Number(priorOrderCount[0]?.value ?? 0) === 0,
-        hasPriorRedemption: priorRedemption.length > 0,
         userId: input.user.userId,
+        previouslyRedeemedCodeIds: new Set(priorRedemptions.map((row) => row.promoCodeId)),
       });
-      if (!eligibility.ok) throw new CheckoutError(eligibility.error, "promoCode");
-      lockedCode = codeRow;
-      activePromoCode = { scope: codeRow.scope, type: codeRow.type, amount: codeRow.amount };
+      if (!eligibility.ok) throw new CheckoutError(eligibility.error, "promoCode", eligibility.code);
+      lockedCodes = grouped.codes;
     }
 
-    const totals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, activePromoCode);
+    const toActive = (code: PromoCode | null): ActivePromoCode | null =>
+      code ? { scope: code.scope, type: code.type, amount: code.amount } : null;
+    const totals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, {
+      order: toActive(lockedCodes.order),
+      delivery: toActive(lockedCodes.delivery),
+    });
 
     const [insertedOrder] = await tx
       .insert(orders)
@@ -404,7 +431,8 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       })
       .returning();
 
-    if (lockedCode) {
+    for (const lockedCode of [lockedCodes.order, lockedCodes.delivery]) {
+      if (!lockedCode) continue;
       await tx.insert(promoCodeRedemptions).values({
         promoCodeId: lockedCode.id,
         userId: input.user.userId,
@@ -1035,25 +1063,28 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
   });
 }
 
-// A promo code used on an order that never went through shouldn't be burned
-// for the customer — deleting the redemption row is enough on its own: the
+// Promo codes used on an order that never went through shouldn't be burned
+// for the customer — deleting the redemption rows is enough on its own: the
 // checkout eligibility check only looks at whether a row exists (onePerCustomer)
-// and at redemptionCount (maxRedemptions), both read fresh at order time.
+// and at redemptionCount (maxRedemptions), both read fresh at order time. An
+// order can hold one ORDER-scope and one DELIVERY-scope redemption; both go,
+// in promo-code id order — the same order createOrderFromCart locks them in,
+// so a cancel racing a checkout that uses the same two codes can't deadlock.
 export async function releasePromoCodeRedemption(orderId: string): Promise<void> {
   const client = db();
   await client.transaction(async (tx) => {
-    const redemption = (
+    const redemptions = await tx
+      .select({ id: promoCodeRedemptions.id, promoCodeId: promoCodeRedemptions.promoCodeId })
+      .from(promoCodeRedemptions)
+      .where(eq(promoCodeRedemptions.orderId, orderId))
+      .orderBy(asc(promoCodeRedemptions.promoCodeId));
+    for (const redemption of redemptions) {
+      await tx.delete(promoCodeRedemptions).where(eq(promoCodeRedemptions.id, redemption.id));
       await tx
-        .select({ id: promoCodeRedemptions.id, promoCodeId: promoCodeRedemptions.promoCodeId })
-        .from(promoCodeRedemptions)
-        .where(eq(promoCodeRedemptions.orderId, orderId))
-    )[0];
-    if (!redemption) return;
-    await tx.delete(promoCodeRedemptions).where(eq(promoCodeRedemptions.id, redemption.id));
-    await tx
-      .update(promoCodes)
-      .set({ redemptionCount: sql`GREATEST(0, ${promoCodes.redemptionCount} - 1)` })
-      .where(eq(promoCodes.id, redemption.promoCodeId));
+        .update(promoCodes)
+        .set({ redemptionCount: sql`GREATEST(0, ${promoCodes.redemptionCount} - 1)` })
+        .where(eq(promoCodes.id, redemption.promoCodeId));
+    }
   });
 }
 
@@ -1163,27 +1194,12 @@ export async function transitionOrderStatus(args: {
     const entry = STATUS_EMAIL_TEMPLATES[args.next];
     if (!entry) return;
     try {
-      const items = await client
-        .select()
-        .from(orderItems)
-        .where(eq(orderItems.orderId, args.orderId));
-      const emailInput: OrderEmailInput = {
-        orderNumber: orderRow.orderNumber,
+      const emailInput = await orderEmailInputFromRow(orderRow, {
         status: args.next,
-        recipientName: orderRow.recipientName,
-        email: orderRow.email,
-        fulfillmentMethod: orderRow.fulfillmentMethod,
-        lines: await toEmailLines(items),
-        subtotalCentavos: orderRow.subtotalCentavos,
-        discountCentavos: orderRow.discountCentavos,
-        deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
-        totalCentavos: orderRow.totalCentavos,
-        orderedAt: orderRow.createdAt,
-        reason: statusReason,
+        reason: statusReason ?? null,
         previousStatus: orderRow.status,
-        pickupNotes: orderRow.pickupNotes,
         testerAwarded: args.next === "CONFIRMED" ? await loadTesterAwarded(orderRow.promoTesterSkuId) : null,
-      };
+      });
 
       const r = await sendEmail({ to: orderRow.email, ...entry.build(emailInput) });
       await client.insert(notificationLog).values({
@@ -1255,21 +1271,7 @@ export async function requestOrderCancellation(args: RequestCancellationInput): 
   after(async () => {
     try {
       const env = getEnv();
-      const emailInput: OrderEmailInput = {
-        orderNumber: orderRow.orderNumber,
-        status: "CONFIRMED",
-        recipientName: orderRow.recipientName,
-        email: orderRow.email,
-        fulfillmentMethod: orderRow.fulfillmentMethod,
-        lines: await toEmailLines(await client.select().from(orderItems).where(eq(orderItems.orderId, args.orderId))),
-        subtotalCentavos: orderRow.subtotalCentavos,
-        discountCentavos: orderRow.discountCentavos,
-        deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
-        totalCentavos: orderRow.totalCentavos,
-        orderedAt: orderRow.createdAt,
-        reason: args.reason,
-        pickupNotes: orderRow.pickupNotes,
-      };
+      const emailInput = await orderEmailInputFromRow(orderRow, { status: "CONFIRMED", reason: args.reason });
       const [customerResult, adminResult] = await Promise.all([
         sendEmail({ to: orderRow.email, ...cancellationRequestedEmail(emailInput) }),
         sendEmail({ to: env.ADMIN_EMAIL, ...adminCancellationRequestNotification(emailInput) }),
@@ -1292,15 +1294,27 @@ export async function requestOrderCancellation(args: RequestCancellationInput): 
       ]);
     } catch (error) {
       console.error(`Failed to send cancellation-request emails for order ${args.orderId}`, error);
+      // sendEmail never throws, so reaching here means neither email went
+      // out — record both, not just the customer's.
+      const message = error instanceof Error ? error.message : "unknown error";
       await client
         .insert(notificationLog)
-        .values({
-          orderId: args.orderId,
-          recipient: orderRow.email,
-          template: "cancellation_requested",
-          status: "FAILED",
-          error: error instanceof Error ? error.message : "unknown error",
-        })
+        .values([
+          {
+            orderId: args.orderId,
+            recipient: orderRow.email,
+            template: "cancellation_requested",
+            status: "FAILED",
+            error: message,
+          },
+          {
+            orderId: args.orderId,
+            recipient: getEnv().ADMIN_EMAIL,
+            template: "admin_cancellation_request",
+            status: "FAILED",
+            error: message,
+          },
+        ])
         .catch(() => {
           // Even the audit-trail insert failed; nothing more to do from a
           // fire-and-forget after() callback.
@@ -1341,21 +1355,10 @@ export async function resolveCancellationRequest(args: {
 
   after(async () => {
     try {
-      const emailInput: OrderEmailInput = {
-        orderNumber: orderRow.orderNumber,
+      const emailInput = await orderEmailInputFromRow(orderRow, {
         status: "CONFIRMED",
-        recipientName: orderRow.recipientName,
-        email: orderRow.email,
-        fulfillmentMethod: orderRow.fulfillmentMethod,
-        lines: await toEmailLines(await client.select().from(orderItems).where(eq(orderItems.orderId, args.orderId))),
-        subtotalCentavos: orderRow.subtotalCentavos,
-        discountCentavos: orderRow.discountCentavos,
-        deliveryFeeCentavos: orderRow.deliveryFeeCentavos,
-        totalCentavos: orderRow.totalCentavos,
-        orderedAt: orderRow.createdAt,
         reason: orderRow.cancellationRequestReason,
-        pickupNotes: orderRow.pickupNotes,
-      };
+      });
       const r = await sendEmail({ to: orderRow.email, ...cancellationRequestDeniedEmail(emailInput) });
       await client.insert(notificationLog).values({
         orderId: args.orderId,

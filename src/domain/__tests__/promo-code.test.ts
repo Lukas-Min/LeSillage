@@ -3,6 +3,8 @@ import {
   applyPromoCode,
   calculatePromoCodeDiscount,
   checkPromoCodeEligibility,
+  checkPromoCodeSet,
+  groupPromoCodesByScope,
   type PromoCodeEligibilityInput,
 } from "../promo-code";
 import { bestDiscount, applyDiscount, withSiteWideDiscount } from "../discount";
@@ -192,7 +194,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
   it("rejects the min-spend when the original price clears it but the site-wide-discounted price doesn't", () => {
     // ₱2,100 original, 5% site-wide discount -> ₱1,995 — under the ₱2,000
     // minimum, even though the original price was over it.
-    const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5 });
+    const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null });
     const item: CartSkuInput = {
       sku: makeSku(210000),
       quantity: 1,
@@ -206,7 +208,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10, minSpendCentavos: 200000 });
     const totals = buildCartTotals(
       priced,
-      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
       null,
     );
@@ -226,7 +228,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     // minimum. But this is the *only* line in the cart, and it's already
     // discounted, so there's nothing left for an ORDER-scope code to apply
     // to — rejected outright rather than silently applying for ₱0.
-    const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5 });
+    const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null });
     const item: CartSkuInput = {
       sku: makeSku(300000),
       quantity: 1,
@@ -240,7 +242,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10, minSpendCentavos: 200000 });
     const preCodeTotals = buildCartTotals(
       priced,
-      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
       null,
     );
@@ -262,9 +264,9 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     // the only thing enforcing this.
     const totals = buildCartTotals(
       priced,
-      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
-      { scope: code.scope, type: code.type, amount: code.amount },
+      { order: { scope: code.scope, type: code.type, amount: code.amount }, delivery: null },
     );
     expect(totals.orderDiscountCentavos).toBe(0);
     expect(totals.totalCentavos).toBe(285000 + 12000);
@@ -297,9 +299,9 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10 });
     const totals = buildCartTotals(
       priced,
-      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: false, type: "PERCENTAGE", amount: 0 } },
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: false, type: "PERCENTAGE", amount: 0, startsAt: null, endsAt: null } },
       "DELIVERY",
-      { scope: code.scope, type: code.type, amount: code.amount },
+      { order: { scope: code.scope, type: code.type, amount: code.amount }, delivery: null },
     );
     // Only item B (₱1,000, regular price) is in the code's base.
     expect(totals.orderDiscountEligibleSubtotalCentavos).toBe(100000);
@@ -308,7 +310,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
   });
 
   it("evaluates a DELIVERY-scope code's discount against the delivery fee, unaffected by item/order discounts", () => {
-    const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5 });
+    const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null });
     const item: CartSkuInput = {
       sku: makeSku(300000),
       quantity: 1,
@@ -320,9 +322,9 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     const code = makeCode({ scope: "DELIVERY", type: "PERCENTAGE", amount: 100 });
     const totals = buildCartTotals(
       priced,
-      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5 } },
+      { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
-      { scope: code.scope, type: code.type, amount: code.amount },
+      { order: null, delivery: { scope: code.scope, type: code.type, amount: code.amount } },
     );
     expect(totals.deliveryDiscountCentavos).toBe(12000);
     expect(totals.deliveryFeeCentavos).toBe(0);
@@ -342,11 +344,104 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
         createdAt: new Date(),
       },
     ];
-    const combined = withSiteWideDiscount(productOwn, "p1", { enabled: true, type: "PERCENTAGE", amount: 5 });
+    const combined = withSiteWideDiscount(productOwn, "p1", { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null });
     const best = bestDiscount(combined, 100000);
     // The product's own 20% (20000) beats the site-wide 5% (5000).
     expect(best?.id).toBe("own1");
     const { perUnitDiscountCentavos } = applyDiscount(100000, best);
     expect(perUnitDiscountCentavos).toBe(20000);
+  });
+
+  it("stacks one ORDER code and one DELIVERY code, each discounting its own base", () => {
+    const item: CartSkuInput = {
+      sku: makeSku(300000),
+      quantity: 1,
+      productType: "DECANT",
+      productBrand: "Maison Ivre",
+      discounts: [],
+    };
+    const priced = priceCart([item], { deliveryFeeCentavos: 12000, freeShipping: false });
+    // Threshold above the cart, so free shipping doesn't zero the fee first.
+    const config = { decantThresholdCentavos: 500000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: true, testerBonusEnabled: false, siteWideDiscount: { enabled: false, type: "PERCENTAGE" as const, amount: 0, startsAt: null, endsAt: null } };
+    const codes = {
+      order: { scope: "ORDER" as const, type: "PERCENTAGE" as const, amount: 10 },
+      delivery: { scope: "DELIVERY" as const, type: "FIXED" as const, amount: 5000 },
+    };
+    const totals = buildCartTotals(priced, config, "DELIVERY", codes);
+    expect(totals.orderDiscountCentavos).toBe(30000);
+    expect(totals.deliveryDiscountCentavos).toBe(5000);
+    expect(totals.deliveryFeeCentavos).toBe(7000);
+    expect(totals.totalCentavos).toBe(300000 - 30000 + 7000);
+
+    // Pickup has no fee, so only the order code does anything.
+    const pickup = buildCartTotals(priced, config, "PICKUP", codes);
+    expect(pickup.orderDiscountCentavos).toBe(30000);
+    expect(pickup.deliveryDiscountCentavos).toBe(0);
+    expect(pickup.totalCentavos).toBe(270000);
+  });
+});
+
+describe("groupPromoCodesByScope", () => {
+  it("accepts one ORDER code and one DELIVERY code", () => {
+    const result = groupPromoCodesByScope([
+      makeCode({ code: "TENOFF", scope: "ORDER" }),
+      makeCode({ id: "promo2", code: "FREESHIP", scope: "DELIVERY" }),
+    ]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.codes.order?.code).toBe("TENOFF");
+      expect(result.codes.delivery?.code).toBe("FREESHIP");
+    }
+  });
+
+  it("rejects two codes of the same scope", () => {
+    const result = groupPromoCodesByScope([
+      makeCode({ code: "TENOFF", scope: "ORDER" }),
+      makeCode({ id: "promo2", code: "WELCOME10", scope: "ORDER" }),
+    ]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/one order code/);
+  });
+});
+
+describe("checkPromoCodeSet", () => {
+  const base = {
+    preCodeTotals: {
+      merchandiseSubtotalCentavos: 210000,
+      orderDiscountEligibleSubtotalCentavos: 210000,
+      deliveryFeeCentavos: 12000,
+    },
+    isFirstOrder: false,
+    userId: "user1",
+    previouslyRedeemedCodeIds: new Set<string>(),
+  };
+  const orderCode = makeCode({ id: "o", code: "TENOFF", scope: "ORDER", amount: 10 });
+
+  it("measures a DELIVERY code's minimum spend after the ORDER code's discount", () => {
+    // ₱2,100 less the 10% order code is ₱1,890 — under the ₱2,000 minimum.
+    const delivery = makeCode({ id: "d", code: "FREESHIP", scope: "DELIVERY", amount: 100, minSpendCentavos: 200000 });
+    const together = checkPromoCodeSet({ order: orderCode, delivery }, base);
+    expect(together.ok).toBe(false);
+    if (!together.ok) {
+      expect(together.code).toBe("FREESHIP");
+      expect(together.error).toMatch(/^FREESHIP: Minimum spend/);
+    }
+    // On its own, ₱2,100 clears it.
+    expect(checkPromoCodeSet({ order: null, delivery }, base).ok).toBe(true);
+  });
+
+  it("accepts both codes when each qualifies", () => {
+    const delivery = makeCode({ id: "d", code: "FREESHIP", scope: "DELIVERY", amount: 100, minSpendCentavos: 150000 });
+    expect(checkPromoCodeSet({ order: orderCode, delivery }, base).ok).toBe(true);
+  });
+
+  it("applies onePerCustomer to each code separately", () => {
+    const delivery = makeCode({ id: "d", code: "FREESHIP", scope: "DELIVERY", amount: 100, onePerCustomer: true });
+    const result = checkPromoCodeSet(
+      { order: { ...orderCode, onePerCustomer: true }, delivery },
+      { ...base, previouslyRedeemedCodeIds: new Set(["d"]) },
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("FREESHIP");
   });
 });

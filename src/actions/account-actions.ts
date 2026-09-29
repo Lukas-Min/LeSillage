@@ -9,6 +9,7 @@ import { db } from "@/db/client";
 import {
   addresses,
   emailVerificationCodes,
+  newsletterSubscribers,
   notificationLog,
   orders,
   products,
@@ -76,7 +77,15 @@ export async function updateNotificationPreferences(formData: FormData) {
   const user = await requireActiveCustomer();
   await limitAccount(user.id, "notifications");
   const marketingOptIn = formData.get("marketingOptIn") === "on";
+  const email = user.email.trim().toLowerCase();
   await db().update(users).set({ marketingOptIn }).where(eq(users.id, user.id));
+  if (email) {
+    if (marketingOptIn) {
+      await db().insert(newsletterSubscribers).values({ email }).onConflictDoNothing({ target: newsletterSubscribers.email });
+    } else {
+      await db().delete(newsletterSubscribers).where(eq(newsletterSubscribers.email, email));
+    }
+  }
   revalidatePath("/account/notifications");
 }
 
@@ -124,7 +133,7 @@ export async function toggleWishlist(productId: string): Promise<ToggleWishlistR
       targetType: "product",
       targetId: productId,
       metadata: { saved: false },
-    }).catch(() => {});
+    }).catch((error) => console.error(`Failed to audit-log wishlist removal for ${productId}`, error));
     revalidatePath("/account/wishlist");
     return { ok: true, saved: false };
   }
@@ -135,7 +144,7 @@ export async function toggleWishlist(productId: string): Promise<ToggleWishlistR
     targetType: "product",
     targetId: productId,
     metadata: { saved: true },
-  }).catch(() => {});
+  }).catch((error) => console.error(`Failed to audit-log wishlist save for ${productId}`, error));
   revalidatePath("/account/wishlist");
   return { ok: true, saved: true };
 }

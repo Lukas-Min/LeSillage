@@ -1,5 +1,6 @@
 import { applyLineDiscount, pickHighestSaving } from "@/domain/discount";
 import { formatPHP, formatPHPRange } from "@/domain/money";
+import { SAVE_BADGE_CLASS } from "@/components/store/overlay-pill";
 import type { VariantDiscount } from "@/domain/variant-options";
 
 interface PriceProps {
@@ -56,7 +57,7 @@ export function Price({
           <span className="sr-only">Original price</span>
           {formatPHP(originalTotalCentavos)}
         </s>
-        <span className="inline-flex items-center rounded-none bg-gold px-2.5 py-1 text-[13px] font-medium text-gold-foreground">
+        <span className={SAVE_BADGE_CLASS}>
           {percent > 0 ? `Save ${percent}%` : `Save ${formatPHP(totalSavedCentavos)}`}
         </span>
       </span>
@@ -92,7 +93,7 @@ export function CatalogPrice({
         <p className={`flex flex-wrap items-center gap-2 text-sm text-muted-foreground ${rowJustify}`}>
           <s>{formatPHPRange(minOriginalCentavos, maxOriginalCentavos)}</s>
           {showSaveBadge && savePercent && savePercent > 0 ? (
-            <span className="inline-flex items-center rounded-none bg-gold px-2.5 py-1 text-[13px] font-medium text-gold-foreground">
+            <span className={SAVE_BADGE_CLASS}>
               Save {savePercent}%
             </span>
           ) : null}
