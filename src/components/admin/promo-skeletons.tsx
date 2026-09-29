@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MAX_ANNOUNCEMENT_LENGTH, MAX_ANNOUNCEMENT_MESSAGES } from "@/domain/announcement";
@@ -19,12 +18,19 @@ export function PromoSettingsSkeleton() {
         <CardTitle className="text-base">Delivery & tester</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="space-y-1">
-          <Label>Free-shipping threshold (₱)</Label>
-          <Skeleton className="h-11 w-full" />
-        </div>
-        <div className="space-y-1">
-          <Label>Delivery fee (₱)</Label>
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Free-shipping threshold (₱)</Label>
+            <Skeleton className="h-11 w-full" />
+          </div>
+          <div className="space-y-1">
+            <Label>Delivery fee (₱)</Label>
+            <Skeleton className="h-11 w-full" />
+          </div>
+          <div className="space-y-1">
+            <Label>Decant pre-order threshold (ml)</Label>
+            <Skeleton className="h-11 w-full" />
+          </div>
           <Skeleton className="h-11 w-full" />
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -39,20 +45,13 @@ export function PromoSettingsSkeleton() {
           On a delivered order over the decant threshold, assigns one in-stock SKU marked Tester. Those SKUs stay
           listed in the shop. Pickup never receives a complimentary tester.
         </p>
-        <div className="space-y-1">
-          <Label>Decant pre-order threshold (ml)</Label>
-          <Skeleton className="h-11 w-full" />
-          <p className="text-xs text-muted-foreground">
-            When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes
-            pre-order. Retail decants ignore this pool and use their own stock.
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes
+          pre-order. Retail decants ignore this pool and use their own stock.
+        </p>
         <p className="text-xs text-muted-foreground">
           Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not centavos.
         </p>
-        <Button type="button" disabled className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
-          Save
-        </Button>
       </CardContent>
     </Card>
     <Card>
@@ -65,7 +64,7 @@ export function PromoSettingsSkeleton() {
           <Skeleton className="size-4 rounded-sm" />
           On (applies to every fragrance)
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label>Type</Label>
             <Skeleton className="h-11 w-full" />
@@ -80,6 +79,7 @@ export function PromoSettingsSkeleton() {
               <Skeleton className="h-11 w-full" />
             </div>
           ))}
+          <Skeleton className="h-11 w-full" />
         </div>
         <p className="text-xs text-muted-foreground">
           Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
@@ -87,9 +87,6 @@ export function PromoSettingsSkeleton() {
           days, and the end date is the last full day of the sale. Turning it on emails everyone subscribed to news and
           promotions once; saving it again while it&apos;s on doesn&apos;t.
         </p>
-        <Button type="button" disabled className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
-          Save
-        </Button>
       </CardContent>
     </Card>
     <Card>
@@ -111,9 +108,9 @@ export function PromoSettingsSkeleton() {
             page — customers read this before anything else.
           </p>
         </div>
-        <Button type="button" disabled className="h-11 w-full sm:ml-auto sm:block sm:w-fit">
-          Save
-        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2">
+          <Skeleton className="h-11 w-full" />
+        </div>
       </CardContent>
     </Card>
     </>

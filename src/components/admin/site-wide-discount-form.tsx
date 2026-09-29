@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { updateSiteWideDiscount, type SiteWideDiscountFormState } from "@/actions/admin-actions";
 
-const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-sm";
+const selectClass =
+  "h-11 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
 
 /** Already in display units: `amount` in pesos for FIXED, a plain percent for
  *  PERCENTAGE; dates as the yyyy-mm-dd an `<input type="date">` wants. */
@@ -49,7 +50,7 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
         />
         On (applies to every fragrance)
       </label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
         <div className="min-w-0 space-y-1">
           <Label htmlFor="siteWideDiscountType">Type</Label>
           <select
@@ -84,6 +85,9 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
           <Label htmlFor="siteWideDiscountEndsAt">Ends (optional)</Label>
           <Input id="siteWideDiscountEndsAt" name="endsAt" type="date" defaultValue={values.endsAt} />
         </div>
+        <SubmitButton className="w-full" pendingLabel="Saving…">
+          Save
+        </SubmitButton>
       </div>
       <p id="siteWideDiscountHelp" className="text-xs text-muted-foreground">
         Competes with each product&apos;s own discount — whichever saves the customer more wins, they never stack. No
@@ -96,23 +100,15 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
           {state.error}
         </p>
       ) : null}
-      {/* The status line sits beside Save (below it on a phone) and is always on
-          the page, so a screen reader announces each new save; the key makes a
-          second identical "Saved." still count as a change. */}
-      <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center">
-        <SubmitButton className="h-11 w-full sm:ml-auto sm:block sm:w-fit" pendingLabel="Saving…">
-          Save
-        </SubmitButton>
-        <p role="status" className="text-xs text-muted-foreground sm:mr-auto">
-          {wasSaved ? (
-            <span key={state.savedAt}>
-              {state.announcedTo
-                ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
-                : "Saved."}
-            </span>
-          ) : null}
-        </p>
-      </div>
+      <p role="status" className="min-h-4 text-xs text-muted-foreground">
+        {wasSaved ? (
+          <span key={state.savedAt}>
+            {state.announcedTo
+              ? `Saved. Emailing ${state.announcedTo} subscriber${state.announcedTo === 1 ? "" : "s"} about the sale.`
+              : "Saved."}
+          </span>
+        ) : null}
+      </p>
     </form>
   );
 }

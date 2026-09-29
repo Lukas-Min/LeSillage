@@ -108,25 +108,39 @@ async function SettingsTab() {
           </CardHeader>
           <CardContent>
             <form action={updatePromoSettings} className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (₱)</Label>
-                <Input
-                  id="decantThresholdCentavos"
-                  name="decantThresholdCentavos"
-                  type="number"
-                  step="0.01"
-                  defaultValue={fromCentavos(row?.decantThresholdCentavos ?? 200000)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="deliveryFeeCentavos">Delivery fee (₱)</Label>
-                <Input
-                  id="deliveryFeeCentavos"
-                  name="deliveryFeeCentavos"
-                  type="number"
-                  step="0.01"
-                  defaultValue={fromCentavos(row?.deliveryFeeCentavos ?? 12000)}
-                />
+              <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (₱)</Label>
+                  <Input
+                    id="decantThresholdCentavos"
+                    name="decantThresholdCentavos"
+                    type="number"
+                    step="0.01"
+                    defaultValue={fromCentavos(row?.decantThresholdCentavos ?? 200000)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="deliveryFeeCentavos">Delivery fee (₱)</Label>
+                  <Input
+                    id="deliveryFeeCentavos"
+                    name="deliveryFeeCentavos"
+                    type="number"
+                    step="0.01"
+                    defaultValue={fromCentavos(row?.deliveryFeeCentavos ?? 12000)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="decantPreOrderThresholdMl">Decant pre-order threshold (ml)</Label>
+                  <Input
+                    id="decantPreOrderThresholdMl"
+                    name="decantPreOrderThresholdMl"
+                    type="number"
+                    defaultValue={row?.decantPreOrderThresholdMl ?? 10}
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Save
+                </Button>
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -148,26 +162,14 @@ async function SettingsTab() {
                 On a delivered order over the decant threshold, assigns one in-stock SKU marked Tester. Those SKUs stay
                 listed in the shop. Pickup never receives a complimentary tester.
               </p>
-              <div className="space-y-1">
-                <Label htmlFor="decantPreOrderThresholdMl">Decant pre-order threshold (ml)</Label>
-                <Input
-                  id="decantPreOrderThresholdMl"
-                  name="decantPreOrderThresholdMl"
-                  type="number"
-                  defaultValue={row?.decantPreOrderThresholdMl ?? 10}
-                />
-                <p className="text-xs text-muted-foreground">
-                  When remaining ml on an In-house decant drops below this, every In-house size on that fragrance
-                  becomes pre-order. Retail decants ignore this pool and use their own stock.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes
+                pre-order. Retail decants ignore this pool and use their own stock.
+              </p>
               <p className="text-xs text-muted-foreground">
                 Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not
                 centavos.
               </p>
-              <SubmitButton className="h-11 w-full sm:ml-auto sm:block sm:w-fit" pendingLabel="Saving…">
-                Save
-              </SubmitButton>
             </form>
           </CardContent>
         </Card>

@@ -33,7 +33,7 @@ export function OptionListEditor({
       </header>
       <ul className="space-y-2">
         {values.map((row) => (
-          <li key={row.id} className="flex items-end gap-2 border-t pt-2">
+          <li key={row.id} className="grid grid-cols-1 items-end gap-2 border-t pt-2 sm:grid-cols-4">
             <form
               action={(formData) =>
                 startTransition(async () => {
@@ -50,24 +50,24 @@ export function OptionListEditor({
                   }
                 })
               }
-              className="flex flex-1 items-end gap-2"
+              className="contents"
             >
-              <div className="flex-1 space-y-1">
+              <div className="space-y-1">
                 <Label htmlFor={`${row.id}-value`}>Value</Label>
                 <Input id={`${row.id}-value`} name="value" defaultValue={row.value} required />
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="space-y-1">
                 <Label htmlFor={`${row.id}-label`}>Label</Label>
                 <Input id={`${row.id}-label`} name="label" defaultValue={row.label} required />
               </div>
-              <Button type="submit" size="sm" disabled={isPending}>
+              <Button type="submit" className="w-full" disabled={isPending}>
                 Save
               </Button>
             </form>
             <Button
               type="button"
-              size="sm"
               variant={row.isActive ? "destructive" : "outline"}
+              className="w-full"
               disabled={isPending}
               onClick={() =>
                 startTransition(async () => {
@@ -86,7 +86,7 @@ export function OptionListEditor({
         ))}
       </ul>
       <form
-        className="flex items-end gap-2 border-t pt-3"
+        className="grid grid-cols-1 items-end gap-2 border-t pt-3 sm:grid-cols-4"
         action={(formData) =>
           startTransition(async () => {
             try {
@@ -104,15 +104,15 @@ export function OptionListEditor({
           })
         }
       >
-        <div className="flex-1 space-y-1">
-          <Label htmlFor="new-value">New value</Label>
-          <Input id="new-value" name="value" required placeholder="e.g. SPICY" />
+        <div className="space-y-1">
+          <Label htmlFor={`${listKey}-new-value`}>New value</Label>
+          <Input id={`${listKey}-new-value`} name="value" required placeholder="e.g. SPICY" />
         </div>
-        <div className="flex-1 space-y-1">
-          <Label htmlFor="new-label">Label</Label>
-          <Input id="new-label" name="label" required placeholder="Spicy" />
+        <div className="space-y-1">
+          <Label htmlFor={`${listKey}-new-label`}>Label</Label>
+          <Input id={`${listKey}-new-label`} name="label" required placeholder="Spicy" />
         </div>
-        <Button type="submit" size="sm" disabled={isPending}>
+        <Button type="submit" className="w-full" disabled={isPending}>
           Add
         </Button>
       </form>

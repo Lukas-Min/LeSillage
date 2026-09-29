@@ -18,32 +18,30 @@ export default function AdminSettingsLoading() {
             </div>
             <ul className="space-y-2">
               {Array.from({ length: 3 }).map((_, row) => (
-                <li key={row} className="flex items-end gap-2 border-t pt-2">
-                  <div className="flex flex-1 items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <Label>Value</Label>
-                      <Skeleton className="h-11 w-full" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <Label>Label</Label>
-                      <Skeleton className="h-11 w-full" />
-                    </div>
-                    <Skeleton className="h-7 w-12" />
+                <li key={row} className="grid grid-cols-1 items-end gap-2 border-t pt-2 sm:grid-cols-4">
+                  <div className="space-y-1">
+                    <Label>Value</Label>
+                    <Skeleton className="h-11 w-full" />
                   </div>
-                  <Skeleton className="h-7 w-20" />
+                  <div className="space-y-1">
+                    <Label>Label</Label>
+                    <Skeleton className="h-11 w-full" />
+                  </div>
+                  <Skeleton className="h-11 w-full" />
+                  <Skeleton className="h-11 w-full" />
                 </li>
               ))}
             </ul>
-            <div className="flex items-end gap-2 border-t pt-3">
-              <div className="flex-1 space-y-1">
+            <div className="grid grid-cols-1 items-end gap-2 border-t pt-3 sm:grid-cols-4">
+              <div className="space-y-1">
                 <Label>New value</Label>
                 <Skeleton className="h-11 w-full" />
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="space-y-1">
                 <Label>Label</Label>
                 <Skeleton className="h-11 w-full" />
               </div>
-              <Skeleton className="h-7 w-12" />
+              <Skeleton className="h-11 w-full" />
             </div>
           </section>
         ))}

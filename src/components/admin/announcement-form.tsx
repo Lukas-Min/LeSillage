@@ -51,7 +51,11 @@ export function AnnouncementForm({ enabled, messages }: { enabled: boolean; mess
           Saved — the bar updates on the storefront right away.
         </p>
       ) : null}
-      <SubmitButton className="h-11 w-full sm:ml-auto sm:block sm:w-fit" pendingLabel="Saving…">Save</SubmitButton>
+      <div className="grid grid-cols-1 sm:grid-cols-2">
+        <SubmitButton className="w-full" pendingLabel="Saving…">
+          Save
+        </SubmitButton>
+      </div>
     </form>
   );
 }
