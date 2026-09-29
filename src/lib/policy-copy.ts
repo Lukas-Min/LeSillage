@@ -5,7 +5,7 @@ export const policyCopy = {
   },
   returns: {
     label: "Returns & authenticity",
-    body: "Sealed unused retail bottles can be returned within 7 days if unused. Tester bottles, partials, and decants (In-house or Retail) are final sale. Every bottle is sourced from authorised distributors — authenticity is guaranteed.",
+    body: "Sealed unused retail bottles can be returned within 7 days if unused. Tester bottles, partials, and decants (In-house or Retail) are final sale. Every bottle is sourced from authorised distributors, and authenticity is guaranteed: if anything we sell is proven fake, final-sale items included, you get a full refund.",
   },
   privacy: {
     label: "Privacy & data",

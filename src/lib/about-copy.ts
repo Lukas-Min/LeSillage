@@ -9,7 +9,7 @@ export const ABOUT_PILLARS = [
   {
     icon: ShieldCheck,
     title: "Authorised distributors only",
-    body: "Every fragrance we carry, in every format, is sourced through authorised channels. No grey market.",
+    body: "Every fragrance we carry, in every format, is sourced through authorised channels. No grey market, and a full refund if anything is ever proven fake.",
   },
   {
     icon: MapPin,

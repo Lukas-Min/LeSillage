@@ -68,7 +68,7 @@ export const FAQ_GROUPS = [
             `Designer — ${FRAGRANCE_CATEGORY_BLURBS.DESIGNER}`,
             `Middle Eastern — ${FRAGRANCE_CATEGORY_BLURBS.MIDDLE_EASTERN}`,
           ],
-          note: "It's about the house, not the scent itself — you'll find fresh, sweet, and woody fragrances on all three shelves.",
+          note: "It's about the house, not the scent itself — you'll find fresh, sweet, and woody fragrances on all three shelves. Pick one from the homepage, or use Filter → Shelf in the shop.",
         } satisfies FaqAnswer,
       },
       {
@@ -140,7 +140,7 @@ export const FAQ_GROUPS = [
             "On hand — ships in 1–2 days (same-day in Metro Manila on weekends).",
             "Pre-order — ships in 3–30 days.",
           ],
-          note: "Ordering both? You'll see each item's own window at checkout.",
+          note: "Ordering both? You'll see each item's own window at checkout. In the shop, Filter → Stock shows only what's on hand (ready to ship) or only pre-orders.",
         } satisfies FaqAnswer,
       },
       {
@@ -177,8 +177,20 @@ export const FAQ_GROUPS = [
         } satisfies FaqAnswer,
       },
       {
+        q: "Can I get news and promotions by email?",
+        a: {
+          lead: "Yes — sign up with the form at the bottom of the homepage or on the Contact page:",
+          bullets: [
+            "We email you a link to confirm first, so nobody can sign up an address that isn't theirs.",
+            "Signed in with that same address? It's confirmed straight away, or switch it on under Account → Notifications.",
+            "Every promotional email has an Unsubscribe link, and we send at most one a week.",
+          ],
+          note: "Unsubscribing only stops news and promotions. Order and account emails, like receipts and shipping updates, always arrive.",
+        } satisfies FaqAnswer,
+      },
+      {
         q: "Are your fragrances authentic?",
-        a: "Yes. Every bottle we carry, in every format, comes from authorised distributors — never grey-market or counterfeit stock.",
+        a: "Yes. Every bottle we carry, in every format, comes from authorised distributors — never grey-market or counterfeit stock. If anything we sell is ever proven fake, final-sale items like decants and partials included, you get a full refund.",
       },
     ],
   },

@@ -1,9 +1,9 @@
 # Code review checkpoint
 
-**Last reviewed commit:** `e0e5970f9aebfd1cdb5ef3c93dd1b9e344e30b93`
-**Reviewed:** 2026-09-29
-**Scope of that review:** `git diff 5c0e045...e0e5970` — stacked order and delivery promo codes, site-wide discount dates, account promo codes, checkout, and the admin form pages. The 2026-09-24 findings were already closed in the fix pass logged the same day.
+**Last reviewed commit:** `4f39dd58d46041287139523d018359c614d06a48`
+**Reviewed:** 2026-09-30
+**Scope of that review:** `git diff e0e5970...4f39dd5` — newsletter double opt-in, one-click unsubscribe, the marketing email queue, promo codes limited to chosen customers, and this session's storefront redesign (search, homepage, product grid and cards, All tab and stock filter, header Shop menu, three-column page size, sort tie-break, rail arrows).
 
-The next code review should scope itself to `git diff e0e5970...HEAD`. Open from this pass: checkout does not re-check the site-wide discount inside the order transaction (`src/lib/orders.ts`); Enter in the checkout promo field places the order (`src/components/store/checkout-form.tsx`); account promo end dates show the exclusive boundary (`src/app/account/promo-codes/page.tsx`). Pill sizing past 576px was measured later and closed.
+The next code review should scope itself to `git diff 4f39dd5...HEAD`. Open from this pass (see LOG.md): Safari can lose Shop-menu card clicks (`src/components/store/shop-menu.tsx`); confirmed newsletter sign-ups matching an unverified account get no email (`src/domain/marketing.ts`); promo-code emails ignore the code's dates (`src/actions/admin-promo-code-actions.ts`); a crashed marketing run can re-send (`src/lib/marketing-queue.ts`). Still open from 2026-09-29: checkout does not re-check the site-wide discount inside the order transaction; Enter in the checkout promo field places the order; account promo end dates show the exclusive boundary.
 
 Do not edit this by hand except to correct an error — it's updated automatically at the end of every code review (see `CLAUDE.md` → "Code review checkpoints (hard rule)").

@@ -3,6 +3,11 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Authenticity guarantee: a full refund if anything sold is proven fake, final-sale items (decants, partials, testers) included, stated in the shared returns policy (`policyCopy.returns`, shown on the product page, cart, cart drawer, and Policies page), the FAQ's "Are your fragrances authentic?", and the About page's "Authorised distributors only" pillar (`src/lib/policy-copy.ts`, `faq-copy.ts`, `about-copy.ts`)
+- FAQ "Can I get news and promotions by email?" (homepage and Contact sign-up, email confirmation first, an Unsubscribe link in every promotional email, order emails unaffected); the scent-family answer points to the homepage and Filter → Shelf, and the shipping answer to Filter → Stock (`src/lib/faq-copy.ts`)
+- Store skill (`.claude/` and `.cursor/` copies) gains a Storefront section covering /shop (All default, Shop menu instead of tabs, filters, sort tie-break, 20/21 page size, grid and card sizing, search), the homepage sections and rails, the `text-gold-ink` rule, accessibility pieces, and where the authenticity promise lives
+- Code review of `e0e5970...4f39dd5` logged in `code-review/LOG.md` (9 findings, none fixed in this pass) and the checkpoint advanced
 ### Changed
 - Homepage rails on phones: middle cards snap to the centre, showing about a quarter of the previous and next card on each side (1/4 · 1 · 1/4); the first card still snaps to the left edge (one full card plus half the next) and the last to the right edge. From 576px every card snaps to the left edge as before (`RAIL_ITEM_CLASS` in `src/components/store/home-sections.tsx`)
 ### Changed
