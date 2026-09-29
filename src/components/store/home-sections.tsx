@@ -258,7 +258,7 @@ export function ShelfTiles() {
 }
 
 const FAMILIES: Array<{ slug: string; title: string; description: string }> = [
-  { slug: "middle-eastern", title: "Middle Eastern", description: "Rich oud, amber, and spice, made to linger" },
+  { slug: "middle-eastern", title: "Middle Eastern", description: "Luxurious oud and amber, without the luxury price" },
   { slug: "designer", title: "Designer", description: "The names you know, polished and easy to wear" },
   { slug: "niche", title: "Niche", description: "Independent houses with unexpected compositions" },
 ];

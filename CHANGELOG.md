@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Homepage Middle Eastern scent-family tile reads "Luxurious oud and amber, without the luxury price" to lead with value (`src/components/store/home-sections.tsx`)
+### Changed
 - Homepage scent-family tiles get their one-line description back, rewritten ("Rich oud, amber, and spice, made to linger" / "The names you know, polished and easy to wear" / "Independent houses with unexpected compositions"), and the letter watermark sits higher still, cropped further by the tile's top edge (`src/components/store/home-sections.tsx`)
 ### Changed
 - Homepage scent-family tiles drop their one-line description (just the family name and "Explore"), and the letter watermark sits higher, partly cropped by the tile's top edge behind "Explore" (`src/components/store/home-sections.tsx`)
