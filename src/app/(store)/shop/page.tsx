@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { CatalogPagination } from "@/components/store/catalog-pagination";
 import { CatalogResults } from "@/components/store/catalog-grid";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
-import { ShopFilters } from "@/components/store/shop-filters";
 import { ShopToolbar } from "@/components/store/shop-toolbar";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { CATALOG_SORTS, countCatalogCards, loadCatalogCards, type CatalogSort } from "@/lib/catalog";
@@ -87,9 +86,6 @@ export default async function ShopPage({
       {/* No visible header: breadcrumbs, then straight into the tabs and
           products. The page still needs its h1 for screen readers. */}
       <h1 className="sr-only">Shop</h1>
-      <div className="mb-4 flex justify-center">
-        <ShopFilters activeType={type} />
-      </div>
       <Suspense
         key={[type, category, stock, gender, sort, page].join("|")}
         fallback={<CatalogResultsSkeleton toolbar />}

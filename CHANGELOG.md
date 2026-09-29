@@ -3,6 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Shop mega menu: from `md` up, hovering "Shop" in the header (a real mouse only, with a short grace period to reach the panel) opens a full-width panel under the header with Shop by type (All fragrances, Decants, Full bottles, Partials), Scent family (Middle Eastern, Designer, Niche), Discover (On sale, New arrivals, Highest rated, Ready to ship), and a "Decants from 3 ml" tile; a chevron button toggles it from the keyboard (`aria-expanded`), focus leaving or Escape closes it (Escape returns focus to the chevron), and any link closes it. On phones the same groups replace the single "Shop" link in the hamburger menu. One shared `SHOP_MENU_GROUPS` list feeds both (`src/components/store/shop-menu.tsx`, `src/components/store/store-header.tsx`)
+### Removed
+- The All/Decants/Full bottles/Partials tabs on /shop (`src/components/store/shop-filters.tsx` deleted); the header's Shop menu now covers them. The header nav is centred without a transform so the menu's fixed panel can span the header's full width
 ### Changed
 - Shop shelf tabs: only the active tab is underlined (full cell width); the rule under the inactive tabs and the hover underline are removed (`src/components/store/shop-filters.tsx`)
 ### Changed

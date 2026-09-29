@@ -1,5 +1,4 @@
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { ShopFilters } from "@/components/store/shop-filters";
 import { CatalogResultsSkeleton } from "@/components/store/loading";
 
 // The header/eyebrow/subtitle and shelf tabs are the same regardless of
@@ -15,9 +14,6 @@ export default function ShopLoading() {
       {/* No visible header: breadcrumbs, then straight into the tabs and
           products. The page still needs its h1 for screen readers. */}
       <h1 className="sr-only">Shop</h1>
-      <div className="mb-4 flex justify-center">
-        <ShopFilters />
-      </div>
       <CatalogResultsSkeleton toolbar />
     </main>
   );

@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Menu,
-  Store,
   HelpCircle,
   MessageCircle,
   Wallet,
@@ -31,18 +30,18 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { PromoMarquee } from "@/components/store/promo-marquee";
+import { SHOP_MENU_GROUPS, ShopMegaMenu } from "@/components/store/shop-menu";
 
+/** Besides Shop, which is its own mega-menu item (ShopMegaMenu). */
 const PRIMARY_LINKS = [
-  { href: "/shop", label: "Shop" },
   { href: "/faq", label: "FAQs" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
+/** The phone menu: the shop groups first (the same links as the desktop mega
+ *  menu), then help and the maison. */
 const MENU_GROUPS = [
-  {
-    title: "Shop",
-    links: [{ href: "/shop", label: "Shop", icon: Store }],
-  },
+  ...SHOP_MENU_GROUPS,
   {
     title: "Help",
     links: [
@@ -121,7 +120,12 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
             </span>
           </Link>
         </div>
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-xs uppercase tracking-[0.22em] md:flex">
+        {/* Centred with inset-x-0 + mx-auto + w-fit rather than a
+            left-1/2/-translate-x-1/2 transform: a transform would become the
+            containing block for ShopMegaMenu's fixed panel and trap it inside
+            this small nav box instead of letting it span the header. */}
+        <nav className="absolute inset-x-0 mx-auto hidden w-fit items-center gap-8 text-xs uppercase tracking-[0.22em] md:flex">
+          <ShopMegaMenu active={pathname === "/shop" || Boolean(pathname?.startsWith("/shop/"))} />
           {PRIMARY_LINKS.map((link) => {
             const active = pathname === link.href || pathname?.startsWith(link.href + "/");
             return (
