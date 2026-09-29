@@ -70,11 +70,11 @@ export default function AdminProductLoading() {
             <Skeleton className="h-3 w-2/3" />
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Button type="button" disabled className="h-11 w-full sm:w-auto">
-              Save
-            </Button>
             <Button type="button" variant="destructive" disabled className="h-11 w-full sm:w-auto">
               Archive or delete
+            </Button>
+            <Button type="button" disabled className="h-11 w-full sm:w-auto">
+              Save
             </Button>
           </div>
         </CardContent>

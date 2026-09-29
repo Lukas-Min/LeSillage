@@ -236,10 +236,8 @@ export default async function AdminProductDetailPage({
           <form id="delete-product-form" action={archiveOrDeleteProduct}>
             <input type="hidden" name="productId" value={product.id} />
           </form>
+          {/* Main action last, so Save sits on the right edge (.cursor/rules/form-actions.mdc). */}
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <SubmitButton form="save-product-form" className="h-11 w-full sm:w-auto">
-              Save
-            </SubmitButton>
             <ConfirmSubmitButton
               formId="delete-product-form"
               triggerLabel="Archive or delete"
@@ -248,6 +246,9 @@ export default async function AdminProductDetailPage({
               description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records). Otherwise it's deleted permanently. This can't be undone from here."
               confirmLabel="Archive or delete"
             />
+            <SubmitButton form="save-product-form" className="h-11 w-full sm:w-auto">
+              Save
+            </SubmitButton>
           </div>
         </CardContent>
       </Card>
