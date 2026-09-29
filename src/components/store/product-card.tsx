@@ -95,7 +95,6 @@ export function ProductCard({
             <div className="border-t border-border/60 pt-3">
               <CatalogPrice
                 minOriginalCentavos={card.minOriginalCentavos}
-                maxOriginalCentavos={card.maxOriginalCentavos}
                 minDiscountedCentavos={card.minDiscountedCentavos}
                 maxDiscountedCentavos={card.maxDiscountedCentavos}
                 savePercent={card.savePercent}

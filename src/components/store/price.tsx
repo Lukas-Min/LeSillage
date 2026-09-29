@@ -1,5 +1,5 @@
 import { applyLineDiscount, pickHighestSaving } from "@/domain/discount";
-import { formatPHP, formatPHPRange } from "@/domain/money";
+import { formatPHP } from "@/domain/money";
 import { SAVE_BADGE_CLASS } from "@/components/store/overlay-pill";
 import type { VariantDiscount } from "@/domain/variant-options";
 
@@ -75,7 +75,6 @@ export function Price({
 
 export function CatalogPrice({
   minOriginalCentavos,
-  maxOriginalCentavos,
   minDiscountedCentavos,
   maxDiscountedCentavos,
   savePercent,
@@ -83,22 +82,27 @@ export function CatalogPrice({
   showSaveBadge = true,
 }: {
   minOriginalCentavos: number;
-  maxOriginalCentavos: number;
   minDiscountedCentavos: number;
   maxDiscountedCentavos: number;
   savePercent: number | null;
   align?: "left" | "right";
   showSaveBadge?: boolean;
 }) {
-  const hasDiscount =
-    minDiscountedCentavos < minOriginalCentavos || maxDiscountedCentavos < maxOriginalCentavos;
+  // One price, not a range: the cheapest option, prefixed "From" when other
+  // sizes/options cost more. The struck original pairs with that cheapest
+  // price, the same pairing the card's "Save X%" badge is computed from.
+  const hasMoreOptions = minDiscountedCentavos !== maxDiscountedCentavos;
+  const fromIsDiscounted = minDiscountedCentavos < minOriginalCentavos;
   const alignClass = align === "right" ? "text-right" : "text-left";
   const rowJustify = align === "right" ? "justify-end" : "justify-start";
   return (
     <div className={`space-y-1 ${alignClass}`}>
-      {hasDiscount ? (
+      {fromIsDiscounted ? (
         <p className={`flex flex-wrap items-center gap-2 text-sm text-muted-foreground ${rowJustify}`}>
-          <s>{formatPHPRange(minOriginalCentavos, maxOriginalCentavos)}</s>
+          <s>
+            <span className="sr-only">Original price </span>
+            {formatPHP(minOriginalCentavos)}
+          </s>
           {showSaveBadge && savePercent && savePercent > 0 ? (
             <span className={SAVE_BADGE_CLASS}>
               Save {savePercent}%
@@ -109,13 +113,14 @@ export function CatalogPrice({
       {/* Card content width (measured, not guessed): ~309px below 576px,
           ~230px at the 2-column tier (576-767px), then a roughly constant
           ~190px from md up (768px+) — 3/4/5 columns grow with the viewport
-          in lockstep, so the per-card width barely changes once >=768px. So
-          only two sizes are needed: the default fits every current price
-          range up to ~230px, and md: shrinks once card width drops to ~190px.
-          No whitespace-nowrap — if a future price range is ever wider than
-          this was tuned for, it wraps to a second line instead of clipping. */}
+          in lockstep, so the per-card width barely changes once >=768px.
+          "From ₱12,345.00" fits both sizes; no whitespace-nowrap, so a
+          longer price wraps instead of clipping. */}
       <p className="font-price-display text-2xl leading-none tracking-tight md:text-lg">
-        {formatPHPRange(minDiscountedCentavos, maxDiscountedCentavos)}
+        {hasMoreOptions ? (
+          <span className="mr-1.5 font-sans text-xs uppercase tracking-[0.2em] text-muted-foreground">From</span>
+        ) : null}
+        {formatPHP(minDiscountedCentavos)}
       </p>
     </div>
   );
