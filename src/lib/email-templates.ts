@@ -435,6 +435,7 @@ export function promoAssignedEmail(args: {
   name: string | null;
   code: string;
   offer: string;
+  unsubscribeUrl: string;
 }): { subject: string; text: string; html: string } {
   const who = args.name?.trim() || "there";
   const subject = "A promo code for you";
@@ -450,9 +451,12 @@ ${copyUrl}
 
 If you were not expecting this, you can ignore this email.
 
+Unsubscribe from news and promotions: ${args.unsubscribeUrl}
+
 — Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
+    unsubscribeUrl: args.unsubscribeUrl,
     eyebrow: "For you",
     title: "A promo code",
     greeting: `Hi ${who},`,
@@ -472,30 +476,59 @@ export function siteWideDiscountEmail(args: {
   offer: string;
   /** "From Oct 1 through Oct 5." and the like, or null when it has no dates. */
   window: string | null;
+  unsubscribeUrl: string;
 }): { subject: string; text: string; html: string } {
   const who = args.name?.trim() || "there";
   const subject = `${args.offer} at Le Sillage Manila`;
   const shopUrl = `${siteUrl()}/shop`;
   const lead = `${args.offer}. It comes off the price automatically, no code needed.`;
-  const unsubscribe =
-    "You're getting this because you signed up for news and promotions. To stop, turn them off under Account → Notifications, or reply to this email and we'll take you off the list.";
+  const why = "You're getting this because you signed up for news and promotions.";
   const text = `Hi ${who},
 
 ${lead}
 ${args.window ? `\n${args.window}\n` : ""}
 Shop now: ${shopUrl}
 
-${unsubscribe}
+${why}
+Unsubscribe: ${args.unsubscribeUrl}
 
 — Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
+    unsubscribeUrl: args.unsubscribeUrl,
     eyebrow: "Sale",
     title: args.offer,
     greeting: `Hi ${who},`,
     intro: args.window ? [lead, args.window] : [lead],
     cta: { label: "Shop now", url: shopUrl },
-    footnote: unsubscribe,
+    footnote: why,
+  });
+  return { subject, text, html };
+}
+
+/** Sent when someone signs up for the newsletter without being signed in to
+ *  that address's account. Nothing is sent to them until they confirm. */
+export function newsletterConfirmEmail(args: { confirmUrl: string }): { subject: string; text: string; html: string } {
+  const subject = "Confirm your Le Sillage Manila subscription";
+  const lead = "Tap the button to confirm you'd like news and promotions from Le Sillage Manila by email.";
+  const ignore = "If you didn't sign up, ignore this email and you won't hear from us.";
+  const text = `Hi,
+
+${lead}
+
+Confirm: ${args.confirmUrl}
+
+${ignore}
+
+— Le Sillage Manila`;
+  const html = renderOrderEmailHtml({
+    siteUrl: siteUrl(),
+    eyebrow: "Newsletter",
+    title: "Confirm your subscription",
+    greeting: "Hi,",
+    intro: [lead],
+    cta: { label: "Confirm", url: args.confirmUrl },
+    footnote: ignore,
   });
   return { subject, text, html };
 }

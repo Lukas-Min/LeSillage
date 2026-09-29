@@ -8,7 +8,6 @@ import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
 import {
-  notificationLog,
   orders,
   promoCodeAllowedUsers,
   promoCodeRedemptions,
@@ -20,8 +19,9 @@ import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { formatPHP, toCentavos } from "@/domain/money";
 import { parsePhDateBoundary } from "@/domain/ph-date";
-import { sendEmail } from "@/lib/email";
+import { unsubscribePageUrl } from "@/lib/email-links";
 import { promoAssignedEmail } from "@/lib/email-templates";
+import { drainMarketingQueue, enqueueMarketingEmails } from "@/lib/marketing-queue";
 import { withAllowedUsers } from "@/lib/promo-code-access";
 
 const createSchema = z.object({
@@ -112,9 +112,8 @@ async function loadEligibleSubscribers(
   return eligible.filter((u): u is { id: string; email: string; name: string | null } => u.email !== null);
 }
 
-/** Fire-and-forget a promo email to every still-eligible subscriber, logging
- *  each attempt individually — same audit trail shape as the single-customer
- *  send below, just one row per recipient instead of one row total. */
+/** Queues a promo email for every still-eligible subscriber after the
+ *  response, and sends the first batch; the hourly cron sends the rest. */
 function broadcastPromoEmail(code: {
   id: string;
   code: string;
@@ -131,16 +130,19 @@ function broadcastPromoEmail(code: {
   const offer = describeCustomerOffer(code.type, code.amount, code.scope, code.maxRedemptions);
   after(async () => {
     const recipients = await loadEligibleSubscribers(code);
-    for (const recipient of recipients) {
-      const message = promoAssignedEmail({ name: recipient.name, code: code.code, offer });
-      const result = await sendEmail({ to: recipient.email, subject: message.subject, text: message.text, html: message.html });
-      await db().insert(notificationLog).values({
+    await enqueueMarketingEmails(
+      recipients.map((recipient) => ({
         recipient: recipient.email,
         template: "promo_code_broadcast",
-        status: result.ok ? "SENT" : "FAILED",
-        error: result.ok ? null : result.error ?? "unknown",
-      });
-    }
+        ...promoAssignedEmail({
+          name: recipient.name,
+          code: code.code,
+          offer,
+          unsubscribeUrl: unsubscribePageUrl(recipient.email),
+        }),
+      })),
+    );
+    await drainMarketingQueue();
   });
 }
 
@@ -189,7 +191,7 @@ function legacyRestrictedUserId(customers: readonly AllowedCustomer[]): string |
   return (customers.find((customer) => customer.deletedAt === null) ?? customers[0])?.id ?? null;
 }
 
-/** Emails each chosen customer their code, one audit row per recipient.
+/** Queues each chosen customer's code email (first batch sent right away).
  *  Skips anyone who turned promotions off or whose account is archived or deleted. */
 function emailAllowedCustomers(customers: readonly AllowedCustomer[], code: string, offer: string) {
   const recipients = customers.filter(
@@ -198,16 +200,14 @@ function emailAllowedCustomers(customers: readonly AllowedCustomer[], code: stri
   );
   if (recipients.length === 0) return;
   after(async () => {
-    for (const recipient of recipients) {
-      const message = promoAssignedEmail({ name: recipient.name, code, offer });
-      const result = await sendEmail({ to: recipient.email, subject: message.subject, text: message.text, html: message.html });
-      await db().insert(notificationLog).values({
+    await enqueueMarketingEmails(
+      recipients.map((recipient) => ({
         recipient: recipient.email,
         template: "promo_code_assigned",
-        status: result.ok ? "SENT" : "FAILED",
-        error: result.ok ? null : result.error ?? "unknown",
-      });
-    }
+        ...promoAssignedEmail({ name: recipient.name, code, offer, unsubscribeUrl: unsubscribePageUrl(recipient.email) }),
+      })),
+    );
+    await drainMarketingQueue();
   });
 }
 

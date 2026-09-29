@@ -1,5 +1,7 @@
 {
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "crons": [
     {
       "path": "/api/cron/payment-reminders",
@@ -20,6 +22,10 @@
     {
       "path": "/api/cron/delivery-auto-complete",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/marketing-emails",
+      "schedule": "0 7 * * *"
     }
   ]
 }

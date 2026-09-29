@@ -205,7 +205,39 @@ export const newsletterSubscribers = pgTable("newsletter_subscriber", {
     .$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull().unique(),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  // Set when the address owner clicks the emailed confirm link (or subscribes
+  // while signed in to that account). Unconfirmed sign-ups get no marketing email.
+  confirmedAt: timestamp("confirmedAt", { mode: "date" }),
 });
+
+export const marketingEmailStatus = ["PENDING", "SENDING", "SENT", "FAILED", "SKIPPED"] as const;
+export type MarketingEmailStatus = (typeof marketingEmailStatus)[number];
+
+// Bulk marketing email waits here and goes out in small batches (the hourly
+// marketing-emails cron, plus one batch right after the save), so a big send
+// stays under Gmail's daily limit. Each row is already rendered for its
+// recipient, unsubscribe link included.
+export const marketingEmails = pgTable(
+  "marketing_email",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    recipient: text("recipient").notNull(),
+    template: text("template").notNull(),
+    subject: text("subject").notNull(),
+    text: text("text").notNull(),
+    html: text("html").notNull(),
+    status: text("status").$type<MarketingEmailStatus>().notNull().default("PENDING"),
+    claimedAt: timestamp("claimedAt", { mode: "date" }),
+    sentAt: timestamp("sentAt", { mode: "date" }),
+    error: text("error"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    statusIdx: index("marketing_email_status_idx").on(t.status, t.createdAt),
+  }),
+);
 
 export const emailVerificationCodes = pgTable(
   "email_verification_code",

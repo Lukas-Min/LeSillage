@@ -27,7 +27,11 @@ export function SubscribeHero() {
         return;
       }
       setEmail("");
-      setMessage("You're subscribed. News and promotions will come by email.");
+      setMessage(
+        result.needsConfirmation
+          ? "Almost done. Check your inbox for a link to confirm."
+          : "You're subscribed. News and promotions will come by email.",
+      );
     } finally {
       setPending(false);
     }

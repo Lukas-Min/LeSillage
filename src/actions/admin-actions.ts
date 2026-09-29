@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { invalidateCatalog } from "@/lib/catalog";
 import { signIn } from "@/auth";
 import { db } from "@/db/client";
-import { notificationLog, promoSettings } from "@/db/schema";
+import { promoSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
@@ -16,8 +16,9 @@ import { formatPHP, toCentavos } from "@/domain/money";
 import { parsePhDateBoundary, toDisplayDate } from "@/domain/ph-date";
 import { siteWideDiscountFromSettings, type SiteWideDiscountConfig } from "@/domain/promo";
 import { shouldAnnounceSiteWideDiscount } from "@/domain/marketing";
-import { sendEmail } from "@/lib/email";
+import { unsubscribePageUrl } from "@/lib/email-links";
 import { siteWideDiscountEmail } from "@/lib/email-templates";
+import { drainMarketingQueue, enqueueMarketingEmails } from "@/lib/marketing-queue";
 import { loadMarketingRecipients } from "@/lib/marketing-recipients";
 import { formatDate } from "@/lib/utils";
 
@@ -60,25 +61,21 @@ function describeSaleWindow(config: SiteWideDiscountConfig, now: Date): string |
   return null;
 }
 
-/** Emails every marketing subscriber once, after the response has gone out,
- *  with one notification_log row per recipient. Returns how many it's sending to. */
+/** Queues the sale email for every marketing subscriber. Returns how many. */
 async function announceSiteWideDiscount(config: SiteWideDiscountConfig, now: Date): Promise<number> {
   const recipients = await loadMarketingRecipients();
   if (recipients.length === 0) return 0;
   const offer = `${config.type === "PERCENTAGE" ? `${config.amount}%` : formatPHP(config.amount)} off every fragrance`;
   const window = describeSaleWindow(config, now);
-  after(async () => {
-    for (const recipient of recipients) {
-      const message = siteWideDiscountEmail({ name: recipient.name, offer, window });
-      const result = await sendEmail({ to: recipient.email, subject: message.subject, text: message.text, html: message.html });
-      await db().insert(notificationLog).values({
-        recipient: recipient.email,
-        template: "site_wide_discount_broadcast",
-        status: result.ok ? "SENT" : "FAILED",
-        error: result.ok ? null : result.error ?? "unknown",
-      });
-    }
-  });
+  await enqueueMarketingEmails(
+    recipients.map((recipient) => ({
+      recipient: recipient.email,
+      template: "site_wide_discount_broadcast",
+      ...siteWideDiscountEmail({ name: recipient.name, offer, window, unsubscribeUrl: unsubscribePageUrl(recipient.email) }),
+    })),
+  );
+  // First batch now; the hourly marketing-emails cron sends the rest.
+  after(() => drainMarketingQueue());
   return recipients.length;
 }
 

@@ -21,6 +21,8 @@ export interface EmailMessage {
   text: string;
   html?: string;
   replyTo?: string;
+  /** Extra headers, e.g. List-Unsubscribe on marketing email. */
+  headers?: Record<string, string>;
 }
 
 export interface SendResult {
@@ -38,6 +40,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendResult> {
       text: message.text,
       html: message.html,
       replyTo: message.replyTo,
+      headers: message.headers,
     });
     return { ok: true };
   } catch (error) {

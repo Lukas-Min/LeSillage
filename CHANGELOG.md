@@ -3,6 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- One-click unsubscribe on every marketing email (sale, promo code): an Unsubscribe link in the footer opens `/unsubscribe`, whose button stops all news and promotions to that address, and a `List-Unsubscribe` + `List-Unsubscribe-Post` header gives Gmail and Apple Mail their own Unsubscribe button (`/api/unsubscribe`, RFC 8058). Links are signed with `AUTH_SECRET` per address and purpose (`src/domain/email-token.ts`, `src/lib/email-links.ts`), and `unsubscribeEmail` in `src/lib/marketing-recipients.ts` removes the newsletter row, turns off the account's setting, and drops anything still queued
+- Newsletter sign-ups are double opt-in: the Contact page form emails a confirm link (`newsletterConfirmEmail`, `/newsletter/confirm`), and only confirmed addresses get marketing email (`newsletter_subscriber.confirmedAt`, **run its SQL before deploying**). A customer signed in to that address, or turning promotions on in Account → Notifications, is confirmed straight away; confirming also turns promotions on for an account with that address. At most 3 confirm emails per address an hour
+- Bulk marketing email goes through a queue (`marketing_email`, `src/lib/marketing-queue.ts`): sale and promo announcements are rendered per recipient and queued, one batch sends right after the save, and the new hourly `marketing-emails` cron (Cloudflare Worker `JOBS`, daily Vercel fallback) sends 15 per run — 360 a day at most, under Gmail's daily limit. Rows are claimed with `FOR UPDATE SKIP LOCKED`, a stuck row is retried after 15 minutes, and anyone who unsubscribed after queueing is skipped
 ### Changed
 - `code-review/LOG.md` records the reviewer passes on the allowed-customers list and sale emails, and closes the "pill sizing past 576px" backlog item after measuring the live shop at 375–1536px (no overlap or overflow; photos stay 222–277px wide from 576px up, so the pills keep their proportion)
 ### Added

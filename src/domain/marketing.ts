@@ -1,5 +1,12 @@
 import { siteWideDiscountStatus, type SiteWideDiscountConfig } from "./promo";
 
+// Marketing email goes out through Gmail, which caps a regular account at
+// about 500 messages a day, order emails included. 15 per run, hourly, is 360
+// a day at most, leaving room for order emails.
+export const MARKETING_EMAILS_PER_RUN = 15;
+// A run that dies mid-send leaves rows SENDING; another run retries them after this.
+export const MARKETING_SEND_STALE_MS = 15 * 60 * 1000;
+
 export interface MarketingRecipient {
   email: string;
   name: string | null;
@@ -18,8 +25,9 @@ export interface MarketingAccount {
 /**
  * Everyone who asked for news and promotions: accounts with marketing opt-in
  * that are neither deleted nor archived, plus newsletter sign-ups with no
- * account. Accounts must be verified, so signing up with someone else's
- * address can't subscribe them. When an email belongs to an account, the
+ * account (the caller passes only confirmed ones — double opt-in). Accounts
+ * must be verified, so signing up with someone else's address can't
+ * subscribe them. When an email belongs to an account, the
  * account's setting decides — turning promotions off in Account →
  * Notifications wins over an old newsletter row. Emails are compared
  * lowercased and listed once.

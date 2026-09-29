@@ -58,7 +58,7 @@ Placing an order sends no email. An order still unpaid two hours in gets one pay
 
 ## Scheduled jobs
 
-Every `/api/cron/*` route (auto-reject, payment reminders, delivery auto-complete, delivery follow-ups, archive sweep) runs hourly from the Cloudflare Worker in `workers/auto-reject-cron`, because Vercel Hobby only allows daily crons. `vercel.json` keeps each route once a day as a fallback, so every route must be safe to run twice. Both callers send `Authorization: Bearer $CRON_SECRET`, and the Worker's secret must match Vercel's. A new cron route goes in the Worker's `JOBS` list.
+Every `/api/cron/*` route (auto-reject, payment reminders, delivery auto-complete, delivery follow-ups, archive sweep, marketing emails) runs hourly from the Cloudflare Worker in `workers/auto-reject-cron`, because Vercel Hobby only allows daily crons. `vercel.json` keeps each route once a day as a fallback, so every route must be safe to run twice. Both callers send `Authorization: Bearer $CRON_SECRET`, and the Worker's secret must match Vercel's. A new cron route goes in the Worker's `JOBS` list. Marketing email (sale and promo announcements) is queued and sent 15 per hourly run to stay under Gmail's daily limit; each one has a signed unsubscribe link, and newsletter sign-ups must confirm by email first.
 
 ## Documentation
 

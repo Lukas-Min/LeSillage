@@ -35,6 +35,8 @@ const JOBS = [
   "delivery-auto-complete",
   "delivery-followups",
   "archive-sweep",
+  // Sends the next batch of queued marketing email (sale and promo announcements).
+  "marketing-emails",
 ] as const;
 
 // scheduled-only — no fetch handler, so this Worker has no public HTTP

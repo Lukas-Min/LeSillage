@@ -71,6 +71,8 @@ export interface OrderEmailHtmlArgs {
   outro?: string[];
   /** Trailing small print (URLs the text version spells out, "reply to this email"). */
   footnote?: string;
+  /** Marketing email only: adds an Unsubscribe link to the footer. */
+  unsubscribeUrl?: string;
 }
 
 function paragraph(text: string, extra = ""): string {
@@ -204,7 +206,11 @@ ${parts.join("\n")}
   </td></tr>
   <tr><td align="center" style="padding:16px 28px 22px;background:${BG};border-radius:0 0 16px 16px;font-size:12px;line-height:1.6;color:${MUTED}">
     Decants, partials and full bottles · <a href="${site}" style="color:${GOLD};text-decoration:none">${escapeHtml(site.replace(/^https?:\/\//, ""))}</a><br>
-    Questions? Just reply to this email.
+    Questions? Just reply to this email.${
+      args.unsubscribeUrl
+        ? `<br><a href="${escapeHtml(args.unsubscribeUrl)}" style="color:${MUTED};text-decoration:underline">Unsubscribe</a> from news and promotions.`
+        : ""
+    }
   </td></tr>
 </table>
 </td></tr></table>

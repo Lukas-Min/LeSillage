@@ -660,6 +660,27 @@ async function main() {
     ON CONFLICT DO NOTHING
   `);
 
+  // Newsletter double opt-in, and the queue bulk marketing email goes through.
+  await db.execute(`ALTER TABLE "newsletter_subscriber" ADD COLUMN IF NOT EXISTS "confirmedAt" timestamp`);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS "marketing_email" (
+      "id" text PRIMARY KEY,
+      "recipient" text NOT NULL,
+      "template" text NOT NULL,
+      "subject" text NOT NULL,
+      "text" text NOT NULL,
+      "html" text NOT NULL,
+      "status" text NOT NULL DEFAULT 'PENDING',
+      "claimedAt" timestamp,
+      "sentAt" timestamp,
+      "error" text,
+      "createdAt" timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS "marketing_email_status_idx" ON "marketing_email" ("status", "createdAt")`,
+  );
+
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestedAt" timestamp`);
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestReason" text`);
 
@@ -697,6 +718,8 @@ async function main() {
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestReason";
 // DROP TABLE IF EXISTS "newsletter_subscriber";
 // DROP TABLE IF EXISTS "promo_code_allowed_user";
+// DROP TABLE IF EXISTS "marketing_email";
+// ALTER TABLE "newsletter_subscriber" DROP COLUMN IF EXISTS "confirmedAt";
 
 main().catch((error) => {
   console.error(error);

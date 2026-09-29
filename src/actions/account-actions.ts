@@ -81,7 +81,11 @@ export async function updateNotificationPreferences(formData: FormData) {
   await db().update(users).set({ marketingOptIn }).where(eq(users.id, user.id));
   if (email) {
     if (marketingOptIn) {
-      await db().insert(newsletterSubscribers).values({ email }).onConflictDoNothing({ target: newsletterSubscribers.email });
+      // Signed in to this address, so the sign-up counts as confirmed.
+      await db()
+        .insert(newsletterSubscribers)
+        .values({ email, confirmedAt: new Date() })
+        .onConflictDoUpdate({ target: newsletterSubscribers.email, set: { confirmedAt: new Date() } });
     } else {
       await db().delete(newsletterSubscribers).where(eq(newsletterSubscribers.email, email));
     }
