@@ -145,7 +145,7 @@ async function FlagshipPanel() {
           </div>
         ) : null}
         <Price
-          className="self-end pt-1 sm:self-start"
+          className="self-center pt-1 sm:self-start"
           originalCentavos={flagship.minOriginalCentavos}
           discountedCentavos={flagship.minDiscountedCentavos}
           showSaveBadge={false}
@@ -191,7 +191,7 @@ function FlagshipSkeleton() {
           </div>
           <Skeleton className="h-4 w-12 shrink-0 sm:hidden" />
         </div>
-        <Skeleton className="mt-1 h-8 w-48 self-end sm:self-start" />
+        <Skeleton className="mt-1 h-8 w-48 self-center sm:self-start" />
         <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row">
           <Skeleton className="h-11 w-full rounded-md sm:w-44" />
           <Button asChild variant="outline" size="lg" className="h-11 w-full rounded-md sm:w-44">
