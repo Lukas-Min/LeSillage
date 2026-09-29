@@ -253,23 +253,19 @@ async function CodesTab() {
                           <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
                           <SubmitButton variant="outline">{code.isActive ? "Deactivate" : "Activate"}</SubmitButton>
                         </form>
-                        {code.redemptionCount === 0 || code.code === "WELCOME10" ? (
-                          <>
-                            <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
-                              <input type="hidden" name="id" value={code.id} />
-                            </form>
-                            <ConfirmSubmitButton
-                              formId={`delete-promo-${code.id}`}
-                              title="Delete this promo code?"
-                              description={
-                                code.redemptionCount > 0
-                                  ? `"${code.code}" has been used ${code.redemptionCount} times. Deleting it removes the code. Past orders stay as they are.`
-                                  : `"${code.code}" has never been redeemed, so this is safe to remove permanently.`
-                              }
-                              triggerLabel="Delete"
-                            />
-                          </>
-                        ) : null}
+                        <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
+                          <input type="hidden" name="id" value={code.id} />
+                        </form>
+                        <ConfirmSubmitButton
+                          formId={`delete-promo-${code.id}`}
+                          title="Delete this promo code?"
+                          description={
+                            code.redemptionCount > 0
+                              ? `"${code.code}" has been used ${code.redemptionCount} time${code.redemptionCount === 1 ? "" : "s"}. Deleting it removes the code and the record of who used it. Past orders keep their discount, and this can't be undone.`
+                              : `"${code.code}" has never been redeemed, so this is safe to remove permanently.`
+                          }
+                          triggerLabel="Delete"
+                        />
                       </div>
                     </div>
                   </div>

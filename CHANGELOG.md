@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Every promo code can be deleted from `/admin/promo`, used or not (`deletePromoCode` in `src/actions/admin-promo-code-actions.ts`), instead of only never-redeemed codes and WELCOME10. The confirm dialog says how many times it was used and that past orders keep their discount; the code's redemption records and allowed-customers list go with it, and the audit entry keeps the redemption count
 ### Fixed
 - The bag drawer closes when the page changes (`src/components/store/cart-drawer.tsx`). It lives in the root-layout header, so it used to stay open over the next page — on a phone, a signed-out Checkout landed on sign-in under the open drawer. It now closes on any navigation (Checkout, the sign-in redirect, a product link) while Checkout's own "Checking out…" state still shows, and Checkout / View full cart close it when they point at the page already open
 - Every email's header logo is sent as an inline attachment (`withInlineLogo` in `src/lib/email.ts`) instead of an image fetched from the site, so it shows even where the mail app holds back web images until "Display images" is tapped. If the logo can't be fetched, the linked image is kept

@@ -603,16 +603,17 @@ export async function deletePromoCode(formData: FormData) {
     await db().select({ code: promoCodes.code, redemptionCount: promoCodes.redemptionCount }).from(promoCodes).where(eq(promoCodes.id, id))
   )[0];
   if (!row) throw new Error("Promo code not found");
-  if (row.redemptionCount > 0 && row.code !== "WELCOME10") {
-    throw new Error("This code has been redeemed and can't be deleted — deactivate it instead");
-  }
+  // Any code can go, used or not. Orders keep the discount amounts they were
+  // charged (they never reference the code row), so deleting only drops the
+  // code, its allowed-customers list and its redemption records (FK cascade);
+  // the redemption count is kept in the audit entry below.
   await db().delete(promoCodes).where(eq(promoCodes.id, id));
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_CODE_DELETE",
     targetType: "promo_code",
     targetId: id,
-    metadata: { code: row.code },
+    metadata: { code: row.code, redemptionCount: row.redemptionCount },
   });
   revalidatePath("/admin/promo");
 }
