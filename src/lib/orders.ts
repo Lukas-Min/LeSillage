@@ -43,7 +43,6 @@ import {
   cancellationRequestedEmail,
   orderCancelledEmail,
   orderConfirmedEmail,
-  orderCreatedPaymentEmail,
   orderDeliveredEmail,
   orderReadyForPickupEmail,
   orderShippedEmail,
@@ -52,7 +51,7 @@ import {
   type OrderEmail,
   type OrderEmailInput,
 } from "@/lib/email-templates";
-import { loadSkuImageMap, toEmailLines } from "@/lib/order-email-lines";
+import { toEmailLines } from "@/lib/order-email-lines";
 
 /**
  * A rejection the customer is meant to read — empty bag, item sold out,
@@ -281,7 +280,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
   // redemptionCount. Never trust a client-supplied discount amount: only
   // the code string comes from the client, everything else is re-derived
   // here from freshly-loaded state.
-  const { order, totals } = await client.transaction(async (tx) => {
+  const { order } = await client.transaction(async (tx) => {
     // priced/testerEligible above were computed from a snapshot of retailPrice
     // and discounts read before this transaction opened — the only thing
     // that snapshot fed into is this order's stored totals and the promo
@@ -450,7 +449,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       await tx.delete(cartItems).where(eq(cartItems.cartId, cart.id));
     }
 
-    return { order: insertedOrder, totals };
+    return { order: insertedOrder };
   });
 
   if (input.saveAddress && !isPickup && addressSnapshot) {
@@ -492,60 +491,9 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     }
   }
 
-  // The order is committed at this point; the confirmation email must
-  // neither delay the response nor fail checkout. after() runs it once the
-  // response has gone out — the SMTP handshake (up to 8s on a cold
-  // transporter) used to sit on the critical path of every "Place order".
-  after(async () => {
-    try {
-      const images = await loadSkuImageMap(priced.lines.map((line) => line.skuId));
-      const paymentEmail = await sendEmail({
-        to: input.email,
-        ...orderCreatedPaymentEmail({
-          orderNumber,
-          status: "AWAITING_PAYMENT",
-          recipientName,
-          email: input.email,
-          fulfillmentMethod: input.fulfillmentMethod,
-          lines: priced.lines.map((line) => {
-            const found = skuRows.find((row) => row.sku.id === line.skuId);
-            return {
-              productName: found?.productName ?? "Fragrance",
-              skuLabel: found?.sku.label ?? "",
-              quantity: line.quantity,
-              originalUnitCentavos: line.unitPriceCentavos,
-              unitPriceCentavos: line.discountedUnitCentavos,
-              discountCentavos: line.lineDiscountCentavos,
-              lineTotalCentavos: line.lineSubtotalCentavos,
-              productType: line.productType,
-              fulfillment: line.fulfillment,
-              imageUrl: images.get(line.skuId) ?? null,
-            };
-          }),
-          // Same convention as the stored order row (see the transaction
-          // above): subtotal already has the promo-code order-discount baked
-          // in, discountCentavos is the informational combined total.
-          subtotalCentavos: totals.merchandiseSubtotalCentavos - totals.orderDiscountCentavos,
-          discountCentavos: totals.discountCentavos + totals.orderDiscountCentavos + totals.deliveryDiscountCentavos,
-          deliveryFeeCentavos: totals.deliveryFeeCentavos,
-          totalCentavos: totals.totalCentavos,
-          defaultDeliveryFeeCentavos: totals.defaultDeliveryFeeCentavos,
-          freeDeliveryReason: totals.freeShipping && !isPickup ? "Decant subtotal over ₱2,000" : null,
-          orderedAt: new Date(),
-          pickupNotes: input.pickupNotes,
-        }),
-      });
-      await client.insert(notificationLog).values({
-        orderId: order.id,
-        recipient: input.email,
-        template: "order_created_payment",
-        status: paymentEmail.ok ? "SENT" : "FAILED",
-        error: paymentEmail.ok ? null : paymentEmail.error ?? "unknown",
-      });
-    } catch {
-      // Order is already committed; email failure must not fail checkout.
-    }
-  });
+  // No email here. The payment reminder (src/lib/payment-reminders.ts,
+  // two hours in) is the only payment email; the checkout already lands
+  // the customer on the payment page.
 
   return { order, totals: priced, orderItems: priced.lines, skuRows, promoConfig };
 }
@@ -1232,6 +1180,7 @@ export async function transitionOrderStatus(args: {
         totalCentavos: orderRow.totalCentavos,
         orderedAt: orderRow.createdAt,
         reason: statusReason,
+        previousStatus: orderRow.status,
         pickupNotes: orderRow.pickupNotes,
         testerAwarded: args.next === "CONFIRMED" ? await loadTesterAwarded(orderRow.promoTesterSkuId) : null,
       };

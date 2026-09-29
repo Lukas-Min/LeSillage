@@ -6,6 +6,7 @@ import {
   PAYMENT_REMINDER_AFTER_MS,
   PAYMENT_REMINDER_BATCH,
 } from "@/domain/payment-reminder";
+import { AUTO_REJECT_AFTER_MS } from "@/domain/auto-reject";
 import { sendEmail } from "@/lib/email";
 import { toEmailLines } from "@/lib/order-email-lines";
 import { paymentReminderEmail } from "@/lib/email-templates";
@@ -85,6 +86,7 @@ export async function sendDuePaymentReminders(now = new Date()): Promise<Payment
         orderedAt: order.createdAt,
         pickupNotes: order.pickupNotes,
         payUrl: payUrl(order.orderNumber),
+        payBy: new Date(order.statusUpdatedAt.getTime() + AUTO_REJECT_AFTER_MS),
       }),
     });
 

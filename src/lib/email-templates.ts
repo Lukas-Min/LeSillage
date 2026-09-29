@@ -5,6 +5,7 @@ import { pickupAddressLine } from "@/domain/pickup";
 import type { Fulfillment, OrderStatus, ProductType } from "@/db/schema";
 import { getEnv } from "@/lib/env";
 import { renderOrderEmailHtml, type EmailFact, type EmailTotal } from "@/lib/email-html";
+import { formatDateTime } from "@/lib/utils";
 
 export interface EmailLine {
   productName: string;
@@ -46,6 +47,10 @@ export interface OrderEmailInput {
   pickupNotes?: string | null;
   orderedAt: Date;
   payUrl?: string;
+  /** Payment reminder: when the unpaid order is cancelled automatically. */
+  payBy?: Date;
+  /** Cancelled email: the status the order was cancelled from. */
+  previousStatus?: OrderStatus;
   deliveryConfirmUrl?: string;
   contactUrl?: string;
 }
@@ -90,8 +95,7 @@ function siteUrl(): string {
 }
 
 /** Same page `payment-reminders.ts` links to; built here so the templates that
- *  never had a URL passed in (order created, receipt rejected) can still offer
- *  a button. */
+ *  never had a URL passed in (receipt rejected) can still offer a button. */
 function paymentPageUrl(orderNumber: string): string {
   return `${siteUrl()}/checkout/payment?orderNumber=${encodeURIComponent(orderNumber)}`;
 }
@@ -512,62 +516,51 @@ If this was not you, reply to this email immediately.
   };
 }
 
-export function orderCreatedPaymentEmail(input: OrderEmailInput): OrderEmail {
-  const subject = `Pay for order ${input.orderNumber}`;
+export function paymentReminderEmail(input: OrderEmailInput): OrderEmail {
+  const payUrl = input.payUrl ?? paymentPageUrl(input.orderNumber);
+  const payBy = input.payBy ? formatDateTime(input.payBy) : null;
+  const subject = `Your order is one QR away — ${input.orderNumber}`;
+  const shelf = `Order ${input.orderNumber} is still sitting pretty on our shelf, tapping a tiny glass foot. The only thing between you and that trail is payment — nothing else.`;
+  const steps = `Open your payment page, send ${formatPHP(input.totalCentavos)} via the QR code, then upload your receipt. Stock is reserved when we receive that receipt, and we'll take it from there (and stop writing fan mail to an unpaid bottle).`;
+  const deadline = payBy
+    ? `Pay by ${payBy}. If it's still unpaid by then, the order is cancelled automatically.`
+    : "Unpaid orders are cancelled automatically 24 hours after they're placed.";
+  const letGo = "If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes.";
   const text = `Hi ${input.recipientName},
 
-Your order ${input.orderNumber} is waiting for payment.
+${shelf}
 
-Total to pay: ${formatPHP(input.totalCentavos)}
+${steps}
+
+${deadline}
+
 Items:
 ${input.lines.map(formatLineForEmail).join("\n")}
+
+Subtotal: ${formatPHP(input.subtotalCentavos)}
 Delivery: ${deliveryLine(input)}
+Total to pay: ${formatPHP(input.totalCentavos)}${input.discountCentavos > 0 ? `\nYou saved: ${formatPHP(input.discountCentavos)}` : ""}
+${pickupTextBlock(input)}
+Pay here (sign in if asked): ${payUrl}
 
-Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.
+${letGo}
 
-— Le Sillage Manila`;
-  const html = renderOrderEmailHtml({
-    siteUrl: siteUrl(),
-    eyebrow: eyebrow(input),
-    title: "Your order is in — one step left",
-    greeting: greeting(input),
-    intro: [`Your order ${input.orderNumber} is waiting for payment.`],
-    facts: [{ label: "Status", value: describeStatus(input.status) }, ...pickupFact(input)],
-    items: input.lines,
-    totals: orderTotals(input, "Total to pay"),
-    cta: { label: "Pay now", url: input.payUrl ?? paymentPageUrl(input.orderNumber) },
-    outro: [
-      "Open your payment page, send the amount via the QR code, then upload your receipt. Stock is reserved when we receive that receipt.",
-    ],
-  });
-  return { subject, text, html };
-}
-
-export function paymentReminderEmail(input: OrderEmailInput): OrderEmail {
-  const payLine = input.payUrl ? `\nPay here (sign in if asked): ${input.payUrl}\n` : "";
-  const subject = `Your order is one QR away — ${input.orderNumber}`;
-  const text = `Hi ${input.recipientName},
-
-Order ${input.orderNumber} is still sitting pretty on our shelf, tapping a tiny glass foot. The only thing between you and that trail is payment — nothing else.
-
-Send ${formatPHP(input.totalCentavos)} via the QR on your payment page, then upload the receipt. We'll take it from there (and stop writing fan mail to an unpaid bottle).
-
-If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes.
-${payLine}
 — Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
     title: "Your order is one QR away",
     greeting: greeting(input),
-    intro: [
-      `Order ${input.orderNumber} is still sitting pretty on our shelf, tapping a tiny glass foot. The only thing between you and that trail is payment — nothing else.`,
-      `Send ${formatPHP(input.totalCentavos)} via the QR on your payment page, then upload the receipt. We'll take it from there (and stop writing fan mail to an unpaid bottle).`,
+    intro: [shelf, steps],
+    facts: [
+      { label: "Status", value: describeStatus(input.status) },
+      ...(payBy ? [{ label: "Pay by", value: payBy }] : []),
+      ...pickupFact(input),
     ],
     items: input.lines,
-    totals: [{ label: "Total to pay", value: formatPHP(input.totalCentavos), strong: true }],
-    cta: { label: "Pay now", url: input.payUrl ?? paymentPageUrl(input.orderNumber) },
-    outro: ["If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes."],
+    totals: orderTotals(input, "Total to pay"),
+    cta: { label: "Pay now", url: payUrl },
+    outro: [payBy ? "If it's still unpaid by then, the order is cancelled automatically." : deadline, letGo],
     footnote: "Sign in if asked — the payment page is tied to your account.",
   });
   return { subject, text, html };
@@ -575,12 +568,21 @@ ${payLine}
 
 export function orderCancelledEmail(input: OrderEmailInput): OrderEmail {
   const reason = input.reason?.trim() ? `\nReason: ${input.reason.trim()}\n` : "";
+  // Anything past AWAITING_PAYMENT has a receipt behind it, so "nothing's
+  // charged" would be wrong there. Same refund line the cancel button uses.
+  const paid = input.previousStatus !== undefined && input.previousStatus !== "AWAITING_PAYMENT";
+  const lead = paid
+    ? `We've cancelled order ${input.orderNumber}. Nothing's reserved anymore — the bottle goes back on the shelf.`
+    : `We've cancelled order ${input.orderNumber}. Nothing's reserved, nothing's charged — the bottle goes back on the shelf.`;
+  const closing = paid
+    ? "You've already paid for this order, so we'll reach out about your refund. You can also reply to this email and we'll sort it out."
+    : "If this wasn't you, reply to this email and we'll sort it out.";
   const subject = `Order cancelled — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
-We've cancelled order ${input.orderNumber}. Nothing's reserved, nothing's charged — the bottle goes back on the shelf.
+${lead}
 ${reason}
-If this wasn't you, reply to this email and we'll sort it out.
+${closing}
 
 — Le Sillage Manila`;
   const html = renderOrderEmailHtml({
@@ -588,10 +590,10 @@ If this wasn't you, reply to this email and we'll sort it out.
     eyebrow: eyebrow(input),
     title: "Order cancelled",
     greeting: greeting(input),
-    intro: [`We've cancelled order ${input.orderNumber}. Nothing's reserved, nothing's charged — the bottle goes back on the shelf.`],
+    intro: [lead],
     facts: input.reason?.trim() ? [{ label: "Reason", value: input.reason.trim() }] : undefined,
     items: input.lines,
-    outro: ["If this wasn't you, reply to this email and we'll sort it out."],
+    outro: [closing],
   });
   return { subject, text, html };
 }
