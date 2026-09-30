@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Link-preview banner: sharing any store link (messages, Facebook, X) shows the Le Sillage Manila logo, name, and "Full bottles · Partials · Decants" on the site's cream and gold instead of whichever product photo the app grabbed from the page; product pages keep their own photo. Rendered from `scripts/og-banner.html` (`src/app/opengraph-image.png`, `opengraph-image.alt.txt`)
 ### Changed
 - Admin product page reworked: a header with brand · type · shelf, a Visible/Hidden badge, and View in shop beside Add SKU; the product form is split into Details and Pricing with Visible on storefront, Archive or delete (now a quiet outline button), and Save at the bottom of that same form instead of below the separate Adjust pool form; the decant pool is its own card (remaining and pending ml at a glance, then Adjust); each SKU is a bordered panel with its label, price, status badges, and SKU code in a header and Save at the bottom right; images show as thumbnails instead of URLs; the discount shows its current status first. From `xl` it's a main column (Product, SKUs) plus a side column (pool, discount, images); on phones one stack in that order. Empty SKU and image lists say so; the loading screen matches (`src/app/admin/products/[productId]/page.tsx`, `loading.tsx`)
 - Admin and account breadcrumbs show "Details" instead of a raw record ID (e.g. `7F0C7FB4-…`) for the last crumb (`SectionBreadcrumbs` in `src/components/store/account-nav.tsx`)

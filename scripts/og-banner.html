@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  Source of src/app/opengraph-image.png, the link-preview banner shown when a
+  store link is shared (messages, Facebook, X). Next.js adds the og:image and
+  twitter:image tags for every page that doesn't set its own image.
+
+  To re-render after a logo or colour change, from the repo root:
+    chrome --headless=new --hide-scrollbars --window-size=1200,630 --force-device-scale-factor=1 --virtual-time-budget=8000 --screenshot=src/app/opengraph-image.png "file:///<repo>/scripts/og-banner.html"
+  Keep the content centred: small previews (WhatsApp) crop it to a square.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Playfair+Display:wght@400;500&display=block" rel="stylesheet">
+<style>
+  /* Site light-theme tokens (globals.css), as hex. */
+  :root {
+    --bg: #f9f4ec;
+    --secondary: #efebe4;
+    --fg: #16100e;
+    --muted: #5b5350;
+    --gold: #d9b06b;
+    --gold-ink: #8a5f18;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    background-color: var(--bg);
+    /* Same wash as the homepage hero's .surface-grid. */
+    background-image:
+      radial-gradient(ellipse 70% 85% at 50% 0%, rgba(217, 176, 107, 0.20), transparent 70%),
+      linear-gradient(to bottom, transparent 40%, var(--secondary));
+    font-family: "Geist", sans-serif;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .frame {
+    position: absolute;
+    inset: 26px;
+    border: 1px solid rgba(217, 176, 107, 0.55);
+  }
+  .frame.inner {
+    inset: 33px;
+    border-color: rgba(217, 176, 107, 0.28);
+  }
+  .stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  /* The logo file has empty space around the mark; crop to the mark itself
+     (1357x1188 at 272,357 of 2000x2000), shown 172px tall. */
+  .mark { position: relative; width: 196.5px; height: 172px; overflow: hidden; }
+  .mark img { position: absolute; left: -39.4px; top: -51.7px; width: 289.6px; height: 289.6px; }
+  .name {
+    margin-top: 26px;
+    font-family: "Playfair Display", serif;
+    font-weight: 400;
+    font-size: 104px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .city {
+    margin-top: 18px;
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: 0.5em;
+    /* letter-spacing trails the last letter; pull it back so it centres. */
+    margin-right: -0.5em;
+    text-transform: uppercase;
+    color: var(--gold-ink);
+  }
+  .rule {
+    margin-top: 30px;
+    width: 72px;
+    height: 1px;
+    background: var(--gold);
+  }
+  .tagline {
+    margin-top: 28px;
+    font-size: 27px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .tagline .dot { color: var(--gold); padding: 0 0.45em; }
+</style>
+</head>
+<body>
+  <div class="frame"></div>
+  <div class="frame inner"></div>
+  <div class="stack">
+    <div class="mark"><img src="../public/logo/LeSillage_transparent.png" alt=""></div>
+    <div class="name">Le Sillage</div>
+    <div class="city">Manila</div>
+    <div class="rule"></div>
+    <div class="tagline">Full bottles<span class="dot">·</span>Partials<span class="dot">·</span>Decants</div>
+  </div>
+</body>
+</html>
