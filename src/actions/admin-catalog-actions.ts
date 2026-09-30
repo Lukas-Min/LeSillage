@@ -27,6 +27,7 @@ import {
 } from "@/db/schema";
 import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain/pricing";
 import { toCentavos } from "@/domain/money";
+import { formGender, notesText } from "@/domain/product-copy";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { uploadPublicImage } from "@/lib/blob";
@@ -186,16 +187,89 @@ export async function upsertProduct(formData: FormData) {
     invalidateCatalog();
     return;
   }
-  const inserted = await db().insert(products).values(values).returning();
+  // "Load details" on New product posts the fragrance it copied. The form only
+  // carries the text fields, so the imported fragrance data (note pyramid,
+  // accords, perfumers, ratings, Fragrantica link) and the photos are copied
+  // from that product here — they're the same for every type of one fragrance.
+  const copyFromId = String(formData.get("copyFrom") ?? "").trim();
+  const copySource = copyFromId
+    ? (await db().select().from(products).where(eq(products.id, copyFromId)))[0]
+    : undefined;
+  const copied = copySource
+    ? {
+        notePyramid: copySource.notePyramid,
+        accords: copySource.accords,
+        perfumers: copySource.perfumers,
+        longevity: copySource.longevity,
+        sillage: copySource.sillage,
+        priceValue: copySource.priceValue,
+        longevityBreakout: copySource.longevityBreakout,
+        sillageBreakout: copySource.sillageBreakout,
+        priceValueBreakout: copySource.priceValueBreakout,
+        seasonBreakout: copySource.seasonBreakout,
+        genderBreakout: copySource.genderBreakout,
+        relationBreakout: copySource.relationBreakout,
+        ratingValue: copySource.ratingValue,
+        ratingCount: copySource.ratingCount,
+        reviewsCount: copySource.reviewsCount,
+        releaseYear: copySource.releaseYear,
+        fragranticaUrl: copySource.fragranticaUrl,
+      }
+    : {};
+  const inserted = await db().insert(products).values({ ...values, ...copied }).returning();
+  if (copySource) {
+    const images = await db().select().from(productImages).where(eq(productImages.productId, copySource.id));
+    if (images.length > 0) {
+      await db()
+        .insert(productImages)
+        .values(images.map((image) => ({ productId: inserted[0].id, url: image.url, alt: image.alt, position: image.position })));
+    }
+  }
   await auditLogSubject({
     actor: admin.id,
     action: "PRODUCT_CREATE",
     targetType: "product",
     targetId: inserted[0].id,
+    metadata: copySource ? { copiedFrom: copySource.id } : undefined,
   });
   revalidatePath("/admin/products");
   invalidateCatalog();
   return inserted[0].id;
+}
+
+export interface ProductCopyDetails {
+  name: string;
+  brand: string;
+  fragranceCategory: FragranceCategory;
+  concentration: string;
+  gender: string;
+  description: string;
+  notes: string;
+}
+
+/**
+ * What "Load details" on New product fills in: the fragrance-level text
+ * fields of an existing product. Returned rather than navigated to, so the
+ * page keeps everything else already typed (type, cost, pricing).
+ */
+export async function loadProductCopyDetails(
+  productId: string,
+): Promise<{ ok: true; details: ProductCopyDetails } | { ok: false; error: string }> {
+  await requireAdmin();
+  const row = (await db().select().from(products).where(eq(products.id, productId)))[0];
+  if (!row) return { ok: false, error: "That fragrance no longer exists — pick another." };
+  return {
+    ok: true,
+    details: {
+      name: row.name,
+      brand: row.brand,
+      fragranceCategory: row.fragranceCategory,
+      concentration: row.concentration ?? "",
+      gender: formGender(row.gender),
+      description: row.description ?? "",
+      notes: notesText(row.notes, row.notePyramid),
+    },
+  };
 }
 
 const skuSchema = z.object({

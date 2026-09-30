@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { upsertProduct } from "@/actions/admin-catalog-actions";
 import { db } from "@/db/client";
@@ -12,29 +11,16 @@ import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 import { AreaHeader, PAGE_ACTION_CLASS, PageColumns } from "@/components/ui/page-layout";
-import { SearchSelect } from "@/components/admin/search-select";
+import { CopyFromPicker } from "@/components/admin/copy-from-picker";
+import { PRODUCT_TYPES_FOR_FORM } from "@/domain/product-copy";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewProductPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ copyFrom?: string }>;
-}) {
-  const { copyFrom } = await searchParams;
-  const [allProducts, copySource] = await Promise.all([
-    db()
-      .select({ id: products.id, brand: products.brand, name: products.name })
-      .from(products)
-      .orderBy(products.brand, products.name),
-    copyFrom
-      ? db()
-          .select()
-          .from(products)
-          .where(eq(products.id, copyFrom))
-          .then((rows) => rows[0])
-      : Promise.resolve(undefined),
-  ]);
+export default async function NewProductPage() {
+  const allProducts = await db()
+    .select({ id: products.id, brand: products.brand, name: products.name })
+    .from(products)
+    .orderBy(products.brand, products.name);
   // Category/Concentration/Gender/Description/Notes are fragrance-level
   // facts, identical across a fragrance's Decant/Full bottle/Partial rows —
   // collapse those into one entry per brand+name so the same fragrance isn't
@@ -60,10 +46,6 @@ export default async function NewProductPage({
           </Button>
         }
       />
-      {/* The copy-from picker sits at the top of the main column, inside the
-          create form's markup, so its select and button point at this
-          separate GET form with `form=` (forms can't nest). */}
-      {existingProducts.length > 0 ? <form id="copy-from-form" className="hidden" /> : null}
       {/* One form, two columns from xl like the product page: Details in the
           main column, Pricing in the side column, Create at the bottom right. */}
       <form action={create} className="space-y-4">
@@ -73,32 +55,9 @@ export default async function NewProductPage({
               {existingProducts.length > 0 ? (
                 <Card>
                   <CardContent className="p-4">
-                    {/* Top-aligned, not bottom: the search list opens under the
-                        field, and Load details should stay beside the field. */}
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <Label htmlFor="copyFrom">Choose a fragrance</Label>
-                        <SearchSelect
-                          id="copyFrom"
-                          name="copyFrom"
-                          form="copy-from-form"
-                          defaultValue={copyFrom ?? ""}
-                          options={existingProducts.map((p) => ({ value: p.id, label: `${p.brand} — ${p.name}` }))}
-                          placeholder="Pick a fragrance…"
-                          searchLabel="Search fragrances"
-                          searchPlaceholder="Search by brand or name…"
-                          noun="fragrances"
-                        />
-                      </div>
-                      <Button type="submit" form="copy-from-form" variant="outline" className="h-11 sm:mt-6">
-                        Load details
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Fills in Name/Brand/Category/Concentration/Gender/Description/Notes below — useful when adding
-                      e.g. the Full Bottle of a fragrance you already have as a Decant. You still set type, size, and
-                      price yourself.
-                    </p>
+                    <CopyFromPicker
+                      options={existingProducts.map((p) => ({ value: p.id, label: `${p.brand} — ${p.name}` }))}
+                    />
                   </CardContent>
                 </Card>
               ) : null}
@@ -110,18 +69,31 @@ export default async function NewProductPage({
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1 sm:col-span-2">
                       <Label htmlFor="name">Name</Label>
-                      <Input id="name" name="name" defaultValue={copySource?.name ?? ""} required />
+                      <Input id="name" name="name" required />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="new-brand">Brand</Label>
-                      <Input id="new-brand" name="brand" defaultValue={copySource?.brand ?? ""} required />
+                      <Input id="new-brand" name="brand" required />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="new-type">Type</Label>
-                      <select id="new-type" name="type" className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue="DECANT">
-                        <option value="DECANT">Decant</option>
-                        <option value="FULL_BOTTLE">Full bottle</option>
-                        <option value="PARTIAL">Partial</option>
+                      {/* No default: a new product's type is always a choice, never
+                          carried over from a loaded fragrance or preset to Decant. */}
+                      <select
+                        id="new-type"
+                        name="type"
+                        required
+                        defaultValue=""
+                        className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
+                      >
+                        <option value="" disabled>
+                          Choose a type
+                        </option>
+                        {PRODUCT_TYPES_FOR_FORM.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -130,7 +102,7 @@ export default async function NewProductPage({
                         id="new-fragranceCategory"
                         name="fragranceCategory"
                         className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
-                        defaultValue={copySource?.fragranceCategory ?? "NICHE"}
+                        defaultValue="NICHE"
                       >
                         <option value="NICHE">Niche</option>
                         <option value="DESIGNER">Designer</option>
@@ -143,7 +115,7 @@ export default async function NewProductPage({
                         id="new-concentration"
                         name="concentration"
                         className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
-                        defaultValue={copySource?.concentration ?? ""}
+                        defaultValue=""
                       >
                         <option value="">No concentration set</option>
                         <option value="EAU_DE_COLOGNE">Eau de Cologne</option>
@@ -155,7 +127,7 @@ export default async function NewProductPage({
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="new-gender">Gender</Label>
-                      <select id="new-gender" name="gender" className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue={copySource?.gender ?? ""}>
+                      <select id="new-gender" name="gender" className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" defaultValue="">
                         <option value="">Gender not set</option>
                         <option value="men">Men</option>
                         <option value="women">Women</option>
@@ -164,11 +136,11 @@ export default async function NewProductPage({
                     </div>
                     <div className="space-y-1 sm:col-span-2">
                       <Label htmlFor="new-description">Description</Label>
-                      <Textarea id="new-description" name="description" defaultValue={copySource?.description ?? ""} />
+                      <Textarea id="new-description" name="description" />
                     </div>
                     <div className="space-y-1 sm:col-span-2">
                       <Label htmlFor="new-notes">Notes</Label>
-                      <Textarea id="new-notes" name="notes" defaultValue={copySource?.notes ?? ""} />
+                      <Textarea id="new-notes" name="notes" />
                     </div>
                   </div>
                 </CardContent>

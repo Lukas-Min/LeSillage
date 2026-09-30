@@ -20,6 +20,18 @@ Entry template:
 
 ---
 
+## 2026-09-30 — New product page (targeted, owner-requested)
+
+- **Commit range reviewed:** `src/app/admin/products/new/` and the copy path in `src/actions/admin-catalog-actions.ts` at `18adc37`, not the checkpoint range
+- **Effort:** medium
+- **Scope / areas covered:** the New product form, "Choose a fragrance" / Load details, and product creation
+- **Findings:**
+  - [medium] Type defaulted to Decant, so a product could be saved as the wrong type without choosing — `src/app/admin/products/new/page.tsx` — status: fixed (empty, required)
+  - [medium] Load details was a full-page GET, wiping everything already typed (type, cost, pricing) — status: fixed (fills fields in place via `loadProductCopyDetails`)
+  - [medium] Load details copied only seven text fields; the note pyramid, accords, perfumers, ratings, Fragrantica link and photos never reached the new product, so a copied Partial/Full bottle showed empty notes and no photo — status: fixed (copied on create from `copyFrom`)
+  - [low] Imported gender ("for women") didn't match the form's men/women/unisex options and loaded as "not set" — status: fixed (`formGender`)
+- **Checkpoint advanced to:** not advanced — targeted review; the next full review still starts at `4f39dd5`
+
 ## 2026-09-30 — Account/admin page layout rollout (targeted, pre-commit)
 
 - **Commit range reviewed:** the uncommitted relayout of every `src/app/account/**` and `src/app/admin/**` page on top of `8ec2606`, not the checkpoint range

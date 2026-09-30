@@ -3,6 +3,9 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- New product: Type starts empty ("Choose a type") and must be picked, instead of defaulting to Decant
+- New product: Load details fills the fragrance fields in place instead of reloading the page, so the type, cost and pricing already typed are kept; Gender now loads for imported fragrances ("for women" → Women), and Notes are built from the note pyramid when the fragrance only has that. Creating the product also copies the loaded fragrance's note pyramid, accords, perfumers, longevity/sillage, ratings, release year, Fragrantica link and photos, which it didn't before (so the new Partial or Full bottle showed no notes or photos) (`CopyFromPicker` in `src/components/admin/copy-from-picker.tsx`, `loadProductCopyDetails`/`upsertProduct` in `src/actions/admin-catalog-actions.ts`, `formGender`/`notesText` in `src/domain/product-copy.ts`, `src/app/admin/products/new/page.tsx`, `loading.tsx`)
 ### Changed
 - New product: "Choose a fragrance" is a searchable picker (search box on top, like Customers who can use it on a promo code) instead of a long dropdown; every typed word must match the brand or name, in any order. New `SearchSelect` single-choice component (`src/components/admin/search-select.tsx`, `src/app/admin/products/new/page.tsx`, `loading.tsx`)
 ### Added

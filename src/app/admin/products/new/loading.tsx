@@ -36,7 +36,7 @@ export default function AdminNewProductLoading() {
                     </Button>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Fills in Name/Brand/Category/Concentration/Gender/Description/Notes below — useful when adding
+                    Fills in Name/Brand/Shelf/Concentration/Gender/Description/Notes below — useful when adding
                     e.g. the Full Bottle of a fragrance you already have as a Decant. You still set type, size, and
                     price yourself.
                   </p>
@@ -59,7 +59,7 @@ export default function AdminNewProductLoading() {
                     <div className="space-y-1">
                       <Label htmlFor="new-type">Type</Label>
                       <select id="new-type" disabled className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm">
-                        <option>Decant</option>
+                        <option>Choose a type</option>
                       </select>
                     </div>
                     <div className="space-y-1">
