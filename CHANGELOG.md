@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Admin → Products has an Archived tab listing archived products (hidden with every size off), each with Open and Unarchive; the other tabs and their counts no longer include archived products. An archived product's page says it's archived and has an Unarchive button in the header. Unarchive shows the product on the shop again and switches all its sizes back on (audit `PRODUCT_UNARCHIVE`). No database change: archived is worked out from the existing flags (`isArchivedProduct` in `src/domain/product-archive.ts`, `unarchiveProduct` in `src/actions/admin-catalog-actions.ts`, `src/app/admin/products/page.tsx`, `[productId]/page.tsx`)
 ### Changed
 - Account and admin pages: the right-hand column now holds each page's own secondary cards and fields, like the product page's Decant pool/Discount/Images, instead of Summary number cards. Promo code form: Per product type table, Who can use it, and Options on the right; Promo & delivery settings: Site-wide discount and Announcement bar on the right; New product: Pricing on the right; QR codes: Add a QR code on the right; order pages: customer/receipt/tester (admin) and status/arrival/pickup (account) on the right; customer page: Account on the right; Profile: Change password and Change email on the right; Addresses: New address on the right. Lists and single-purpose pages are full width; the admin dashboard, account home, and a customer's order totals keep their number tiles as a full-width row. The Summary cards are gone (`src/components/ui/page-layout.tsx` `PageColumns` is main-first by default)
 ### Changed

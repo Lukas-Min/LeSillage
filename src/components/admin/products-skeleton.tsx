@@ -6,16 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-export const PRODUCT_TYPE_TABS: { value: ProductType | "ALL"; label: string }[] = [
+/** A product type, every live product ("ALL"), or the archived ones. */
+export type ProductListTab = ProductType | "ALL" | "ARCHIVED";
+
+export const PRODUCT_TYPE_TABS: { value: ProductListTab; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "DECANT", label: "Decants" },
   { value: "FULL_BOTTLE", label: "Full bottles" },
   { value: "PARTIAL", label: "Partials" },
+  { value: "ARCHIVED", label: "Archived" },
 ];
 
 /** The tabs, search and product cards on /admin/products. `activeType` is
  *  known when this is the tab-switch fallback, and unknown in loading.tsx. */
-export function ProductsListSkeleton({ activeType }: { activeType?: ProductType | "ALL" }) {
+export function ProductsListSkeleton({ activeType }: { activeType?: ProductListTab }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-border">

@@ -418,6 +418,32 @@ export async function archiveOrDeleteProduct(formData: FormData) {
 }
 
 /**
+ * Undoes an archive: shows the product on the storefront again and switches
+ * every size back on (archiving switched them all off, and which ones were on
+ * before isn't recorded). A size can be switched off again on the product page.
+ */
+export async function unarchiveProduct(formData: FormData) {
+  const admin = await requireAdmin();
+  const productId = String(formData.get("productId") ?? "");
+  const updated = await db()
+    .update(products)
+    .set({ isActive: true, updatedAt: new Date() })
+    .where(eq(products.id, productId))
+    .returning({ id: products.id });
+  if (updated.length === 0) throw new Error("Product not found");
+  await db().update(skus).set({ isActive: true, updatedAt: new Date() }).where(eq(skus.productId, productId));
+  await auditLogSubject({
+    actor: admin.id,
+    action: "PRODUCT_UNARCHIVE",
+    targetType: "product",
+    targetId: productId,
+  });
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${productId}`);
+  invalidateCatalog();
+}
+
+/**
  * The instant-save behind the "Free tester" checkbox (`TesterToggle`). Only a
  * decant can be a tester — the same rule the SKU form applies by hiding the
  * box on bottles — so a non-decant SKU is refused here too rather than

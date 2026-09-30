@@ -24,7 +24,9 @@ import {
   upsertDiscount,
   upsertProduct,
   upsertSku,
+  unarchiveProduct,
 } from "@/actions/admin-catalog-actions";
+import { isArchivedProduct } from "@/domain/product-archive";
 import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
 import { labelForCategory, labelForType } from "@/domain/product-type";
@@ -105,6 +107,7 @@ export default async function AdminProductDetailPage({
   }
   // "View in shop" needs a live SKU page to land on; a hidden product has none.
   const shopSku = product.isActive ? skuList.find((sku) => sku.isActive) : undefined;
+  const archived = isArchivedProduct(product, skuList);
   async function saveProduct(formData: FormData) {
     "use server";
     await upsertProduct(formData);
@@ -116,7 +119,7 @@ export default async function AdminProductDetailPage({
         title={product.name}
         badge={
           <Badge variant={product.isActive ? "outline" : "secondary"}>
-            {product.isActive ? "Visible on storefront" : "Hidden from storefront"}
+            {archived ? "Archived" : product.isActive ? "Visible on storefront" : "Hidden from storefront"}
           </Badge>
         }
         actions={
@@ -129,13 +132,27 @@ export default async function AdminProductDetailPage({
                 </Link>
               </Button>
             ) : null}
-            <Button asChild className={PAGE_ACTION_CLASS}>
+            <Button asChild variant={archived ? "outline" : "default"} className={PAGE_ACTION_CLASS}>
               <Link href={`/admin/products/${product.id}/skus/new`}>Add SKU</Link>
             </Button>
+            {archived ? (
+              <form action={unarchiveProduct} className="flex flex-1 sm:flex-none">
+                <input type="hidden" name="productId" value={product.id} />
+                <SubmitButton className={PAGE_ACTION_CLASS} pendingLabel="Unarchiving…">
+                  Unarchive
+                </SubmitButton>
+              </form>
+            ) : null}
           </>
         }
       />
-      {welcome && !product.isActive ? (
+      {archived ? (
+        <p role="status" className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+          Archived: hidden from the shop, with every size switched off. Unarchive puts it back on the shop with all
+          its sizes on.
+        </p>
+      ) : null}
+      {welcome && !product.isActive && !archived ? (
         <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm">
           Imported and hidden from the shop for now. Set the cost and pricing below, set the SKU&apos;s size, then tick
           Visible on storefront and Save.
@@ -263,7 +280,7 @@ export default async function AdminProductDetailPage({
                       triggerVariant="outline"
                       triggerClassName="h-11 text-destructive hover:text-destructive"
                       title={`Archive or delete "${product.name}"?`}
-                      description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records). Otherwise it's deleted permanently. This can't be undone from here."
+                      description="If it has orders, cart entries, or wishlist saves, it's archived (hidden, kept for records) and can be restored from Products → Archived. Otherwise it's deleted permanently, which can't be undone."
                       confirmLabel="Archive or delete"
                     />
                     <SubmitButton className={FORM_ACTION_CLASS}>Save</SubmitButton>

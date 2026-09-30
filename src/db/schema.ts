@@ -108,6 +108,7 @@ export const auditAction = [
   "PRODUCT_UPDATE",
   "PRODUCT_DELETE",
   "PRODUCT_ARCHIVE",
+  "PRODUCT_UNARCHIVE",
   "SKU_CREATE",
   "SKU_UPDATE",
   "SKU_DELETE",
