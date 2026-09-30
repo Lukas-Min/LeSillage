@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 /** Matches ProductCard (src/components/store/product-card.tsx) — square
  *  photo with its always-present category pill, brand/name/subtitle, the
  *  fulfillment badge, then the ruled-off price and the View button. The
- *  rating, "Save X%", Retail and Sold out extras are conditional per card,
- *  so they aren't reserved. */
+ *  rating, Retail and Sold out extras are conditional per card, so they
+ *  aren't reserved. `showSave` is for the deals rail, where every card has
+ *  a Save badge and a struck original price. */
 export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 min-[576px]:gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
@@ -24,25 +25,29 @@ export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
 }
 
 /** One ProductCard's shape — the grid above and the homepage rails. */
-export function CatalogCardSkeleton() {
+export function CatalogCardSkeleton({ showSave = false }: { showSave?: boolean }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card">
-      <div className="relative">
-        <Skeleton className="aspect-square w-full rounded-none" />
-        <div className="absolute bottom-2 left-2 z-10">
-          <Skeleton className="h-5 w-20 rounded-none border border-foreground/25 bg-background/90 min-[576px]:h-6 min-[576px]:w-24" />
-        </div>
+      <div className="relative aspect-square w-full overflow-hidden border-b border-border bg-white">
+        <Skeleton className="absolute inset-3 rounded-none min-[576px]:inset-4" />
+        {showSave ? <Skeleton className="absolute top-2 right-2 z-10 h-6 w-16 rounded-none" /> : null}
+        <Skeleton className="absolute bottom-2 left-2 z-10 h-5 w-16 rounded-none border border-foreground/25 bg-background min-[576px]:h-6 min-[576px]:w-20" />
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3 min-[576px]:gap-1.5 min-[576px]:p-4">
-        <Skeleton className="h-3.5 w-1/3" />
-        <Skeleton className="h-5 w-2/3 min-[576px]:h-6" />
-        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3 w-1/3" />
+        <Skeleton className="h-5 w-4/5 min-[576px]:h-6" />
+        <Skeleton className="h-5 w-1/2 min-[576px]:h-6" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-4 w-1/3 min-[576px]:hidden" />
         <div className="mt-auto space-y-2 pt-2 min-[576px]:space-y-3 min-[576px]:pt-3">
           <div className="flex flex-wrap items-center gap-1.5">
             <Skeleton className="h-5 w-16 rounded-none min-[576px]:h-6 min-[576px]:w-20" />
           </div>
           <div className="border-t border-border/60 pt-2 min-[576px]:pt-3">
-            <Skeleton className="ml-auto h-4.5 w-2/3 min-[576px]:h-6 min-[576px]:w-1/2 sm:h-4.5" />
+            <div className="flex flex-wrap items-baseline justify-end gap-x-2 gap-y-1">
+              {showSave ? <Skeleton className="h-3 w-12" /> : null}
+              <Skeleton className="h-5 w-16 min-[576px]:h-6" />
+            </div>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- The homepage rail skeleton matches the sale cards, and it runs one card past the right edge the way the loaded carousel does, instead of stopping with an empty gap
 - Promo code form: per-type amounts are now chosen with an "Amount per product type" dropdown (Same for every type / Different per type); "Different per type" swaps the Amount field for a table with one required amount each for Decants, Partials, and Full bottles (0 leaves a type out), instead of three optional fields where blank meant "same as amount" (`src/components/admin/promo-code-form.tsx`, `src/actions/admin-promo-code-actions.ts`, `src/app/admin/promo/[promoCodeId]/page.tsx`)
 ### Added
 - Promo codes can take a different amount off each product type: an order code's form has optional Decants, Partials, and Full bottles amounts (blank uses the main amount, 0 leaves that type out), and its minimum spend then counts only the types that get a discount. Checkout, the Apply preview, the codes list, Account → Promo codes, and the promo email all describe it that way ("10% off decants, 5% off full bottles"). New nullable `promo_code.typeAmounts` jsonb column, added by SQL in Supabase; existing codes are unchanged (`src/domain/promo-code.ts`, `checkout-totals.ts`, `src/actions/admin-promo-code-actions.ts`, `src/components/admin/promo-code-form.tsx`, `scripts/migrate.ts`)

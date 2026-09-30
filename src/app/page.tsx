@@ -52,7 +52,7 @@ export default function Home() {
           href="/shop?sort=discount_desc"
           linkLabel="deals"
         />
-        <Suspense fallback={<RailSkeleton />}>
+        <Suspense fallback={<RailSkeleton showSave />}>
           <DealsRail />
         </Suspense>
       </section>

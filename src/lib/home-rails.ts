@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { compareByDiscount, compareByRating, loadCatalogCards, type CatalogCardModel } from "@/lib/catalog";
 
-const RAIL_SIZE = 10;
+export const RAIL_SIZE = 10;
 /** New arrivals and decants cap each brand so one big drop (e.g. 19 Velixir
  *  bottles added the same day) can't fill a whole rail. Deals don't: a
  *  brand-wide markdown is exactly what that rail is for. */

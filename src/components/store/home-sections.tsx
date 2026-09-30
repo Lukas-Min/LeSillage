@@ -7,7 +7,7 @@ import { ShopTile } from "@/components/store/shop-tile";
 import { CatalogCardSkeleton } from "@/components/store/loading";
 import { Eyebrow } from "@/components/ui/section";
 import type { CatalogCardModel } from "@/lib/catalog";
-import { loadHomeRails } from "@/lib/home-rails";
+import { loadHomeRails, RAIL_SIZE } from "@/lib/home-rails";
 
 /** Shared focus ring for the homepage's own links (WCAG 2.4.7) — the global
  *  fallback is a 1px half-opacity outline that disappears against a border. */
@@ -91,12 +91,12 @@ function RailCards({ cards, emptyMessage }: { cards: CatalogCardModel[]; emptyMe
   );
 }
 
-export function RailSkeleton() {
+export function RailSkeleton({ showSave = false }: { showSave?: boolean }) {
   return (
     <div className={`${RAIL_LIST_CLASS} overflow-hidden`} aria-hidden="true">
-      {Array.from({ length: 5 }).map((_, idx) => (
+      {Array.from({ length: RAIL_SIZE }).map((_, idx) => (
         <div key={idx} className={RAIL_ITEM_CLASS}>
-          <CatalogCardSkeleton />
+          <CatalogCardSkeleton showSave={showSave} />
         </div>
       ))}
     </div>
