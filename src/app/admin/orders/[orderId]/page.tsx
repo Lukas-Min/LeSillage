@@ -5,8 +5,9 @@ import { db } from "@/db/client";
 import { orders, orderItems, receipts, users, skus, products } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
+import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
 import { formatPHP } from "@/domain/money";
-import { formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
 import { loadTesterOptions } from "@/lib/orders";
@@ -99,6 +100,8 @@ export default async function AdminOrderDetailPage({
   const address = (order.addressSnapshot ?? null) as AddressSnapshot | null;
   const latestReceipt = receiptRows[0];
 
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   const summary = summarizeOrderTotals({
     lines: items,
     subtotalCentavos: order.subtotalCentavos,
@@ -108,199 +111,228 @@ export default async function AdminOrderDetailPage({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-serif-display text-2xl">{order.orderNumber}</h1>
-        <OrderStatusPill status={order.status} />
-      </div>
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <OrderRowActions
-          orderId={order.id}
-          status={order.status}
-          fulfillmentMethod={order.fulfillmentMethod}
-          promoTesterResult={order.promoTesterResult}
-          cancellationRequestedAt={order.cancellationRequestedAt}
-          cancellationRequestReason={order.cancellationRequestReason}
-        />
-      </div>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow={`Order · Placed ${formatDate(order.createdAt)}`}
+        title={order.orderNumber}
+        badge={<OrderStatusPill status={order.status} />}
+        actions={
+          // Capped from sm so a cancellation request or the reason box can't
+          // squeeze the order number beside it; full width on a phone.
+          <div className="w-full sm:w-auto sm:max-w-sm">
+            <OrderRowActions
+              orderId={order.id}
+              status={order.status}
+              fulfillmentMethod={order.fulfillmentMethod}
+              promoTesterResult={order.promoTesterResult}
+              cancellationRequestedAt={order.cancellationRequestedAt}
+              cancellationRequestReason={order.cancellationRequestReason}
+            />
+          </div>
+        }
+      />
       {order.statusReason ? <p className="text-sm text-destructive">Reason: {order.statusReason}</p> : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Customer</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-          <p>
-            <span className="text-muted-foreground">Recipient:</span> {order.recipientName}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Email:</span> {order.email}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Phone:</span> {order.phone}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Account:</span>{" "}
-            {customer ? (
-              <Link href={`/admin/customers/${customer.id}`} className="underline underline-offset-4 hover:text-foreground">
-                {customer.name ?? customer.email}
-              </Link>
-            ) : (
-              "—"
-            )}
-          </p>
-        </CardContent>
-      </Card>
+      <PageColumns
+        side={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MiniStats>
+                  <MiniStat label="Items" value={itemCount} />
+                  <MiniStat label="Method" value={order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"} />
+                  <MiniStat label="Total" value={formatPHP(order.totalCentavos)} className="col-span-2" />
+                </MiniStats>
+              </CardContent>
+            </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {order.fulfillmentMethod === "PICKUP" ? (
-            <p>{order.pickupNotes || "No pickup instructions given."}</p>
-          ) : address ? (
-            <p>
-              {[address.street, address.barangay, address.city, address.province, address.region, address.postalCode]
-                .filter(Boolean)
-                .join(", ")}
-            </p>
-          ) : (
-            <p className="text-muted-foreground">No address on file.</p>
-          )}
-          {order.notes ? (
-            <p>
-              <span className="text-muted-foreground">Order notes:</span> {order.notes}
-            </p>
-          ) : null}
-          <p className="text-xs text-muted-foreground">
-            Placed {formatDateTime(order.createdAt)} · Last updated {formatDateTime(order.statusUpdatedAt)}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Items</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          {items.map((item, index) => (
-            <div
-              key={item.id}
-              className={
-                index < items.length - 1
-                  ? "flex items-start justify-between gap-3 border-b border-border/60 pb-3"
-                  : "flex items-start justify-between gap-3"
-              }
-            >
-              <div className="min-w-0">
-                <p className="font-medium">{item.productName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"} · qty {item.quantity}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Customer</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm break-words sm:grid-cols-2 xl:grid-cols-1">
+                <p>
+                  <span className="text-muted-foreground">Recipient:</span> {order.recipientName}
                 </p>
-                {item.discountCentavos > 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    {formatPHP(item.originalUnitCentavos)} → {formatPHP(item.unitPriceCentavos)} each (saved{" "}
-                    {formatPHP(item.discountCentavos)})
+                <p>
+                  <span className="text-muted-foreground">Email:</span> {order.email}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Phone:</span> {order.phone}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Account:</span>{" "}
+                  {customer ? (
+                    <Link href={`/admin/customers/${customer.id}`} className="underline underline-offset-4 hover:text-foreground">
+                      {customer.name ?? customer.email}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Receipt</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {latestReceipt ? (
+                  <>
+                    <a
+                      href={latestReceipt.blobUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block font-medium text-primary underline underline-offset-4"
+                    >
+                      View uploaded receipt
+                    </a>
+                    <p className="text-xs text-muted-foreground">Submitted {formatDateTime(latestReceipt.submittedAt)}</p>
+                    {latestReceipt.note ? <p className="text-xs text-muted-foreground">Note: {latestReceipt.note}</p> : null}
+                    {receiptRows.length > 1 ? (
+                      <p className="text-xs text-muted-foreground">
+                        {receiptRows.length - 1} earlier receipt{receiptRows.length > 2 ? "s" : ""} also on file (retries).
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">No receipt uploaded yet.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {order.promoTesterResult ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Tester bonus</CardTitle>
+                </CardHeader>
+                {/* min-w-0 on the picker's select: in the 22rem column a long
+                    tester name would otherwise widen it past the card. */}
+                <CardContent className="space-y-3 text-sm [&_select]:min-w-0">
+                  {order.promoTesterResult === "ASSIGNED" && testerSku ? (
+                    <p>
+                      Assigned: {testerSku.productName} · {testerSku.label}{" "}
+                      <Link href={`/admin/products/${testerSku.productId}`} className="underline underline-offset-4 hover:text-foreground">
+                        (view product)
+                      </Link>
+                    </p>
+                  ) : order.promoTesterResult === "PENDING" ? (
+                    <p className="text-amber-600">
+                      This order earned a free tester, but nothing from a brand in the order was available to hand out
+                      automatically. {testerPickable ? "Choose one below — Confirm stays locked until you do." : "It was never assigned."}
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">Skipped.</p>
+                  )}
+                  {testerPickable ? (
+                    pickerOptions.length > 0 ? (
+                      <TesterPicker orderId={order.id} options={pickerOptions} currentSkuId={order.promoTesterSkuId} />
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No decant is flagged as a tester yet. Tick “Free tester” on a decant SKU under{" "}
+                        <Link href="/admin/products" className="underline underline-offset-4 hover:text-foreground">
+                          Products
+                        </Link>{" "}
+                        to build the pool.
+                      </p>
+                    )
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        }
+        main={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {order.fulfillmentMethod === "PICKUP" ? (
+                  <p>{order.pickupNotes || "No pickup instructions given."}</p>
+                ) : address ? (
+                  <p>
+                    {[address.street, address.barangay, address.city, address.province, address.region, address.postalCode]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">No address on file.</p>
+                )}
+                {order.notes ? (
+                  <p>
+                    <span className="text-muted-foreground">Order notes:</span> {order.notes}
                   </p>
                 ) : null}
-              </div>
-              <p className="shrink-0 font-medium tabular-nums">{formatPHP(item.lineTotalCentavos)}</p>
-            </div>
-          ))}
-          <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
-            {/* Subtotal is the lines above; only the promo code comes off here.
-                Item discounts are already in the line prices (summarizeOrderTotals). */}
-            <p className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="tabular-nums">{formatPHP(summary.itemsCentavos)}</span>
-            </p>
-            {summary.promoCodeCentavos > 0 ? (
-              <p className="flex justify-between">
-                <span className="text-muted-foreground">Promo code</span>
-                <span className="tabular-nums">-{formatPHP(summary.promoCodeCentavos)}</span>
-              </p>
-            ) : null}
-            <p className="flex justify-between">
-              <span className="text-muted-foreground">Delivery</span>
-              <span className="tabular-nums">{order.deliveryFeeCentavos === 0 ? "Free" : formatPHP(order.deliveryFeeCentavos)}</span>
-            </p>
-            <p className="flex justify-between font-medium">
-              <span>Total</span>
-              <span className="tabular-nums">{formatPHP(order.totalCentavos)}</span>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {order.promoTesterResult ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Tester bonus</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {order.promoTesterResult === "ASSIGNED" && testerSku ? (
-              <p>
-                Assigned: {testerSku.productName} · {testerSku.label}{" "}
-                <Link href={`/admin/products/${testerSku.productId}`} className="underline underline-offset-4 hover:text-foreground">
-                  (view product)
-                </Link>
-              </p>
-            ) : order.promoTesterResult === "PENDING" ? (
-              <p className="text-amber-600">
-                This order earned a free tester, but nothing from a brand in the order was available to hand out
-                automatically. {testerPickable ? "Choose one below — Confirm stays locked until you do." : "It was never assigned."}
-              </p>
-            ) : (
-              <p className="text-muted-foreground">Skipped.</p>
-            )}
-            {testerPickable ? (
-              pickerOptions.length > 0 ? (
-                <TesterPicker orderId={order.id} options={pickerOptions} currentSkuId={order.promoTesterSkuId} />
-              ) : (
-                <p className="text-muted-foreground">
-                  No decant is flagged as a tester yet. Tick “Free tester” on a decant SKU under{" "}
-                  <Link href="/admin/products" className="underline underline-offset-4 hover:text-foreground">
-                    Products
-                  </Link>{" "}
-                  to build the pool.
-                </p>
-              )
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Receipt</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {latestReceipt ? (
-            <>
-              <a
-                href={latestReceipt.blobUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block font-medium text-primary underline underline-offset-4"
-              >
-                View uploaded receipt
-              </a>
-              <p className="text-xs text-muted-foreground">Submitted {formatDateTime(latestReceipt.submittedAt)}</p>
-              {latestReceipt.note ? <p className="text-xs text-muted-foreground">Note: {latestReceipt.note}</p> : null}
-              {receiptRows.length > 1 ? (
                 <p className="text-xs text-muted-foreground">
-                  {receiptRows.length - 1} earlier receipt{receiptRows.length > 2 ? "s" : ""} also on file (retries).
+                  Placed {formatDateTime(order.createdAt)} · Last updated {formatDateTime(order.statusUpdatedAt)}
                 </p>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-muted-foreground">No receipt uploaded yet.</p>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Items</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={
+                      index < items.length - 1
+                        ? "flex items-start justify-between gap-3 border-b border-border/60 pb-3"
+                        : "flex items-start justify-between gap-3"
+                    }
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"} · qty {item.quantity}
+                      </p>
+                      {item.discountCentavos > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          {formatPHP(item.originalUnitCentavos)} → {formatPHP(item.unitPriceCentavos)} each (saved{" "}
+                          {formatPHP(item.discountCentavos)})
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 font-medium tabular-nums">{formatPHP(item.lineTotalCentavos)}</p>
+                  </div>
+                ))}
+                <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
+                  {/* Subtotal is the lines above; only the promo code comes off here.
+                      Item discounts are already in the line prices (summarizeOrderTotals). */}
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="tabular-nums">{formatPHP(summary.itemsCentavos)}</span>
+                  </p>
+                  {summary.promoCodeCentavos > 0 ? (
+                    <p className="flex justify-between">
+                      <span className="text-muted-foreground">Promo code</span>
+                      <span className="tabular-nums">-{formatPHP(summary.promoCodeCentavos)}</span>
+                    </p>
+                  ) : null}
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className="tabular-nums">{order.deliveryFeeCentavos === 0 ? "Free" : formatPHP(order.deliveryFeeCentavos)}</span>
+                  </p>
+                  <p className="flex justify-between font-medium">
+                    <span>Total</span>
+                    <span className="tabular-nums">{formatPHP(order.totalCentavos)}</span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        }
+      />
     </div>
   );
 }

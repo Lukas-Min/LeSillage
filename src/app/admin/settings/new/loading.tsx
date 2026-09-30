@@ -1,21 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NewOptionValueLoading() {
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-serif-display text-2xl">Add a value</h1>
-          <Skeleton className="mt-1 h-5 w-32" />
-        </div>
-        <Button variant="outline" className="h-11" disabled>
-          Back
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow="Settings"
+        title="Add a value"
+        subtitle={<Skeleton className="h-4 w-32" />}
+        actions={
+          <Button type="button" variant="outline" disabled className={PAGE_ACTION_CLASS}>
+            Back
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">New value</CardTitle>

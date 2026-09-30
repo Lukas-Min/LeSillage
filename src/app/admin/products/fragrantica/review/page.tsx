@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
+import { SectionCard, Eyebrow } from "@/components/ui/section";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -85,12 +86,12 @@ export default async function FragranticaReviewPage({ searchParams }: PageProps)
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Review"
         title="Confirm details before saving"
         subtitle="Pre-filled from your paste. Adjust anything that looks off before saving."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
             <Link href="/admin/products/fragrantica">Start over</Link>
           </Button>
         }

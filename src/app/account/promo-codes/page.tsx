@@ -6,7 +6,8 @@ import { formatPHP } from "@/domain/money";
 import { describePromoCodeAmounts, discountedTypesLabel } from "@/domain/promo-code";
 import { formatDate } from "@/lib/utils";
 import { isAllowedFor, withAllowedUsers } from "@/lib/promo-code-access";
-import { PageHeader } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
 import { PromoCodeList, type ProfilePromoCode } from "./promo-code-list";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +15,25 @@ export const dynamic = "force-dynamic";
 export default async function AccountPromoCodesPage() {
   const user = await requireActiveCustomer();
   const codes = await loadAccountPromoCodes(user.id);
+  const validCount = codes.filter((code) => code.group === "valid").length;
   return (
     <div className="flex flex-1 flex-col space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Orders"
         title="Promo codes"
         subtitle="Codes for everyone, and any code made just for you. Tap one to copy it."
       />
-      <PromoCodeList codes={codes} />
+      <PageColumns
+        side={
+          <SectionCard title="Summary">
+            <MiniStats>
+              <MiniStat label="Valid" value={validCount} />
+              <MiniStat label="Used" value={codes.length - validCount} />
+            </MiniStats>
+          </SectionCard>
+        }
+        main={<PromoCodeList codes={codes} />}
+      />
     </div>
   );
 }

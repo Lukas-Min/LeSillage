@@ -27,12 +27,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function AdminProductLoading() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
           <Skeleton className="h-3 w-48" />
           <Skeleton className="h-8 w-64 max-w-full" />
         </div>
-        <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">
+        <div className="flex flex-wrap gap-2 lg:max-w-[55%] lg:shrink-0 lg:justify-end">
           <Button type="button" variant="outline" disabled className="h-11 flex-1 sm:flex-none">
             View in shop
           </Button>

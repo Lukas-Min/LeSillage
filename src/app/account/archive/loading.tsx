@@ -1,11 +1,12 @@
 import { PauseCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 
 export default function ArchiveAccountLoading() {
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Account"
         title="Archive account"
         subtitle="A temporary, reversible way to step away — signs you out and gives you 30 days to change your mind."

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { CustomerPromoCodeForm } from "@/components/admin/customer-promo-code-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 
@@ -19,16 +20,16 @@ export default async function NewCustomerPromoCodePage({
   if (!user) return notFound();
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-serif-display text-2xl">Add promo code</h1>
-          <p className="text-sm text-muted-foreground">{user.name ?? user.email}</p>
-        </div>
-        <Button asChild variant="outline" className="h-11">
-          <Link href={`/admin/customers/${user.id}`}>Back</Link>
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <AreaHeader
+        title="Add promo code"
+        subtitle={<span className="break-words">{user.name ?? user.email}</span>}
+        actions={
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
+            <Link href={`/admin/customers/${user.id}`}>Back</Link>
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">New code</CardTitle>

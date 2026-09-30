@@ -1,6 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 import { DeleteAccountForm } from "./delete-form";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export default async function DeleteAccountPage() {
   const user = await requireActiveCustomer();
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Account"
         title="Delete account"
         subtitle="Removing your account deletes your profile, addresses, wishlist, and login methods. Order history is kept for our records."

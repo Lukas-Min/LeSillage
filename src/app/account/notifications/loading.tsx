@@ -1,12 +1,13 @@
 import { Bell } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 
 export default function NotificationsLoading() {
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Notifications"
         title="What we email you about"
         subtitle="Order updates always send. Toggle marketing news separately."

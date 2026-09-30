@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,11 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 
 export default function AdminNewProductLoading() {
   return (
-    <div className="space-y-4">
-      <h1 className="font-serif-display text-2xl">New product</h1>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow="Products"
+        title="New product"
+        actions={
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
+            <Link href="/admin/products">Back</Link>
+          </Button>
+        }
+      />
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-2">

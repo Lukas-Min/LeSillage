@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { upsertProduct } from "@/actions/admin-catalog-actions";
@@ -10,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +49,16 @@ export default async function NewProductPage({
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-serif-display text-2xl">New product</h1>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow="Products"
+        title="New product"
+        actions={
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
+            <Link href="/admin/products">Back</Link>
+          </Button>
+        }
+      />
       {existingProducts.length > 0 ? (
         <Card>
           <CardContent className="p-4">

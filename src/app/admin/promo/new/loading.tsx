@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,13 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm";
 
 export default function NewPromoCodeLoading() {
   return (
-    <div className="space-y-4">
-      <h1 className="font-serif-display text-2xl">New promo code</h1>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow="Promo codes"
+        title="New promo code"
+        actions={
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
+            <Link href="/admin/promo?tab=codes">Back</Link>
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">New code</CardTitle>

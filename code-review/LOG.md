@@ -20,6 +20,19 @@ Entry template:
 
 ---
 
+## 2026-09-30 — Account/admin page layout rollout (targeted, pre-commit)
+
+- **Commit range reviewed:** the uncommitted relayout of every `src/app/account/**` and `src/app/admin/**` page on top of `8ec2606`, not the checkpoint range
+- **Effort:** medium
+- **Scope / areas covered:** `src/components/ui/page-layout.tsx` and the 60 pages, loading screens and admin skeletons moved onto it, compared against the committed versions for dropped forms/actions/links
+- **Findings:**
+  - [medium] Header actions sat beside the title from `sm`, squeezing a long order number to ~80-120px at 768px (admin and account order pages) — `src/components/ui/page-layout.tsx` (`AreaHeader`) — status: fixed (row only from `lg`, actions capped at 55%)
+  - [low] Peso amounts in half-width summary tiles broke mid-number — `src/app/admin/promo/page.tsx`, `src/app/admin/promo/[promoCodeId]/page.tsx` — status: fixed (full-width tiles, skeletons match)
+  - [low] Copy drift ("Edit CODE" → "CODE", "Admin dashboard" → "Dashboard"), "Ready to use" counting not-yet-open codes, header skeletons missing the badge slot — status: fixed
+  - [low] "Total spent" means COMPLETED orders on the admin customer page but CONFIRMED-and-later on the customer's orders page — status: skipped (admin figure predates this change; flagged to the owner)
+  - [info] Pre-existing nested `<form>`s in `src/app/account/addresses/page.tsx` — status: skipped, not from this change
+- **Checkpoint advanced to:** not advanced — targeted review of one change; the next full review still starts at `4f39dd5`
+
 ## 2026-09-30 — Per-product-type promo code amounts (targeted, pre-commit)
 
 - **Commit range reviewed:** the uncommitted change on top of `72087c7`, not the checkpoint range — a targeted domain review of one feature before it shipped

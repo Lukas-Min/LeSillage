@@ -5,7 +5,8 @@ import { db } from "@/db/client";
 import { users, accounts } from "@/db/schema";
 import { requireActiveCustomer } from "@/auth";
 import { GoogleIcon } from "@/components/store/brand-icons";
-import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
+import { SectionCard, Eyebrow } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { configuredOAuthProviders } from "@/lib/oauth-providers";
@@ -28,7 +29,7 @@ export default async function ProfilePage() {
   const oauthProviders = configuredOAuthProviders();
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Account"
         title="Your profile"
         subtitle="Keep your contact details current. Confirm changes with a 6-digit code emailed to you."

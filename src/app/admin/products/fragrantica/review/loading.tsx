@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Save } from "lucide-react";
-import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
+import { SectionCard, Eyebrow } from "@/components/ui/section";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -18,12 +19,12 @@ function Field({ label, tall = false }: { label: string; tall?: boolean }) {
 export default function AdminFragranticaReviewLoading() {
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Review"
         title="Confirm details before saving"
         subtitle="Pre-filled from your paste. Adjust anything that looks off before saving."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
             <Link href="/admin/products/fragrantica">Start over</Link>
           </Button>
         }

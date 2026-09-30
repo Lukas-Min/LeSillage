@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { Trash2 } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { wishlists, products, skus, productImages } from "@/db/schema";
-import { PageHeader, SectionCard, EmptyState } from "@/components/ui/section";
+import { SectionCard, EmptyState } from "@/components/ui/section";
+import { AreaHeader, MiniStat, MiniStats, PAGE_ACTION_CLASS, PageColumns } from "@/components/ui/page-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,7 @@ export default async function WishlistPage() {
   if (rows.length === 0) {
     return (
       <div className="flex flex-1 flex-col space-y-6">
-        <PageHeader eyebrow="Wishlist" title="Saved for later" />
+        <AreaHeader eyebrow="Wishlist" title="Saved for later" />
         <EmptyState
           eyebrow="Nothing saved yet"
           title="Tap the heart on any fragrance"
@@ -68,68 +69,84 @@ export default async function WishlistPage() {
         position: productImages.position,
       })
       .from(productImages)
-      .where(eq(productImages.productId, productIds[0] ?? "")),
+      .where(inArray(productImages.productId, productIds))
+      .orderBy(asc(productImages.position)),
   ]);
   const skuByProduct = new Map(skuRows.map((row) => [row.productId, row]));
-  const imageByProduct = new Map(imageRows.map((row) => [row.productId, row]));
+  // Each product's first image by position.
+  const imageByProduct = new Map<string, (typeof imageRows)[number]>();
+  for (const row of imageRows) {
+    if (!imageByProduct.has(row.productId)) imageByProduct.set(row.productId, row);
+  }
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Wishlist"
         title="Saved for later"
         subtitle="Items you hearted from the shop. Tap a card to view, or move it straight to your cart."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
             <Link href="/shop">Find more</Link>
           </Button>
         }
       />
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {rows.map((row) => {
-          const sku = skuByProduct.get(row.productId);
-          const image = imageByProduct.get(row.productId);
-          return (
-            <li key={row.id}>
-              <SectionCard
-                className="flex h-full flex-col gap-3"
-                contentClassName="flex flex-col gap-3"
-              >
-                <Link href={sku ? `/shop/${sku.id}` : "/shop"} className="flex items-center gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-secondary">
-                    {image ? (
-                      <img
-                        src={image.url}
-                        alt={image.alt ?? row.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="truncate font-serif-display text-base leading-tight">{row.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {row.brand}
-                    </p>
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      <Badge variant="outline">{row.type.replace("_", " ").toLowerCase()}</Badge>
-                      {sku ? <Badge variant="secondary">{formatPHP(sku.retailPrice)}</Badge> : null}
+      <PageColumns
+        side={
+          <SectionCard title="Summary">
+            <MiniStats>
+              <MiniStat label="Saved" value={rows.length} />
+            </MiniStats>
+          </SectionCard>
+        }
+        main={
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {rows.map((row) => {
+              const sku = skuByProduct.get(row.productId);
+              const image = imageByProduct.get(row.productId);
+              return (
+                <li key={row.id}>
+                  <SectionCard
+                    className="flex h-full flex-col gap-3"
+                    contentClassName="flex flex-col gap-3"
+                  >
+                    <Link href={sku ? `/shop/${sku.id}` : "/shop"} className="flex items-center gap-3">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                        {image ? (
+                          <img
+                            src={image.url}
+                            alt={image.alt ?? row.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="truncate font-serif-display text-base leading-tight">{row.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {row.brand}
+                        </p>
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          <Badge variant="outline">{row.type.replace("_", " ").toLowerCase()}</Badge>
+                          {sku ? <Badge variant="secondary">{formatPHP(sku.retailPrice)}</Badge> : null}
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="mt-auto flex flex-wrap items-center gap-2">
+                      {sku ? <AddToCartButton skuId={sku.id} /> : null}
+                      <form action={removeFromWishlist.bind(null, row.id)} className="ml-auto">
+                        <SubmitButton variant="ghost" size="sm" pendingLabel="Removing…">
+                          <Trash2 className="h-4 w-4" />
+                          Remove
+                        </SubmitButton>
+                      </form>
                     </div>
-                  </div>
-                </Link>
-                <div className="mt-auto flex flex-wrap items-center gap-2">
-                  {sku ? <AddToCartButton skuId={sku.id} /> : null}
-                  <form action={removeFromWishlist.bind(null, row.id)} className="ml-auto">
-                    <SubmitButton variant="ghost" size="sm" pendingLabel="Removing…">
-                      <Trash2 className="h-4 w-4" />
-                      Remove
-                    </SubmitButton>
-                  </form>
-                </div>
-              </SectionCard>
-            </li>
-          );
-        })}
-      </ul>
+                  </SectionCard>
+                </li>
+              );
+            })}
+          </ul>
+        }
+      />
     </div>
   );
 }

@@ -3,7 +3,8 @@ import { PauseCircle } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 import { ArchiveAccountForm } from "./archive-form";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export default async function ArchiveAccountPage() {
   const hasPassword = Boolean(row?.passwordHash);
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Account"
         title="Archive account"
         subtitle="A temporary, reversible way to step away — signs you out and gives you 30 days to change your mind."

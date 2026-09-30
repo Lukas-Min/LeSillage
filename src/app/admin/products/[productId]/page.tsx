@@ -7,6 +7,7 @@ import { products, skus, productDiscounts, productImages, orders, orderItems } f
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -110,32 +111,30 @@ export default async function AdminProductDetailPage({
   }
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-1.5">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            {product.brand} · {labelForType(product.type)} · {labelForCategory(product.fragranceCategory)}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="font-serif-display text-2xl sm:text-3xl">{product.name}</h1>
-            <Badge variant={product.isActive ? "outline" : "secondary"}>
-              {product.isActive ? "Visible on storefront" : "Hidden from storefront"}
-            </Badge>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">
-          {shopSku ? (
-            <Button asChild variant="outline" className="h-11 flex-1 sm:flex-none">
-              <Link href={`/shop/${shopSku.id}`} target="_blank" rel="noopener noreferrer">
-                View in shop <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">(opens in a new tab)</span>
-              </Link>
+      <AreaHeader
+        eyebrow={`${product.brand} · ${labelForType(product.type)} · ${labelForCategory(product.fragranceCategory)}`}
+        title={product.name}
+        badge={
+          <Badge variant={product.isActive ? "outline" : "secondary"}>
+            {product.isActive ? "Visible on storefront" : "Hidden from storefront"}
+          </Badge>
+        }
+        actions={
+          <>
+            {shopSku ? (
+              <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
+                <Link href={`/shop/${shopSku.id}`} target="_blank" rel="noopener noreferrer">
+                  View in shop <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">(opens in a new tab)</span>
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild className={PAGE_ACTION_CLASS}>
+              <Link href={`/admin/products/${product.id}/skus/new`}>Add SKU</Link>
             </Button>
-          ) : null}
-          <Button asChild className="h-11 flex-1 sm:flex-none">
-            <Link href={`/admin/products/${product.id}/skus/new`}>Add SKU</Link>
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
       {welcome && !product.isActive ? (
         <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm">
           Imported and hidden from the shop for now. Set the cost and pricing below, set the SKU&apos;s size, then tick

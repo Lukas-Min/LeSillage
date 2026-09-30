@@ -3,7 +3,8 @@ import { Bell } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { updateNotificationPreferences } from "@/actions/account-actions";
@@ -16,7 +17,7 @@ export default async function NotificationsPage() {
   const row = (await db().select().from(users).where(eq(users.id, user.id)))[0];
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Notifications"
         title="What we email you about"
         subtitle="Order updates always send. Toggle marketing news separately."

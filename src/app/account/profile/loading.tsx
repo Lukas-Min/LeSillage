@@ -3,7 +3,8 @@ import { Mail } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { PageHeader, SectionCard, Eyebrow } from "@/components/ui/section";
+import { SectionCard, Eyebrow } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 import { Badge } from "@/components/ui/badge";
 import { GoogleIcon } from "@/components/store/brand-icons";
 import { configuredOAuthProviders } from "@/lib/oauth-providers";
@@ -39,7 +40,7 @@ export default function ProfileLoading() {
   const oauthProviders = configuredOAuthProviders();
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Account"
         title="Your profile"
         subtitle="Keep your contact details current. Confirm changes with a 6-digit code emailed to you."

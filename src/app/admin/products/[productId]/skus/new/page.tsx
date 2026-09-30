@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { db } from "@/db/client";
 import { products } from "@/db/schema";
@@ -42,13 +43,17 @@ export default async function NewSkuPage({
   if (!product) notFound();
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="font-serif-display text-2xl">Add SKU</h1>
-        <p className="text-sm text-muted-foreground">
-          {product.brand} — {product.name}
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow="Products"
+        title="Add SKU"
+        subtitle={`${product.brand} — ${product.name}`}
+        actions={
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
+            <Link href={`/admin/products/${product.id}`}>Back</Link>
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">New SKU</CardTitle>

@@ -2,13 +2,14 @@ import { TriangleAlert } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader } from "@/components/ui/page-layout";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 export default function DeleteAccountLoading() {
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Account"
         title="Delete account"
         subtitle="Removing your account deletes your profile, addresses, wishlist, and login methods. Order history is kept for our records."

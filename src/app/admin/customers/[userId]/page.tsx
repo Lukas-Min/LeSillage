@@ -6,6 +6,7 @@ import { users, orders, promoCodes } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
 import { describePromoCodeAmounts } from "@/domain/promo-code";
@@ -36,119 +37,129 @@ export default async function AdminCustomerDetailPage({
   const totalSpentCentavos = completedOrders.reduce((sum, o) => sum + o.totalCentavos, 0);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="font-serif-display text-2xl">{user.name ?? user.email}</h1>
-        {user.name ? <p className="text-sm text-muted-foreground">{user.email}</p> : null}
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Orders</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{rows.length}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Completed</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{completedOrders.length}</CardContent>
-        </Card>
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm">Total spent</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold">{formatPHP(totalSpentCentavos)}</CardContent>
-        </Card>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Account</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-          <p>
-            <span className="text-muted-foreground">Email:</span> {user.email}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Name:</span> {user.name ?? "—"}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Phone:</span> {user.phone ?? "—"}
-          </p>
-          <p className="flex items-center gap-2">
-            <span className="text-muted-foreground">Role:</span> <Badge variant="outline">{user.role}</Badge>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Marketing opt-in:</span> {user.marketingOptIn ? "Yes" : "No"}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Joined:</span> {formatDate(user.createdAt)}
-          </p>
-          {user.deletedAt ? (
-            <p className="text-destructive sm:col-span-2">Account deleted {formatDate(user.deletedAt)}</p>
-          ) : null}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Promo codes</CardTitle>
-          <CardAction>
-            <Button asChild className="h-11">
-              <Link href={`/admin/customers/${user.id}/promo-codes/new`}>Add</Link>
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {codes.length === 0 ? (
-            <p className="text-muted-foreground">No codes for this customer.</p>
-          ) : (
-            <ul className="space-y-2">
-              {codes.map((code) => (
-                <li key={code.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2">
-                  <span className="font-price-display">{code.code}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {describePromoCodeAmounts(code)}
-                    {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
-                    {code.allowedUserIds.length === 0
-                      ? " · everyone"
-                      : code.allowedUserIds.length === 1
-                        ? " · only this customer"
-                        : ` · this customer and ${code.allowedUserIds.length - 1} other${code.allowedUserIds.length === 2 ? "" : "s"}`}
-                    {code.isActive ? "" : " · inactive"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Orders</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {rows.length === 0 ? (
-            <p className="text-muted-foreground">No orders.</p>
-          ) : (
-            rows.map((order) => (
-              <Link
-                key={order.id}
-                href={`/admin/orders/${order.id}`}
-                className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2 transition-colors hover:border-gold/40 hover:bg-muted/30"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{order.orderNumber}</span>
-                  <span className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <OrderStatusPill status={order.status} />
-                  <span className="font-medium">{formatPHP(order.totalCentavos)}</span>
-                </span>
-              </Link>
-            ))
-          )}
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow={`Customer · Joined ${formatDate(user.createdAt)}`}
+        title={user.name ?? user.email}
+        badge={
+          <>
+            <Badge variant="outline">{user.role}</Badge>
+            {user.deletedAt ? <Badge variant="secondary">Account deleted</Badge> : null}
+          </>
+        }
+        subtitle={user.name ? <span className="break-words">{user.email}</span> : undefined}
+      />
+      <PageColumns
+        side={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MiniStats>
+                  <MiniStat label="Orders" value={rows.length} />
+                  <MiniStat label="Completed" value={completedOrders.length} />
+                  <MiniStat label="Total spent" value={formatPHP(totalSpentCentavos)} className="col-span-2" />
+                </MiniStats>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Account</CardTitle>
+              </CardHeader>
+              {/* One column in the 22rem side column from xl. */}
+              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 break-words text-sm sm:grid-cols-2 xl:grid-cols-1">
+                <p>
+                  <span className="text-muted-foreground">Email:</span> {user.email}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Name:</span> {user.name ?? "—"}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Phone:</span> {user.phone ?? "—"}
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Role:</span> <Badge variant="outline">{user.role}</Badge>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Marketing opt-in:</span> {user.marketingOptIn ? "Yes" : "No"}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Joined:</span> {formatDate(user.createdAt)}
+                </p>
+                {user.deletedAt ? (
+                  <p className="text-destructive sm:col-span-2 xl:col-span-1">Account deleted {formatDate(user.deletedAt)}</p>
+                ) : null}
+              </CardContent>
+            </Card>
+          </>
+        }
+        main={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Promo codes</CardTitle>
+                <CardAction>
+                  <Button asChild className="h-11">
+                    <Link href={`/admin/customers/${user.id}/promo-codes/new`}>Add</Link>
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {codes.length === 0 ? (
+                  <p className="text-muted-foreground">No codes for this customer.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {codes.map((code) => (
+                      <li key={code.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2">
+                        <span className="font-price-display">{code.code}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {describePromoCodeAmounts(code)}
+                          {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
+                          {code.allowedUserIds.length === 0
+                            ? " · everyone"
+                            : code.allowedUserIds.length === 1
+                              ? " · only this customer"
+                              : ` · this customer and ${code.allowedUserIds.length - 1} other${code.allowedUserIds.length === 2 ? "" : "s"}`}
+                          {code.isActive ? "" : " · inactive"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Orders</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {rows.length === 0 ? (
+                  <p className="text-muted-foreground">No orders.</p>
+                ) : (
+                  rows.map((order) => (
+                    <Link
+                      key={order.id}
+                      href={`/admin/orders/${order.id}`}
+                      className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2 transition-colors hover:border-gold/40 hover:bg-muted/30"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{order.orderNumber}</span>
+                        <span className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <OrderStatusPill status={order.status} />
+                        <span className="font-medium">{formatPHP(order.totalCentavos)}</span>
+                      </span>
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </>
+        }
+      />
     </div>
   );
 }

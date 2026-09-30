@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ClipboardPaste } from "lucide-react";
-import { PageHeader, SectionCard } from "@/components/ui/section";
+import { SectionCard } from "@/components/ui/section";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,12 +10,12 @@ import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 export default function AdminFragranticaLoading() {
   return (
     <div className="space-y-6">
-      <PageHeader
+      <AreaHeader
         eyebrow="Catalog"
         title="Import from Fragrantica"
         subtitle="Paste a Fragrantica page's HTML or JSON to pre-fill a new product."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className={PAGE_ACTION_CLASS}>
             <Link href="/admin/products">Back to products</Link>
           </Button>
         }

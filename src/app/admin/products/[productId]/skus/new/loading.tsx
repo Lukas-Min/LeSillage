@@ -2,20 +2,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * The fields after Size depend on the product's type, which isn't known here;
  * they're shaped like the decant set (the bulk of the catalog), which also
- * fills the same three rows at `sm` that a bottle or partial does.
+ * fills the same three rows at `sm` that a bottle or partial does. The product
+ * id isn't readable here either, so Back is a disabled placeholder.
  */
 export default function NewSkuLoading() {
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="font-serif-display text-2xl">Add SKU</h1>
-        <Skeleton className="h-5 w-48" />
-      </div>
+    <div className="space-y-6">
+      <AreaHeader
+        eyebrow="Products"
+        title="Add SKU"
+        subtitle={<Skeleton className="h-4 w-48 max-w-full" />}
+        actions={
+          <Button type="button" variant="outline" disabled className={PAGE_ACTION_CLASS}>
+            Back
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">New SKU</CardTitle>
