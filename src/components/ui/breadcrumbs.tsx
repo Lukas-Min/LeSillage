@@ -17,7 +17,10 @@ export function Breadcrumbs({ items, className }: { items: BreadcrumbItem[]; cla
     // its default stretch-to-fill behavior, so without an explicit width
     // this would shrink to the text's own content width instead of filling
     // the row and then being clamped/centered by max-w.
-    <nav aria-label="Breadcrumb" className={cn("mb-4 w-full 2xl:mx-auto 2xl:max-w-[80vw]", className)}>
+    // Lines up with the header's logo from 2xl: the header caps its row at
+    // 80vw and pads it by 1rem inside that cap, while a page pads by 1rem
+    // outside it, so the crumbs cap at 80vw less both sides' padding.
+    <nav aria-label="Breadcrumb" className={cn("mb-4 w-full 2xl:mx-auto 2xl:max-w-[calc(80vw-2rem)]", className)}>
       <ol className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;

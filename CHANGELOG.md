@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- Storefront breadcrumbs line up with the header's logo on wide screens (2xl) instead of sitting 16px to its left (`src/components/ui/breadcrumbs.tsx`)
+### Fixed
 - New product: Load details said "Pick a fragrance first" even with one picked (it looked the choice up by a name the picker's button also carries) (`src/components/admin/copy-from-picker.tsx`)
 ### Fixed
 - Saving the admin product page no longer wipes the product's notes: the page had no Notes field, so every Save cleared them. It now has one (under Description), and a save only changes notes or description when the form sends them (`upsertProduct` in `src/actions/admin-catalog-actions.ts`, `src/app/admin/products/[productId]/page.tsx`, `loading.tsx`)
