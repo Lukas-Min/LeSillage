@@ -67,12 +67,24 @@ const createSchema = z.object({
 // Editing reuses every create field; only the target row id is extra.
 const updateSchema = createSchema.extend({ id: z.string().min(1) });
 
+/** In "Different per type" mode there's no single Amount field: the code's
+ *  amount is the largest per-type one (the rest are stored as typeAmounts). */
+function largestTypeAmount(formData: FormData): number {
+  return Math.max(0, ...productType.map((type) => Number(formData.get(`typeAmount_${type}`)) || 0));
+}
+
+function perTypeProblem(formData: FormData): string | null {
+  if (formData.get("amountMode") !== "PER_TYPE" || formData.get("scope") !== "ORDER") return null;
+  return largestTypeAmount(formData) > 0 ? null : "Give at least one product type an amount above 0.";
+}
+
 /** Reads the shared code fields off a submitted form. */
 function readCodeFields(formData: FormData) {
+  const perType = formData.get("amountMode") === "PER_TYPE" && formData.get("scope") === "ORDER";
   return {
     code: formData.get("code"),
     type: formData.get("type"),
-    amount: formData.get("amount"),
+    amount: perType ? String(largestTypeAmount(formData)) : formData.get("amount"),
     scope: formData.get("scope"),
     typeAmounts: Object.fromEntries(productType.map((type) => [type, formData.get(`typeAmount_${type}`) || undefined])),
     minSpendCentavos: formData.get("minSpendCentavos") || undefined,
@@ -324,6 +336,8 @@ export async function createPromoCode(
   });
   if (!decision.allowed) return failed("Too many requests. Please slow down.");
 
+  const problem = perTypeProblem(formData);
+  if (problem) return failed(problem);
   const result = createSchema.safeParse(readCodeFields(formData));
   if (!result.success) return failed(describeIssues(result.error));
   const parsed = result.data;
@@ -452,6 +466,8 @@ export async function updatePromoCode(
   });
   if (!decision.allowed) return failed("Too many requests. Please slow down.");
 
+  const problem = perTypeProblem(formData);
+  if (problem) return failed(problem);
   const result = updateSchema.safeParse({ id: formData.get("id"), ...readCodeFields(formData) });
   if (!result.success) return failed(describeIssues(result.error));
   const parsed = result.data;

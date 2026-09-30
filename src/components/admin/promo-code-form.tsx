@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/customer-multi-select";
 import type { PromoCodeFormState } from "@/actions/admin-promo-code-actions";
@@ -21,9 +22,10 @@ const TYPE_FIELDS: ReadonlyArray<{ type: ProductType; label: string }> = [
 ];
 
 type TypeAmountInputs = Record<ProductType, string>;
+type AmountMode = "SAME" | "PER_TYPE";
 
-function typeAmountInputs(values: Partial<Record<ProductType, number>>): TypeAmountInputs {
-  const text = (type: ProductType) => (values[type] === undefined ? "" : String(values[type]));
+function typeAmountInputs(values: Partial<Record<ProductType, number | "">>): TypeAmountInputs {
+  const text = (type: ProductType) => String(values[type] ?? "");
   return { DECANT: text("DECANT"), PARTIAL: text("PARTIAL"), FULL_BOTTLE: text("FULL_BOTTLE") };
 }
 
@@ -36,9 +38,11 @@ export interface PromoCodeFormValues {
   scope: "ORDER" | "DELIVERY";
   type: "PERCENTAGE" | "FIXED";
   amount: number | "";
-  /** An order code's different amount for some product types, in the same
-   *  unit as `amount`; a type left out uses `amount`. */
-  typeAmounts: Partial<Record<ProductType, number>>;
+  /** One amount for every item, or a different one per product type (order codes only). */
+  amountMode: AmountMode;
+  /** What each product type gets, in the same unit as `amount` — for a
+   *  PER_TYPE code; 0 means that type isn't discounted. */
+  typeAmounts: Record<ProductType, number | "">;
   minSpend: number | "";
   maxRedemptions: number | "";
   startsAt: string;
@@ -57,7 +61,8 @@ const BLANK: PromoCodeFormValues = {
   scope: "ORDER",
   type: "PERCENTAGE",
   amount: "",
-  typeAmounts: {},
+  amountMode: "SAME",
+  typeAmounts: { DECANT: "", PARTIAL: "", FULL_BOTTLE: "" },
   minSpend: "",
   maxRedemptions: "",
   startsAt: "",
@@ -121,7 +126,9 @@ export function PromoCodeForm({
   const [amount, setAmount] = useState(values.amount === "" ? "" : String(values.amount));
   // The per-type amounts are in the same unit, so they're cleared with it.
   const [typeAmounts, setTypeAmounts] = useState(() => typeAmountInputs(values.typeAmounts));
+  const [amountMode, setAmountMode] = useState<AmountMode>(values.amountMode);
   const [scope, setScope] = useState(values.scope);
+  const perType = scope === "ORDER" && amountMode === "PER_TYPE";
 
   const wasSaved = state.savedAt > 0 && !state.error;
   // A created code joins the list above, so leave an empty form ready for the
@@ -133,6 +140,7 @@ export function PromoCodeForm({
     setType("PERCENTAGE");
     setAmount("");
     setTypeAmounts(typeAmountInputs({}));
+    setAmountMode("SAME");
     setScope("ORDER");
   }
   useEffect(() => {
@@ -148,6 +156,22 @@ export function PromoCodeForm({
     const back = next === values.type;
     setAmount(back && values.amount !== "" ? String(values.amount) : "");
     setTypeAmounts(typeAmountInputs(back ? values.typeAmounts : {}));
+  }
+
+  // Switching carries the numbers over: every type starts at the single
+  // amount, and the single amount starts at the largest per-type one.
+  function changeAmountMode(next: AmountMode) {
+    setAmountMode(next);
+    if (next === "PER_TYPE") {
+      setTypeAmounts((current) =>
+        typeAmountInputs(
+          Object.fromEntries(TYPE_FIELDS.map(({ type: productType }) => [productType, current[productType] || amount])),
+        ),
+      );
+    } else if (!amount) {
+      const largest = Math.max(...TYPE_FIELDS.map(({ type: productType }) => Number(typeAmounts[productType]) || 0));
+      if (largest > 0) setAmount(String(largest));
+    }
   }
 
   const id = (name: string) => `${uid}-${name}`;
@@ -168,7 +192,7 @@ export function PromoCodeForm({
               key={productType}
               type="hidden"
               name={`previousTypeAmount_${productType}`}
-              value={values.typeAmounts[productType] ?? ""}
+              value={values.amountMode === "PER_TYPE" ? values.typeAmounts[productType] : ""}
             />
           ))}
           <input type="hidden" name="previousStartsAt" value={values.startsAt} />
@@ -212,50 +236,82 @@ export function PromoCodeForm({
           <option value="FIXED">Fixed ₱ off</option>
         </select>
       </Field>
-      <Field label={type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"} htmlFor={id("amount")}>
-        <Input
-          id={id("amount")}
-          name="amount"
-          type="number"
-          // Percentages are stored as whole numbers, so don't let the browser
-          // accept 7.5 and have the server quietly round it to 8.
-          step={type === "PERCENTAGE" ? 1 : 0.01}
-          min={1}
-          max={type === "PERCENTAGE" ? 100 : undefined}
-          required
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-        />
-      </Field>
+      {/* Tells the action this form has the per-type fields, so a save in
+          "Same" mode clears any per-type amounts the code had. */}
+      <input type="hidden" name="typeAmountsField" value="1" />
       {scope === "ORDER" ? (
-        <fieldset className="space-y-2 sm:col-span-2" aria-describedby={id("typeAmountsHelp")}>
-          <input type="hidden" name="typeAmountsField" value="1" />
-          <legend className="text-sm font-medium">
-            {type === "PERCENTAGE" ? "Amount by product type (%, optional)" : "Amount by product type (₱, optional)"}
-          </legend>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {TYPE_FIELDS.map(({ type: productType, label }) => (
-              <Field key={productType} label={label} htmlFor={id(`typeAmount_${productType}`)}>
-                <Input
-                  id={id(`typeAmount_${productType}`)}
-                  name={`typeAmount_${productType}`}
-                  type="number"
-                  step={type === "PERCENTAGE" ? 1 : 0.01}
-                  min={0}
-                  max={type === "PERCENTAGE" ? 100 : undefined}
-                  placeholder={amount ? `${amount} (same)` : "Same as amount"}
-                  value={typeAmounts[productType]}
-                  onChange={(event) => setTypeAmounts((current) => ({ ...current, [productType]: event.target.value }))}
-                />
-              </Field>
-            ))}
+        <Field label="Amount per product type" htmlFor={id("amountMode")}>
+          <select
+            id={id("amountMode")}
+            name="amountMode"
+            className={selectClass}
+            value={amountMode}
+            onChange={(event) => changeAmountMode(event.target.value as AmountMode)}
+          >
+            <option value="SAME">Same for every type</option>
+            <option value="PER_TYPE">Different per type</option>
+          </select>
+        </Field>
+      ) : (
+        <input type="hidden" name="amountMode" value="SAME" />
+      )}
+      {perType ? (
+        <div className="space-y-1 sm:col-span-2">
+          <div className="rounded-lg border">
+            <Table aria-describedby={id("typeAmountsHelp")}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product type</TableHead>
+                  <TableHead className="w-36 sm:w-44">{type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {TYPE_FIELDS.map(({ type: productType, label }) => (
+                  <TableRow key={productType}>
+                    <TableCell>
+                      <Label htmlFor={id(`typeAmount_${productType}`)}>{label}</Label>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        id={id(`typeAmount_${productType}`)}
+                        name={`typeAmount_${productType}`}
+                        type="number"
+                        step={type === "PERCENTAGE" ? 1 : 0.01}
+                        min={0}
+                        max={type === "PERCENTAGE" ? 100 : undefined}
+                        required
+                        value={typeAmounts[productType]}
+                        onChange={(event) =>
+                          setTypeAmounts((current) => ({ ...current, [productType]: event.target.value }))
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
           <p id={id("typeAmountsHelp")} className="text-xs text-muted-foreground">
-            Blank uses the amount above; 0 leaves that type out. The minimum spend then counts only the types that
-            get a discount.
+            0 leaves that type out. The minimum spend counts only the types with an amount.
           </p>
-        </fieldset>
-      ) : null}
+        </div>
+      ) : (
+        <Field label={type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"} htmlFor={id("amount")}>
+          <Input
+            id={id("amount")}
+            name="amount"
+            type="number"
+            // Percentages are stored as whole numbers, so don't let the browser
+            // accept 7.5 and have the server quietly round it to 8.
+            step={type === "PERCENTAGE" ? 1 : 0.01}
+            min={1}
+            max={type === "PERCENTAGE" ? 100 : undefined}
+            required
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </Field>
+      )}
       <Field label="Minimum spend (₱, optional)" htmlFor={id("minSpend")}>
         <Input
           id={id("minSpend")}

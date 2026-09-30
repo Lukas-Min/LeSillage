@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fromCentavos } from "@/domain/money";
 import { formatPhDateBoundary } from "@/domain/ph-date";
+import { amountForType } from "@/domain/promo-code";
 import { db } from "@/db/client";
 import { promoCodes } from "@/db/schema";
 import { loadCustomerOptions, withAllowedUsers } from "@/lib/promo-code-access";
@@ -23,6 +24,8 @@ export default async function EditPromoCodePage({
   if (!row) return notFound();
   const [code] = await withAllowedUsers([row]);
   const customers = await loadCustomerOptions(code.allowedUserIds);
+  // Pesos for a fixed code, a plain percent otherwise — what the inputs show.
+  const displayAmount = (value: number) => (code.type === "FIXED" ? fromCentavos(value) : value);
 
   return (
     <div className="space-y-4">
@@ -50,13 +53,13 @@ export default async function EditPromoCodePage({
               code: code.code,
               scope: code.scope,
               type: code.type,
-              amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
-              typeAmounts: Object.fromEntries(
-                Object.entries(code.typeAmounts ?? {}).map(([type, value]) => [
-                  type,
-                  code.type === "FIXED" ? fromCentavos(value) : value,
-                ]),
-              ),
+              amount: displayAmount(code.amount),
+              amountMode: code.typeAmounts && Object.keys(code.typeAmounts).length > 0 ? "PER_TYPE" : "SAME",
+              typeAmounts: {
+                DECANT: displayAmount(amountForType(code, "DECANT")),
+                PARTIAL: displayAmount(amountForType(code, "PARTIAL")),
+                FULL_BOTTLE: displayAmount(amountForType(code, "FULL_BOTTLE")),
+              },
               minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
               maxRedemptions: code.maxRedemptions ?? "",
               startsAt: formatPhDateBoundary(code.startsAt, "start"),
