@@ -59,6 +59,10 @@ export default function AdminProductLoading() {
                     <Label>Description</Label>
                     <Skeleton className="h-24 w-full" />
                   </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label>Notes</Label>
+                    <Skeleton className="h-16 w-full" />
+                  </div>
                 </div>
               </div>
               <div>

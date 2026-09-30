@@ -4,6 +4,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- Saving the admin product page no longer wipes the product's notes: the page had no Notes field, so every Save cleared them. It now has one (under Description), and a save only changes notes or description when the form sends them (`upsertProduct` in `src/actions/admin-catalog-actions.ts`, `src/app/admin/products/[productId]/page.tsx`, `loading.tsx`)
+- Safari: picking a row in the searchable dropdowns (New product's Choose a fragrance, a promo code's Customers who can use it) did nothing — Safari moved focus on the click, which closed the list before the row's click landed. The lists now close on an outside click or tabbing away only (`src/components/admin/search-select.tsx`, `customer-multi-select.tsx`)
+### Fixed
 - New product: Type starts empty ("Choose a type") and must be picked, instead of defaulting to Decant
 - New product: Load details fills the fragrance fields in place instead of reloading the page, so the type, cost and pricing already typed are kept; Gender now loads for imported fragrances ("for women" → Women), and Notes are built from the note pyramid when the fragrance only has that. Creating the product also copies the loaded fragrance's note pyramid, accords, perfumers, longevity/sillage, ratings, release year, Fragrantica link and photos, which it didn't before (so the new Partial or Full bottle showed no notes or photos) (`CopyFromPicker` in `src/components/admin/copy-from-picker.tsx`, `loadProductCopyDetails`/`upsertProduct` in `src/actions/admin-catalog-actions.ts`, `formGender`/`notesText` in `src/domain/product-copy.ts`, `src/app/admin/products/new/page.tsx`, `loading.tsx`)
 ### Changed

@@ -221,6 +221,15 @@ export default async function AdminProductDetailPage({
                     <Field label="Description" htmlFor="p-description" className="sm:col-span-2">
                       <Textarea id="p-description" name="description" rows={4} defaultValue={product.description ?? ""} />
                     </Field>
+                    <Field label="Notes" htmlFor="p-notes" className="sm:col-span-2">
+                      <Textarea
+                        id="p-notes"
+                        name="notes"
+                        rows={3}
+                        defaultValue={product.notes ?? ""}
+                        placeholder="Top: Bergamot, Cardamom | Middle: Lavender | Base: Vetiver"
+                      />
+                    </Field>
                   </div>
                 </FormSection>
 

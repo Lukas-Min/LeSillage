@@ -174,7 +174,17 @@ export async function upsertProduct(formData: FormData) {
     updatedAt: new Date(),
   };
   if (parsed.productId) {
-    await db().update(products).set(values).where(eq(products.id, parsed.productId));
+    // A field this form doesn't post is left as it is, not cleared: the
+    // product page had no Notes box, so every save used to wipe a product's notes.
+    const { notes, description, ...always } = values;
+    await db()
+      .update(products)
+      .set({
+        ...always,
+        ...(formData.has("notes") ? { notes } : {}),
+        ...(formData.has("description") ? { description } : {}),
+      })
+      .where(eq(products.id, parsed.productId));
     await resyncSkuPricesForProduct(parsed.productId, values);
     await auditLogSubject({
       actor: admin.id,

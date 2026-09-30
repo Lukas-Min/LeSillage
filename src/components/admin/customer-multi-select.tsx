@@ -125,8 +125,13 @@ export function CustomerMultiSelect({
   return (
     <div
       ref={rootRef}
+      // Close when focus moves to another control (Tab). A click leaves
+      // relatedTarget null — in Safari even a click on a row inside the list,
+      // since rows aren't focusable — so clicks are left to the outside-click
+      // listener above; closing here would unmount the row before its click.
       onBlur={(event) => {
-        if (!rootRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+        const next = event.relatedTarget as Node | null;
+        if (next && !rootRef.current?.contains(next)) setOpen(false);
       }}
     >
       {selected.map((value) => (
@@ -240,6 +245,8 @@ export function CustomerMultiSelect({
                   aria-selected={isSelected}
                   // Keep focus in the search box when a row is clicked.
                   onPointerDown={(event) => event.preventDefault()}
+                  // Safari moves focus on mousedown even when pointerdown was prevented.
+                  onMouseDown={(event) => event.preventDefault()}
                   onClick={() => toggle(option.id)}
                   onMouseEnter={() => setActive(index)}
                   className={cn(
