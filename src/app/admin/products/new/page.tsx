@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 import { AreaHeader, PAGE_ACTION_CLASS, PageColumns } from "@/components/ui/page-layout";
+import { SearchSelect } from "@/components/admin/search-select";
 
 export const dynamic = "force-dynamic";
 
@@ -72,24 +73,24 @@ export default async function NewProductPage({
               {existingProducts.length > 0 ? (
                 <Card>
                   <CardContent className="p-4">
-                    <div className="flex flex-wrap items-end gap-2">
+                    {/* Top-aligned, not bottom: the search list opens under the
+                        field, and Load details should stay beside the field. */}
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                       <div className="min-w-0 flex-1 space-y-1">
                         <Label htmlFor="copyFrom">Choose a fragrance</Label>
-                        <select
+                        <SearchSelect
                           id="copyFrom"
                           name="copyFrom"
                           form="copy-from-form"
                           defaultValue={copyFrom ?? ""}
-                          className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm"
-                        >
-                          {existingProducts.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.brand} — {p.name}
-                            </option>
-                          ))}
-                        </select>
+                          options={existingProducts.map((p) => ({ value: p.id, label: `${p.brand} — ${p.name}` }))}
+                          placeholder="Pick a fragrance…"
+                          searchLabel="Search fragrances"
+                          searchPlaceholder="Search by brand or name…"
+                          noun="fragrances"
+                        />
                       </div>
-                      <Button type="submit" form="copy-from-form" variant="outline">
+                      <Button type="submit" form="copy-from-form" variant="outline" className="h-11 sm:mt-6">
                         Load details
                       </Button>
                     </div>

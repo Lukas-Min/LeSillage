@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- New product: "Choose a fragrance" is a searchable picker (search box on top, like Customers who can use it on a promo code) instead of a long dropdown; every typed word must match the brand or name, in any order. New `SearchSelect` single-choice component (`src/components/admin/search-select.tsx`, `src/app/admin/products/new/page.tsx`, `loading.tsx`)
 ### Added
 - Admin → Products has an Archived tab listing archived products (hidden with every size off), each with Open and Unarchive; the other tabs and their counts no longer include archived products. An archived product's page says it's archived and has an Unarchive button in the header. Unarchive shows the product on the shop again and switches all its sizes back on (audit `PRODUCT_UNARCHIVE`). No database change: archived is worked out from the existing flags (`isArchivedProduct` in `src/domain/product-archive.ts`, `unarchiveProduct` in `src/actions/admin-catalog-actions.ts`, `src/app/admin/products/page.tsx`, `[productId]/page.tsx`)
 ### Changed

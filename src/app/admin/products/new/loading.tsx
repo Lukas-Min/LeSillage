@@ -26,12 +26,12 @@ export default function AdminNewProductLoading() {
             <>
               <Card>
                 <CardContent className="p-4">
-                  <div className="flex flex-wrap items-end gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                     <div className="min-w-0 flex-1 space-y-1">
                       <Label>Choose a fragrance</Label>
                       <Skeleton className="h-11 w-full" />
                     </div>
-                    <Button type="button" variant="outline" disabled>
+                    <Button type="button" variant="outline" disabled className="h-11 sm:mt-6">
                       Load details
                     </Button>
                   </div>
