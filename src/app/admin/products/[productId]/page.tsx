@@ -26,7 +26,7 @@ import {
   upsertSku,
   unarchiveProduct,
 } from "@/actions/admin-catalog-actions";
-import { isArchivedProduct } from "@/domain/product-archive";
+import { isArchivedProduct, isPartialSkuSoldOut, isSoldOutPartial } from "@/domain/product-archive";
 import { formatPHP, fromCentavos } from "@/domain/money";
 import { isTerminal } from "@/domain/order-state";
 import { labelForCategory, labelForType } from "@/domain/product-type";
@@ -106,8 +106,13 @@ export default async function AdminProductDetailPage({
       .reduce((sum, row) => sum + row.quantity * (row.sizeMl ?? 0), 0);
   }
   // "View in shop" needs a live SKU page to land on; a hidden product has none.
-  const shopSku = product.isActive ? skuList.find((sku) => sku.isActive) : undefined;
+  const shopSku = product.isActive
+    ? skuList.find((sku) => sku.isActive && !(product.type === "PARTIAL" && isPartialSkuSoldOut(sku)))
+    : undefined;
   const archived = isArchivedProduct(product, skuList);
+  // Archived because it sold out, not by hand: it comes back on its own once
+  // a size has stock, so there's no Unarchive for it.
+  const soldOut = isSoldOutPartial(product, skuList);
   async function saveProduct(formData: FormData) {
     "use server";
     await upsertProduct(formData);
@@ -118,8 +123,8 @@ export default async function AdminProductDetailPage({
         eyebrow={`${product.brand} · ${labelForType(product.type)} · ${labelForCategory(product.fragranceCategory)}`}
         title={product.name}
         badge={
-          <Badge variant={product.isActive ? "outline" : "secondary"}>
-            {archived ? "Archived" : product.isActive ? "Visible on storefront" : "Hidden from storefront"}
+          <Badge variant={product.isActive && !archived ? "outline" : "secondary"}>
+            {soldOut ? "Sold out · archived" : archived ? "Archived" : product.isActive ? "Visible on storefront" : "Hidden from storefront"}
           </Badge>
         }
         actions={
@@ -135,7 +140,7 @@ export default async function AdminProductDetailPage({
             <Button asChild variant={archived ? "outline" : "default"} className={PAGE_ACTION_CLASS}>
               <Link href={`/admin/products/${product.id}/skus/new`}>Add SKU</Link>
             </Button>
-            {archived ? (
+            {archived && !soldOut ? (
               <form action={unarchiveProduct} className="flex flex-1 sm:flex-none">
                 <input type="hidden" name="productId" value={product.id} />
                 <SubmitButton className={PAGE_ACTION_CLASS} pendingLabel="Unarchiving…">
@@ -146,7 +151,12 @@ export default async function AdminProductDetailPage({
           </>
         }
       />
-      {archived ? (
+      {soldOut ? (
+        <p role="status" className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+          Sold out: this partial has no stock left, so it&apos;s hidden from the shop and listed under Archived. It
+          comes back on its own once a size has stock again (set Stock above 0 below, or a cancelled order returns it).
+        </p>
+      ) : archived ? (
         <p role="status" className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
           Archived: hidden from the shop, with every size switched off. Unarchive puts it back on the shop with all
           its sizes on.

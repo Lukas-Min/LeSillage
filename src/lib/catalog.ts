@@ -20,6 +20,7 @@ import { applyDiscount, bestDiscount, isDiscountActive, withSiteWideDiscount } f
 import { siteWideDiscountFromSettings } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
+import { isPartialSkuSoldOut } from "@/domain/product-archive";
 import {
   CONDITION_PACKAGING_ORDER,
   conditionPackagingChoice,
@@ -270,7 +271,7 @@ export function buildVariantOptions(
     availableForPreOrder?: boolean;
   }>,
   discounts: ProductDiscount[],
-  opts: { isDecant: boolean; remainingMl: number; thresholdMl: number; isFullBottle?: boolean },
+  opts: { isDecant: boolean; remainingMl: number; thresholdMl: number; isFullBottle?: boolean; isPartial?: boolean },
 ): SizePickerOption[] {
   const enriched = variants
     .filter((v) => v.sizeMl != null)
@@ -300,17 +301,19 @@ export function buildVariantOptions(
         isTester,
         fulfillment,
         soldOut,
-        visible: bottleAvailability?.visible ?? true,
+        // A sold-out partial size is gone for good — hidden, not "Sold out"
+        // (see isPartialSkuSoldOut).
+        visible: bottleAvailability?.visible ?? !(opts.isPartial && isPartialSkuSoldOut(v)),
         originalCentavos: v.retailPrice,
         discountedCentavos: applied.discountedUnitCentavos,
         savedCentavos: applied.perUnitDiscountCentavos,
         discounts: activeDiscounts.map((d): VariantDiscount => ({ type: d.type, amount: d.amount })),
       };
     })
-    // A FULL_BOTTLE with no stock and no pre-order opt-in has nothing to
-    // sell — it's excluded entirely rather than shown "sold out", unlike a
-    // decant or partial (which can always at least show sold-out for the
-    // rare in-stock-elsewhere case). See resolveBottleAvailability.
+    // A FULL_BOTTLE with no stock and no pre-order opt-in, or a sold-out
+    // PARTIAL, has nothing to sell — it's excluded entirely rather than shown
+    // "sold out", unlike a decant. See resolveBottleAvailability and
+    // isPartialSkuSoldOut.
     .filter((v) => v.visible);
 
   const groups = new Map<string, typeof enriched>();
@@ -489,6 +492,8 @@ async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<Cat
       if (product.type === "FULL_BOTTLE") {
         return resolveBottleAvailability({ stock: variant.stock, availableForPreOrder: variant.availableForPreOrder }).visible;
       }
+      // Same for a sold-out partial size: that one opened bottle is gone.
+      if (product.type === "PARTIAL") return !isPartialSkuSoldOut(variant);
       return true;
     });
     if (variants.length === 0) continue;

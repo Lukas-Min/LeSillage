@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Sold-out partials leave the shop: a partial is one opened bottle, so a size with no stock left (on hand, stock 0) is hidden from the shop grid, rails, and search, and its product page 404s, instead of showing "Sold out"; the wishlist keeps the saved item but marks it Sold out with no link or Add to cart. In admin, a visible partial with nothing left counts as archived: it moves to the Archived tab (out of All and Partials) labelled "Sold out", with no Unarchive button, and comes back on its own once a size has stock again (a restock, or a cancelled order returning it). A pre-order partial isn't affected (`isPartialSkuSoldOut`/`isSoldOutPartial` in `src/domain/product-archive.ts`, `src/lib/catalog.ts`, `src/app/(store)/shop/[skuId]/page.tsx`, `src/app/admin/products/page.tsx`, `src/app/admin/products/[productId]/page.tsx`, `src/app/account/wishlist/page.tsx`)
 ### Fixed
 - Product card skeleton (shop grid and homepage rails): the photo is one full shimmering grey block again instead of a white box with a grey block inset in it, which read as a broken image and glared in dark mode; and its Save and category pills sit on the photo again instead of dropping below it, because `.skeleton-shine`'s default `position: relative` (same layer, later than Tailwind's `absolute`) now has zero specificity via `:where()` (`CatalogCardSkeleton` in `src/components/store/loading.tsx`, `src/app/globals.css`)
 ### Fixed

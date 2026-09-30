@@ -2,6 +2,7 @@ import Link from "next/link";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { Trash2 } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
+import { isPartialSkuSoldOut } from "@/domain/product-archive";
 import { db } from "@/db/client";
 import { wishlists, products, skus, productImages } from "@/db/schema";
 import { SectionCard, EmptyState } from "@/components/ui/section";
@@ -58,6 +59,7 @@ export default async function WishlistPage() {
         retailPrice: skus.retailPrice,
         isActive: skus.isActive,
         stock: skus.stock,
+        fulfillment: skus.fulfillment,
       })
       .from(skus)
       .where(eq(skus.isActive, true)),
@@ -72,7 +74,14 @@ export default async function WishlistPage() {
       .where(inArray(productImages.productId, productIds))
       .orderBy(asc(productImages.position)),
   ]);
-  const skuByProduct = new Map(skuRows.map((row) => [row.productId, row]));
+  // A sold-out partial size is hidden from the shop (its product page 404s),
+  // so it isn't linked or offered here; the saved item stays, marked sold out.
+  const typeByProduct = new Map(rows.map((row) => [row.productId, row.type]));
+  const skuByProduct = new Map(
+    skuRows
+      .filter((row) => !(typeByProduct.get(row.productId) === "PARTIAL" && isPartialSkuSoldOut(row)))
+      .map((row) => [row.productId, row]),
+  );
   // Each product's first image by position.
   const imageByProduct = new Map<string, (typeof imageRows)[number]>();
   for (const row of imageRows) {
@@ -118,7 +127,11 @@ export default async function WishlistPage() {
                     </p>
                     <div className="flex flex-wrap gap-1 pt-1">
                       <Badge variant="outline">{row.type.replace("_", " ").toLowerCase()}</Badge>
-                      {sku ? <Badge variant="secondary">{formatPHP(sku.retailPrice)}</Badge> : null}
+                      {sku ? (
+                        <Badge variant="secondary">{formatPHP(sku.retailPrice)}</Badge>
+                      ) : (
+                        <Badge variant="secondary">{row.type === "PARTIAL" ? "Sold out" : "Unavailable"}</Badge>
+                      )}
                     </div>
                   </div>
                 </Link>

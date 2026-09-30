@@ -97,12 +97,14 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
     remainingMl,
     thresholdMl: threshold,
     isFullBottle: row.type === "FULL_BOTTLE",
+    isPartial: row.type === "PARTIAL",
   });
   // The current URL's SKU, resolved through the same size+provenance
   // grouping the picker uses — so the fulfillment badge, sold-out state, and
   // BuyBox's price all agree with whichever button/sub-option is showing as
   // selected, instead of being computed separately.
-  // A FULL_BOTTLE SKU that's out of stock and not taking pre-orders is
+  // A FULL_BOTTLE SKU that's out of stock and not taking pre-orders, or a
+  // sold-out PARTIAL, is
   // excluded from variantOptions entirely (see buildVariantOptions) — a
   // stale link/bookmark to it 404s exactly like a deactivated SKU already
   // does above, rather than crashing on a missing variant.

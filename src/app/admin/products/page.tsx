@@ -12,7 +12,7 @@ import { concentrationLabel } from "@/domain/concentration";
 import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { labelForType } from "@/domain/product-type";
 import { compareSkuOrder } from "@/domain/variant-options";
-import { isArchivedProduct } from "@/domain/product-archive";
+import { isArchivedProduct, isSoldOutPartial } from "@/domain/product-archive";
 import { cn } from "@/lib/utils";
 import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -188,6 +188,9 @@ async function ProductsList({
       {productRows.map((product) => {
         const skusForProduct = skuRows.filter((s) => s.productId === product.id).sort(compareSkuOrder);
         const archived = archivedIds.has(product.id);
+        // A sold-out partial is archived until it has stock again; Unarchive
+        // has nothing to switch back on, so it isn't offered.
+        const soldOut = archived && isSoldOutPartial(product, skusForProduct);
         const details = (
           <>
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -199,7 +202,7 @@ async function ProductsList({
                       <Badge variant="destructive">No concentration</Badge>
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {archived ? "Archived" : product.isActive ? "Visible" : "Hidden"}
+                      {soldOut ? "Sold out" : archived ? "Archived" : product.isActive ? "Visible" : "Hidden"}
                     </span>
                   </div>
                 </div>
@@ -245,12 +248,14 @@ async function ProductsList({
                       Open<span className="sr-only"> {product.name}</span>
                     </Link>
                   </Button>
-                  <form action={unarchiveProduct}>
-                    <input type="hidden" name="productId" value={product.id} />
-                    <SubmitButton className="h-11" pendingLabel="Unarchiving…">
-                      Unarchive<span className="sr-only"> {product.name}</span>
-                    </SubmitButton>
-                  </form>
+                  {soldOut ? null : (
+                    <form action={unarchiveProduct}>
+                      <input type="hidden" name="productId" value={product.id} />
+                      <SubmitButton className="h-11" pendingLabel="Unarchiving…">
+                        Unarchive<span className="sr-only"> {product.name}</span>
+                      </SubmitButton>
+                    </form>
+                  )}
                 </div>
               </CardContent>
             </Card>
