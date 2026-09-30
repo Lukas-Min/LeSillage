@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageColumns } from "@/components/ui/page-layout";
 import { cn } from "@/lib/utils";
 import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/customer-multi-select";
 import type { PromoCodeFormState } from "@/actions/admin-promo-code-actions";
@@ -177,7 +179,7 @@ export function PromoCodeForm({
   const id = (name: string) => `${uid}-${name}`;
 
   return (
-    <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {mode === "edit" ? (
         <>
           <input type="hidden" name="id" value={values.id} />
@@ -199,215 +201,258 @@ export function PromoCodeForm({
           <input type="hidden" name="previousEndsAt" value={values.endsAt} />
         </>
       ) : null}
-
-      <Field label="Code" htmlFor={id("code")}>
-        <Input
-          id={id("code")}
-          name="code"
-          defaultValue={values.code}
-          placeholder="WELCOME10"
-          required
-          minLength={3}
-          maxLength={40}
-          className="font-price-display uppercase"
-        />
-      </Field>
-      <Field label="Discounts" htmlFor={id("scope")}>
-        <select
-          id={id("scope")}
-          name="scope"
-          className={selectClass}
-          value={scope}
-          onChange={(event) => setScope(event.target.value as "ORDER" | "DELIVERY")}
-        >
-          <option value="ORDER">Order subtotal</option>
-          <option value="DELIVERY">Delivery fee</option>
-        </select>
-      </Field>
-      <Field label="Type" htmlFor={id("type")}>
-        <select
-          id={id("type")}
-          name="type"
-          className={selectClass}
-          value={type}
-          onChange={(event) => changeType(event.target.value as "PERCENTAGE" | "FIXED")}
-        >
-          <option value="PERCENTAGE">Percentage</option>
-          <option value="FIXED">Fixed ₱ off</option>
-        </select>
-      </Field>
       {/* Tells the action this form has the per-type fields, so a save in
           "Same" mode clears any per-type amounts the code had. */}
       <input type="hidden" name="typeAmountsField" value="1" />
-      {scope === "ORDER" ? (
-        <Field label="Amount per product type" htmlFor={id("amountMode")}>
-          <select
-            id={id("amountMode")}
-            name="amountMode"
-            className={selectClass}
-            value={amountMode}
-            onChange={(event) => changeAmountMode(event.target.value as AmountMode)}
-          >
-            <option value="SAME">Same for every type</option>
-            <option value="PER_TYPE">Different per type</option>
-          </select>
-        </Field>
-      ) : (
-        <input type="hidden" name="amountMode" value="SAME" />
-      )}
-      {perType ? (
-        <div className="space-y-1 sm:col-span-2">
-          <div className="rounded-lg border">
-            <Table aria-describedby={id("typeAmountsHelp")}>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product type</TableHead>
-                  <TableHead className="w-36 sm:w-44">{type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {TYPE_FIELDS.map(({ type: productType, label }) => (
-                  <TableRow key={productType}>
-                    <TableCell>
-                      <Label htmlFor={id(`typeAmount_${productType}`)}>{label}</Label>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        id={id(`typeAmount_${productType}`)}
-                        name={`typeAmount_${productType}`}
-                        type="number"
-                        step={type === "PERCENTAGE" ? 1 : 0.01}
-                        min={0}
-                        max={type === "PERCENTAGE" ? 100 : undefined}
-                        required
-                        value={typeAmounts[productType]}
-                        onChange={(event) =>
-                          setTypeAmounts((current) => ({ ...current, [productType]: event.target.value }))
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <p id={id("typeAmountsHelp")} className="text-xs text-muted-foreground">
-            0 leaves that type out. The minimum spend counts only the types with an amount.
-          </p>
-        </div>
-      ) : (
-        <Field label={type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"} htmlFor={id("amount")}>
-          <Input
-            id={id("amount")}
-            name="amount"
-            type="number"
-            // Percentages are stored as whole numbers, so don't let the browser
-            // accept 7.5 and have the server quietly round it to 8.
-            step={type === "PERCENTAGE" ? 1 : 0.01}
-            min={1}
-            max={type === "PERCENTAGE" ? 100 : undefined}
-            required
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-        </Field>
-      )}
-      <Field label="Minimum spend (₱, optional)" htmlFor={id("minSpend")}>
-        <Input
-          id={id("minSpend")}
-          name="minSpendCentavos"
-          type="number"
-          step={0.01}
-          min={0}
-          placeholder="e.g. 2000"
-          defaultValue={values.minSpend}
-        />
-      </Field>
-      <Field label="Max redemptions (optional)" htmlFor={id("maxRedemptions")}>
-        <Input
-          id={id("maxRedemptions")}
-          name="maxRedemptions"
-          type="number"
-          min={1}
-          placeholder="Unlimited"
-          defaultValue={values.maxRedemptions}
-        />
-      </Field>
-      <Field label="Starts (optional)" htmlFor={id("startsAt")}>
-        <Input id={id("startsAt")} name="startsAt" type="date" defaultValue={values.startsAt} />
-      </Field>
-      <Field label="Ends (optional)" htmlFor={id("endsAt")}>
-        <Input id={id("endsAt")} name="endsAt" type="date" defaultValue={values.endsAt} />
-      </Field>
-      <div className="space-y-1 sm:col-span-2">
-        <input type="hidden" name="allowedUsersField" value="1" />
-        <Label htmlFor={id("allowedUserIds")}>Customers who can use it</Label>
-        <CustomerMultiSelect
-          id={id("allowedUserIds")}
-          name="allowedUserIds"
-          options={customers}
-          defaultSelected={values.allowedUserIds}
-          emptyLabel="Every customer"
-          describedBy={id("allowedUserIdsHelp")}
-        />
-        <p id={id("allowedUserIdsHelp")} className="text-xs text-muted-foreground">
-          Leave empty for every customer. Add even one and only the customers listed here can use the code.
-        </p>
-      </div>
-      <div className="space-y-1 sm:col-span-2">
-        <Label htmlFor={id("description")}>Description (optional)</Label>
-        <Textarea
-          id={id("description")}
-          name="description"
-          maxLength={500}
-          defaultValue={values.description}
-          placeholder="e.g. Thank you for being a loyal customer — enjoy this on your next order."
-          aria-describedby={id("descriptionHelp")}
-        />
-        <p id={id("descriptionHelp")} className="text-xs text-muted-foreground">
-          Goes in the email customers get about this code, and under the code in their Account → Promo codes.
-        </p>
-      </div>
-      <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" name="firstOrderOnly" defaultChecked={values.firstOrderOnly} className="size-4" />
-        First order only
-      </label>
-      <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" name="onePerCustomer" defaultChecked={values.onePerCustomer} className="size-4" />
-        Once per customer
-      </label>
-      <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2">
-        {/* Always starts unchecked — this fires an email, it isn't a stored
-            setting, so there's nothing to prefill even when editing. */}
-        <input type="checkbox" name="sendEmail" className="size-4" />
-        Email the customer(s) who can still use this code
-      </label>
-      <p className="-mt-2 text-xs text-muted-foreground sm:col-span-2">
-        Customers who turned off news and promotions aren&apos;t emailed. They still see the code under Account → Promo
-        codes.
-      </p>
+      <input type="hidden" name="allowedUsersField" value="1" />
 
-      <p className="text-xs text-muted-foreground sm:col-span-2">
-        Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always pesos.
-        {mode === "edit"
-          ? ` Active or inactive stays on the promo codes list, and the ${values.redemptionCount} redemption(s) already recorded are never changed here.`
-          : ""}
-      </p>
+      {/* One form in two columns from xl, like the admin product page: the
+          code's own fields on the left, its per-type amounts, who can use it
+          and its options on the right. Below xl it's one stack in this order. */}
+      <PageColumns
+        main={
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Promo code</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Code" htmlFor={id("code")}>
+                <Input
+                  id={id("code")}
+                  name="code"
+                  defaultValue={values.code}
+                  placeholder="WELCOME10"
+                  required
+                  minLength={3}
+                  maxLength={40}
+                  className="font-price-display uppercase"
+                />
+              </Field>
+              <Field label="Discounts" htmlFor={id("scope")}>
+                <select
+                  id={id("scope")}
+                  name="scope"
+                  className={selectClass}
+                  value={scope}
+                  onChange={(event) => setScope(event.target.value as "ORDER" | "DELIVERY")}
+                >
+                  <option value="ORDER">Order subtotal</option>
+                  <option value="DELIVERY">Delivery fee</option>
+                </select>
+              </Field>
+              <Field label="Type" htmlFor={id("type")}>
+                <select
+                  id={id("type")}
+                  name="type"
+                  className={selectClass}
+                  value={type}
+                  onChange={(event) => changeType(event.target.value as "PERCENTAGE" | "FIXED")}
+                >
+                  <option value="PERCENTAGE">Percentage</option>
+                  <option value="FIXED">Fixed ₱ off</option>
+                </select>
+              </Field>
+              {scope === "ORDER" ? (
+                <Field label="Amount per product type" htmlFor={id("amountMode")}>
+                  <select
+                    id={id("amountMode")}
+                    name="amountMode"
+                    className={selectClass}
+                    value={amountMode}
+                    onChange={(event) => changeAmountMode(event.target.value as AmountMode)}
+                    aria-describedby={perType ? id("amountModeHelp") : undefined}
+                  >
+                    <option value="SAME">Same for every type</option>
+                    <option value="PER_TYPE">Different per type</option>
+                  </select>
+                  {/* The table is in the side column, so on a phone it's below
+                      this card: say where the amounts went. */}
+                  {perType ? (
+                    <p id={id("amountModeHelp")} className="text-xs text-muted-foreground">
+                      Set each amount under Per product type.
+                    </p>
+                  ) : null}
+                </Field>
+              ) : (
+                <input type="hidden" name="amountMode" value="SAME" />
+              )}
+              {perType ? null : (
+                <Field label={type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"} htmlFor={id("amount")}>
+                  <Input
+                    id={id("amount")}
+                    name="amount"
+                    type="number"
+                    // Percentages are stored as whole numbers, so don't let the browser
+                    // accept 7.5 and have the server quietly round it to 8.
+                    step={type === "PERCENTAGE" ? 1 : 0.01}
+                    min={1}
+                    max={type === "PERCENTAGE" ? 100 : undefined}
+                    required
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                  />
+                </Field>
+              )}
+              <Field label="Minimum spend (₱, optional)" htmlFor={id("minSpend")}>
+                <Input
+                  id={id("minSpend")}
+                  name="minSpendCentavos"
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  placeholder="e.g. 2000"
+                  defaultValue={values.minSpend}
+                />
+              </Field>
+              <Field label="Max redemptions (optional)" htmlFor={id("maxRedemptions")}>
+                <Input
+                  id={id("maxRedemptions")}
+                  name="maxRedemptions"
+                  type="number"
+                  min={1}
+                  placeholder="Unlimited"
+                  defaultValue={values.maxRedemptions}
+                />
+              </Field>
+              <Field label="Starts (optional)" htmlFor={id("startsAt")}>
+                <Input id={id("startsAt")} name="startsAt" type="date" defaultValue={values.startsAt} />
+              </Field>
+              <Field label="Ends (optional)" htmlFor={id("endsAt")}>
+                <Input id={id("endsAt")} name="endsAt" type="date" defaultValue={values.endsAt} />
+              </Field>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor={id("description")}>Description (optional)</Label>
+                <Textarea
+                  id={id("description")}
+                  name="description"
+                  maxLength={500}
+                  defaultValue={values.description}
+                  placeholder="e.g. Thank you for being a loyal customer — enjoy this on your next order."
+                  aria-describedby={id("descriptionHelp")}
+                />
+                <p id={id("descriptionHelp")} className="text-xs text-muted-foreground">
+                  Goes in the email customers get about this code, and under the code in their Account → Promo codes.
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Amount is a plain percent for a Percentage discount and pesos for a Fixed/₱ one; minimum spend is always
+                pesos.
+                {mode === "edit"
+                  ? ` Active or inactive stays on the promo codes list, and the ${values.redemptionCount} redemption(s) already recorded are never changed here.`
+                  : ""}
+              </p>
+            </CardContent>
+          </Card>
+        }
+        side={
+          <>
+            {perType ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Per product type</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <div className="rounded-lg border">
+                    <Table aria-describedby={id("typeAmountsHelp")}>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product type</TableHead>
+                          <TableHead className="w-36">{type === "PERCENTAGE" ? "Amount (%)" : "Amount (₱)"}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {TYPE_FIELDS.map(({ type: productType, label }) => (
+                          <TableRow key={productType}>
+                            <TableCell>
+                              <Label htmlFor={id(`typeAmount_${productType}`)}>{label}</Label>
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                id={id(`typeAmount_${productType}`)}
+                                name={`typeAmount_${productType}`}
+                                type="number"
+                                step={type === "PERCENTAGE" ? 1 : 0.01}
+                                min={0}
+                                max={type === "PERCENTAGE" ? 100 : undefined}
+                                required
+                                value={typeAmounts[productType]}
+                                onChange={(event) =>
+                                  setTypeAmounts((current) => ({ ...current, [productType]: event.target.value }))
+                                }
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <p id={id("typeAmountsHelp")} className="text-xs text-muted-foreground">
+                    0 leaves that type out. The minimum spend counts only the types with an amount.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : null}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Who can use it</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <Label htmlFor={id("allowedUserIds")}>Customers who can use it</Label>
+                <CustomerMultiSelect
+                  id={id("allowedUserIds")}
+                  name="allowedUserIds"
+                  options={customers}
+                  defaultSelected={values.allowedUserIds}
+                  emptyLabel="Every customer"
+                  describedBy={id("allowedUserIdsHelp")}
+                />
+                <p id={id("allowedUserIdsHelp")} className="text-xs text-muted-foreground">
+                  Leave empty for every customer. Add even one and only the customers listed here can use the code.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Options</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input type="checkbox" name="firstOrderOnly" defaultChecked={values.firstOrderOnly} className="size-4" />
+                  First order only
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input type="checkbox" name="onePerCustomer" defaultChecked={values.onePerCustomer} className="size-4" />
+                  Once per customer
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  {/* Always starts unchecked — this fires an email, it isn't a stored
+                      setting, so there's nothing to prefill even when editing. */}
+                  <input type="checkbox" name="sendEmail" className="size-4" aria-describedby={id("sendEmailHelp")} />
+                  Email the customer(s) who can still use this code
+                </label>
+                <p id={id("sendEmailHelp")} className="text-xs text-muted-foreground">
+                  Customers who turned off news and promotions aren&apos;t emailed. They still see the code under Account →
+                  Promo codes.
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        }
+      />
+
       {state.error ? (
-        <p role="alert" className="text-xs text-destructive sm:col-span-2">
+        <p role="alert" className="text-xs text-destructive">
           {state.error}
         </p>
       ) : null}
       {wasSaved ? (
-        <p role="status" className="text-xs text-muted-foreground sm:col-span-2">
+        <p role="status" className="text-xs text-muted-foreground">
           {mode === "edit" ? "Saved." : "Code created."}
         </p>
       ) : null}
-      <div className="sm:col-span-2">
-        <SubmitButton pendingLabel="Saving…" className={FORM_ACTION_CLASS}>
-          {mode === "edit" ? "Save changes" : "Create code"}
-        </SubmitButton>
-      </div>
+      <SubmitButton pendingLabel="Saving…" className={FORM_ACTION_CLASS}>
+        {mode === "edit" ? "Save changes" : "Create code"}
+      </SubmitButton>
     </form>
   );
 }

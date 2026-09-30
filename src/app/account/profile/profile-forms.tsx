@@ -70,7 +70,7 @@ export function ProfileForm({ initialName, initialEmail, initialPhone }: Profile
         <Label>Email</Label>
         <Input value={initialEmail} disabled />
         <p className="text-xs text-muted-foreground">
-          To change your email, use the section below — a confirmation code is required.
+          To change your email, use Change email — a confirmation code is required.
         </p>
       </div>
       <div className="space-y-1">

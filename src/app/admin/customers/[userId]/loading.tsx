@@ -1,48 +1,25 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaHeaderSkeleton, MiniStatsSkeleton, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeaderSkeleton, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ACCOUNT_FIELDS = ["Email:", "Name:", "Phone:", "Role:", "Marketing opt-in:", "Joined:"];
 
 /**
- * Same layout as the page: header, then Promo codes and Orders beside a
- * Summary and an Account card from xl, the side cards first below it.
+ * Same layout as the page: header, the full-width Orders / Completed / Total
+ * spent tiles, then Promo codes and Orders beside the Account card from xl,
+ * main column first below it.
  */
 export default function AdminCustomerLoading() {
   return (
     <div className="space-y-6">
       <AreaHeaderSkeleton badge subtitle />
+      <MiniStats className="sm:grid-cols-3">
+        <MiniStat label="Orders" value={<Skeleton className="my-1 h-6 w-10" />} />
+        <MiniStat label="Completed" value={<Skeleton className="my-1 h-6 w-10" />} />
+        <MiniStat label="Total spent" value={<Skeleton className="my-1 h-6 w-28" />} className="col-span-2 sm:col-span-1" />
+      </MiniStats>
       <PageColumns
-        side={
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Total spent spans both columns, as on the page. */}
-                <MiniStatsSkeleton
-                  labels={["Orders", "Completed", "Total spent"]}
-                  className="[&>*:last-child]:col-span-2"
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Account</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 xl:grid-cols-1">
-                {ACCOUNT_FIELDS.map((label) => (
-                  <div key={label} className="flex items-center gap-1">
-                    <span className="text-muted-foreground">{label}</span>
-                    <Skeleton className={label === "Role:" ? "h-5 w-20" : "h-4 w-32"} />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </>
-        }
         main={
           <>
             <Card>
@@ -87,6 +64,24 @@ export default function AdminCustomerLoading() {
                       <Skeleton className="h-5.5 w-24" />
                       <Skeleton className="h-5 w-16" />
                     </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </>
+        }
+        sideLabel="Account"
+        side={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Account</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 xl:grid-cols-1">
+                {ACCOUNT_FIELDS.map((label) => (
+                  <div key={label} className="flex items-center gap-1">
+                    <span className="text-muted-foreground">{label}</span>
+                    <Skeleton className={label === "Role:" ? "h-5 w-20" : "h-4 w-32"} />
                   </div>
                 ))}
               </CardContent>

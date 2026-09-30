@@ -1,15 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section";
-import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// Spans, not <Skeleton> (a div): they sit inside headings, paragraphs and
-// MiniStat's <dd>.
+// Spans, not <Skeleton> (a div): they sit inside headings and paragraphs.
 const inlineSkeleton = "skeleton-shine inline-block rounded-md bg-muted align-middle";
 
-// Mirrors page.tsx: header with the status pill, then the Summary, Status and
-// Estimated arrival cards beside Items + totals. Everything else that depends
+// Mirrors page.tsx: header with the status pill, then Items + totals beside
+// the Status and Estimated arrival cards. Everything else that depends
 // on the order itself (Confirm received, Cancel, Re-order, the rejection
 // note, "You saved", Pickup, Payment) is left out, since a skeleton for it
 // would be wrong on most orders.
@@ -29,19 +28,9 @@ export default function OrderDetailLoading() {
       />
 
       <PageColumns
+        sideLabel="Order progress"
         side={
           <>
-            <SectionCard title="Summary">
-              <MiniStats>
-                <MiniStat
-                  label="Total"
-                  value={<span className={cn(inlineSkeleton, "h-6 w-28")} />}
-                  className="col-span-2"
-                />
-                <MiniStat label="Items" value={<span className={cn(inlineSkeleton, "h-6 w-8")} />} />
-                <MiniStat label="Fulfillment" value={<span className={cn(inlineSkeleton, "h-6 w-20 max-w-full")} />} />
-              </MiniStats>
-            </SectionCard>
             <SectionCard
               eyebrow="Status"
               title={<span className={cn(inlineSkeleton, "h-4 w-40")} />}

@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { orders, orderItems, receipts, users, skus, products } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
-import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { formatPHP } from "@/domain/money";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
@@ -100,8 +100,6 @@ export default async function AdminOrderDetailPage({
   const address = (order.addressSnapshot ?? null) as AddressSnapshot | null;
   const latestReceipt = receiptRows[0];
 
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
   const summary = summarizeOrderTotals({
     lines: items,
     subtotalCentavos: order.subtotalCentavos,
@@ -134,21 +132,95 @@ export default async function AdminOrderDetailPage({
       {order.statusReason ? <p className="text-sm text-destructive">Reason: {order.statusReason}</p> : null}
 
       <PageColumns
-        side={
+        main={
           <>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Summary</CardTitle>
+                <CardTitle className="text-base">
+                  {order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <MiniStats>
-                  <MiniStat label="Items" value={itemCount} />
-                  <MiniStat label="Method" value={order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"} />
-                  <MiniStat label="Total" value={formatPHP(order.totalCentavos)} className="col-span-2" />
-                </MiniStats>
+              <CardContent className="space-y-2 text-sm">
+                {order.fulfillmentMethod === "PICKUP" ? (
+                  <p>{order.pickupNotes || "No pickup instructions given."}</p>
+                ) : address ? (
+                  <p>
+                    {[address.street, address.barangay, address.city, address.province, address.region, address.postalCode]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">No address on file.</p>
+                )}
+                {order.notes ? (
+                  <p>
+                    <span className="text-muted-foreground">Order notes:</span> {order.notes}
+                  </p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Placed {formatDateTime(order.createdAt)} · Last updated {formatDateTime(order.statusUpdatedAt)}
+                </p>
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Items</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={
+                      index < items.length - 1
+                        ? "flex items-start justify-between gap-3 border-b border-border/60 pb-3"
+                        : "flex items-start justify-between gap-3"
+                    }
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"} · qty {item.quantity}
+                      </p>
+                      {item.discountCentavos > 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          {formatPHP(item.originalUnitCentavos)} → {formatPHP(item.unitPriceCentavos)} each (saved{" "}
+                          {formatPHP(item.discountCentavos)})
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 font-medium tabular-nums">{formatPHP(item.lineTotalCentavos)}</p>
+                  </div>
+                ))}
+                <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
+                  {/* Subtotal is the lines above; only the promo code comes off here.
+                      Item discounts are already in the line prices (summarizeOrderTotals). */}
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="tabular-nums">{formatPHP(summary.itemsCentavos)}</span>
+                  </p>
+                  {summary.promoCodeCentavos > 0 ? (
+                    <p className="flex justify-between">
+                      <span className="text-muted-foreground">Promo code</span>
+                      <span className="tabular-nums">-{formatPHP(summary.promoCodeCentavos)}</span>
+                    </p>
+                  ) : null}
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className="tabular-nums">{order.deliveryFeeCentavos === 0 ? "Free" : formatPHP(order.deliveryFeeCentavos)}</span>
+                  </p>
+                  <p className="flex justify-between font-medium">
+                    <span>Total</span>
+                    <span className="tabular-nums">{formatPHP(order.totalCentavos)}</span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        }
+        sideLabel="Customer, receipt and tester"
+        side={
+          <>
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Customer</CardTitle>
@@ -244,92 +316,6 @@ export default async function AdminOrderDetailPage({
                 </CardContent>
               </Card>
             ) : null}
-          </>
-        }
-        main={
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {order.fulfillmentMethod === "PICKUP" ? (
-                  <p>{order.pickupNotes || "No pickup instructions given."}</p>
-                ) : address ? (
-                  <p>
-                    {[address.street, address.barangay, address.city, address.province, address.region, address.postalCode]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground">No address on file.</p>
-                )}
-                {order.notes ? (
-                  <p>
-                    <span className="text-muted-foreground">Order notes:</span> {order.notes}
-                  </p>
-                ) : null}
-                <p className="text-xs text-muted-foreground">
-                  Placed {formatDateTime(order.createdAt)} · Last updated {formatDateTime(order.statusUpdatedAt)}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Items</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {items.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={
-                      index < items.length - 1
-                        ? "flex items-start justify-between gap-3 border-b border-border/60 pb-3"
-                        : "flex items-start justify-between gap-3"
-                    }
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium">{item.productName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"} · qty {item.quantity}
-                      </p>
-                      {item.discountCentavos > 0 ? (
-                        <p className="text-xs text-muted-foreground">
-                          {formatPHP(item.originalUnitCentavos)} → {formatPHP(item.unitPriceCentavos)} each (saved{" "}
-                          {formatPHP(item.discountCentavos)})
-                        </p>
-                      ) : null}
-                    </div>
-                    <p className="shrink-0 font-medium tabular-nums">{formatPHP(item.lineTotalCentavos)}</p>
-                  </div>
-                ))}
-                <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
-                  {/* Subtotal is the lines above; only the promo code comes off here.
-                      Item discounts are already in the line prices (summarizeOrderTotals). */}
-                  <p className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="tabular-nums">{formatPHP(summary.itemsCentavos)}</span>
-                  </p>
-                  {summary.promoCodeCentavos > 0 ? (
-                    <p className="flex justify-between">
-                      <span className="text-muted-foreground">Promo code</span>
-                      <span className="tabular-nums">-{formatPHP(summary.promoCodeCentavos)}</span>
-                    </p>
-                  ) : null}
-                  <p className="flex justify-between">
-                    <span className="text-muted-foreground">Delivery</span>
-                    <span className="tabular-nums">{order.deliveryFeeCentavos === 0 ? "Free" : formatPHP(order.deliveryFeeCentavos)}</span>
-                  </p>
-                  <p className="flex justify-between font-medium">
-                    <span>Total</span>
-                    <span className="tabular-nums">{formatPHP(order.totalCentavos)}</span>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </>
         }
       />

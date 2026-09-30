@@ -1,5 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MiniStat, MiniStats } from "@/components/ui/page-layout";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OrderTier } from "@/domain/order-state";
 
@@ -42,28 +41,5 @@ export function OrdersListSkeleton({ rows = 3, tier = "ONGOING" }: { rows?: numb
         </Card>
       ))}
     </div>
-  );
-}
-
-/** The Summary card beside the list on /admin/orders: real labels, a placeholder for each number. */
-export function OrdersSummarySkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Summary</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <MiniStats>
-          <MiniStat label="Orders" value={<Skeleton className="my-1 h-6 w-10" />} />
-          <MiniStat label="Receipts" value={<Skeleton className="my-1 h-6 w-10" />} hint="uploaded" />
-          <MiniStat
-            label="Total"
-            value={<Skeleton className="my-1 h-6 w-28" />}
-            hint="of the orders shown"
-            className="col-span-2"
-          />
-        </MiniStats>
-      </CardContent>
-    </Card>
   );
 }

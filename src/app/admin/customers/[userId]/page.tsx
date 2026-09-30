@@ -51,52 +51,15 @@ export default async function AdminCustomerDetailPage({
         }
         subtitle={user.name ? <span className="break-words">{user.email}</span> : undefined}
       />
+      {/* The customer's order numbers are the page's own content, so they run
+          full width above the columns: two per row on a phone (Total spent
+          spans both), three from sm. */}
+      <MiniStats className="sm:grid-cols-3">
+        <MiniStat label="Orders" value={rows.length} />
+        <MiniStat label="Completed" value={completedOrders.length} />
+        <MiniStat label="Total spent" value={formatPHP(totalSpentCentavos)} className="col-span-2 sm:col-span-1" />
+      </MiniStats>
       <PageColumns
-        side={
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MiniStats>
-                  <MiniStat label="Orders" value={rows.length} />
-                  <MiniStat label="Completed" value={completedOrders.length} />
-                  <MiniStat label="Total spent" value={formatPHP(totalSpentCentavos)} className="col-span-2" />
-                </MiniStats>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Account</CardTitle>
-              </CardHeader>
-              {/* One column in the 22rem side column from xl. */}
-              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 break-words text-sm sm:grid-cols-2 xl:grid-cols-1">
-                <p>
-                  <span className="text-muted-foreground">Email:</span> {user.email}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Name:</span> {user.name ?? "—"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Phone:</span> {user.phone ?? "—"}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Role:</span> <Badge variant="outline">{user.role}</Badge>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Marketing opt-in:</span> {user.marketingOptIn ? "Yes" : "No"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Joined:</span> {formatDate(user.createdAt)}
-                </p>
-                {user.deletedAt ? (
-                  <p className="text-destructive sm:col-span-2 xl:col-span-1">Account deleted {formatDate(user.deletedAt)}</p>
-                ) : null}
-              </CardContent>
-            </Card>
-          </>
-        }
         main={
           <>
             <Card>
@@ -157,6 +120,40 @@ export default async function AdminCustomerDetailPage({
                     </Link>
                   ))
                 )}
+              </CardContent>
+            </Card>
+          </>
+        }
+        sideLabel="Account"
+        side={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Account</CardTitle>
+              </CardHeader>
+              {/* One column in the 22rem side column from xl. */}
+              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 break-words text-sm sm:grid-cols-2 xl:grid-cols-1">
+                <p>
+                  <span className="text-muted-foreground">Email:</span> {user.email}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Name:</span> {user.name ?? "—"}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Phone:</span> {user.phone ?? "—"}
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Role:</span> <Badge variant="outline">{user.role}</Badge>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Marketing opt-in:</span> {user.marketingOptIn ? "Yes" : "No"}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Joined:</span> {formatDate(user.createdAt)}
+                </p>
+                {user.deletedAt ? (
+                  <p className="text-destructive sm:col-span-2 xl:col-span-1">Account deleted {formatDate(user.deletedAt)}</p>
+                ) : null}
               </CardContent>
             </Card>
           </>

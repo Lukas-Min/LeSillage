@@ -1,12 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaHeaderSkeleton, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeaderSkeleton, PageColumns } from "@/components/ui/page-layout";
 
 /**
  * Same layout as the page: header (the status decides which action buttons
- * exist, so one placeholder stands in), then Summary, Customer and Receipt
- * beside Pickup/Delivery and Items. Tester bonus only shows on some orders,
- * so it's left out.
+ * exist, so one placeholder stands in), then Pickup/Delivery and Items beside
+ * Customer and Receipt from xl, main column first below it. Tester bonus only
+ * shows on some orders, so it's left out.
  */
 export default function AdminOrderDetailLoading() {
   return (
@@ -14,46 +14,6 @@ export default function AdminOrderDetailLoading() {
       <AreaHeaderSkeleton badge actions={<Skeleton className="h-11 w-24" />} />
 
       <PageColumns
-        side={
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MiniStats>
-                  <MiniStat label="Items" value={<Skeleton className="my-1 h-6 w-10" />} />
-                  <MiniStat label="Method" value={<Skeleton className="my-1 h-6 w-20" />} />
-                  <MiniStat label="Total" value={<Skeleton className="my-1 h-6 w-28" />} className="col-span-2" />
-                </MiniStats>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Customer</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 xl:grid-cols-1">
-                {["Recipient:", "Email:", "Phone:", "Account:"].map((label) => (
-                  <div key={label} className="flex items-center gap-1">
-                    <span className="text-muted-foreground">{label}</span>
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Receipt</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-48 max-w-full" />
-              </CardContent>
-            </Card>
-          </>
-        }
         main={
           <>
             <Card>
@@ -106,6 +66,34 @@ export default function AdminOrderDetailLoading() {
                     <Skeleton className="h-5 w-20" />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </>
+        }
+        sideLabel="Customer, receipt and tester"
+        side={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Customer</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 xl:grid-cols-1">
+                {["Recipient:", "Email:", "Phone:", "Account:"].map((label) => (
+                  <div key={label} className="flex items-center gap-1">
+                    <span className="text-muted-foreground">{label}</span>
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Receipt</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-48 max-w-full" />
               </CardContent>
             </Card>
           </>

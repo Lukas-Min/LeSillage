@@ -4,7 +4,7 @@ import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { addresses } from "@/db/schema";
 import { SectionCard, EmptyState, Eyebrow } from "@/components/ui/section";
-import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -30,7 +30,6 @@ export default async function AddressesPage() {
     db().select().from(addresses).where(eq(addresses.userId, user.id)).orderBy(desc(addresses.createdAt)),
     fetchProvinceOptions(),
   ]);
-  const defaultAddress = rows.find((address) => address.isDefault);
   return (
     <div className="space-y-6">
       <AreaHeader
@@ -40,19 +39,6 @@ export default async function AddressesPage() {
       />
 
       <PageColumns
-        side={
-          <SectionCard title="Summary">
-            <MiniStats>
-              <MiniStat label="Addresses" value={`${rows.length} of 5`} />
-              <MiniStat
-                label="Default"
-                value={defaultAddress ? defaultAddress.label?.trim() || defaultAddress.city : "None"}
-                hint={defaultAddress?.label?.trim() ? defaultAddress.city : undefined}
-                className="col-span-2"
-              />
-            </MiniStats>
-          </SectionCard>
-        }
         main={
           <>
             {rows.length === 0 ? (
@@ -151,41 +137,42 @@ export default async function AddressesPage() {
               </ul>
             )}
 
-            <SectionCard
-              eyebrow="Add"
-              title="New address"
-              description="We will prefill Metro Manila. Adjust to match your address."
-              actions={<MapPin className="h-4 w-4 text-gold" />}
-            >
-              <form action={createAddress} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label htmlFor="new-recipient">Recipient</Label>
-                  <Input id="new-recipient" name="recipientName" required />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="new-phone">Mobile (PH)</Label>
-                  <Input id="new-phone" name="phone" placeholder="9171234567" required />
-                </div>
-                <PhAddressFields idPrefix="new-address" provinces={provinces} fieldNames={ADDRESS_FIELD_NAMES} />
-                <div className="space-y-1">
-                  <Label htmlFor="new-label">Label</Label>
-                  <Input id="new-label" name="label" placeholder="Home, Office…" />
-                </div>
-                <label className="flex items-center gap-2 text-xs sm:col-span-2">
-                  <input type="checkbox" name="isDefault" />
-                  Set as default
-                </label>
-                <div className="sm:col-span-2 sm:flex sm:justify-end">
-                  <SubmitButton className="h-11 w-full sm:w-auto" pendingLabel="Saving…">Save</SubmitButton>
-                </div>
-              </form>
-            </SectionCard>
-
             <p className="text-xs text-muted-foreground">
               <Eyebrow className="inline">Privacy</Eyebrow>{" "}
               Addresses are encrypted in transit and used only for shipping and pickup.
             </p>
           </>
+        }
+        side={
+          <SectionCard
+            eyebrow="Add"
+            title="New address"
+            description="We will prefill Metro Manila. Adjust to match your address."
+            actions={<MapPin className="h-4 w-4 text-gold" />}
+          >
+            <form action={createAddress} className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 xl:[&>*]:col-span-1!">
+              <div className="space-y-1">
+                <Label htmlFor="new-recipient">Recipient</Label>
+                <Input id="new-recipient" name="recipientName" required />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="new-phone">Mobile (PH)</Label>
+                <Input id="new-phone" name="phone" placeholder="9171234567" required />
+              </div>
+              <PhAddressFields idPrefix="new-address" provinces={provinces} fieldNames={ADDRESS_FIELD_NAMES} />
+              <div className="space-y-1">
+                <Label htmlFor="new-label">Label</Label>
+                <Input id="new-label" name="label" placeholder="Home, Office…" />
+              </div>
+              <label className="flex items-center gap-2 text-xs sm:col-span-2">
+                <input type="checkbox" name="isDefault" />
+                Set as default
+              </label>
+              <div className="sm:col-span-2 sm:flex sm:justify-end">
+                <SubmitButton className="h-11 w-full sm:w-auto" pendingLabel="Saving…">Save</SubmitButton>
+              </div>
+            </form>
+          </SectionCard>
         }
       />
     </div>

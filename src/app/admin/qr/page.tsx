@@ -1,7 +1,7 @@
 import { db } from "@/db/client";
 import { qrCodes } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -13,26 +13,19 @@ export const dynamic = "force-dynamic";
 
 export default async function QrAdminPage() {
   const rows = await db().select().from(qrCodes).orderBy(qrCodes.position);
-  const activeCount = rows.filter((qr) => qr.isActive).length;
   return (
     <div className="space-y-6">
       <AreaHeader eyebrow="Admin" title="QR codes" />
       <PageColumns
-        side={
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MiniStats>
-                <MiniStat label="QR codes" value={rows.length} />
-                <MiniStat label="Active" value={activeCount} />
-              </MiniStats>
-            </CardContent>
-          </Card>
-        }
         main={
           <>
+            {/* With no codes the side column's Add card would sit beside a
+                blank column, so say so (.cursor/rules/empty-states.mdc). */}
+            {rows.length === 0 ? (
+              <div className="flex min-h-48 flex-col items-center justify-center rounded-md border border-dashed border-border/80 p-10 text-center">
+                <p className="text-sm text-muted-foreground">No QR codes yet.</p>
+              </div>
+            ) : null}
             {rows.map((qr) => (
               <Card key={qr.id}>
                 <CardContent className="p-4">
@@ -90,31 +83,34 @@ export default async function QrAdminPage() {
                 </CardContent>
               </Card>
             ))}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Add a QR code</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form action={createQrCode} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <Input name="bankName" placeholder="Bank / method (e.g. GCash)" required />
-                  <Input name="accountName" placeholder="Account name" required />
-                  <Input name="accountNumber" placeholder="Account number" required />
-                  <Input name="position" type="number" placeholder="Position" defaultValue={rows.length} />
-                  <div className="space-y-1 sm:col-span-2">
-                    <Label htmlFor="new-qr-file">QR image</Label>
-                    <Input id="new-qr-file" name="file" type="file" accept="image/jpeg,image/png,image/webp" required />
-                  </div>
-                  <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                    <input type="checkbox" name="isActive" defaultChecked />
-                    Active
-                  </label>
-                  <div className="sm:col-span-2">
-                    <SubmitButton className={FORM_ACTION_CLASS}>Add QR code</SubmitButton>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
           </>
+        }
+        side={
+          // One field per row in the 22rem side column from xl.
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Add a QR code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form action={createQrCode} className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <Input name="bankName" placeholder="Bank / method (e.g. GCash)" required />
+                <Input name="accountName" placeholder="Account name" required />
+                <Input name="accountNumber" placeholder="Account number" required />
+                <Input name="position" type="number" placeholder="Position" defaultValue={rows.length} />
+                <div className="space-y-1 sm:col-span-2 xl:col-span-1">
+                  <Label htmlFor="new-qr-file">QR image</Label>
+                  <Input id="new-qr-file" name="file" type="file" accept="image/jpeg,image/png,image/webp" required />
+                </div>
+                <label className="flex items-center gap-2 text-sm sm:col-span-2 xl:col-span-1">
+                  <input type="checkbox" name="isActive" defaultChecked />
+                  Active
+                </label>
+                <div className="sm:col-span-2 xl:col-span-1">
+                  <SubmitButton className={FORM_ACTION_CLASS}>Add QR code</SubmitButton>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         }
       />
     </div>

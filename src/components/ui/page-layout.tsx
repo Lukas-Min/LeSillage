@@ -5,8 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 /**
  * The account and admin page layout, taken from the admin product page:
  * AreaHeader (eyebrow, title and badge on the left, actions on the right),
- * then PageColumns (a main column and a 22rem summary column from xl) whose
- * summary cards hold MiniStats tiles. Storefront pages keep PageHeader
+ * then PageColumns (a main column and a 22rem side column of secondary cards
+ * and fields from xl) where the page has secondary sections; lists and
+ * single-purpose pages stay full width. MiniStats tiles are for pages whose
+ * own content is numbers (the dashboards). Storefront pages keep PageHeader
  * (src/components/ui/section.tsx).
  */
 
@@ -75,22 +77,35 @@ export function AreaHeaderSkeleton({
 }
 
 /**
- * A main column and a 22rem summary column side by side from xl. Below xl
- * it's one stack, summary first — the summary also comes first in the page
- * source, so the reading and tab order match what phones show.
+ * A main column and a 22rem side column side by side from xl (the admin
+ * product page's Product/SKUs beside Decant pool/Discount/Images). The side
+ * column holds the page's secondary cards and fields, not a summary. Below xl
+ * it's one stack in source order: main first by default (so a form's fields
+ * keep their order), or the side first with `sideFirst` when it's what a
+ * phone should see first. Source order is the reading and tab order too.
  */
 export function PageColumns({
   main,
   side,
-  sideLabel = "Summary",
+  sideFirst = false,
+  sideLabel,
   className,
 }: {
   main: React.ReactNode;
   side: React.ReactNode;
-  /** Names the summary column's landmark for screen readers. */
+  sideFirst?: boolean;
+  /** Set to make the side column a labelled <aside> landmark (use for non-form content). */
   sideLabel?: string;
   className?: string;
 }) {
+  const sideColumn = sideLabel ? (
+    <aside aria-label={sideLabel} className="flex min-w-0 flex-col gap-4 xl:col-start-2 xl:row-start-1">
+      {side}
+    </aside>
+  ) : (
+    <div className="flex min-w-0 flex-col gap-4 xl:col-start-2 xl:row-start-1">{side}</div>
+  );
+  const mainColumn = <div className="flex min-w-0 flex-col gap-4 xl:col-start-1 xl:row-start-1">{main}</div>;
   return (
     <div
       className={cn(
@@ -98,10 +113,8 @@ export function PageColumns({
         className,
       )}
     >
-      <aside aria-label={sideLabel} className="flex min-w-0 flex-col gap-4 xl:col-start-2 xl:row-start-1">
-        {side}
-      </aside>
-      <div className="flex min-w-0 flex-col gap-4 xl:col-start-1 xl:row-start-1">{main}</div>
+      {sideFirst ? sideColumn : mainColumn}
+      {sideFirst ? mainColumn : sideColumn}
     </div>
   );
 }

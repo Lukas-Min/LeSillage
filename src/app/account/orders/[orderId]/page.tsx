@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, orderItems, productImages, skus } from "@/db/schema";
 import { SectionCard } from "@/components/ui/section";
-import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { formatOrderStatus, OrderStatusPill } from "@/components/ui/status-pill";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
 import { CancelOrderButton } from "@/components/store/cancel-order-button";
@@ -101,7 +101,6 @@ export default async function OrderDetailPage({
         ];
   const revealPickup = canRevealPickupAddress(order.status);
   const pickupHidden = pickupAddressPlaceholder(order.status);
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const orderUrl = `${getEnv().NEXT_PUBLIC_APP_URL}/account/orders/${order.id}`;
   const askMessage = [
     `Order ID: ${order.orderNumber}`,
@@ -152,61 +151,55 @@ export default async function OrderDetailPage({
       ) : null}
 
       <PageColumns
+        sideLabel="Order progress"
         side={
           <>
-            <SectionCard title="Summary">
-              <MiniStats>
-                <MiniStat label="Total" value={formatPHP(order.totalCentavos)} className="col-span-2" />
-                <MiniStat label="Items" value={itemCount} />
-                <MiniStat label="Fulfillment" value={order.fulfillmentMethod === "PICKUP" ? "Pickup" : "Delivery"} />
-              </MiniStats>
+            <SectionCard
+              eyebrow="Status"
+              title={describeStatus(order.status)}
+              description="Updated by the team as your order moves through verification and shipping."
+            >
+              <ol className="space-y-2 text-sm">
+                {timelineSteps.map((step) => (
+                  <li
+                    key={step.status}
+                    className={
+                      step.status === order.status
+                        ? "font-medium text-gold-ink"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {step.label}
+                  </li>
+                ))}
+              </ol>
             </SectionCard>
+            <SectionCard eyebrow="Estimated arrival" title="When to expect it">
+              <ul className="space-y-1 text-sm">
+                {eta.map((range, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-gold" />
+                    {range.label}
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+            {order.fulfillmentMethod === "PICKUP" ? (
               <SectionCard
-                eyebrow="Status"
-                title={describeStatus(order.status)}
-                description="Updated by the team as your order moves through verification and shipping."
+                eyebrow="Pickup"
+                title={revealPickup ? PICKUP_ADDRESS_NAME : pickupHidden.title}
+                description={
+                  revealPickup
+                    ? `Search "${PICKUP_ADDRESS_NAME}" on Google Maps or Apple Maps to find it.`
+                    : pickupHidden.description
+                }
               >
-                <ol className="space-y-2 text-sm">
-                  {timelineSteps.map((step) => (
-                    <li
-                      key={step.status}
-                      className={
-                        step.status === order.status
-                          ? "font-medium text-gold-ink"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {step.label}
-                    </li>
-                  ))}
-                </ol>
+                {revealPickup ? <p className="text-sm">{PICKUP_ADDRESS_LINE}</p> : null}
+                {order.pickupNotes ? (
+                  <p className="text-sm text-muted-foreground">Your instructions: {order.pickupNotes}</p>
+                ) : null}
               </SectionCard>
-              <SectionCard eyebrow="Estimated arrival" title="When to expect it">
-                <ul className="space-y-1 text-sm">
-                  {eta.map((range, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-gold" />
-                      {range.label}
-                    </li>
-                  ))}
-                </ul>
-              </SectionCard>
-              {order.fulfillmentMethod === "PICKUP" ? (
-                <SectionCard
-                  eyebrow="Pickup"
-                  title={revealPickup ? PICKUP_ADDRESS_NAME : pickupHidden.title}
-                  description={
-                    revealPickup
-                      ? `Search "${PICKUP_ADDRESS_NAME}" on Google Maps or Apple Maps to find it.`
-                      : pickupHidden.description
-                  }
-                >
-                  {revealPickup ? <p className="text-sm">{PICKUP_ADDRESS_LINE}</p> : null}
-                  {order.pickupNotes ? (
-                    <p className="text-sm text-muted-foreground">Your instructions: {order.pickupNotes}</p>
-                  ) : null}
-                </SectionCard>
-              ) : null}
+            ) : null}
           </>
         }
         main={

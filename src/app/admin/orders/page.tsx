@@ -6,8 +6,8 @@ import { orders, receipts, users } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
-import { OrdersListSkeleton, OrdersSummarySkeleton } from "@/components/admin/orders-skeleton";
+import { AreaHeader } from "@/components/ui/page-layout";
+import { OrdersListSkeleton } from "@/components/admin/orders-skeleton";
 import { formatPHP } from "@/domain/money";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { ORDER_STATUSES_BY_TIER, type OrderTier } from "@/domain/order-state";
@@ -46,45 +46,39 @@ export default async function AdminOrdersPage({
   const activeTab: OrderTier =
     tabParam === "completed" ? "COMPLETED" : tabParam === "cancelled" ? "CANCELLED" : "ONGOING";
 
-  const tabs = (
-    <AdminTabs
-      tabs={TABS.map((tab) => ({ ...tab, href: tabHref(tab.value, userId, orderId) }))}
-      active={activeTab}
-    />
-  );
-
   return (
     <div className="flex flex-1 flex-col space-y-6">
       <AreaHeader eyebrow="Admin" title="Orders" />
 
-      {/* Each tab fetches inside its own boundary, keyed to the tab (plus the
-          userId/orderId filters): switching tabs is query-string navigation
-          on this same route, which loading.tsx alone does not retrigger. The
-          boundary holds both columns, since the summary counts the same rows
-          as the list. */}
-      <Suspense
-        key={`${activeTab}:${userId ?? ""}:${orderId ?? ""}`}
-        fallback={
-          <PageColumns
-            side={<OrdersSummarySkeleton />}
-            main={
-              <>
-                {tabs}
-                {orderId ? (
-                  <Link href={tabHref(activeTab)} className="text-xs text-muted-foreground hover:underline">
-                    Showing this order · Clear filter
-                  </Link>
-                ) : userId ? (
-                  <Skeleton className="h-4 w-full max-w-xs" />
-                ) : null}
-                <OrdersListSkeleton rows={orderId ? 1 : 3} tier={activeTab} />
-              </>
-            }
-          />
-        }
-      >
-        <OrdersTabContent tier={activeTab} userId={userId} orderId={orderId} tabs={tabs} />
-      </Suspense>
+      {/* Full width: a list has no secondary cards. flex-1 down to the empty
+          message so it centres in the leftover height. */}
+      <div className="flex flex-1 flex-col gap-4">
+        <AdminTabs
+          tabs={TABS.map((tab) => ({ ...tab, href: tabHref(tab.value, userId, orderId) }))}
+          active={activeTab}
+        />
+
+        {/* Each tab fetches inside its own boundary, keyed to the tab (plus the
+            userId/orderId filters): switching tabs is query-string navigation
+            on this same route, which loading.tsx alone does not retrigger. */}
+        <Suspense
+          key={`${activeTab}:${userId ?? ""}:${orderId ?? ""}`}
+          fallback={
+            <>
+              {orderId ? (
+                <Link href={tabHref(activeTab)} className="text-xs text-muted-foreground hover:underline">
+                  Showing this order · Clear filter
+                </Link>
+              ) : userId ? (
+                <Skeleton className="h-4 w-full max-w-xs" />
+              ) : null}
+              <OrdersListSkeleton rows={orderId ? 1 : 3} tier={activeTab} />
+            </>
+          }
+        >
+          <OrdersTabContent tier={activeTab} userId={userId} orderId={orderId} />
+        </Suspense>
+      </div>
     </div>
   );
 }
@@ -93,13 +87,10 @@ async function OrdersTabContent({
   tier,
   userId,
   orderId,
-  tabs,
 }: {
   tier: OrderTier;
   userId?: string;
   orderId?: string;
-  /** The AdminTabs row, rendered at the top of the main column. */
-  tabs: React.ReactNode;
 }) {
   const conditions = [];
   // A direct link to one specific order always shows that order, whichever
@@ -148,18 +139,15 @@ async function OrdersTabContent({
       ? `${tierNoun} orders for ${customer.name ?? customer.email}`
       : null;
 
-  const totalCentavos = rows.reduce((sum, order) => sum + order.totalCentavos, 0);
-
-  const list = (
+  return (
     <>
-      {tabs}
       {filterLabel ? (
         <Link href={tabHref(tier)} className="text-xs text-muted-foreground hover:underline">
           Showing {filterLabel} · Clear filter
         </Link>
       ) : null}
       {rows.length === 0 ? (
-        <Card className="flex min-h-48 flex-col">
+        <Card className="flex min-h-48 flex-1 flex-col">
           <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center text-sm text-muted-foreground">
             {orderId
               ? "No matching orders."
@@ -221,25 +209,5 @@ async function OrdersTabContent({
         </Card>
       ))}
     </>
-  );
-
-  return (
-    <PageColumns
-      side={
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MiniStats>
-              <MiniStat label="Orders" value={rows.length} />
-              <MiniStat label="Receipts" value={latestReceiptByOrder.size} hint="uploaded" />
-              <MiniStat label="Total" value={formatPHP(totalCentavos)} hint="of the orders shown" className="col-span-2" />
-            </MiniStats>
-          </CardContent>
-        </Card>
-      }
-      main={list}
-    />
   );
 }

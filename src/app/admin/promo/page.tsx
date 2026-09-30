@@ -17,18 +17,13 @@ import { deletePromoCode, togglePromoCodeActive } from "@/actions/admin-promo-co
 import { SiteWideDiscountForm } from "@/components/admin/site-wide-discount-form";
 import { fromCentavos, formatPHP } from "@/domain/money";
 import { formatPhDateBoundary, toDisplayDate } from "@/domain/ph-date";
-import {
-  siteWideDiscountFromSettings,
-  siteWideDiscountStatus,
-  type SiteWideDiscountConfig,
-  type SiteWideDiscountStatus,
-} from "@/domain/promo";
+import { siteWideDiscountFromSettings, siteWideDiscountStatus, type SiteWideDiscountConfig } from "@/domain/promo";
 import { describePromoCodeAmounts, discountedTypesLabel } from "@/domain/promo-code";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { formatDate } from "@/lib/utils";
 import { withAllowedUsers } from "@/lib/promo-code-access";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
-import { AreaHeader, MiniStat, MiniStats, PAGE_ACTION_CLASS, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PAGE_ACTION_CLASS, PageColumns } from "@/components/ui/page-layout";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +35,6 @@ const TABS = [
 function amountLabel(type: "PERCENTAGE" | "FIXED", amount: number) {
   return type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
 }
-
-/** The site-wide discount's status in a word, for the summary tile. */
-const SITE_WIDE_STATUS_SHORT: Record<SiteWideDiscountStatus, string> = {
-  OFF: "Off",
-  SCHEDULED: "Scheduled",
-  ACTIVE: "On",
-  ENDED: "Ended",
-};
 
 function siteWideStatusText(config: SiteWideDiscountConfig): string {
   const off = `${amountLabel(config.type, config.amount)} off`;
@@ -119,107 +106,85 @@ async function SettingsTab() {
     readAnnouncement(),
   ]);
   const siteWide = siteWideDiscountFromSettings(row);
-  const siteWideStatus = siteWideDiscountStatus(siteWide);
   return (
+    // The shop's everyday settings on the left; the two things switched on
+    // for a while (a sale, a banner) beside them.
     <PageColumns
-      side={
+      main={
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Summary</CardTitle>
+            <CardTitle className="text-base">Delivery & tester</CardTitle>
           </CardHeader>
           <CardContent>
-            <MiniStats>
-              {/* Peso amounts need the full width, or "₱10,000.00" breaks mid-number. */}
-              <MiniStat label="Delivery fee" value={formatPHP(row?.deliveryFeeCentavos ?? 12000)} className="col-span-2" />
-              <MiniStat
-                className="col-span-2"
-                label="Free-shipping threshold"
-                value={formatPHP(row?.decantThresholdCentavos ?? 200000)}
-                hint={(row?.freeDeliveryEnabled ?? true) ? undefined : "Free shipping off"}
-              />
-              <MiniStat
-                label="Site-wide discount"
-                value={SITE_WIDE_STATUS_SHORT[siteWideStatus]}
-                hint={siteWideStatus === "OFF" ? undefined : `${amountLabel(siteWide.type, siteWide.amount)} off`}
-              />
-              <MiniStat label="Tester bonus" value={(row?.testerBonusEnabled ?? true) ? "On" : "Off"} />
-            </MiniStats>
+            <form action={updatePromoSettings} className="space-y-3">
+              <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (₱)</Label>
+                  <Input
+                    id="decantThresholdCentavos"
+                    name="decantThresholdCentavos"
+                    type="number"
+                    step="0.01"
+                    defaultValue={fromCentavos(row?.decantThresholdCentavos ?? 200000)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="deliveryFeeCentavos">Delivery fee (₱)</Label>
+                  <Input
+                    id="deliveryFeeCentavos"
+                    name="deliveryFeeCentavos"
+                    type="number"
+                    step="0.01"
+                    defaultValue={fromCentavos(row?.deliveryFeeCentavos ?? 12000)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="decantPreOrderThresholdMl">Decant pre-order threshold (ml)</Label>
+                  <Input
+                    id="decantPreOrderThresholdMl"
+                    name="decantPreOrderThresholdMl"
+                    type="number"
+                    defaultValue={row?.decantPreOrderThresholdMl ?? 10}
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="freeDeliveryEnabled"
+                  defaultChecked={row?.freeDeliveryEnabled ?? true}
+                />
+                Free shipping enabled
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="testerBonusEnabled"
+                  defaultChecked={row?.testerBonusEnabled ?? true}
+                />
+                Tester bonus enabled
+              </label>
+              <p className="text-xs text-muted-foreground">
+                On a delivered order over the decant threshold, assigns one in-stock SKU marked Tester. Those SKUs stay
+                listed in the shop. Pickup never receives a complimentary tester.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes
+                pre-order. Retail decants ignore this pool and use their own stock.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not
+                centavos.
+              </p>
+              <SubmitButton className={FORM_ACTION_CLASS} pendingLabel="Saving…">
+                Save
+              </SubmitButton>
+            </form>
           </CardContent>
         </Card>
       }
-      main={
+      side={
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Delivery & tester</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form action={updatePromoSettings} className="space-y-3">
-                <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="decantThresholdCentavos">Free-shipping threshold (₱)</Label>
-                    <Input
-                      id="decantThresholdCentavos"
-                      name="decantThresholdCentavos"
-                      type="number"
-                      step="0.01"
-                      defaultValue={fromCentavos(row?.decantThresholdCentavos ?? 200000)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="deliveryFeeCentavos">Delivery fee (₱)</Label>
-                    <Input
-                      id="deliveryFeeCentavos"
-                      name="deliveryFeeCentavos"
-                      type="number"
-                      step="0.01"
-                      defaultValue={fromCentavos(row?.deliveryFeeCentavos ?? 12000)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="decantPreOrderThresholdMl">Decant pre-order threshold (ml)</Label>
-                    <Input
-                      id="decantPreOrderThresholdMl"
-                      name="decantPreOrderThresholdMl"
-                      type="number"
-                      defaultValue={row?.decantPreOrderThresholdMl ?? 10}
-                    />
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="freeDeliveryEnabled"
-                    defaultChecked={row?.freeDeliveryEnabled ?? true}
-                  />
-                  Free shipping enabled
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="testerBonusEnabled"
-                    defaultChecked={row?.testerBonusEnabled ?? true}
-                  />
-                  Tester bonus enabled
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  On a delivered order over the decant threshold, assigns one in-stock SKU marked Tester. Those SKUs stay
-                  listed in the shop. Pickup never receives a complimentary tester.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes
-                  pre-order. Retail decants ignore this pool and use their own stock.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Free-shipping threshold and delivery fee are entered in pesos (add a period for centavos) — not
-                  centavos.
-                </p>
-                <SubmitButton className={FORM_ACTION_CLASS} pendingLabel="Saving…">
-                  Save
-                </SubmitButton>
-              </form>
-            </CardContent>
-          </Card>
           <Card>
             <CardHeader className="space-y-1">
               <CardTitle className="text-base">Site-wide discount</CardTitle>
@@ -269,83 +234,63 @@ async function CodesTab() {
         .where(inArray(users.id, restrictedIds))
     : [];
   const customerById = new Map(customers.map((customer) => [customer.id, customer.name ?? customer.email]));
-  const activeCount = codes.filter((code) => code.isActive).length;
-  const redemptionTotal = codes.reduce((sum, code) => sum + code.redemptionCount, 0);
   return (
-    <PageColumns
-      side={
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MiniStats>
-              <MiniStat label="Codes" value={codes.length} />
-              <MiniStat label="Active" value={activeCount} />
-              <MiniStat label="Redemptions" value={redemptionTotal} />
-            </MiniStats>
-          </CardContent>
-        </Card>
-      }
-      main={
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Existing codes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {codes.length === 0 ? (
-              <div className="flex min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-border/80 p-10 text-center">
-                <p className="text-sm text-muted-foreground">No promo codes yet.</p>
-              </div>
-            ) : (
-              codes.map((code) => (
-                <div key={code.id} className="space-y-3 rounded-lg border p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="font-price-display">{code.code}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {describePromoCodeAmounts(code)}
-                        {code.minSpendCentavos
-                          ? ` · min spend ${formatPHP(code.minSpendCentavos)}${discountedTypesLabel(code) ? ` of ${discountedTypesLabel(code)}` : ""}`
-                          : ""}
-                        {code.firstOrderOnly ? " · first order only" : ""}
-                        {code.onePerCustomer ? " · once per customer" : ""}
-                        {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
-                        {allowedLabel(code.allowedUserIds, customerById)}
-                        {code.startsAt ? ` · starts ${formatDate(code.startsAt)}` : ""}
-                        {code.endsAt ? ` · ends ${formatDate(toDisplayDate(code.endsAt, "end")!)}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button asChild variant="outline" className="h-11">
-                        <Link href={`/admin/promo/${code.id}`}>Edit</Link>
-                      </Button>
-                      <form action={togglePromoCodeActive}>
-                        <input type="hidden" name="id" value={code.id} />
-                        <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
-                        <SubmitButton variant="outline">{code.isActive ? "Deactivate" : "Activate"}</SubmitButton>
-                      </form>
-                      <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
-                        <input type="hidden" name="id" value={code.id} />
-                      </form>
-                      <ConfirmSubmitButton
-                        formId={`delete-promo-${code.id}`}
-                        title="Delete this promo code?"
-                        description={
-                          code.redemptionCount > 0
-                            ? `"${code.code}" has been used ${code.redemptionCount} time${code.redemptionCount === 1 ? "" : "s"}. Deleting it removes the code and the record of who used it. Past orders keep their discount, and this can't be undone.`
-                            : `"${code.code}" has never been redeemed, so this is safe to remove permanently.`
-                        }
-                        triggerLabel="Delete"
-                      />
-                    </div>
-                  </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Existing codes</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {codes.length === 0 ? (
+          <div className="flex min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-border/80 p-10 text-center">
+            <p className="text-sm text-muted-foreground">No promo codes yet.</p>
+          </div>
+        ) : (
+          codes.map((code) => (
+            <div key={code.id} className="space-y-3 rounded-lg border p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="font-price-display">{code.code}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {describePromoCodeAmounts(code)}
+                    {code.minSpendCentavos
+                      ? ` · min spend ${formatPHP(code.minSpendCentavos)}${discountedTypesLabel(code) ? ` of ${discountedTypesLabel(code)}` : ""}`
+                      : ""}
+                    {code.firstOrderOnly ? " · first order only" : ""}
+                    {code.onePerCustomer ? " · once per customer" : ""}
+                    {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
+                    {allowedLabel(code.allowedUserIds, customerById)}
+                    {code.startsAt ? ` · starts ${formatDate(code.startsAt)}` : ""}
+                    {code.endsAt ? ` · ends ${formatDate(toDisplayDate(code.endsAt, "end")!)}` : ""}
+                  </p>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      }
-    />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button asChild variant="outline" className="h-11">
+                    <Link href={`/admin/promo/${code.id}`}>Edit</Link>
+                  </Button>
+                  <form action={togglePromoCodeActive}>
+                    <input type="hidden" name="id" value={code.id} />
+                    <input type="hidden" name="isActive" value={(!code.isActive).toString()} />
+                    <SubmitButton variant="outline">{code.isActive ? "Deactivate" : "Activate"}</SubmitButton>
+                  </form>
+                  <form id={`delete-promo-${code.id}`} action={deletePromoCode}>
+                    <input type="hidden" name="id" value={code.id} />
+                  </form>
+                  <ConfirmSubmitButton
+                    formId={`delete-promo-${code.id}`}
+                    title="Delete this promo code?"
+                    description={
+                      code.redemptionCount > 0
+                        ? `"${code.code}" has been used ${code.redemptionCount} time${code.redemptionCount === 1 ? "" : "s"}. Deleting it removes the code and the record of who used it. Past orders keep their discount, and this can't be undone.`
+                        : `"${code.code}" has never been redeemed, so this is safe to remove permanently.`
+                    }
+                    triggerLabel="Delete"
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }

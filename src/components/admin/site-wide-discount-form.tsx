@@ -51,7 +51,7 @@ export function SiteWideDiscountForm({ values }: { values: SiteWideDiscountFormV
         />
         On (applies to every fragrance)
       </label>
-      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-1">
         <div className="min-w-0 space-y-1">
           <Label htmlFor="siteWideDiscountType">Type</Label>
           <select

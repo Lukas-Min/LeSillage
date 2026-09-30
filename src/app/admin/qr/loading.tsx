@@ -1,27 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaHeader, MiniStatsSkeleton, PageColumns } from "@/components/ui/page-layout";
+import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
-/** Same layout as the page: header, then the QR cards and a Summary card from xl, summary first below it. */
+/** Same layout as the page: header, then the QR cards beside the Add a QR code card from xl, QR cards first below it. */
 export default function AdminQrLoading() {
   return (
     <div className="space-y-6">
       <AreaHeader eyebrow="Admin" title="QR codes" />
       <PageColumns
-        side={
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MiniStatsSkeleton labels={["QR codes", "Active"]} />
-            </CardContent>
-          </Card>
-        }
         main={
           <>
             {Array.from({ length: 2 }).map((_, index) => (
@@ -53,31 +43,33 @@ export default function AdminQrLoading() {
                 </CardContent>
               </Card>
             ))}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Add a QR code</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Input placeholder="Bank / method (e.g. GCash)" disabled />
-                <Input placeholder="Account name" disabled />
-                <Input placeholder="Account number" disabled />
-                <Input type="number" placeholder="Position" disabled />
-                <div className="space-y-1 sm:col-span-2">
-                  <Label htmlFor="new-qr-file">QR image</Label>
-                  <Input id="new-qr-file" type="file" disabled />
-                </div>
-                <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                  <input type="checkbox" defaultChecked disabled />
-                  Active
-                </label>
-                <div className="sm:col-span-2">
-                  <Button type="button" disabled className={FORM_ACTION_CLASS}>
-                    Add QR code
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </>
+        }
+        side={
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Add a QR code</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Input placeholder="Bank / method (e.g. GCash)" disabled />
+              <Input placeholder="Account name" disabled />
+              <Input placeholder="Account number" disabled />
+              <Input type="number" placeholder="Position" disabled />
+              <div className="space-y-1 sm:col-span-2 xl:col-span-1">
+                <Label htmlFor="new-qr-file">QR image</Label>
+                <Input id="new-qr-file" type="file" disabled />
+              </div>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2 xl:col-span-1">
+                <input type="checkbox" defaultChecked disabled />
+                Active
+              </label>
+              <div className="sm:col-span-2 xl:col-span-1">
+                <Button type="button" disabled className={FORM_ACTION_CLASS}>
+                  Add QR code
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         }
       />
     </div>

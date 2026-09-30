@@ -1,9 +1,8 @@
 import { Search } from "lucide-react";
 import type { ProductType } from "@/db/schema";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MiniStatsSkeleton, PageColumns } from "@/components/ui/page-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -14,34 +13,11 @@ export const PRODUCT_TYPE_TABS: { value: ProductType | "ALL"; label: string }[] 
   { value: "PARTIAL", label: "Partials" },
 ];
 
-/** The Catalog summary's tiles, in order: every product, then one per type. */
-export const PRODUCT_SUMMARY_LABELS = ["Total", "Decants", "Full bottles", "Partials"] as const;
-
-/** The Catalog summary card, the tabs, search and product cards on
- *  /admin/products. `activeType` is known when this is the tab-switch
- *  fallback, and unknown in loading.tsx. */
+/** The tabs, search and product cards on /admin/products. `activeType` is
+ *  known when this is the tab-switch fallback, and unknown in loading.tsx. */
 export function ProductsListSkeleton({ activeType }: { activeType?: ProductType | "ALL" }) {
   return (
-    <PageColumns
-      sideLabel="Catalog summary"
-      side={
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Catalog</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MiniStatsSkeleton labels={PRODUCT_SUMMARY_LABELS} />
-          </CardContent>
-        </Card>
-      }
-      main={<ProductsMainSkeleton activeType={activeType} />}
-    />
-  );
-}
-
-function ProductsMainSkeleton({ activeType }: { activeType?: ProductType | "ALL" }) {
-  return (
-    <>
+    <div className="flex flex-col gap-4">
       <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-border">
         {PRODUCT_TYPE_TABS.map((tab) => (
           <span
@@ -85,6 +61,6 @@ function ProductsMainSkeleton({ activeType }: { activeType?: ProductType | "ALL"
           </CardContent>
         </Card>
       ))}
-    </>
+    </div>
   );
 }
