@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users, orders, promoCodes } from "@/db/schema";
+import { isPaidStatus } from "@/domain/order-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,8 @@ export default async function AdminCustomerDetailPage({
   ]);
 
   const completedOrders = rows.filter((o) => o.status === "COMPLETED");
-  const totalSpentCentavos = completedOrders.reduce((sum, o) => sum + o.totalCentavos, 0);
+  // Paid orders (confirmed onward), the same figure the customer sees under Account → Orders.
+  const totalSpentCentavos = rows.filter((o) => isPaidStatus(o.status)).reduce((sum, o) => sum + o.totalCentavos, 0);
 
   return (
     <div className="space-y-6">

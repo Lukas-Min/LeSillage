@@ -2,27 +2,17 @@ import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { orders, type OrderStatus } from "@/db/schema";
+import { orders } from "@/db/schema";
 import { SectionCard, EmptyState } from "@/components/ui/section";
 import { AreaHeader, MiniStat, MiniStats, PageColumns } from "@/components/ui/page-layout";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { ReorderButton } from "@/components/store/reorder-button";
 import { formatPHP } from "@/domain/money";
-import { isTerminal } from "@/domain/order-state";
+import { isPaidStatus, isTerminal } from "@/domain/order-state";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
-
-// Orders whose payment the team has verified — what "Total spent" adds up.
-// Awaiting payment, receipt submitted, rejected and cancelled don't count.
-const PAID_STATUSES: ReadonlySet<OrderStatus> = new Set([
-  "CONFIRMED",
-  "SHIPPED",
-  "DELIVERED",
-  "READY_FOR_PICKUP",
-  "COMPLETED",
-]);
 
 export default async function OrdersPage() {
   const session = await auth();
@@ -35,7 +25,7 @@ export default async function OrdersPage() {
 
   const activeCount = rows.filter((order) => !isTerminal(order.status)).length;
   const spentCentavos = rows
-    .filter((order) => PAID_STATUSES.has(order.status))
+    .filter((order) => isPaidStatus(order.status))
     .reduce((sum, order) => sum + order.totalCentavos, 0);
 
   return (

@@ -119,20 +119,30 @@ export default async function AddressesPage() {
                         </label>
                         <div className="flex flex-wrap gap-2 sm:col-span-2 sm:justify-end">
                           <SubmitButton size="sm" className="sm:w-auto" pendingLabel="Saving…">Save</SubmitButton>
-                          <form action={setDefaultAddressForm} className="contents">
-                            <input type="hidden" name="addressId" value={address.id} />
-                            {!address.isDefault ? (
-                              <SubmitButton size="sm" variant="outline" pendingLabel="Setting…">
-                                Make default
-                              </SubmitButton>
-                            ) : null}
-                          </form>
-                          <form action={deleteAddress} className="contents">
-                            <input type="hidden" name="addressId" value={address.id} />
-                            <SubmitButton size="sm" variant="destructive" pendingLabel="Deleting…">
-                              Delete
+                          {/* formAction, not nested forms: a <form> inside this edit
+                              form is dropped by the browser, so these buttons used to
+                              submit the edit (Save) instead. They post the same
+                              addressId to their own action. */}
+                          {!address.isDefault ? (
+                            <SubmitButton
+                              size="sm"
+                              variant="outline"
+                              pendingLabel="Setting…"
+                              formAction={setDefaultAddressForm}
+                              formNoValidate
+                            >
+                              Make default
                             </SubmitButton>
-                          </form>
+                          ) : null}
+                          <SubmitButton
+                            size="sm"
+                            variant="destructive"
+                            pendingLabel="Deleting…"
+                            formAction={deleteAddress}
+                            formNoValidate
+                          >
+                            Delete
+                          </SubmitButton>
                         </div>
                       </form>
                     </SectionCard>

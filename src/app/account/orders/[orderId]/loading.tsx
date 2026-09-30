@@ -22,7 +22,7 @@ export default function OrderDetailLoading() {
         badge={<span className={cn(inlineSkeleton, "h-5.5 w-24 rounded-none")} />}
         subtitle={<span className={cn(inlineSkeleton, "h-3.5 w-64 max-w-full")} />}
         actions={
-          <Button type="button" variant="outline" className="h-11 w-full rounded-md sm:w-auto">
+          <Button type="button" variant="outline" disabled className="h-11 w-full rounded-md sm:w-auto">
             Ask about this order
           </Button>
         }
