@@ -13,6 +13,8 @@ import {
 
 export const productType = ["FULL_BOTTLE", "PARTIAL", "DECANT"] as const;
 export type ProductType = (typeof productType)[number];
+/** promo_code.typeAmounts: per-product-type overrides of a code's amount. */
+export type PromoCodeTypeAmounts = Partial<Record<ProductType, number>>;
 
 export const fragranceCategory = ["NICHE", "DESIGNER", "MIDDLE_EASTERN"] as const;
 export type FragranceCategory = (typeof fragranceCategory)[number];
@@ -549,6 +551,12 @@ export const promoCodes = pgTable(
     type: text("type").$type<DiscountType>().notNull(),
     amount: integer("amount").notNull(),
     scope: text("scope").$type<PromoCodeScope>().notNull(),
+    // ORDER scope only: a different amount for some product types, in the
+    // same unit as `amount` (a percent, or centavos for FIXED). A type left
+    // out uses `amount`; 0 leaves it undiscounted, so {FULL_BOTTLE: 0,
+    // PARTIAL: 0} is "decants only". null means one amount for every item.
+    // See orderCodeBases in src/domain/promo-code.ts.
+    typeAmounts: jsonb("typeAmounts").$type<PromoCodeTypeAmounts>(),
     // Evaluated against the merchandise subtotal *after* per-item discounts
     // (site-wide/product) for an ORDER-scope code, or against that same
     // post-item-discount, post-order-discount amount for a DELIVERY-scope

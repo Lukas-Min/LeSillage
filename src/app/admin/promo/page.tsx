@@ -18,6 +18,7 @@ import { SiteWideDiscountForm } from "@/components/admin/site-wide-discount-form
 import { fromCentavos, formatPHP } from "@/domain/money";
 import { formatPhDateBoundary, toDisplayDate } from "@/domain/ph-date";
 import { siteWideDiscountFromSettings, siteWideDiscountStatus, type SiteWideDiscountConfig } from "@/domain/promo";
+import { describePromoCodeAmounts, discountedTypesLabel } from "@/domain/promo-code";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { formatDate } from "@/lib/utils";
 import { withAllowedUsers } from "@/lib/promo-code-access";
@@ -237,8 +238,10 @@ async function CodesTab() {
                       <div className="space-y-1">
                         <p className="font-price-display">{code.code}</p>
                         <p className="text-xs text-muted-foreground">
-                          {amountLabel(code.type, code.amount)} off {code.scope === "ORDER" ? "order" : "delivery"}
-                          {code.minSpendCentavos ? ` · min spend ${formatPHP(code.minSpendCentavos)}` : ""}
+                          {describePromoCodeAmounts(code)}
+                          {code.minSpendCentavos
+                            ? ` · min spend ${formatPHP(code.minSpendCentavos)}${discountedTypesLabel(code) ? ` of ${discountedTypesLabel(code)}` : ""}`
+                            : ""}
                           {code.firstOrderOnly ? " · first order only" : ""}
                           {code.onePerCustomer ? " · once per customer" : ""}
                           {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}

@@ -51,6 +51,12 @@ export default async function EditPromoCodePage({
               scope: code.scope,
               type: code.type,
               amount: code.type === "FIXED" ? fromCentavos(code.amount) : code.amount,
+              typeAmounts: Object.fromEntries(
+                Object.entries(code.typeAmounts ?? {}).map(([type, value]) => [
+                  type,
+                  code.type === "FIXED" ? fromCentavos(value) : value,
+                ]),
+              ),
               minSpend: code.minSpendCentavos === null ? "" : fromCentavos(code.minSpendCentavos),
               maxRedemptions: code.maxRedemptions ?? "",
               startsAt: formatPhDateBoundary(code.startsAt, "start"),

@@ -69,6 +69,17 @@ export function labelForType(type: ProductType): string {
   }
 }
 
+const TYPE_PLURAL_LABELS: Record<ProductType, string> = {
+  FULL_BOTTLE: "full bottles",
+  PARTIAL: "partials",
+  DECANT: "decants",
+};
+
+/** Lowercase plural for use mid-sentence ("15% off decants"). */
+export function pluralLabelForType(type: ProductType): string {
+  return TYPE_PLURAL_LABELS[type];
+}
+
 const CATEGORY_LABELS: Record<FragranceCategory, string> = {
   NICHE: "Niche",
   DESIGNER: "Designer",

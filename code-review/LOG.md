@@ -20,6 +20,16 @@ Entry template:
 
 ---
 
+## 2026-09-30 — Per-product-type promo code amounts (targeted, pre-commit)
+
+- **Commit range reviewed:** the uncommitted change on top of `72087c7`, not the checkpoint range — a targeted domain review of one feature before it shipped
+- **Effort:** medium
+- **Scope / areas covered:** `promo_code.typeAmounts` — `src/domain/promo-code.ts`, `checkout-totals.ts`, `src/lib/orders.ts`, `src/actions/promo-code-actions.ts`, `src/actions/admin-promo-code-actions.ts`, the promo form, offer text and promo email
+- **Findings:**
+  - [medium-low] A pre-deploy admin tab that switched Percentage <-> Fixed kept the stored per-type amounts in the old unit (a ₱300 amount read as 30000%), and percentages had no cap at the base — `src/actions/admin-promo-code-actions.ts` (stale-tab path), `src/domain/promo-code.ts` (`calculatePromoCodeDiscount`) — status: fixed (stale save rejected; percentage capped at the lines it applies to)
+  - [low] "on partials, decants and full bottles" wording when every type is discounted — `src/domain/promo-code.ts` (`orderCodeBases`, `discountedTypesLabel`) — status: fixed
+- **Checkpoint advanced to:** not advanced — this pass covered one uncommitted feature, not `4f39dd5...HEAD`, so the next full review still starts at `4f39dd5`
+
 ## 2026-09-30 — Newsletter/marketing queue, per-customer promo codes, and the storefront redesign
 
 - **Commit range reviewed:** `e0e5970...4f39dd5` (54 commits, 154 files under src/scripts, +6018/-1510) — the other contributors' work since the last checkpoint (one-click unsubscribe, double opt-in newsletter, hourly marketing email queue, promo codes limited to a list of customers, admin settings/forms, order summary lines) plus this session's storefront work (multi-word search, landing-page redesign and accessibility fixes, product card and grid changes, All tab and stock filter, header Shop mega menu, 21-per-page three-column grid, sort tie-break by name, rail arrows).

@@ -399,7 +399,7 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     }
 
     const toActive = (code: PromoCode | null): ActivePromoCode | null =>
-      code ? { scope: code.scope, type: code.type, amount: code.amount } : null;
+      code ? { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: code.typeAmounts } : null;
     const totals = buildCartTotals(priced, promoConfig, input.fulfillmentMethod, {
       order: toActive(lockedCodes.order),
       delivery: toActive(lockedCodes.delivery),

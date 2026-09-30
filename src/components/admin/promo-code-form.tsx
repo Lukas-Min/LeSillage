@@ -8,9 +8,24 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/lib/utils";
 import { CustomerMultiSelect, type CustomerOption } from "@/components/admin/customer-multi-select";
 import type { PromoCodeFormState } from "@/actions/admin-promo-code-actions";
+import type { ProductType } from "@/db/schema";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
 
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm";
+
+// The per-type amount fields, in the order the shop lists its shelves.
+const TYPE_FIELDS: ReadonlyArray<{ type: ProductType; label: string }> = [
+  { type: "DECANT", label: "Decants" },
+  { type: "PARTIAL", label: "Partials" },
+  { type: "FULL_BOTTLE", label: "Full bottles" },
+];
+
+type TypeAmountInputs = Record<ProductType, string>;
+
+function typeAmountInputs(values: Partial<Record<ProductType, number>>): TypeAmountInputs {
+  const text = (type: ProductType) => (values[type] === undefined ? "" : String(values[type]));
+  return { DECANT: text("DECANT"), PARTIAL: text("PARTIAL"), FULL_BOTTLE: text("FULL_BOTTLE") };
+}
 
 /** Everything the form needs, already converted to what the inputs display:
  *  `amount`/`minSpend` in pesos for a FIXED code and plain numbers for a
@@ -21,6 +36,9 @@ export interface PromoCodeFormValues {
   scope: "ORDER" | "DELIVERY";
   type: "PERCENTAGE" | "FIXED";
   amount: number | "";
+  /** An order code's different amount for some product types, in the same
+   *  unit as `amount`; a type left out uses `amount`. */
+  typeAmounts: Partial<Record<ProductType, number>>;
   minSpend: number | "";
   maxRedemptions: number | "";
   startsAt: string;
@@ -39,6 +57,7 @@ const BLANK: PromoCodeFormValues = {
   scope: "ORDER",
   type: "PERCENTAGE",
   amount: "",
+  typeAmounts: {},
   minSpend: "",
   maxRedemptions: "",
   startsAt: "",
@@ -100,6 +119,9 @@ export function PromoCodeForm({
   // the same number in a different unit, so it has to be cleared and retyped
   // rather than silently reinterpreted (₱50 becoming 50% off).
   const [amount, setAmount] = useState(values.amount === "" ? "" : String(values.amount));
+  // The per-type amounts are in the same unit, so they're cleared with it.
+  const [typeAmounts, setTypeAmounts] = useState(() => typeAmountInputs(values.typeAmounts));
+  const [scope, setScope] = useState(values.scope);
 
   const wasSaved = state.savedAt > 0 && !state.error;
   // A created code joins the list above, so leave an empty form ready for the
@@ -110,9 +132,11 @@ export function PromoCodeForm({
     setHandledSave(state.savedAt);
     setType("PERCENTAGE");
     setAmount("");
+    setTypeAmounts(typeAmountInputs({}));
+    setScope("ORDER");
   }
   useEffect(() => {
-    // Only the uncontrolled fields need the DOM reset; the two controlled ones
+    // Only the uncontrolled fields need the DOM reset; the controlled ones
     // are cleared above.
     if (mode === "create" && wasSaved) formRef.current?.reset();
     if (mode === "edit" && wasSaved) onSaved?.();
@@ -121,7 +145,9 @@ export function PromoCodeForm({
   function changeType(next: "PERCENTAGE" | "FIXED") {
     setType(next);
     if (mode !== "edit") return;
-    setAmount(next === values.type && values.amount !== "" ? String(values.amount) : "");
+    const back = next === values.type;
+    setAmount(back && values.amount !== "" ? String(values.amount) : "");
+    setTypeAmounts(typeAmountInputs(back ? values.typeAmounts : {}));
   }
 
   const id = (name: string) => `${uid}-${name}`;
@@ -137,6 +163,14 @@ export function PromoCodeForm({
               unit is rejected rather than silently reinterpreted. */}
           <input type="hidden" name="previousType" value={values.type} />
           <input type="hidden" name="previousAmount" value={values.amount} />
+          {TYPE_FIELDS.map(({ type: productType }) => (
+            <input
+              key={productType}
+              type="hidden"
+              name={`previousTypeAmount_${productType}`}
+              value={values.typeAmounts[productType] ?? ""}
+            />
+          ))}
           <input type="hidden" name="previousStartsAt" value={values.startsAt} />
           <input type="hidden" name="previousEndsAt" value={values.endsAt} />
         </>
@@ -155,7 +189,13 @@ export function PromoCodeForm({
         />
       </Field>
       <Field label="Discounts" htmlFor={id("scope")}>
-        <select id={id("scope")} name="scope" className={selectClass} defaultValue={values.scope}>
+        <select
+          id={id("scope")}
+          name="scope"
+          className={selectClass}
+          value={scope}
+          onChange={(event) => setScope(event.target.value as "ORDER" | "DELIVERY")}
+        >
           <option value="ORDER">Order subtotal</option>
           <option value="DELIVERY">Delivery fee</option>
         </select>
@@ -187,6 +227,35 @@ export function PromoCodeForm({
           onChange={(event) => setAmount(event.target.value)}
         />
       </Field>
+      {scope === "ORDER" ? (
+        <fieldset className="space-y-2 sm:col-span-2" aria-describedby={id("typeAmountsHelp")}>
+          <input type="hidden" name="typeAmountsField" value="1" />
+          <legend className="text-sm font-medium">
+            {type === "PERCENTAGE" ? "Amount by product type (%, optional)" : "Amount by product type (₱, optional)"}
+          </legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {TYPE_FIELDS.map(({ type: productType, label }) => (
+              <Field key={productType} label={label} htmlFor={id(`typeAmount_${productType}`)}>
+                <Input
+                  id={id(`typeAmount_${productType}`)}
+                  name={`typeAmount_${productType}`}
+                  type="number"
+                  step={type === "PERCENTAGE" ? 1 : 0.01}
+                  min={0}
+                  max={type === "PERCENTAGE" ? 100 : undefined}
+                  placeholder={amount ? `${amount} (same)` : "Same as amount"}
+                  value={typeAmounts[productType]}
+                  onChange={(event) => setTypeAmounts((current) => ({ ...current, [productType]: event.target.value }))}
+                />
+              </Field>
+            ))}
+          </div>
+          <p id={id("typeAmountsHelp")} className="text-xs text-muted-foreground">
+            Blank uses the amount above; 0 leaves that type out. The minimum spend then counts only the types that
+            get a discount.
+          </p>
+        </fieldset>
+      ) : null}
       <Field label="Minimum spend (₱, optional)" htmlFor={id("minSpend")}>
         <Input
           id={id("minSpend")}

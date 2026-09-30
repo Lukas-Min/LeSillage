@@ -1,13 +1,25 @@
 import type { CartTotals, PricedLine } from "./cart";
-import { applyPromoCode, type PromoCodesByScope } from "./promo-code";
+import { applyPromoCode, orderCodeBases, type PromoCodesByScope } from "./promo-code";
 import {
   isFreeShippingEligible,
   isTesterBonusEligible,
   type PromoConfig,
 } from "./promo";
-import type { DiscountType, FulfillmentMethod, PromoCodeScope } from "@/db/schema";
+import type { DiscountType, FulfillmentMethod, ProductType, PromoCodeScope, PromoCodeTypeAmounts } from "@/db/schema";
 
-export type ActivePromoCode = { scope: PromoCodeScope; type: DiscountType; amount: number };
+export type ActivePromoCode = {
+  scope: PromoCodeScope;
+  type: DiscountType;
+  amount: number;
+  /** An ORDER code's per-product-type amounts; null for one amount on every item. */
+  typeAmounts: PromoCodeTypeAmounts | null;
+};
+
+/** merchandiseSubtotalCentavos and orderDiscountEligibleSubtotalCentavos for one product type. */
+export interface ProductTypeTotals {
+  merchandiseCentavos: number;
+  eligibleCentavos: number;
+}
 
 export interface CheckoutTotals {
   merchandiseSubtotalCentavos: number;
@@ -22,6 +34,10 @@ export interface CheckoutTotals {
    *  "Apply" preview) use the exact same base this function computes
    *  orderDiscountCentavos from below. */
   orderDiscountEligibleSubtotalCentavos: number;
+  /** The two subtotals above split by product type, so an ORDER code limited
+   *  with per-type amounts (PromoCode.typeAmounts) is measured and applied
+   *  per type — see orderCodeBases in src/domain/promo-code.ts. */
+  byProductType: Record<ProductType, ProductTypeTotals>;
   /** From a redeemed ORDER-scope promo code — kept separate from
    *  `discountCentavos` (item-level) so the checkout UI can show them as
    *  distinct line items, matching the three-discount-type model. */
@@ -37,6 +53,19 @@ export interface CheckoutTotals {
   freeShipping: boolean;
   testerBonusEligible: boolean;
   defaultDeliveryFeeCentavos: number;
+}
+
+function totalsByProductType(lines: readonly PricedLine[]): Record<ProductType, ProductTypeTotals> {
+  const totals: Record<ProductType, ProductTypeTotals> = {
+    FULL_BOTTLE: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+    PARTIAL: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+    DECANT: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+  };
+  for (const line of lines) {
+    totals[line.productType].merchandiseCentavos += line.lineSubtotalCentavos;
+    if (line.lineDiscountCentavos === 0) totals[line.productType].eligibleCentavos += line.lineSubtotalCentavos;
+  }
+  return totals;
 }
 
 /**
@@ -65,10 +94,16 @@ export function buildCartTotals(
     (sum, line) => (line.lineDiscountCentavos === 0 ? sum + line.lineSubtotalCentavos : sum),
     0,
   );
-  // An ORDER-scope code's discount depends only on that eligible subtotal,
-  // so it's the same for pickup and delivery — computed once, up front.
+  const byProductType = totalsByProductType(priced.lines);
+  // An ORDER-scope code's discount depends only on that eligible subtotal
+  // (split by product type, if the code has per-type amounts), so it's the
+  // same for pickup and delivery — computed once, up front.
   const orderDiscountCentavos = orderCode
-    ? applyPromoCode(orderCode, orderDiscountEligibleSubtotalCentavos, 0).orderDiscountCentavos
+    ? orderCodeBases(orderCode, {
+        merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
+        orderDiscountEligibleSubtotalCentavos,
+        byProductType,
+      }).discountCentavos
     : 0;
   const merchandiseAfterOrderDiscount = Math.max(
     0,
@@ -79,6 +114,7 @@ export function buildCartTotals(
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
       discountCentavos: priced.discountCentavos,
       orderDiscountEligibleSubtotalCentavos,
+      byProductType,
       orderDiscountCentavos,
       deliveryDiscountCentavos: 0,
       decantSubtotalCentavos: priced.decantSubtotalCentavos,
@@ -99,6 +135,7 @@ export function buildCartTotals(
     merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
     discountCentavos: priced.discountCentavos,
     orderDiscountEligibleSubtotalCentavos,
+    byProductType,
     orderDiscountCentavos,
     deliveryDiscountCentavos,
     decantSubtotalCentavos: priced.decantSubtotalCentavos,

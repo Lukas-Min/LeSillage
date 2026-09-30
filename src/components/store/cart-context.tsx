@@ -36,6 +36,11 @@ const EMPTY: CartView = {
     merchandiseSubtotalCentavos: 0,
     discountCentavos: 0,
     orderDiscountEligibleSubtotalCentavos: 0,
+    byProductType: {
+      FULL_BOTTLE: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+      PARTIAL: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+      DECANT: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+    },
     orderDiscountCentavos: 0,
     deliveryDiscountCentavos: 0,
     decantSubtotalCentavos: 0,

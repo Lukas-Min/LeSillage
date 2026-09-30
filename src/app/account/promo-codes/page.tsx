@@ -3,6 +3,7 @@ import { requireActiveCustomer } from "@/auth";
 import { db } from "@/db/client";
 import { promoCodes, promoCodeRedemptions } from "@/db/schema";
 import { formatPHP } from "@/domain/money";
+import { describePromoCodeAmounts, discountedTypesLabel } from "@/domain/promo-code";
 import { formatDate } from "@/lib/utils";
 import { isAllowedFor, withAllowedUsers } from "@/lib/promo-code-access";
 import { PageHeader } from "@/components/ui/section";
@@ -49,12 +50,13 @@ async function loadAccountPromoCodes(userId: string): Promise<ProfilePromoCode[]
     const valid = code.isActive && !expired && !exhausted && !usedByCustomer;
     const limited = code.allowedUserIds.length > 0;
     if (!limited && !usedByCustomer && !valid) return [];
-    const offer = code.type === "PERCENTAGE" ? `${code.amount}%` : formatPHP(code.amount);
-    const target = code.scope === "ORDER" ? "off the order" : "off delivery";
+    const minSpendOn = discountedTypesLabel(code);
     const conditions = [
       code.description?.trim() || null,
-      `${offer} ${target}.`,
-      code.minSpendCentavos ? `Minimum spend ${formatPHP(code.minSpendCentavos)}.` : "No minimum spend.",
+      `${describePromoCodeAmounts(code)}.`,
+      code.minSpendCentavos
+        ? `Minimum spend ${formatPHP(code.minSpendCentavos)}${minSpendOn ? ` of ${minSpendOn}` : ""}.`
+        : "No minimum spend.",
       code.firstOrderOnly ? "First order only." : null,
       code.onePerCustomer ? "Once per customer." : null,
       code.maxRedemptions === 1

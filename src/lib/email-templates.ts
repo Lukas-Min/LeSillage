@@ -452,12 +452,15 @@ export function promoAssignedEmail(args: {
   description?: string | null;
   /** The order total the code needs before it applies; null means no minimum. */
   minSpendCentavos: number | null;
+  /** For a code with per-type amounts, the types its minimum counts
+   *  ("decants and full bottles"); null when the whole order counts. */
+  minSpendOn?: string | null;
   unsubscribeUrl: string;
 }): { subject: string; text: string; html: string } {
   const description = args.description?.trim() || null;
   // Same base checkout measures it against (see minSpendCentavos in schema.ts).
   const minimum = args.minSpendCentavos
-    ? `${formatPHP(args.minSpendCentavos)} per order, counted after other discounts`
+    ? `${formatPHP(args.minSpendCentavos)}${args.minSpendOn ? ` of ${args.minSpendOn}` : ""} per order, counted after other discounts`
     : "None — any order qualifies";
   const who = args.name?.trim() || "there";
   const subject = "A promo code for you";

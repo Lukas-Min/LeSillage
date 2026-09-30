@@ -8,6 +8,7 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { formatPHP } from "@/domain/money";
+import { describePromoCodeAmounts } from "@/domain/promo-code";
 import { formatDate } from "@/lib/utils";
 import { isAllowedFor, withAllowedUsers } from "@/lib/promo-code-access";
 
@@ -106,7 +107,7 @@ export default async function AdminCustomerDetailPage({
                 <li key={code.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2">
                   <span className="font-price-display">{code.code}</span>
                   <span className="text-xs text-muted-foreground">
-                    {code.type === "PERCENTAGE" ? `${code.amount}%` : formatPHP(code.amount)} off {code.scope === "ORDER" ? "the order" : "delivery"}
+                    {describePromoCodeAmounts(code)}
                     {code.maxRedemptions ? ` · ${code.redemptionCount}/${code.maxRedemptions} used` : ` · ${code.redemptionCount} used`}
                     {code.allowedUserIds.length === 0
                       ? " · everyone"

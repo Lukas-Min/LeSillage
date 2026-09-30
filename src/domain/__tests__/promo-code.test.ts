@@ -4,7 +4,10 @@ import {
   calculatePromoCodeDiscount,
   checkPromoCodeEligibility,
   checkPromoCodeSet,
+  describePromoCodeAmounts,
+  discountedTypesLabel,
   groupPromoCodesByScope,
+  normalizeTypeAmounts,
   type PromoCodeEligibilityInput,
 } from "../promo-code";
 import { bestDiscount, applyDiscount, withSiteWideDiscount } from "../discount";
@@ -21,6 +24,7 @@ function makeCode(overrides: Partial<TestCode> = {}): TestCode {
     type: "PERCENTAGE",
     amount: 10,
     scope: "ORDER",
+    typeAmounts: null,
     minSpendCentavos: null,
     firstOrderOnly: false,
     maxRedemptions: null,
@@ -40,6 +44,11 @@ function makeCode(overrides: Partial<TestCode> = {}): TestCode {
 const baseEligibility: PromoCodeEligibilityInput = {
   merchandiseSubtotalCentavos: 300000,
   orderDiscountEligibleSubtotalCentavos: 300000,
+  byProductType: {
+    FULL_BOTTLE: { merchandiseCentavos: 300000, eligibleCentavos: 300000 },
+    PARTIAL: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+    DECANT: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+  },
   deliveryFeeCentavos: 12000,
   isFirstOrder: false,
   hasPriorRedemption: false,
@@ -179,6 +188,32 @@ describe("applyPromoCode", () => {
   });
 });
 
+function makeSku(retailPrice: number, id = "sku1", productId = "p1"): Sku {
+  const now = new Date();
+  return {
+    id,
+    productId,
+    sku: id.toUpperCase(),
+    label: "X",
+    sizeMl: null,
+    condition: "BNIB",
+    provenance: "RETAIL",
+    packaging: "WITH_BOX",
+    costPrice: 0,
+    retailPrice,
+    pricingMode: "DIRECT",
+    pricingInput: 0,
+    fulfillment: "ON_HAND",
+    stock: 5,
+    availableForPreOrder: false,
+    isTester: false,
+    testerBrand: null,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 // --- Full pipeline: matches the store owner's own worked examples ---
 // (1) "if all perfumes is discounted by 5%, then there's a promo code of 10%
 // off with a minimum spend of 2000, the 2000 should be based on the
@@ -191,31 +226,6 @@ describe("applyPromoCode", () => {
 // stacks on top of an item discount; it's computed only from whichever
 // lines in the cart *aren't* already individually discounted.
 describe("full pipeline order-of-operations (site-wide item discount -> promo code)", () => {
-  function makeSku(retailPrice: number, id = "sku1", productId = "p1"): Sku {
-    const now = new Date();
-    return {
-      id,
-      productId,
-      sku: id.toUpperCase(),
-      label: "X",
-      sizeMl: null,
-      condition: "BNIB",
-      provenance: "RETAIL",
-      packaging: "WITH_BOX",
-      costPrice: 0,
-      retailPrice,
-      pricingMode: "DIRECT",
-      pricingInput: 0,
-      fulfillment: "ON_HAND",
-      stock: 5,
-      availableForPreOrder: false,
-      isTester: false,
-      testerBrand: null,
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
-    };
-  }
 
   it("rejects the min-spend when the original price clears it but the site-wide-discounted price doesn't", () => {
     // ₱2,100 original, 5% site-wide discount -> ₱1,995 — under the ₱2,000
@@ -241,6 +251,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     const eligibility = checkPromoCodeEligibility(code, {
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
       orderDiscountEligibleSubtotalCentavos: totals.orderDiscountEligibleSubtotalCentavos,
+      byProductType: totals.byProductType,
       deliveryFeeCentavos: 12000,
       isFirstOrder: false,
       hasPriorRedemption: false,
@@ -277,6 +288,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     const eligibility = checkPromoCodeEligibility(code, {
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
       orderDiscountEligibleSubtotalCentavos: preCodeTotals.orderDiscountEligibleSubtotalCentavos,
+      byProductType: preCodeTotals.byProductType,
       deliveryFeeCentavos: 12000,
       isFirstOrder: false,
       hasPriorRedemption: false,
@@ -292,7 +304,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       priced,
       { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
-      { order: { scope: code.scope, type: code.type, amount: code.amount }, delivery: null },
+      { order: { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: null }, delivery: null },
     );
     expect(totals.orderDiscountCentavos).toBe(0);
     expect(totals.totalCentavos).toBe(285000 + 12000);
@@ -327,7 +339,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       priced,
       { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: false, type: "PERCENTAGE", amount: 0, startsAt: null, endsAt: null } },
       "DELIVERY",
-      { order: { scope: code.scope, type: code.type, amount: code.amount }, delivery: null },
+      { order: { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: null }, delivery: null },
     );
     // Only item B (₱1,000, regular price) is in the code's base.
     expect(totals.orderDiscountEligibleSubtotalCentavos).toBe(100000);
@@ -350,7 +362,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       priced,
       { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
-      { order: null, delivery: { scope: code.scope, type: code.type, amount: code.amount } },
+      { order: null, delivery: { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: null } },
     );
     expect(totals.deliveryDiscountCentavos).toBe(12000);
     expect(totals.deliveryFeeCentavos).toBe(0);
@@ -390,8 +402,8 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     // Threshold above the cart, so free shipping doesn't zero the fee first.
     const config = { decantThresholdCentavos: 500000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: true, testerBonusEnabled: false, siteWideDiscount: { enabled: false, type: "PERCENTAGE" as const, amount: 0, startsAt: null, endsAt: null } };
     const codes = {
-      order: { scope: "ORDER" as const, type: "PERCENTAGE" as const, amount: 10 },
-      delivery: { scope: "DELIVERY" as const, type: "FIXED" as const, amount: 5000 },
+      order: { scope: "ORDER" as const, type: "PERCENTAGE" as const, amount: 10, typeAmounts: null },
+      delivery: { scope: "DELIVERY" as const, type: "FIXED" as const, amount: 5000, typeAmounts: null },
     };
     const totals = buildCartTotals(priced, config, "DELIVERY", codes);
     expect(totals.orderDiscountCentavos).toBe(30000);
@@ -435,6 +447,11 @@ describe("checkPromoCodeSet", () => {
     preCodeTotals: {
       merchandiseSubtotalCentavos: 210000,
       orderDiscountEligibleSubtotalCentavos: 210000,
+      byProductType: {
+        FULL_BOTTLE: { merchandiseCentavos: 210000, eligibleCentavos: 210000 },
+        PARTIAL: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+        DECANT: { merchandiseCentavos: 0, eligibleCentavos: 0 },
+      },
       deliveryFeeCentavos: 12000,
     },
     isFirstOrder: false,
@@ -469,5 +486,146 @@ describe("checkPromoCodeSet", () => {
     );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("FREESHIP");
+  });
+});
+
+describe("a code with different amounts per product type (typeAmounts)", () => {
+  const config = {
+    decantThresholdCentavos: 500000,
+    deliveryFeeCentavos: 12000,
+    freeDeliveryEnabled: false,
+    testerBonusEnabled: false,
+    siteWideDiscount: { enabled: false, type: "PERCENTAGE" as const, amount: 0, startsAt: null, endsAt: null },
+  };
+  const line = (price: number, id: string, productType: CartSkuInput["productType"]): CartSkuInput => ({
+    sku: makeSku(price, id, `p-${id}`),
+    quantity: 1,
+    productType,
+    productBrand: "Maison Ivre",
+    discounts: [],
+  });
+  const price = (items: CartSkuInput[]) => priceCart(items, { deliveryFeeCentavos: 12000, freeShipping: false });
+  // PAYDAYSALE15 as set up for the payday sale: decants only, ₱1,000 minimum.
+  const decantsOnly = makeCode({
+    code: "PAYDAYSALE15",
+    amount: 15,
+    typeAmounts: { FULL_BOTTLE: 0, PARTIAL: 0 },
+    minSpendCentavos: 100000,
+  });
+  const check = (code: ReturnType<typeof makeCode>, items: CartSkuInput[]) =>
+    checkPromoCodeSet(
+      { order: code, delivery: null },
+      {
+        preCodeTotals: buildCartTotals(price(items), config, "DELIVERY", null),
+        isFirstOrder: false,
+        userId: "user1",
+        previouslyRedeemedCodeIds: new Set(),
+      },
+    );
+  const active = (code: ReturnType<typeof makeCode>) => ({
+    order: { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: code.typeAmounts },
+    delivery: null,
+  });
+
+  it("takes the discount off the decants only, not a full bottle in the same bag", () => {
+    const totals = buildCartTotals(
+      price([line(205000, "fb", "FULL_BOTTLE"), line(60000, "d1", "DECANT"), line(45000, "d2", "DECANT")]),
+      config,
+      "DELIVERY",
+      active(decantsOnly),
+    );
+    expect(totals.byProductType.DECANT).toEqual({ merchandiseCentavos: 105000, eligibleCentavos: 105000 });
+    // 15% of the ₱1,050 of decants, not of the ₱3,100 bag.
+    expect(totals.orderDiscountCentavos).toBe(15750);
+    expect(totals.totalCentavos).toBe(310000 - 15750 + 12000);
+  });
+
+  it("takes a different percentage off each type", () => {
+    const code = makeCode({ amount: 15, typeAmounts: { FULL_BOTTLE: 5 } });
+    const totals = buildCartTotals(
+      price([line(200000, "fb", "FULL_BOTTLE"), line(40000, "p1", "PARTIAL"), line(60000, "d1", "DECANT")]),
+      config,
+      "DELIVERY",
+      active(code),
+    );
+    // 5% of ₱2,000 + 15% of the ₱1,000 of partials and decants.
+    expect(totals.orderDiscountCentavos).toBe(10000 + 15000);
+  });
+
+  it("takes a shared fixed amount once across the types it covers", () => {
+    const code = makeCode({ type: "FIXED", amount: 10000, typeAmounts: { FULL_BOTTLE: 30000 } });
+    const totals = buildCartTotals(
+      price([line(200000, "fb", "FULL_BOTTLE"), line(40000, "p1", "PARTIAL"), line(60000, "d1", "DECANT")]),
+      config,
+      "DELIVERY",
+      active(code),
+    );
+    // ₱300 off the full bottle, and ₱100 off the partials and decants together.
+    expect(totals.orderDiscountCentavos).toBe(30000 + 10000);
+  });
+
+  it("counts only the discounted types toward the minimum spend", () => {
+    // ₱2,050 bottle + ₱600 of decants: the bag clears ₱1,000, the decants don't.
+    const short = check(decantsOnly, [line(205000, "fb", "FULL_BOTTLE"), line(60000, "d1", "DECANT")]);
+    expect(short.ok).toBe(false);
+    if (!short.ok) expect(short.error).toMatch(/Minimum spend of .* on decants required/);
+    expect(check(decantsOnly, [line(60000, "d1", "DECANT"), line(45000, "d2", "DECANT")]).ok).toBe(true);
+  });
+
+  it("says so when the bag has none of the discounted types", () => {
+    const result = check(decantsOnly, [line(205000, "fb", "FULL_BOTTLE")]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe("This code is only for decants, and there are none in your bag");
+  });
+
+  it("keeps one amount on every item when there are no per-type amounts", () => {
+    const code = makeCode({ amount: 15 });
+    const totals = buildCartTotals(
+      price([line(205000, "fb", "FULL_BOTTLE"), line(60000, "d1", "DECANT")]),
+      config,
+      "DELIVERY",
+      active(code),
+    );
+    expect(totals.orderDiscountCentavos).toBe(Math.round(265000 * 0.15));
+  });
+});
+
+describe("describePromoCodeAmounts", () => {
+  it("reads as one offer, or one per amount", () => {
+    expect(describePromoCodeAmounts(makeCode({ amount: 15 }))).toBe("15% off your order");
+    expect(describePromoCodeAmounts(makeCode({ amount: 15, typeAmounts: { FULL_BOTTLE: 0, PARTIAL: 0 } }))).toBe(
+      "15% off decants",
+    );
+    expect(describePromoCodeAmounts(makeCode({ amount: 15, typeAmounts: { FULL_BOTTLE: 5 } }))).toBe(
+      "15% off partials and decants, 5% off full bottles",
+    );
+    expect(describePromoCodeAmounts(makeCode({ scope: "DELIVERY", type: "FIXED", amount: 12000 }))).toBe(
+      "₱120.00 off delivery",
+    );
+  });
+});
+
+describe("per-type wording when every type is discounted", () => {
+  it("doesn't say 'only for' or 'on <types>' when the whole bag counts", () => {
+    const code = makeCode({ amount: 15, typeAmounts: { FULL_BOTTLE: 5 }, minSpendCentavos: 400000 });
+    const result = checkPromoCodeEligibility(code, baseEligibility);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe("Minimum spend of ₱4,000.00 required for this code");
+    expect(discountedTypesLabel(code)).toBeNull();
+    expect(discountedTypesLabel(makeCode({ amount: 10, typeAmounts: { FULL_BOTTLE: 5, PARTIAL: 0 } }))).toBe(
+      "decants and full bottles",
+    );
+  });
+
+  it("never takes more than the lines off, even with a percentage over 100", () => {
+    expect(calculatePromoCodeDiscount("PERCENTAGE", 30000, 200000)).toBe(200000);
+  });
+});
+
+describe("normalizeTypeAmounts", () => {
+  it("drops amounts equal to the main one, and all of them for a delivery code", () => {
+    expect(normalizeTypeAmounts("ORDER", 15, { FULL_BOTTLE: 0, PARTIAL: 15, DECANT: 15 })).toEqual({ FULL_BOTTLE: 0 });
+    expect(normalizeTypeAmounts("ORDER", 15, { DECANT: 15 })).toBeNull();
+    expect(normalizeTypeAmounts("DELIVERY", 15, { FULL_BOTTLE: 0 })).toBeNull();
   });
 });

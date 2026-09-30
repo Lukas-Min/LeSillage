@@ -10,6 +10,7 @@ import {
   checkPromoCodeSet,
   groupPromoCodesByScope,
   MAX_PROMO_CODES_PER_ORDER,
+  orderCodeBases,
 } from "@/domain/promo-code";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { loadCartViewForBothMethods, loadDirectItemViewForBothMethods, resolveActiveCart } from "@/lib/cart";
@@ -132,18 +133,15 @@ export async function previewPromoCodes(
   if (!eligibility.ok) return { ok: false, error: eligibility.error, code: eligibility.code };
 
   // Same bases buildCartTotals discounts from: an ORDER code against the
-  // regular-price lines, a DELIVERY code against the fee before any code.
+  // regular-price lines (per product type, if it has per-type amounts), a
+  // DELIVERY code against the fee before any code.
   const previews: PromoCodePreview[] = [];
   const { order, delivery } = grouped.codes;
   if (order) {
     previews.push({
       code: order.code,
       scope: "ORDER",
-      orderDiscountCentavos: calculatePromoCodeDiscount(
-        order.type,
-        order.amount,
-        totals.orderDiscountEligibleSubtotalCentavos,
-      ),
+      orderDiscountCentavos: orderCodeBases(order, totals).discountCentavos,
       deliveryDiscountCentavos: 0,
     });
   }

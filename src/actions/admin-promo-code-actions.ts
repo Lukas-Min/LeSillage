@@ -9,16 +9,25 @@ import { requireAdmin } from "@/auth";
 import { db } from "@/db/client";
 import {
   orders,
+  productType,
   promoCodeAllowedUsers,
   promoCodeRedemptions,
   promoCodes,
   users,
   type PromoCode,
+  type PromoCodeTypeAmounts,
 } from "@/db/schema";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
-import { formatPHP, toCentavos } from "@/domain/money";
+import { toCentavos } from "@/domain/money";
 import { parsePhDateBoundary } from "@/domain/ph-date";
+import { pluralLabelForType } from "@/domain/product-type";
+import {
+  amountForType,
+  describePromoCodeAmounts,
+  discountedTypesLabel,
+  normalizeTypeAmounts,
+} from "@/domain/promo-code";
 import { unsubscribePageUrl } from "@/lib/email-links";
 import { promoAssignedEmail } from "@/lib/email-templates";
 import { drainMarketingQueue, enqueueMarketingEmails } from "@/lib/marketing-queue";
@@ -35,6 +44,13 @@ const createSchema = z.object({
   // Pesos when type is FIXED (converted to centavos below); a plain percent when PERCENTAGE.
   amount: z.coerce.number().min(1),
   scope: z.enum(["ORDER", "DELIVERY"]),
+  // ORDER codes only: a different amount for a product type, in the same unit
+  // as `amount`. Left out (blank) means the same as `amount`; 0 leaves the type out.
+  typeAmounts: z.object({
+    FULL_BOTTLE: z.coerce.number().min(0).optional(),
+    PARTIAL: z.coerce.number().min(0).optional(),
+    DECANT: z.coerce.number().min(0).optional(),
+  }),
   // Entered in pesos, converted to centavos below.
   minSpendCentavos: z.coerce.number().min(0).optional(),
   firstOrderOnly: z.coerce.boolean(),
@@ -58,6 +74,7 @@ function readCodeFields(formData: FormData) {
     type: formData.get("type"),
     amount: formData.get("amount"),
     scope: formData.get("scope"),
+    typeAmounts: Object.fromEntries(productType.map((type) => [type, formData.get(`typeAmount_${type}`) || undefined])),
     minSpendCentavos: formData.get("minSpendCentavos") || undefined,
     firstOrderOnly: formData.get("firstOrderOnly") === "on",
     onePerCustomer: formData.get("onePerCustomer") === "on",
@@ -128,6 +145,7 @@ function broadcastPromoEmail(code: {
   type: "PERCENTAGE" | "FIXED";
   amount: number;
   scope: "ORDER" | "DELIVERY";
+  typeAmounts: PromoCodeTypeAmounts | null;
   maxRedemptions: number | null;
   redemptionCount: number;
   firstOrderOnly: boolean;
@@ -137,7 +155,7 @@ function broadcastPromoEmail(code: {
 }) {
   // Nobody can redeem an exhausted code, so there's nothing to announce.
   if (code.maxRedemptions !== null && code.redemptionCount >= code.maxRedemptions) return;
-  const offer = describeCustomerOffer(code.type, code.amount, code.scope, code.maxRedemptions);
+  const offer = describeCustomerOffer(code, code.maxRedemptions);
   after(async () => {
     const recipients = await loadEligibleSubscribers(code);
     await enqueueMarketingEmails(
@@ -150,6 +168,7 @@ function broadcastPromoEmail(code: {
           offer,
           description: code.description,
           minSpendCentavos: code.minSpendCentavos,
+          minSpendOn: discountedTypesLabel(code),
           unsubscribeUrl: unsubscribePageUrl(recipient.email),
         }),
       })),
@@ -207,7 +226,13 @@ function legacyRestrictedUserId(customers: readonly AllowedCustomer[]): string |
  *  Skips anyone who turned promotions off or whose account is archived or deleted. */
 function emailAllowedCustomers(
   customers: readonly AllowedCustomer[],
-  details: { code: string; offer: string; description: string | null; minSpendCentavos: number | null },
+  details: {
+    code: string;
+    offer: string;
+    description: string | null;
+    minSpendCentavos: number | null;
+    minSpendOn: string | null;
+  },
 ) {
   const recipients = customers.filter(
     (customer): customer is AllowedCustomer & { email: string } =>
@@ -265,6 +290,27 @@ function describeIssues(error: z.ZodError): string {
 // conversion (formatPhDateBoundary) in src/app/admin/promo/page.tsx.
 const parseDate = parsePhDateBoundary;
 
+/** The form's per-type amounts in stored units (a percent, or centavos for
+ *  FIXED), tidied by normalizeTypeAmounts; or why they can't be saved. */
+function storedTypeAmounts(
+  parsed: z.infer<typeof createSchema>,
+  amount: number,
+): PromoCodeTypeAmounts | null | string {
+  const converted: PromoCodeTypeAmounts = {};
+  for (const type of productType) {
+    const value = parsed.typeAmounts[type];
+    if (value === undefined) continue;
+    if (parsed.type === "PERCENTAGE" && value > 100) return "Percentage discounts can't exceed 100%";
+    converted[type] = parsed.type === "FIXED" ? toCentavos(value) : Math.round(value);
+  }
+  const typeAmounts = normalizeTypeAmounts(parsed.scope, amount, converted);
+  const code = { type: parsed.type, amount, typeAmounts };
+  if (typeAmounts && productType.every((type) => amountForType(code, type) <= 0)) {
+    return "Every product type is set to 0, so this code would take nothing off. Give at least one an amount.";
+  }
+  return typeAmounts;
+}
+
 export async function createPromoCode(
   _prev: PromoCodeFormState,
   formData: FormData,
@@ -288,6 +334,8 @@ export async function createPromoCode(
   // A ₱0 minimum is the same thing as no minimum, and the codes list already
   // renders 0 as "no minimum" — store it that way so the two agree.
   const minSpendCentavos = parsed.minSpendCentavos ? toCentavos(parsed.minSpendCentavos) : null;
+  const typeAmounts = storedTypeAmounts(parsed, amount);
+  if (typeof typeAmounts === "string") return failed(typeAmounts);
   const startsAt = parseDate(parsed.startsAt, "start");
   const endsAt = parseDate(parsed.endsAt, "end");
   if (startsAt && endsAt && endsAt < startsAt) {
@@ -308,6 +356,7 @@ export async function createPromoCode(
         type: parsed.type,
         amount,
         scope: parsed.scope,
+        typeAmounts,
         minSpendCentavos,
         firstOrderOnly: parsed.firstOrderOnly,
         onePerCustomer: parsed.onePerCustomer,
@@ -338,6 +387,7 @@ export async function createPromoCode(
       type: parsed.type,
       amount,
       scope: parsed.scope,
+      typeAmounts,
       allowedUserIds: allowed.map((customer) => customer.id),
     },
   });
@@ -345,21 +395,20 @@ export async function createPromoCode(
   for (const customer of allowed) revalidatePath(`/admin/customers/${customer.id}`);
   // An already-expired code can't be used, so there's nothing to announce.
   if (parsed.sendEmail && !hasEnded(endsAt)) {
+    const terms = { type: parsed.type, amount, scope: parsed.scope, typeAmounts };
     if (allowed.length > 0) {
-      const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
       emailAllowedCustomers(allowed, {
         code: parsed.code,
-        offer,
+        offer: describeCustomerOffer(terms, parsed.maxRedemptions ?? null),
         description: parsed.description || null,
         minSpendCentavos,
+        minSpendOn: discountedTypesLabel(terms),
       });
     } else {
       broadcastPromoEmail({
         id: createdId,
         code: parsed.code,
-        type: parsed.type,
-        amount,
-        scope: parsed.scope,
+        ...terms,
         maxRedemptions: parsed.maxRedemptions ?? null,
         redemptionCount: 0,
         firstOrderOnly: parsed.firstOrderOnly,
@@ -378,20 +427,16 @@ export async function createPromoCode(
 }
 
 function describeCustomerOffer(
-  type: "PERCENTAGE" | "FIXED",
-  amount: number,
-  scope: "ORDER" | "DELIVERY",
+  code: Pick<PromoCode, "type" | "amount" | "scope" | "typeAmounts">,
   maxRedemptions: number | null,
 ): string {
-  const off = type === "PERCENTAGE" ? `${amount}%` : formatPHP(amount);
-  const target = scope === "ORDER" ? "your order" : "delivery";
   const times =
     maxRedemptions === 1
       ? " You can use it once."
       : maxRedemptions
         ? ` You can use it ${maxRedemptions} times.`
         : "";
-  return `${off} off ${target}.${times}`;
+  return `${describePromoCodeAmounts(code)}.${times}`;
 }
 
 export async function updatePromoCode(
@@ -421,6 +466,7 @@ export async function updatePromoCode(
         type: promoCodes.type,
         amount: promoCodes.amount,
         scope: promoCodes.scope,
+        typeAmounts: promoCodes.typeAmounts,
         startsAt: promoCodes.startsAt,
         endsAt: promoCodes.endsAt,
         redemptionCount: promoCodes.redemptionCount,
@@ -457,6 +503,23 @@ export async function updatePromoCode(
       `This code changed from ${previousType} to ${parsed.type} but the amount is still ${previousAmount} — re-enter it in the new unit (a plain percent, or pesos for a fixed ₱ discount).`,
     );
   }
+  // The same for each per-type amount (0 means nothing in either unit).
+  if (typeof previousType === "string" && previousType !== parsed.type) {
+    const stale = productType.find((type) => {
+      const posted = formData.get(`typeAmount_${type}`);
+      return (
+        typeof posted === "string" &&
+        posted !== "" &&
+        Number(posted) !== 0 &&
+        posted === formData.get(`previousTypeAmount_${type}`)
+      );
+    });
+    if (stale) {
+      return failed(
+        `This code changed from ${previousType} to ${parsed.type} but the amount for ${pluralLabelForType(stale)} is still in the old unit — re-enter it.`,
+      );
+    }
+  }
 
   if (parsed.code !== current.code) {
     // onePerCustomer and the redemption cap are enforced against this row's
@@ -483,6 +546,19 @@ export async function updatePromoCode(
 
   const amount = parsed.type === "FIXED" ? toCentavos(parsed.amount) : Math.round(parsed.amount);
   const minSpendCentavos = parsed.minSpendCentavos ? toCentavos(parsed.minSpendCentavos) : null;
+  // Only the current form posts this marker; a tab from before per-type
+  // amounts existed keeps the code's current ones — unless it also switched
+  // Percentage <-> Fixed, which would leave them read in the wrong unit.
+  const typeAmountsPosted = formData.get("typeAmountsField") === "1";
+  if (!typeAmountsPosted && current.typeAmounts && parsed.type !== current.type) {
+    return failed(
+      "This code has different amounts per product type, and they'd change unit with the type. Reload the page and re-enter them.",
+    );
+  }
+  const typeAmounts = typeAmountsPosted
+    ? storedTypeAmounts(parsed, amount)
+    : normalizeTypeAmounts(parsed.scope, amount, current.typeAmounts ?? {});
+  if (typeof typeAmounts === "string") return failed(typeAmounts);
 
   // A date input only carries a day, so re-saving an untouched field would
   // flatten any stored time-of-day to UTC midnight — enough to expire an
@@ -507,6 +583,7 @@ export async function updatePromoCode(
         type: parsed.type,
         amount,
         scope: parsed.scope,
+        typeAmounts,
         minSpendCentavos,
         firstOrderOnly: parsed.firstOrderOnly,
         onePerCustomer: parsed.onePerCustomer,
@@ -550,6 +627,8 @@ export async function updatePromoCode(
       previousAmount: current.amount,
       scope: parsed.scope,
       previousScope: current.scope,
+      typeAmounts,
+      previousTypeAmounts: current.typeAmounts,
       firstOrderOnly: parsed.firstOrderOnly,
       onePerCustomer: parsed.onePerCustomer,
       redemptionCount: current.redemptionCount,
@@ -565,16 +644,20 @@ export async function updatePromoCode(
   // regardless of the checkbox — nobody can use it, so there's nothing worth
   // emailing about.
   if (parsed.sendEmail && current.isActive && !hasEnded(endsAt)) {
+    const terms = { type: parsed.type, amount, scope: parsed.scope, typeAmounts };
     if (allowed.length > 0) {
-      const offer = describeCustomerOffer(parsed.type, amount, parsed.scope, parsed.maxRedemptions ?? null);
-      emailAllowedCustomers(allowed, { code: parsed.code, offer, description, minSpendCentavos });
+      emailAllowedCustomers(allowed, {
+        code: parsed.code,
+        offer: describeCustomerOffer(terms, parsed.maxRedemptions ?? null),
+        description,
+        minSpendCentavos,
+        minSpendOn: discountedTypesLabel(terms),
+      });
     } else {
       broadcastPromoEmail({
         id: parsed.id,
         code: parsed.code,
-        type: parsed.type,
-        amount,
-        scope: parsed.scope,
+        ...terms,
         maxRedemptions: parsed.maxRedemptions ?? null,
         redemptionCount: current.redemptionCount,
         firstOrderOnly: parsed.firstOrderOnly,
