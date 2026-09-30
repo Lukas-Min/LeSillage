@@ -28,10 +28,15 @@ export function CatalogCardsSkeleton({ count = 20 }: { count?: number }) {
 export function CatalogCardSkeleton({ showSave = false }: { showSave?: boolean }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card">
-      <div className="relative aspect-square w-full overflow-hidden border-b border-border bg-white">
-        <Skeleton className="absolute inset-3 rounded-none min-[576px]:inset-4" />
-        {showSave ? <Skeleton className="absolute top-2 right-2 z-10 h-6 w-16 rounded-none" /> : null}
-        <Skeleton className="absolute bottom-2 left-2 z-10 h-5 w-16 rounded-none border border-foreground/25 bg-background min-[576px]:h-6 min-[576px]:w-20" />
+      {/* The photo is one full shimmering block, like every other skeleton —
+          not a white box: the real photo's white only exists once it loads,
+          and a white slab reads as a broken image (glaring in dark mode). */}
+      <div className="relative">
+        <Skeleton className="aspect-square w-full rounded-none" />
+        {showSave ? (
+          <Skeleton className="absolute top-2 right-2 z-10 h-6 w-16 rounded-none border border-foreground/25 bg-background/90" />
+        ) : null}
+        <Skeleton className="absolute bottom-2 left-2 z-10 h-5 w-16 rounded-none border border-foreground/25 bg-background/90 min-[576px]:h-6 min-[576px]:w-20" />
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3 min-[576px]:gap-1.5 min-[576px]:p-4">
         <Skeleton className="h-3 w-1/3" />

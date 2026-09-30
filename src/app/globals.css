@@ -282,8 +282,14 @@
      currentColor so the sweep stays visible on both themes without its own
      dark-mode override. */
   .skeleton-shine {
-    position: relative;
     overflow: hidden;
+  }
+  /* The sweep needs a positioned box, but only as a default: :where() has
+     no specificity, so a skeleton's own `absolute` (the pills over a card's
+     photo) wins. As a plain rule, this sat later in the same layer and beat
+     `absolute`, dropping those pills out of the photo into the card body. */
+  :where(.skeleton-shine) {
+    position: relative;
   }
   .skeleton-shine::after {
     content: "";

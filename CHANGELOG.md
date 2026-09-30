@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- Product card skeleton (shop grid and homepage rails): the photo is one full shimmering grey block again instead of a white box with a grey block inset in it, which read as a broken image and glared in dark mode; and its Save and category pills sit on the photo again instead of dropping below it, because `.skeleton-shine`'s default `position: relative` (same layer, later than Tailwind's `absolute`) now has zero specificity via `:where()` (`CatalogCardSkeleton` in `src/components/store/loading.tsx`, `src/app/globals.css`)
+### Fixed
 - Storefront breadcrumbs line up with the header's logo on wide screens (2xl) instead of sitting 16px to its left (`src/components/ui/breadcrumbs.tsx`)
 ### Fixed
 - New product: Load details said "Pick a fragrance first" even with one picked (it looked the choice up by a name the picker's button also carries) (`src/components/admin/copy-from-picker.tsx`)
