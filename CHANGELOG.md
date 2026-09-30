@@ -4,6 +4,8 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Fixed
+- New product: Load details said "Pick a fragrance first" even with one picked (it looked the choice up by a name the picker's button also carries) (`src/components/admin/copy-from-picker.tsx`)
+### Fixed
 - Saving the admin product page no longer wipes the product's notes: the page had no Notes field, so every Save cleared them. It now has one (under Description), and a save only changes notes or description when the form sends them (`upsertProduct` in `src/actions/admin-catalog-actions.ts`, `src/app/admin/products/[productId]/page.tsx`, `loading.tsx`)
 - Safari: picking a row in the searchable dropdowns (New product's Choose a fragrance, a promo code's Customers who can use it) did nothing — Safari moved focus on the click, which closed the list before the row's click landed. The lists now close on an outside click or tabbing away only (`src/components/admin/search-select.tsx`, `customer-multi-select.tsx`)
 ### Fixed

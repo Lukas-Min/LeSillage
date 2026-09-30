@@ -22,7 +22,7 @@ export function CopyFromPicker({ options }: { options: readonly SearchSelectOpti
     const form = buttonRef.current?.form;
     if (!form) return;
     for (const [name, value] of Object.entries(details)) {
-      const field = form.elements.namedItem(name);
+      const field = form.querySelector(`[name="${name}"]`);
       if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) {
         field.value = value;
         // A select without that option falls back to its first ("not set") one.
@@ -33,8 +33,10 @@ export function CopyFromPicker({ options }: { options: readonly SearchSelectOpti
 
   function load() {
     const form = buttonRef.current?.form;
-    const chosen = form?.elements.namedItem("copyFrom");
-    const id = chosen instanceof HTMLInputElement ? chosen.value : "";
+    // By name, not form.elements.namedItem: that also matches the picker's
+    // trigger button (id="copyFrom") and then returns both.
+    const chosen = form?.querySelector<HTMLInputElement>('input[name="copyFrom"]');
+    const id = chosen?.value ?? "";
     if (!id) {
       setMessage({ text: "Pick a fragrance first.", error: true });
       return;
