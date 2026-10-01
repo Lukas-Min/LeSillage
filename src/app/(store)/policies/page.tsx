@@ -6,6 +6,8 @@ import { policyCopy } from "@/lib/policy-copy";
 
 export const metadata = {
   title: "Policies",
+  description: "Shipping, returns, authenticity, and payment at Le Sillage Manila.",
+  alternates: { canonical: "/policies" },
 };
 
 function SectionIcon({ icon: Icon }: { icon: typeof Truck }) {

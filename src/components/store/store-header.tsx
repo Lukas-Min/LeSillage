@@ -113,11 +113,13 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
               third icon too). `whitespace-nowrap` so it can never stack
               even if the display font swaps in a hair wider — which rules
               out the `sr-only`/`not-sr-only` pair used before, since
-              `not-sr-only` resets `white-space: normal`; the link carries
-              an explicit `aria-label` instead so it keeps an accessible name
-              while the text is `hidden` (the mark's alt stays "", decorative). */}
-          <Link href="/" aria-label="Le Sillage Manila" className="flex items-center gap-2 font-serif-display text-lg">
+              `not-sr-only` resets `white-space: normal`. A separate
+              `sr-only` name stays in the accessibility tree when the wordmark
+              is `hidden` below 360px, without replacing the visible text
+              (the mark's alt stays "", decorative). */}
+          <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
             <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
+            <span className="sr-only">Le Sillage Manila</span>
             <span className="hidden min-[360px]:flex min-[360px]:flex-col min-[360px]:leading-none">
               <span className="whitespace-nowrap">Le Sillage</span>
               <span className="font-sans text-[11px] sm:text-[10px] tracking-[0.32em] text-gold">Manila</span>
