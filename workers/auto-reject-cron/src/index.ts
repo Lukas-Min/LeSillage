@@ -1,6 +1,6 @@
 /**
  * Stand-alone Cloudflare Worker: pings every one of the main app's cron
- * routes hourly, since Vercel Hobby only allows daily cron jobs (see
+ * routes every 15 minutes, since Vercel Hobby only allows daily cron jobs (see
  * ../../vercel.json, where each route also runs once a day as the
  * fallback/baseline — every route is safe to run twice). Deployed and
  * scheduled independently of the Next.js app itself — this touches no app

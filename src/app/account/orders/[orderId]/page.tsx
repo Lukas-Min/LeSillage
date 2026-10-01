@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { AlertCircle } from "lucide-react";
 import { auth } from "@/auth";
@@ -8,11 +8,15 @@ import { SectionCard } from "@/components/ui/section";
 import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { formatOrderStatus, OrderStatusPill } from "@/components/ui/status-pill";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
+import { PaymentWindowTimer } from "@/components/store/payment-window-timer";
 import { CancelOrderButton } from "@/components/store/cancel-order-button";
 import { ReorderButton } from "@/components/store/reorder-button";
 import { ConfirmReceivedButton } from "@/components/store/confirm-received-button";
 import { AskAboutOrderButton } from "@/components/store/ask-about-order-button";
 import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-state";
+import { isDueForAutoReject, paymentDeadline } from "@/domain/auto-reject";
+import { PAYMENT_REMINDER_AFTER_MS } from "@/domain/payment-reminder";
+import { expireUnpaidOrderIfDue } from "@/lib/orders";
 import { DEFAULT_DELIVERY_FEE_CENTAVOS, formatPHP } from "@/domain/money";
 import { getEnv } from "@/lib/env";
 import { instagramChatUrl, messengerChatUrl } from "@/lib/social-links";
@@ -50,6 +54,16 @@ export default async function OrderDetailPage({
       )
   )[0];
   if (!order) return notFound();
+  if (
+    isDueForAutoReject({
+      status: order.status,
+      statusUpdatedAt: order.statusUpdatedAt,
+      now: new Date(),
+    })
+  ) {
+    await expireUnpaidOrderIfDue(order.id, session.user.id as string);
+    redirect(`/account/orders/${order.id}`);
+  }
   const items = await client.select().from(orderItems).where(eq(orderItems.orderId, order.id));
   const summary = summarizeOrderTotals({
     lines: items,
@@ -289,11 +303,25 @@ export default async function OrderDetailPage({
                 ) : null}
               </div>
             </SectionCard>
-            {order.status === "AWAITING_PAYMENT" || order.status === "REJECTED" ? (
+            {order.status === "AWAITING_PAYMENT" ? (
               <SectionCard
                 eyebrow="Payment"
                 title="Upload a receipt"
-                description="Upload a screenshot of your bank or e-wallet transfer. Stock is reserved as soon as we verify it."
+                description="On-hand stock is held for one hour. Upload your receipt in that hour or the order is cancelled."
+              >
+                <PaymentWindowTimer
+                  orderId={order.id}
+                  deadline={paymentDeadline(order.statusUpdatedAt).toISOString()}
+                  remindAt={new Date(order.statusUpdatedAt.getTime() + PAYMENT_REMINDER_AFTER_MS).toISOString()}
+                >
+                  <ReceiptUploader orderId={order.id} />
+                </PaymentWindowTimer>
+              </SectionCard>
+            ) : order.status === "REJECTED" ? (
+              <SectionCard
+                eyebrow="Payment"
+                title="Upload a receipt"
+                description="Upload a new screenshot of your transfer."
               >
                 <ReceiptUploader orderId={order.id} />
               </SectionCard>

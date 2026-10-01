@@ -22,11 +22,10 @@ export default function HowToPayLoading() {
             </div>
           ))}
         </div>
-        <SectionCard eyebrow="Good to know" title="Stock isn't reserved until verified">
+        <SectionCard eyebrow="Good to know" title="Held for one hour">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Stock is reserved only once your receipt is verified — not the moment you place the
-            order. If something becomes unavailable in that window, we&apos;ll reach out with
-            options before doing anything else.
+            On-hand stock is held for one hour from when you place the order. Upload your receipt
+            in that hour or the order is cancelled and the hold is released.
           </p>
         </SectionCard>
       </div>

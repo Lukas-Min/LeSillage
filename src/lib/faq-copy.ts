@@ -87,7 +87,7 @@ export const FAQ_GROUPS = [
             "Delivery — Awaiting payment → Receipt submitted → Confirmed → Shipped → Delivered → Completed.",
             "Pickup — Awaiting payment → Receipt submitted → Confirmed → Ready for pickup → Completed.",
           ],
-          note: "We email you from Receipt submitted onward, plus one payment reminder if an order is still unpaid two hours in.",
+          note: "We email you from Receipt submitted onward, plus one reminder when 30 minutes are left on an unpaid order.",
         } satisfies FaqAnswer,
       },
     ],
@@ -107,10 +107,10 @@ export const FAQ_GROUPS = [
           lead: "Payment is the only thing left:",
           bullets: [
             "Scan the QR code and send the total.",
-            "Upload your receipt on the order's payment page within 24 hours of placing the order.",
-            "We verify it by hand — stock is reserved only once we do.",
+            "Upload your receipt on the order's payment page within 1 hour of placing the order.",
+            "On-hand stock is held for that hour. A receipt inside the hour keeps the hold.",
           ],
-          note: "An order with no receipt after 24 hours is cancelled automatically. Still unpaid two hours in? We'll send one reminder email with the exact time to pay by. Changed your mind? Cancel it yourself from Account → Orders.",
+          note: "An order with no receipt after 1 hour is cancelled and the hold is released. At 30 minutes left we send one reminder email. Changed your mind? Cancel it yourself from Account → Orders.",
         } satisfies FaqAnswer,
       },
       {

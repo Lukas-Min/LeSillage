@@ -8,12 +8,14 @@
   "workers_dev": false,
   // Vercel Hobby caps cron jobs at once per day (see vercel.json — every job
   // there is staggered to a different hour for exactly that reason). This
-  // Worker hits every /api/cron route hourly instead (the JOBS list in
-  // src/index.ts); vercel.json's daily entries stay as the fallback.
+  // Worker hits every /api/cron route every 15 minutes (the JOBS list in
+  // src/index.ts), so an unpaid order nobody reopens releases its hold
+  // within about 15 minutes of the hour. vercel.json's daily entries stay
+  // as the fallback.
   // Cloudflare's free Cron Triggers have no such cap. The name is from when
   // auto-reject was its only job — changing it deploys a second Worker.
   "triggers": {
-    "crons": ["0 * * * *"]
+    "crons": ["*/15 * * * *"]
   },
   "observability": {
     "enabled": true

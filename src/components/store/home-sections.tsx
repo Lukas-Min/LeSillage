@@ -193,7 +193,7 @@ export function ScentFamilies() {
 const STEPS = [
   { title: "Browse the catalog", body: "Use the shop or the shelves above to pick full bottles, testers, partials, and decants." },
   { title: "Place your order", body: "Sign in, confirm delivery or pickup, and we email your QR codes." },
-  { title: "Upload payment receipt", body: "Stock is reserved the moment your receipt is submitted." },
+  { title: "Upload payment receipt", body: "On-hand stock is held for 1 hour. Upload your receipt in that hour or the order is cancelled." },
 ] as const;
 
 /** Numbered timeline on a phone (gold badges joined by a line), three

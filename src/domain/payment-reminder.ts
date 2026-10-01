@@ -1,4 +1,7 @@
-export const PAYMENT_REMINDER_AFTER_MS = 2 * 60 * 60 * 1000;
+/** Sent once, when half the one-hour pay window is gone. */
+export const PAYMENT_REMINDER_AFTER_MS = 30 * 60 * 1000;
+/** How long the open payment page waits before trying that email again. */
+export const PAYMENT_REMINDER_RETRY_MS = 15 * 60 * 1000;
 export const PAYMENT_REMINDER_BATCH = 40;
 
 export function isDueForPaymentReminder(args: {

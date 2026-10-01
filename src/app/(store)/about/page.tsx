@@ -45,7 +45,7 @@ export default function AboutPage() {
             </p>
             <p className="text-sm leading-relaxed">
               We&apos;re small on purpose: every order is packed by hand, every payment receipt is
-              checked by a person before stock is reserved, and every question goes to a real
+              checked by a person, on-hand stock is held for one hour while you pay, and every question goes to a real
               inbox — not a bot.
             </p>
           </SectionCard>

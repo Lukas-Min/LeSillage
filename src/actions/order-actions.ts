@@ -9,11 +9,13 @@ import { orderItems, orders } from "@/db/schema";
 import {
   CheckoutError,
   createOrderFromCart,
+  expireUnpaidOrderIfDue,
   requestOrderCancellation as requestOrderCancellationLib,
   submitReceipt,
   transitionOrderStatus,
   type CheckoutErrorField,
 } from "@/lib/orders";
+import { sendPaymentReminderForOrder } from "@/lib/payment-reminders";
 import { addLinesToCart, loadPromoConfig, resolveActiveCart } from "@/lib/cart";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
@@ -347,4 +349,24 @@ export async function confirmDeliveryByToken(token: string): Promise<OrderAction
   await transitionOrderStatus({ orderId: order.id, next: "COMPLETED" });
   revalidatePath("/account/orders");
   return { ok: true };
+}
+
+export async function expireMyUnpaidOrder(orderId: string): Promise<{ expired: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) return { expired: false };
+  const expired = await expireUnpaidOrderIfDue(orderId, session.user.id);
+  if (expired) {
+    revalidatePath("/account/orders");
+    revalidatePath(`/account/orders/${orderId}`);
+    revalidatePath("/checkout/payment");
+  }
+  return { expired };
+}
+
+export async function remindMyUnpaidOrder(
+  orderId: string,
+): Promise<"sent" | "skipped" | "failed" | "not-due"> {
+  const session = await auth();
+  if (!session?.user?.id) return "skipped";
+  return sendPaymentReminderForOrder(orderId, session.user.id);
 }

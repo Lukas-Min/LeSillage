@@ -33,6 +33,7 @@ import {
   MAX_PROMO_CODES_PER_ORDER,
   type PromoCodesByScope,
 } from "@/domain/promo-code";
+import { AUTO_REJECT_REASON, isDueForAutoReject } from "@/domain/auto-reject";
 import { assertTransition, confirmBlockedReason, customerCancelMode } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment, resolveCartCap } from "@/lib/cart";
@@ -452,29 +453,41 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     // row itself: if the orderItems insert throws (a data-integrity issue
     // like a missing product row), the whole order rolls back instead of
     // leaving a committed zero-item order with a burned promo redemption.
-    await tx.insert(orderItems).values(
-      priced.lines.map((line) => {
-        const found = skuRows.find((row) => row.sku.id === line.skuId);
-        if (!found) throw new Error("Cart item missing product data");
-        return {
-          orderId: insertedOrder.id,
-          skuId: line.skuId,
-          productName: found.productName,
-          skuLabel: found.sku.label,
-          productType: found.productType,
-          fragranceCategory: found.productCategory,
-          condition: found.sku.condition,
-          provenance: found.sku.provenance,
-          packaging: found.sku.packaging,
-          fulfillment: line.fulfillment,
-          quantity: line.quantity,
-          originalUnitCentavos: line.unitPriceCentavos,
-          unitPriceCentavos: line.discountedUnitCentavos,
-          discountCentavos: line.lineDiscountCentavos,
-          lineTotalCentavos: line.lineSubtotalCentavos,
-        };
-      }),
-    );
+    const insertedItems = await tx
+      .insert(orderItems)
+      .values(
+        priced.lines.map((line) => {
+          const found = skuRows.find((row) => row.sku.id === line.skuId);
+          if (!found) throw new Error("Cart item missing product data");
+          return {
+            orderId: insertedOrder.id,
+            skuId: line.skuId,
+            productName: found.productName,
+            skuLabel: found.sku.label,
+            productType: found.productType,
+            fragranceCategory: found.productCategory,
+            condition: found.sku.condition,
+            provenance: found.sku.provenance,
+            packaging: found.sku.packaging,
+            fulfillment: line.fulfillment,
+            quantity: line.quantity,
+            originalUnitCentavos: line.unitPriceCentavos,
+            unitPriceCentavos: line.discountedUnitCentavos,
+            discountCentavos: line.lineDiscountCentavos,
+            lineTotalCentavos: line.lineSubtotalCentavos,
+          };
+        }),
+      )
+      .returning();
+
+    try {
+      await reserveStockWithinTx(tx, insertedOrder.id, insertedOrder, insertedItems);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("Not enough stock")) {
+        throw new CheckoutError("This item just sold out. Please review your order and try again.");
+      }
+      throw error;
+    }
 
     // Buy Now never touched the cart in the first place — nothing to clear.
     if (cart) {
@@ -523,9 +536,9 @@ export async function createOrderFromCart(input: CreateOrderInput) {
     }
   }
 
-  // No email here. The payment reminder (src/lib/payment-reminders.ts,
-  // two hours in) is the only payment email; the checkout already lands
-  // the customer on the payment page.
+  // No email here. A reminder goes out at 30 minutes
+  // (src/lib/payment-reminders.ts); the checkout already lands the
+  // customer on the payment page.
 
   return { order, totals: priced, orderItems: priced.lines, skuRows, promoConfig };
 }
@@ -536,6 +549,22 @@ export async function loadActiveQrs() {
     .from(qrCodes)
     .where(eq(qrCodes.isActive, true))
     .orderBy(qrCodes.position);
+}
+
+/** Cancels an unpaid order once its hour is up. Returns true when this call cancelled it. */
+export async function expireUnpaidOrderIfDue(orderId: string, userId: string): Promise<boolean> {
+  const row = (
+    await db()
+      .select({ status: orders.status, statusUpdatedAt: orders.statusUpdatedAt })
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+  )[0];
+  if (!row) return false;
+  if (!isDueForAutoReject({ status: row.status, statusUpdatedAt: row.statusUpdatedAt, now: new Date() })) {
+    return false;
+  }
+  await transitionOrderStatus({ orderId, next: "CANCELLED", reason: AUTO_REJECT_REASON });
+  return true;
 }
 
 export interface SubmitReceiptInput {
@@ -572,11 +601,21 @@ export async function submitReceipt(
   if (orderRow.status === "REJECTED" || orderRow.status === "CANCELLED") {
     return { ok: false, error: "This order is no longer accepting receipts" };
   }
+  if (
+    isDueForAutoReject({
+      status: orderRow.status,
+      statusUpdatedAt: orderRow.statusUpdatedAt,
+      now: new Date(),
+    })
+  ) {
+    await expireUnpaidOrderIfDue(orderRow.id, input.userId);
+    return { ok: false, error: "This order was cancelled because an hour passed with no receipt." };
+  }
 
   const uploaded = await uploadPrivateImage(`receipts/${orderRow.id}`, input.file);
-  // Shared transaction: if stock reservation fails (e.g. sold out between
-  // checkout and receipt upload), the receipt row rolls back too instead of
-  // leaving an orphaned receipt on an order stuck at AWAITING_PAYMENT.
+  // Shared transaction: stock was already held when the order was placed.
+  // Reserve here only for an order that has no hold yet (placed before
+  // that change). If that reserve fails, the receipt row rolls back too.
   let itemRows: (typeof orderItems.$inferSelect)[];
   try {
     itemRows = await client.transaction(async (tx) => {
@@ -587,7 +626,19 @@ export async function submitReceipt(
       });
 
       const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderRow.id));
-      await reserveStockWithinTx(tx, orderRow.id, orderRow, items);
+      const held = await tx
+        .select({ id: stockMovements.id })
+        .from(stockMovements)
+        .where(
+          and(
+            eq(stockMovements.orderId, orderRow.id),
+            inArray(stockMovements.reason, ["ORDER_RESERVED", "ML_RESERVED", "TESTER_ASSIGNED", "TESTER_ML_ASSIGNED"]),
+          ),
+        )
+        .limit(1);
+      if (held.length === 0) {
+        await reserveStockWithinTx(tx, orderRow.id, orderRow, items);
+      }
 
       await tx
         .update(orders)
@@ -1184,9 +1235,9 @@ export async function transitionOrderStatus(args: {
   });
 
   if (args.next === "REJECTED" || args.next === "CANCELLED") {
-    // releaseStockForOrder is a no-op when the order never had stock
-    // reserved (e.g. cancelling from AWAITING_PAYMENT, before any receipt),
-    // since it only acts on existing ORDER_RESERVED/ML_RESERVED movements.
+    // releaseStockForOrder only acts on existing ORDER_RESERVED/ML_RESERVED
+    // movements. An on-hand order has those from the moment it is placed;
+    // a pre-order has none, so cancelling it releases nothing.
     await releaseStockForOrder(args.orderId);
     await releasePromoCodeRedemption(args.orderId);
   }

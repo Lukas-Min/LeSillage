@@ -48,17 +48,17 @@ Every page, component, and interaction is designed mobile-first and progressivel
 | Google OAuth | Customer sign-in | Yes, up to 50k MAU |
 | Facebook OAuth | Customer sign-in (switched off in `src/lib/oauth-providers.ts`) | Yes |
 | Gmail SMTP | Notifications | Yes (app password) |
-| Cloudflare Workers | Hourly cron trigger (`workers/auto-reject-cron`) | Yes |
+| Cloudflare Workers | Cron every 15 minutes (`workers/auto-reject-cron`) | Yes |
 
 ## Payment
 
 No payment API is integrated. Customers scan the admin-provided QR code from `/checkout/payment`, pay via bank transfer, and upload a screenshot. Admin reviews and confirms via `/admin/orders`.
 
-Placing an order sends no email. An order still unpaid two hours in gets one payment reminder with a Pay by time, and an order with no receipt after 24 hours is cancelled automatically.
+Placing an order sends no email and holds on-hand stock for one hour. At 30 minutes left the customer gets one payment reminder. With no receipt after that hour the order is cancelled and the hold is released.
 
 ## Scheduled jobs
 
-Every `/api/cron/*` route (auto-reject, payment reminders, delivery auto-complete, delivery follow-ups, archive sweep, marketing emails) runs hourly from the Cloudflare Worker in `workers/auto-reject-cron`, because Vercel Hobby only allows daily crons. `vercel.json` keeps each route once a day as a fallback, so every route must be safe to run twice. Both callers send `Authorization: Bearer $CRON_SECRET`, and the Worker's secret must match Vercel's. A new cron route goes in the Worker's `JOBS` list. Marketing email (sale and promo announcements) is queued and sent 15 per hourly run to stay under Gmail's daily limit; each one has a signed unsubscribe link, and newsletter sign-ups must confirm by email first.
+Every `/api/cron/*` route (auto-reject, payment reminders, delivery auto-complete, delivery follow-ups, archive sweep, marketing emails) runs every 15 minutes from the Cloudflare Worker in `workers/auto-reject-cron`, because Vercel Hobby only allows daily crons. `vercel.json` keeps each route once a day as a fallback, so every route must be safe to run twice. Both callers send `Authorization: Bearer $CRON_SECRET`, and the Worker's secret must match Vercel's. A new cron route goes in the Worker's `JOBS` list. Marketing email (sale and promo announcements) is queued and sent 15 per run to stay under Gmail's daily limit; each one has a signed unsubscribe link, and newsletter sign-ups must confirm by email first.
 
 ## Documentation
 

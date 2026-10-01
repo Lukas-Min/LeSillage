@@ -20,6 +20,19 @@ Entry template:
 
 ---
 
+## 2026-10-01 — One-hour stock hold (targeted, uncommitted)
+
+- **Commit range reviewed:** uncommitted one-hour hold on top of `e1322a6`, not `4f39dd5...HEAD`
+- **Effort:** high
+- **Scope / areas covered:** order create and receipt reserve in `src/lib/orders.ts`, the 1-hour cancel, the 30-minute reminder, the payment and order countdown, and the customer copy
+- **Findings:**
+  - [high] A pre-order that earns a free tester holds that tester at checkout, but cancelling it returns before the tester is released whenever the order has no on-hand reservation rows — `src/lib/orders.ts:1067` (tester release is at line 1117) — status: confirmed
+  - [high] Uploading a receipt sets Receipt submitted with no check that the order is still Awaiting payment, so a cancel during the upload can put a released order back to Receipt submitted without holding the stock again — `src/lib/orders.ts:643` — status: confirmed
+  - [medium] A payment link for an order that is no longer awaiting or rejected shows “No payment QR is configured yet” because the QR list is left empty — `src/app/(store)/checkout/payment/page.tsx:61` — status: confirmed
+  - [medium] The countdown calls the reminder action again every second while the send is not due yet or the email failed, for the rest of the half hour — `src/components/store/payment-window-timer.tsx:36` — status: fixed (retries every 15 minutes)
+  - [medium] The worker schedule of every 15 minutes also runs marketing email, 15 messages a run, about four times the previous daily volume — `workers/auto-reject-cron/wrangler.jsonc` — status: confirmed
+- **Checkpoint advanced to:** not advanced — targeted review; the next full review still starts at `4f39dd5`
+
 ## 2026-09-30 — New product page (targeted, owner-requested)
 
 - **Commit range reviewed:** `src/app/admin/products/new/` and the copy path in `src/actions/admin-catalog-actions.ts` at `18adc37`, not the checkpoint range

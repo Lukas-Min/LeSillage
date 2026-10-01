@@ -12,11 +12,11 @@ export const HOW_TO_PAY_STEPS = [
   {
     number: "03",
     title: "Upload your receipt",
-    body: "Upload a screenshot of the receipt on the same payment page within 24 hours of ordering — an order with no receipt by then is cancelled automatically.",
+    body: "Upload a screenshot of the receipt on the same payment page within 1 hour of ordering. On-hand stock is held for that hour — no receipt by then and the order is cancelled.",
   },
   {
     number: "04",
     title: "We verify and confirm",
-    body: "We check it by hand and confirm by email, usually within one business day. Stock is reserved only after that verification.",
+    body: "We check it by hand and confirm by email, usually within one business day. The hold from checkout stays in place.",
   },
 ] as const;

@@ -13,7 +13,7 @@ export const policyCopy = {
   },
   payment: {
     label: "How payment works",
-    body: "We don't run a card or e-wallet gateway — you pay by scanning one of our bank or e-wallet QR codes at checkout, then upload a screenshot of the receipt. A person checks every receipt by hand before your stock is reserved, so verification can take up to one business day. Upload your receipt within 24 hours of ordering — an order with no receipt by then is cancelled automatically.",
+    body: "We don't run a card or e-wallet gateway — you pay by scanning one of our bank or e-wallet QR codes at checkout, then upload a screenshot of the receipt. On-hand stock is held for 1 hour from when you place the order. Upload the receipt in that hour or the order is cancelled and the hold is released. A person still checks every receipt by hand, which can take up to one business day.",
   },
   orderChanges: {
     label: "Changing or cancelling an order",

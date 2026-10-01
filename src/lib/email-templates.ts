@@ -618,10 +618,10 @@ export function paymentReminderEmail(input: OrderEmailInput): OrderEmail {
   const payBy = input.payBy ? formatDateTime(input.payBy) : null;
   const subject = `Your order is one QR away — ${input.orderNumber}`;
   const shelf = `Order ${input.orderNumber} is still sitting pretty on our shelf, tapping a tiny glass foot. The only thing between you and that trail is payment — nothing else.`;
-  const steps = `Open your payment page, send ${formatPHP(input.totalCentavos)} via the QR code, then upload your receipt. Stock is reserved when we receive that receipt, and we'll take it from there (and stop writing fan mail to an unpaid bottle).`;
+  const steps = `Open your payment page, send ${formatPHP(input.totalCentavos)} via the QR code, then upload your receipt. On-hand stock is already held. Upload within the hour and we'll take it from there.`;
   const deadline = payBy
     ? `Pay by ${payBy}. If it's still unpaid by then, the order is cancelled automatically.`
-    : "Unpaid orders are cancelled automatically 24 hours after they're placed.";
+    : "Unpaid orders are cancelled automatically 1 hour after they're placed.";
   const letGo = "If you'd rather let this one go, cancel it from your account. No hard feelings — even perfume needs space sometimes.";
   const text = `Hi ${input.recipientName},
 

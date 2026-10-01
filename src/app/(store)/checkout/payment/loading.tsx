@@ -42,8 +42,7 @@ export default function PaymentLoading() {
         </CardContent>
       </Card>
       <p className="mt-6 text-xs text-muted-foreground">
-        Stock is reserved only after your receipt is verified. If an item goes out of stock while
-        you are paying, we will reach out to confirm a substitution or refund.
+        On-hand stock is held for one hour from when you place the order. Upload your receipt in that hour or the order is cancelled and the hold is released.
       </p>
       <p className="mt-3 text-xs">
         <Link href="/account/orders" className="underline-offset-4 hover:underline">

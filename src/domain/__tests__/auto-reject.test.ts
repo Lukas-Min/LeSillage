@@ -5,7 +5,7 @@ const orderedAt = new Date("2026-09-04T12:00:00.000Z");
 const now = new Date(orderedAt.getTime() + AUTO_REJECT_AFTER_MS);
 
 describe("isDueForAutoReject", () => {
-  it("is due after 24 hours still awaiting payment", () => {
+  it("is due after 1 hour still awaiting payment", () => {
     expect(
       isDueForAutoReject({
         status: "AWAITING_PAYMENT",
@@ -15,7 +15,7 @@ describe("isDueForAutoReject", () => {
     ).toBe(true);
   });
 
-  it("is not due before 24 hours", () => {
+  it("is not due before 1 hour", () => {
     expect(
       isDueForAutoReject({
         status: "AWAITING_PAYMENT",

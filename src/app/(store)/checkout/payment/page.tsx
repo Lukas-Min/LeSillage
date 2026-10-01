@@ -5,8 +5,12 @@ import { auth } from "@/auth";
 import { db } from "@/db/client";
 import { orders, qrCodes } from "@/db/schema";
 import { ReceiptUploader } from "@/components/store/receipt-uploader";
+import { PaymentWindowTimer } from "@/components/store/payment-window-timer";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPHP } from "@/domain/money";
+import { isDueForAutoReject, paymentDeadline } from "@/domain/auto-reject";
+import { PAYMENT_REMINDER_AFTER_MS } from "@/domain/payment-reminder";
+import { expireUnpaidOrderIfDue } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 // The receipt-upload action posted from this page sends email inside
@@ -41,11 +45,26 @@ export default async function PaymentPage({
       )
   )[0];
   if (!order) redirect("/account/orders");
-  const qrs = await client
-    .select()
-    .from(qrCodes)
-    .where(eq(qrCodes.isActive, true))
-    .orderBy(qrCodes.position);
+  const userId = session.user.id as string;
+  if (
+    isDueForAutoReject({
+      status: order.status,
+      statusUpdatedAt: order.statusUpdatedAt,
+      now: new Date(),
+    })
+  ) {
+    await expireUnpaidOrderIfDue(order.id, userId);
+    redirect(`/account/orders/${order.id}`);
+  }
+  const awaiting = order.status === "AWAITING_PAYMENT";
+  const canUpload = awaiting || order.status === "REJECTED";
+  const qrs = canUpload
+    ? await client
+        .select()
+        .from(qrCodes)
+        .where(eq(qrCodes.isActive, true))
+        .orderBy(qrCodes.position)
+    : [];
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -89,10 +108,27 @@ export default async function PaymentPage({
           )}
         </CardContent>
       </Card>
-      <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
+      {awaiting ? (
+        <div className="mt-4 space-y-4">
+          <PaymentWindowTimer
+            orderId={order.id}
+            deadline={paymentDeadline(order.statusUpdatedAt).toISOString()}
+            remindAt={new Date(order.statusUpdatedAt.getTime() + PAYMENT_REMINDER_AFTER_MS).toISOString()}
+          >
+            <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
+          </PaymentWindowTimer>
+        </div>
+      ) : canUpload ? (
+        <div className="mt-6">
+          <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
+        </div>
+      ) : (
+        <p className="mt-6 text-sm text-muted-foreground">
+          This order is no longer waiting for a receipt.
+        </p>
+      )}
       <p className="mt-6 text-xs text-muted-foreground">
-        Stock is reserved only after your receipt is verified. If an item goes out of stock while
-        you are paying, we will reach out to confirm a substitution or refund.
+        On-hand stock is held for one hour from when you place the order. Upload your receipt in that hour or the order is cancelled and the hold is released.
       </p>
       <p className="mt-3 text-xs">
         <Link href="/account/orders" className="underline-offset-4 hover:underline">
