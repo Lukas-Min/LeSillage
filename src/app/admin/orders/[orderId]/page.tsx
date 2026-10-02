@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { orders, orderItems, receipts, users, skus, products } from "@/db/schema";
+import { orders, orderItems, receipts, users, skus, products, promoCodes, promoCodeRedemptions } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrderStatusPill } from "@/components/ui/status-pill";
 import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
@@ -11,7 +11,7 @@ import { formatDate, formatDateTime } from "@/lib/utils";
 import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
 import { loadTesterOptions } from "@/lib/orders";
-import { summarizeOrderTotals } from "@/domain/order-summary";
+import { allocatePromoToLines, summarizeOrderTotals } from "@/domain/order-summary";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -42,7 +42,7 @@ export default async function AdminOrderDetailPage({
     (order.promoTesterResult === "PENDING" || order.promoTesterResult === "ASSIGNED") &&
     (order.status === "RECEIPT_SUBMITTED" || order.status === "CONFIRMED");
 
-  const [items, customer, receiptRows, testerSku, testerOptions] = await Promise.all([
+  const [items, customer, receiptRows, testerSku, testerOptions, promoRows] = await Promise.all([
     db().select().from(orderItems).where(eq(orderItems.orderId, orderId)),
     db()
       .select({ id: users.id, email: users.email, name: users.name, phone: users.phone })
@@ -63,6 +63,16 @@ export default async function AdminOrderDetailPage({
           .then((r) => r[0])
       : Promise.resolve(undefined),
     testerPickable ? loadTesterOptions() : Promise.resolve([]),
+    db()
+      .select({
+        scope: promoCodes.scope,
+        type: promoCodes.type,
+        amount: promoCodes.amount,
+        typeAmounts: promoCodes.typeAmounts,
+      })
+      .from(promoCodeRedemptions)
+      .innerJoin(promoCodes, eq(promoCodes.id, promoCodeRedemptions.promoCodeId))
+      .where(eq(promoCodeRedemptions.orderId, orderId)),
   ]);
 
   // Brands in the order, so the picker can lead with the testers the
@@ -107,6 +117,17 @@ export default async function AdminOrderDetailPage({
     totalCentavos: order.totalCentavos,
     discountCentavos: order.discountCentavos,
   });
+  const orderCode = promoRows.find((row) => row.scope === "ORDER") ?? null;
+  const promoShares = allocatePromoToLines(
+    items.map((item) => ({
+      id: item.id,
+      lineTotalCentavos: item.lineTotalCentavos,
+      itemDiscountCentavos: item.discountCentavos,
+      productType: item.productType,
+    })),
+    summary.promoCodeCentavos,
+    orderCode ? { ...orderCode, typeAmounts: orderCode.typeAmounts ?? null } : null,
+  );
 
   return (
     <div className="space-y-6">
@@ -183,20 +204,7 @@ export default async function AdminOrderDetailPage({
                         {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"} · qty {item.quantity}
                       </p>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="font-medium tabular-nums">
-                        {item.discountCentavos > 0 ? (
-                          <s className="mr-1.5 text-xs font-normal text-muted-foreground">
-                            {formatPHP(item.originalUnitCentavos)}
-                          </s>
-                        ) : null}
-                        {formatPHP(item.unitPriceCentavos)}
-                        <span className="font-normal text-muted-foreground"> each</span>
-                      </p>
-                      {item.quantity > 1 ? (
-                        <p className="text-xs tabular-nums text-muted-foreground">{formatPHP(item.lineTotalCentavos)}</p>
-                      ) : null}
-                    </div>
+                    <ItemPrice item={item} promoShareCentavos={promoShares.get(item.id) ?? 0} />
                   </div>
                 ))}
                 <div className="space-y-1 border-t border-border/60 pt-3 text-sm">
@@ -326,6 +334,34 @@ export default async function AdminOrderDetailPage({
           </>
         }
       />
+    </div>
+  );
+}
+
+function ItemPrice({
+  item,
+  promoShareCentavos,
+}: {
+  item: {
+    originalUnitCentavos: number;
+    lineTotalCentavos: number;
+    discountCentavos: number;
+    quantity: number;
+  };
+  promoShareCentavos: number;
+}) {
+  const cost = item.lineTotalCentavos - promoShareCentavos;
+  const before =
+    item.discountCentavos > 0 ? item.originalUnitCentavos * item.quantity : item.lineTotalCentavos;
+  return (
+    <div className="shrink-0 text-right">
+      <p className="font-medium tabular-nums">{formatPHP(cost)}</p>
+      {before !== cost ? (
+        <p className="text-xs tabular-nums text-muted-foreground">
+          <s>{formatPHP(before)}</s>
+          {promoShareCentavos > 0 ? ` − ${formatPHP(promoShareCentavos)} promo` : null}
+        </p>
+      ) : null}
     </div>
   );
 }
