@@ -182,14 +182,21 @@ export default async function AdminOrderDetailPage({
                       <p className="text-xs text-muted-foreground">
                         {item.skuLabel} · {item.fulfillment === "PRE_ORDER" ? "Pre-order" : "On hand"} · qty {item.quantity}
                       </p>
-                      {item.discountCentavos > 0 ? (
-                        <p className="text-xs text-muted-foreground">
-                          {formatPHP(item.originalUnitCentavos)} → {formatPHP(item.unitPriceCentavos)} each (saved{" "}
-                          {formatPHP(item.discountCentavos)})
-                        </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-medium tabular-nums">
+                        {item.discountCentavos > 0 ? (
+                          <s className="mr-1.5 text-xs font-normal text-muted-foreground">
+                            {formatPHP(item.originalUnitCentavos)}
+                          </s>
+                        ) : null}
+                        {formatPHP(item.unitPriceCentavos)}
+                        <span className="font-normal text-muted-foreground"> each</span>
+                      </p>
+                      {item.quantity > 1 ? (
+                        <p className="text-xs tabular-nums text-muted-foreground">{formatPHP(item.lineTotalCentavos)}</p>
                       ) : null}
                     </div>
-                    <p className="shrink-0 font-medium tabular-nums">{formatPHP(item.lineTotalCentavos)}</p>
                   </div>
                 ))}
                 <div className="space-y-1 border-t border-border/60 pt-3 text-sm">

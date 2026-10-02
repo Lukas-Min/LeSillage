@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Admin order items show the discounted price per unit, with the original price struck through when that unit was discounted (`src/app/admin/orders/[orderId]/page.tsx`)
 - On-hand stock is held when the order is placed, for 1 hour. No receipt in that hour cancels the order and releases the hold. A live countdown on the payment page and the order page asks the server to cancel at zero. One reminder email goes out when 30 minutes are left, and the open payment page retries that send every 15 minutes if it did not go out. The auto-reject worker schedule is every 15 minutes (`PAYMENT_WINDOW_MS` in `src/domain/auto-reject.ts`, `src/lib/orders.ts`, `src/components/store/payment-window-timer.tsx`, `workers/auto-reject-cron/wrangler.jsonc`)
 - Policies page has a meta description and canonical URL. Unused `@supabase/ssr` package removed. The header and footer logo links no longer use an aria-label that disagreed with the visible “Le Sillage / Manila” text
 ### Changed
