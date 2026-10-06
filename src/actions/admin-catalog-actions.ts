@@ -31,7 +31,8 @@ import { isManuallyArchivedProduct } from "@/domain/product-archive";
 import { formGender, notesText } from "@/domain/product-copy";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
-import { uploadPublicImage } from "@/lib/blob";
+import { validateImage } from "@/lib/blob";
+import { selfHostPhotoFromLink, storeProductPhoto } from "@/lib/product-photos";
 import { clampRemainingMl } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
 import { parsePhDateBoundary, todayPhDateString } from "@/domain/ph-date";
@@ -663,15 +664,14 @@ export async function addProductImage(formData: FormData) {
   const file = formData.get("file");
   const rawUrl = String(formData.get("url") ?? "").trim();
   let url: string;
+  // Either way the photo is stored as our own compressed WebP
+  // (src/lib/product-photos.ts).
   if (file instanceof File && file.size > 0) {
-    const uploaded = await uploadPublicImage(`products/${productId}`, {
-      name: file.name,
-      type: file.type,
-      bytes: await file.arrayBuffer(),
-    });
-    url = uploaded.url;
+    const bytes = await file.arrayBuffer();
+    validateImage({ type: file.type, bytes });
+    url = await storeProductPhoto(productId, bytes);
   } else if (rawUrl) {
-    url = z.string().trim().url().parse(rawUrl);
+    url = await selfHostPhotoFromLink(productId, z.string().trim().url().parse(rawUrl));
   } else {
     throw new Error("Choose a file or paste an image URL");
   }

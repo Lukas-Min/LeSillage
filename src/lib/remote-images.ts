@@ -6,11 +6,25 @@
 export const OPTIMIZED_IMAGE_HOSTS = ["fimgs.net", "*.public.blob.vercel-storage.com"] as const;
 
 /**
- * Whether a photo URL can go through the optimizer (re-encoded as WebP at the
- * size it's drawn). Any other host is shown as-is: the optimizer refuses
- * hosts outside remotePatterns, and a refused photo would show as broken.
+ * Product photos we compressed and stored ourselves (src/lib/product-photos.ts)
+ * live under this Blob folder. They're already WebP at the right size, so
+ * they're served as-is, not through the optimizer.
+ */
+export const PRODUCT_PHOTO_FOLDER = "product-photos";
+
+export function isSelfHostedProductPhoto(url: string): boolean {
+  return url.includes(`/public/${PRODUCT_PHOTO_FOLDER}/`);
+}
+
+/**
+ * Whether a photo URL should go through the optimizer (re-encoded as WebP at
+ * the size it's drawn). Our own compressed photos are served as-is, and so is
+ * any other host: the optimizer refuses hosts outside remotePatterns, and a
+ * refused photo would show as broken. What's left is a Fragrantica link or
+ * an older upload not yet converted by `npm run photos:self-host`.
  */
 export function canOptimizeImage(url: string): boolean {
+  if (isSelfHostedProductPhoto(url)) return false;
   let parsed: URL;
   try {
     parsed = new URL(url);

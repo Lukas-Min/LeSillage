@@ -46,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Undo lists written by npm run photos:self-host
+self-host-photos-log-*.json

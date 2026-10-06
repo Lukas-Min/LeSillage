@@ -9,6 +9,7 @@ import { products, skus, productImages } from "@/db/schema";
 import { guessConcentration, isConcentration } from "@/domain/concentration";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
+import { selfHostPhotoFromLink } from "@/lib/product-photos";
 import {
   mergeFragranticRecords,
   parseFragranticaHtml,
@@ -176,7 +177,9 @@ export async function saveFragranticaImport(formData: FormData) {
   if (finalImageUrl) {
     await db().insert(productImages).values({
       productId,
-      url: finalImageUrl,
+      // Our own compressed copy, so the shop doesn't depend on Fragrantica's
+      // server; the original link if copying fails.
+      url: await selfHostPhotoFromLink(productId, finalImageUrl),
       alt: `${merged.brand ?? brand} — ${merged.name ?? name}`,
       position: 0,
     });

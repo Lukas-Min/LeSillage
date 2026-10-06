@@ -7,6 +7,10 @@ describe("canOptimizeImage", () => {
     expect(canOptimizeImage("https://abc123.public.blob.vercel-storage.com/products/x.webp")).toBe(true);
   });
 
+  it("serves our own compressed photos as-is", () => {
+    expect(canOptimizeImage("https://abc123.public.blob.vercel-storage.com/public/product-photos/p1/1-a.webp")).toBe(false);
+  });
+
   it("shows any other host, plain http, or a malformed URL as-is", () => {
     expect(canOptimizeImage("https://example.com/photo.jpg")).toBe(false);
     expect(canOptimizeImage("https://fimgs.net.evil.com/photo.jpg")).toBe(false);
