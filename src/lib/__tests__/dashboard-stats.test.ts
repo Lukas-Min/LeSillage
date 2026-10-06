@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { profitQueries } from "../dashboard-stats";
 
 // Builds the two profit queries against a driver-less client and reads the SQL
