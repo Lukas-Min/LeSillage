@@ -13,6 +13,7 @@ import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domai
 import { labelForType } from "@/domain/product-type";
 import { compareSkuOrder } from "@/domain/variant-options";
 import { isArchivedProduct, isSoldOutPartial } from "@/domain/product-archive";
+import { productsMissingCost } from "@/domain/product-cost";
 import { cn } from "@/lib/utils";
 import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -88,6 +89,8 @@ async function ProductsList({
     allProductRows.filter((p) => isArchivedProduct(p, skusByProduct.get(p.id) ?? [])).map((p) => p.id),
   );
   const liveRows = allProductRows.filter((p) => !archivedIds.has(p.id));
+  const missingCost = productsMissingCost(allProductRows, skuRows);
+  const missingCostIds = new Set(missingCost.map((p) => p.id));
   const countByType = new Map<ProductType, number>();
   for (const p of liveRows) countByType.set(p.type, (countByType.get(p.type) ?? 0) + 1);
   const tabCount = (tab: ProductListTab) =>
@@ -130,6 +133,15 @@ async function ProductsList({
 
   return (
     <div className="flex flex-col gap-4">
+      {missingCost.length > 0 ? (
+        <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm">
+          {missingCost.length} product{missingCost.length === 1 ? " has" : "s have"} no cost set, so a sale of{" "}
+          {missingCost.length === 1 ? "it counts" : "them counts"} as pure profit.{" "}
+          <Link href="/admin#missing-costs" className="font-medium underline underline-offset-4">
+            See which
+          </Link>
+        </p>
+      ) : null}
       <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-border">
         {PRODUCT_TYPE_TABS.map((tab) => {
           const count = tabCount(tab.value);
@@ -205,6 +217,7 @@ async function ProductsList({
                     ) : (
                       <Badge variant="destructive">No concentration</Badge>
                     )}
+                    {missingCostIds.has(product.id) ? <Badge variant="secondary">No cost</Badge> : null}
                     <span className="text-xs text-muted-foreground">
                       {soldOut ? "Sold out" : archived ? "Archived" : product.isActive ? "Visible" : "Hidden"}
                     </span>

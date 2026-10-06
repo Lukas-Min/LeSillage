@@ -66,13 +66,14 @@ export function requiresReason(status: OrderStatus): boolean {
 // Orders whose payment the team has verified — what "Total spent" adds up,
 // for the customer (Account → Orders) and the admin (a customer's page) alike.
 // Awaiting payment, receipt submitted, rejected and cancelled don't count.
-const PAID_STATUSES: ReadonlySet<OrderStatus> = new Set([
+export const PAID_STATUS_LIST: readonly OrderStatus[] = [
   "CONFIRMED",
   "SHIPPED",
   "DELIVERED",
   "READY_FOR_PICKUP",
   "COMPLETED",
-]);
+];
+const PAID_STATUSES: ReadonlySet<OrderStatus> = new Set(PAID_STATUS_LIST);
 
 export function isPaidStatus(status: OrderStatus): boolean {
   return PAID_STATUSES.has(status);

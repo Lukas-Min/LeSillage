@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Admin dashboard: a Profit table (this month, last month, all time — Sales, Cost, Profit, margin) for paid orders by order date in Manila time, with Sales as the items after discounts (delivery fees left out) and Cost as each sold size's cost today; a Recent orders card; and a "no cost set" alert listing the products with no cost, since a sale of those counts as pure profit. The Products page shows the same notice and a No cost badge on those products (`src/app/admin/page.tsx`, `loading.tsx`, `src/lib/dashboard-stats.ts`, `src/domain/profit.ts`, `src/domain/product-cost.ts`, `src/components/admin/profit-table.tsx`, `src/app/admin/products/page.tsx`)
 ### Fixed
 - Receipt upload and the one-hour auto-cancel can no longer undo each other: submitting a receipt locks the order and re-checks it is still awaiting payment (a cancelled order is no longer revived with its stock already returned), and the auto-cancel only cancels an order that is still awaiting payment, checked under the row lock (`submitReceipt`, `expireUnpaidOrderIfDue`, `transitionOrderStatus`'s new `expectedStatus` in `src/lib/orders.ts`, `src/lib/auto-reject-orders.ts`)
 - Marketing email sends 4 per run instead of 15 now the Worker runs every 15 minutes (384 a day at most, under Gmail's ~500 shared with order email), and the pacing comments match (`src/domain/marketing.ts`, `src/lib/marketing-queue.ts`)
