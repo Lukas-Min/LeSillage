@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { products, skus, promoSettings, type ProductType } from "@/db/schema";
+import { products, productImages, skus, promoSettings, type ProductType } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { labelForType } from "@/domain/product-type";
 import { compareSkuOrder } from "@/domain/variant-options";
 import { isArchivedProduct, isSoldOutPartial } from "@/domain/product-archive";
 import { productsMissingCost } from "@/domain/product-cost";
+import { isSelfHostedProductPhoto } from "@/lib/remote-images";
+import { MovePhotosNotice } from "@/components/admin/move-photos-notice";
 import { cn } from "@/lib/utils";
 import { AreaHeader, PAGE_ACTION_CLASS } from "@/components/ui/page-layout";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -71,11 +73,13 @@ async function ProductsList({
   query: string;
   requestedPage: number;
 }) {
-  const [allProductRows, skuRows, promoRow] = await Promise.all([
+  const [allProductRows, skuRows, promoRow, photoRows] = await Promise.all([
     db().select().from(products),
     db().select().from(skus),
     db().select().from(promoSettings),
+    db().select({ url: productImages.url }).from(productImages),
   ]);
+  const photosToMove = photoRows.filter((photo) => !isSelfHostedProductPhoto(photo.url)).length;
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   // Archived products only show under the Archived tab; the other tabs and
   // their counts are the live catalog (visible or hidden, not archived).
@@ -133,6 +137,7 @@ async function ProductsList({
 
   return (
     <div className="flex flex-col gap-4">
+      {photosToMove > 0 ? <MovePhotosNotice count={photosToMove} /> : null}
       {missingCost.length > 0 ? (
         <p role="status" className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm">
           {missingCost.length} product{missingCost.length === 1 ? " has" : "s have"} no cost set, so a sale of{" "}

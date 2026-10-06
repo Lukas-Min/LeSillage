@@ -32,7 +32,7 @@ import { formGender, notesText } from "@/domain/product-copy";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { validateImage } from "@/lib/blob";
-import { selfHostPhotoFromLink, storeProductPhoto } from "@/lib/product-photos";
+import { movePhotos, photosToMove, selfHostPhotoFromLink, storeProductPhoto } from "@/lib/product-photos";
 import { clampRemainingMl } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
 import { parsePhDateBoundary, todayPhDateString } from "@/domain/ph-date";
@@ -684,4 +684,56 @@ export async function addProductImage(formData: FormData) {
   await auditLogSubject({ actor: admin.id, action: "IMAGE_UPDATE", targetType: "product", targetId: productId });
   revalidatePath(`/admin/products/${productId}`);
   invalidateCatalog();
+}
+
+const PHOTO_MOVE_BATCH = 12;
+
+export type MovePhotosBatchResult =
+  | {
+      ok: true;
+      moved: number;
+      oldBytes: number;
+      newBytes: number;
+      failed: Array<{ id: string; url: string; error: string }>;
+      /** Photos still to move, not counting `skipIds`. */
+      remaining: number;
+    }
+  | { ok: false; error: string };
+
+/**
+ * The admin Products page's "Move photos" button: moves the next batch of
+ * product photos into our own store as compressed WebP (moveProductPhoto in
+ * src/lib/product-photos.ts), the same as `npm run photos:self-host`. The
+ * button calls this until nothing is left, passing the ids that already
+ * failed so they're skipped instead of retried forever. Each moved photo's
+ * old and new link go in the audit log, so a move can be undone.
+ */
+export async function moveProductPhotosBatch(skipIds: string[] = []): Promise<MovePhotosBatchResult> {
+  const admin = await requireAdmin();
+  const skip = new Set(z.array(z.string()).max(1000).catch([]).parse(skipIds));
+  try {
+    const todo = (await photosToMove()).filter((row) => !skip.has(row.id));
+    const { moved, failed } = await movePhotos(todo.slice(0, PHOTO_MOVE_BATCH));
+    if (moved.length > 0) {
+      await auditLogSubject({
+        actor: admin.id,
+        action: "IMAGE_UPDATE",
+        targetType: "product",
+        targetId: null,
+        metadata: { photosMoved: moved.map(({ id, productId, oldUrl, newUrl }) => ({ id, productId, oldUrl, newUrl })) },
+      });
+      invalidateCatalog();
+    }
+    return {
+      ok: true,
+      moved: moved.length,
+      oldBytes: moved.reduce((sum, photo) => sum + photo.oldBytes, 0),
+      newBytes: moved.reduce((sum, photo) => sum + photo.newBytes, 0),
+      failed,
+      remaining: todo.length - moved.length - failed.length,
+    };
+  } catch (error) {
+    console.error("[moveProductPhotosBatch]", error);
+    return { ok: false, error: "Moving photos failed. Please try again." };
+  }
 }

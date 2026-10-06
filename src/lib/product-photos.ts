@@ -1,6 +1,11 @@
+import { randomBytes } from "node:crypto";
+import { and, eq } from "drizzle-orm";
 import sharp from "sharp";
+import { db } from "@/db/client";
+import { productImages } from "@/db/schema";
 import { uploadPublicImage } from "./blob";
-import { PRODUCT_PHOTO_FOLDER } from "./remote-images";
+import { getEnv } from "./env";
+import { isSelfHostedProductPhoto, PRODUCT_PHOTO_FOLDER } from "./remote-images";
 
 /** Widest a stored photo gets: the product page draws it at most ~600px. */
 export const PRODUCT_PHOTO_MAX_WIDTH = 750;
@@ -62,4 +67,88 @@ export async function selfHostPhotoFromLink(productId: string, url: string): Pro
     console.error(`[product-photos] kept the original link for ${productId}:`, error);
     return url;
   }
+}
+
+export interface MovedPhoto {
+  id: string;
+  productId: string;
+  oldUrl: string;
+  newUrl: string;
+  oldBytes: number;
+  newBytes: number;
+}
+
+/** Product photos not yet in our own store, oldest first (at most `limit`). */
+export async function photosToMove(limit?: number) {
+  const rows = await db()
+    .select({ id: productImages.id, productId: productImages.productId, url: productImages.url })
+    .from(productImages)
+    .orderBy(productImages.id);
+  const todo = rows.filter((row) => !isSelfHostedProductPhoto(row.url));
+  return limit === undefined ? todo : todo.slice(0, limit);
+}
+
+/**
+ * Moves one saved product photo into our own store: download, compress,
+ * upload, check the copy loads, then point the row at it. Unlike uploadPublicImage there's no
+ * local-disk fallback: a link written to the database must point at Blob, so
+ * a missing token or failed upload throws and the row keeps its old link.
+ * The row only changes if its link is still the one that was copied (an
+ * admin edit in the meantime wins).
+ */
+export async function moveProductPhoto(row: { id: string; productId: string; url: string }): Promise<MovedPhoto> {
+  const token = getEnv().BLOB_READ_WRITE_TOKEN;
+  if (!token) throw new Error("Image storage is not configured (BLOB_READ_WRITE_TOKEN)");
+  const original = await downloadPhoto(row.url);
+  const webp = await compressProductPhoto(original);
+  const { put } = await import("@vercel/blob");
+  const pathname = `public/${PRODUCT_PHOTO_FOLDER}/${row.productId}/${Date.now()}-${randomBytes(6).toString("hex")}.webp`;
+  const blob = await put(pathname, webp, { access: "public", contentType: "image/webp", token });
+  // Only switch the shop over to a copy that actually loads.
+  const check = await fetch(blob.url, { signal: AbortSignal.timeout(15_000) });
+  if (!check.ok || !(check.headers.get("content-type") ?? "").startsWith("image/webp")) {
+    throw new Error(`The stored copy didn't load (${check.status}); kept the old link`);
+  }
+  await check.arrayBuffer();
+  const updated = await db()
+    .update(productImages)
+    .set({ url: blob.url })
+    .where(and(eq(productImages.id, row.id), eq(productImages.url, row.url)))
+    .returning({ id: productImages.id });
+  if (updated.length === 0) throw new Error("The photo was changed in the admin while moving; left as is");
+  return {
+    id: row.id,
+    productId: row.productId,
+    oldUrl: row.url,
+    newUrl: blob.url,
+    oldBytes: original.byteLength,
+    newBytes: webp.byteLength,
+  };
+}
+
+/** Moves photos a few at a time; a failure is reported, not thrown. */
+export async function movePhotos(
+  rows: Array<{ id: string; productId: string; url: string }>,
+  onEach?: (result: { moved?: MovedPhoto; failed?: { id: string; url: string; error: string } }) => void,
+  concurrency = 4,
+) {
+  const moved: MovedPhoto[] = [];
+  const failed: Array<{ id: string; url: string; error: string }> = [];
+  let next = 0;
+  async function worker() {
+    while (next < rows.length) {
+      const row = rows[next++];
+      try {
+        const result = await moveProductPhoto(row);
+        moved.push(result);
+        onEach?.({ moved: result });
+      } catch (error) {
+        const failure = { id: row.id, url: row.url, error: error instanceof Error ? error.message : String(error) };
+        failed.push(failure);
+        onEach?.({ failed: failure });
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, rows.length) }, worker));
+  return { moved, failed };
 }
