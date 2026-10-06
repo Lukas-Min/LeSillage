@@ -20,6 +20,28 @@ Entry template:
 
 ---
 
+## 2026-10-06 — Full review since the last checkpoint
+
+- **Commit range reviewed:** `4f39dd5...6c4c5fc` (23 commits, 137 files, +5997/-3242) — per-type promo amounts, the account/admin layout rollout and Summary-to-side-column rework, New product's searchable picker and Load details, the Archived tab, sold-out partials, the one-hour stock hold with countdown and 30-minute reminder, the 15-minute Worker schedule, the link-preview banner, and per-line promo cost on admin orders
+- **Effort:** xhigh — 10 inline finder angles plus a sweep, deduped, no separate verify pass
+- **Scope / areas covered:** `src/lib/orders.ts`, `src/lib/auto-reject-orders.ts`, `src/lib/payment-reminders.ts`, `src/domain/{promo-code,checkout-totals,order-summary,auto-reject,payment-reminder,product-archive,marketing}.ts`, `src/actions/{admin-promo-code,admin-catalog,order}-actions.ts`, the payment and order pages and `PaymentWindowTimer`, `SearchSelect` / `CopyFromPicker`, the admin products pages, the Worker config; CLAUDE.md rules checked (no trailers, CHANGELOG entries, loading screens, empty states, form actions, email types) — no violations found
+- **Findings:**
+  1. [high] `submitReceipt` sets RECEIPT_SUBMITTED with no status guard and treats a released hold as still held, so an order cancelled during the upload comes back to life with its stock already returned — `src/lib/orders.ts:645` — status: confirmed, not fixed this pass (also logged 2026-10-01)
+  2. [high] The one-hour auto-cancel (`expireUnpaidOrderIfDue`, `autoRejectExpiredOrders`) reads status unlocked and `transitionOrderStatus` has no expected-status check; RECEIPT_SUBMITTED → CANCELLED is legal, so a just-paid order can be cancelled — `src/lib/orders.ts:555`, `src/lib/auto-reject-orders.ts:31` — status: confirmed, not fixed this pass
+  3. [medium] Worker every 15 minutes with 15 marketing emails per run is up to 1,440 a day against Gmail's ~500 (order email shares it); the comments in `marketing.ts` are stale — `src/domain/marketing.ts:6`, `workers/auto-reject-cron/wrangler.jsonc` — status: confirmed, not fixed this pass (also logged 2026-10-01)
+  4. [medium] The 24h → 1h window applies to orders already awaiting payment, so the first tick after deploy cancelled every unpaid order older than an hour — `src/domain/auto-reject.ts:3` — status: confirmed, already happened at deploy
+  5. [medium] `PaymentWindowTimer` seeds with `Date.now()` on server and client (hydration mismatch) and trusts the device clock, so a phone more than an hour fast hides the uploader — `src/components/store/payment-window-timer.tsx:30` — status: confirmed, not fixed this pass
+  6. [medium] Creating a product copies the picked fragrance's data and photos whenever `copyFrom` is posted, even without Load details or after the name was changed — `src/actions/admin-catalog-actions.ts:204` — status: confirmed, not fixed this pass
+  7. [low] `SearchSelect` starts its highlight at an index past the 50 rows shown — `src/components/admin/search-select.tsx:94` — status: confirmed, not fixed this pass
+  8. [low] `allocatePromoToLines` uses the code's current terms and has no tests — `src/domain/order-summary.ts:61` — status: confirmed, not fixed this pass
+  9. [low] Tester release is skipped when an order has no on-hand reservation rows — `src/lib/orders.ts:1067` — status: confirmed, not fixed this pass (also logged 2026-10-01)
+  10. [low] The reminder predicate has no deadline bound and the reminder copy overstates the hold — `src/domain/payment-reminder.ts:14`, `src/lib/email-templates.ts:621` — status: confirmed, not fixed this pass
+  11. [low] `unarchiveProduct` doesn't verify the product is archived and re-enables separately archived sizes — `src/actions/admin-catalog-actions.ts:509` — status: confirmed, not fixed this pass
+  12. [low] Pay-by and reminder times are computed inline in three places despite `paymentDeadline()` — `src/lib/payment-reminders.ts:64` — status: confirmed, not fixed this pass
+  13. [low] A REJECTED order is offered a receipt uploader that `submitReceipt` refuses (predates this range) — `src/app/(store)/checkout/payment/page.tsx:60` — status: confirmed, not fixed this pass
+  14. [low] The Archived computation scans every SKU per product — `src/app/admin/products/page.tsx:81` — status: confirmed, not fixed this pass
+- **Checkpoint advanced to:** `6c4c5fc137bdc2d9848e296d212567208b43d706` (HEAD at review time)
+
 ## 2026-10-01 — One-hour stock hold (targeted, uncommitted)
 
 - **Commit range reviewed:** uncommitted one-hour hold on top of `e1322a6`, not `4f39dd5...HEAD`
