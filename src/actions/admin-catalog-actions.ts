@@ -27,6 +27,7 @@ import {
 } from "@/db/schema";
 import { computeRetailPrice, computeSkuRetailPrice, scaleBySize } from "@/domain/pricing";
 import { toCentavos } from "@/domain/money";
+import { isManuallyArchivedProduct } from "@/domain/product-archive";
 import { formGender, notesText } from "@/domain/product-copy";
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
@@ -509,12 +510,12 @@ export async function archiveOrDeleteProduct(formData: FormData) {
 export async function unarchiveProduct(formData: FormData) {
   const admin = await requireAdmin();
   const productId = String(formData.get("productId") ?? "");
-  const updated = await db()
-    .update(products)
-    .set({ isActive: true, updatedAt: new Date() })
-    .where(eq(products.id, productId))
-    .returning({ id: products.id });
-  if (updated.length === 0) throw new Error("Product not found");
+  const product = (await db().select({ isActive: products.isActive }).from(products).where(eq(products.id, productId)))[0];
+  if (!product) throw new Error("Product not found");
+  const productSkus = await db().select({ isActive: skus.isActive }).from(skus).where(eq(skus.productId, productId));
+  // Only an archived product: a stale tab or a double submit on a hidden draft must not publish it.
+  if (!isManuallyArchivedProduct(product, productSkus)) return;
+  await db().update(products).set({ isActive: true, updatedAt: new Date() }).where(eq(products.id, productId));
   await db().update(skus).set({ isActive: true, updatedAt: new Date() }).where(eq(skus.productId, productId));
   await auditLogSubject({
     actor: admin.id,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isDueForPaymentReminder, PAYMENT_REMINDER_AFTER_MS } from "../payment-reminder";
+import { PAYMENT_WINDOW_MS } from "../auto-reject";
 
 const placedAt = new Date("2026-09-04T12:00:00.000Z");
 const now = new Date(placedAt.getTime() + PAYMENT_REMINDER_AFTER_MS);
@@ -23,6 +24,17 @@ describe("isDueForPaymentReminder", () => {
         statusUpdatedAt: placedAt,
         paymentReminderSentAt: null,
         now: new Date(placedAt.getTime() + PAYMENT_REMINDER_AFTER_MS - 1),
+      }),
+    ).toBe(false);
+  });
+
+  it("is not due once the hour is up, since pay-by would already be past", () => {
+    expect(
+      isDueForPaymentReminder({
+        status: "AWAITING_PAYMENT",
+        statusUpdatedAt: placedAt,
+        paymentReminderSentAt: null,
+        now: new Date(placedAt.getTime() + PAYMENT_WINDOW_MS),
       }),
     ).toBe(false);
   });

@@ -150,7 +150,7 @@ function hasEnded(endsAt: Date | null): boolean {
 }
 
 /** Queues a promo email for every still-eligible subscriber after the
- *  response, and sends the first batch; the hourly cron sends the rest. */
+ *  response, and sends the first batch; the 15-minute cron sends the rest. */
 function broadcastPromoEmail(code: {
   id: string;
   code: string;

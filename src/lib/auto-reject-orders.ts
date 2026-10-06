@@ -28,7 +28,12 @@ export async function autoRejectExpiredOrders(now = new Date()): Promise<AutoRej
     }
 
     try {
-      await transitionOrderStatus({ orderId: order.id, next: "CANCELLED", reason: AUTO_REJECT_REASON });
+      await transitionOrderStatus({
+        orderId: order.id,
+        next: "CANCELLED",
+        reason: AUTO_REJECT_REASON,
+        expectedStatus: "AWAITING_PAYMENT",
+      });
       result.cancelled += 1;
     } catch {
       // Another process may have already moved this order (e.g. the

@@ -216,8 +216,8 @@ export const newsletterSubscribers = pgTable("newsletter_subscriber", {
 export const marketingEmailStatus = ["PENDING", "SENDING", "SENT", "FAILED", "SKIPPED"] as const;
 export type MarketingEmailStatus = (typeof marketingEmailStatus)[number];
 
-// Bulk marketing email waits here and goes out in small batches (the hourly
-// marketing-emails cron, plus one batch right after the save), so a big send
+// Bulk marketing email waits here and goes out in small batches (the
+// marketing-emails cron, every 15 minutes, plus one batch right after the save), so a big send
 // stays under Gmail's daily limit. Each row is already rendered for its
 // recipient, unsubscribe link included.
 export const marketingEmails = pgTable(

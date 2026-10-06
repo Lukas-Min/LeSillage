@@ -3,6 +3,14 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Receipt upload and the one-hour auto-cancel can no longer undo each other: submitting a receipt locks the order and re-checks it is still awaiting payment (a cancelled order is no longer revived with its stock already returned), and the auto-cancel only cancels an order that is still awaiting payment, checked under the row lock (`submitReceipt`, `expireUnpaidOrderIfDue`, `transitionOrderStatus`'s new `expectedStatus` in `src/lib/orders.ts`, `src/lib/auto-reject-orders.ts`)
+- Marketing email sends 4 per run instead of 15 now the Worker runs every 15 minutes (384 a day at most, under Gmail's ~500 shared with order email), and the pacing comments match (`src/domain/marketing.ts`, `src/lib/marketing-queue.ts`)
+- The payment countdown starts from the server's clock instead of the phone's, so server and browser text match and a wrong phone clock can't hide the receipt uploader (`src/components/store/payment-window-timer.tsx`, the payment and order pages)
+- New product: the fragrance's notes layout, accords, ratings, and photos are copied only after Load details, and not if Name or Brand is edited afterwards (`src/components/admin/copy-from-picker.tsx`); the search dropdown's highlight stays inside the rows shown (`src/components/admin/search-select.tsx`)
+- Cancelling an order releases its free tester even when the order has no on-hand reservation rows (`releaseStockForOrder` in `src/lib/orders.ts`)
+- The payment reminder is not sent once the one-hour window is over, its email no longer claims a stock hold, and the pay-by and reminder times come from one place (`paymentDeadline`, `paymentReminderTime` in `src/domain/auto-reject.ts`, `payment-reminder.ts`, `src/lib/payment-reminders.ts`, `src/lib/email-templates.ts`)
+- Unarchive does nothing for a product that isn't archived (`src/actions/admin-catalog-actions.ts`); the admin products page groups SKUs by product once (`src/app/admin/products/page.tsx`); the per-fragrance promo cost on an admin order says "est." (it follows the code's current terms) and the allocation has tests (`src/app/admin/orders/[orderId]/page.tsx`, `src/domain/__tests__/order-summary.test.ts`)
 ### Added
 - Code review of `4f39dd5...6c4c5fc` logged in `code-review/LOG.md` (14 findings, none fixed in this pass) and the checkpoint advanced
 ### Changed

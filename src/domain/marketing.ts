@@ -1,10 +1,12 @@
 import { siteWideDiscountStatus, type SiteWideDiscountConfig } from "./promo";
 
 // Marketing email goes out through Gmail, which caps a regular account at
-// about 500 messages a day, order emails included. 15 per run, hourly, is 360
-// a day at most, leaving room for order emails.
-export const MARKETING_EMAILS_PER_RUN = 15;
-// A run that dies mid-send leaves rows SENDING; another run retries them after this.
+// about 500 messages a day, order emails included. The Worker runs every 15
+// minutes (96 runs a day), so 4 per run is 384 a day at most, leaving room for
+// order emails.
+export const MARKETING_EMAILS_PER_RUN = 4;
+// A run that dies mid-send leaves rows SENDING; the next run marks them FAILED
+// after this (not resent, to avoid a duplicate).
 export const MARKETING_SEND_STALE_MS = 15 * 60 * 1000;
 
 export interface MarketingRecipient {

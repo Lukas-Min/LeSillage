@@ -91,7 +91,12 @@ export function SearchSelect({
     setOpen(true);
     setQuery("");
     // Start on the current choice so the arrow keys move from there.
-    setActive(Math.max(0, options.findIndex((option) => option.value === value)));
+    setActive(
+      Math.max(
+        0,
+        Math.min(options.findIndex((option) => option.value === value), Math.min(options.length, MAX_SHOWN) - 1),
+      ),
+    );
   }
 
   function close() {

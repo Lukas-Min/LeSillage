@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { loadProductCopyDetails, type ProductCopyDetails } from "@/actions/admin-catalog-actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,14 +9,33 @@ import { SearchSelect, type SearchSelectOption } from "@/components/admin/search
 /**
  * "Choose a fragrance" + "Load details" on New product. Loading fills the
  * form's fragrance fields in place (no page reload, so the type, cost and
- * pricing already typed stay), and the chosen id posts with the form as
- * `copyFrom`, so creating the product also copies the fragrance's imported
- * data and photos (upsertProduct).
+ * pricing already typed stay). The loaded id posts with the form as `copyFrom`
+ * (not just a picked one), so creating the product also copies the
+ * fragrance's imported data and photos (upsertProduct); editing Name or Brand
+ * afterwards drops it, since the product is no longer that fragrance.
  */
 export function CopyFromPicker({ options }: { options: readonly SearchSelectOption[] }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [loadedId, setLoadedId] = useState("");
+
+  useEffect(() => {
+    const form = buttonRef.current?.form;
+    if (!form) return;
+    function onInput(event: Event) {
+      const field = event.target;
+      if (!(field instanceof HTMLInputElement) || (field.name !== "name" && field.name !== "brand")) return;
+      setLoadedId("");
+      setMessage((current) =>
+        current && !current.error
+          ? { text: "Name or brand changed, so the notes layout, accords, ratings and photos won't be copied.", error: false }
+          : current,
+      );
+    }
+    form.addEventListener("input", onInput);
+    return () => form.removeEventListener("input", onInput);
+  }, []);
 
   function fill(details: ProductCopyDetails) {
     const form = buttonRef.current?.form;
@@ -35,7 +54,7 @@ export function CopyFromPicker({ options }: { options: readonly SearchSelectOpti
     const form = buttonRef.current?.form;
     // By name, not form.elements.namedItem: that also matches the picker's
     // trigger button (id="copyFrom") and then returns both.
-    const chosen = form?.querySelector<HTMLInputElement>('input[name="copyFrom"]');
+    const chosen = form?.querySelector<HTMLInputElement>('input[name="copyFromPick"]');
     const id = chosen?.value ?? "";
     if (!id) {
       setMessage({ text: "Pick a fragrance first.", error: true });
@@ -48,6 +67,7 @@ export function CopyFromPicker({ options }: { options: readonly SearchSelectOpti
         return;
       }
       fill(result.details);
+      setLoadedId(id);
       setMessage({
         text: `Loaded ${result.details.brand} — ${result.details.name}. Creating the product also copies its notes layout, accords, ratings and photos.`,
         error: false,
@@ -64,7 +84,7 @@ export function CopyFromPicker({ options }: { options: readonly SearchSelectOpti
           <Label htmlFor="copyFrom">Choose a fragrance</Label>
           <SearchSelect
             id="copyFrom"
-            name="copyFrom"
+            name="copyFromPick"
             options={options}
             placeholder="Pick a fragrance…"
             searchLabel="Search fragrances"
@@ -72,6 +92,7 @@ export function CopyFromPicker({ options }: { options: readonly SearchSelectOpti
             noun="fragrances"
           />
         </div>
+        {loadedId ? <input type="hidden" name="copyFrom" value={loadedId} /> : null}
         <Button ref={buttonRef} type="button" variant="outline" className="h-11 sm:mt-6" disabled={pending} onClick={load}>
           {pending ? "Loading…" : "Load details"}
         </Button>

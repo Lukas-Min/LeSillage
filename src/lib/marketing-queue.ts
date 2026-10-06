@@ -42,7 +42,7 @@ export interface MarketingQueueRunResult {
 
 /**
  * Sends the next batch of queued marketing email. Rows are claimed with
- * FOR UPDATE SKIP LOCKED, so the hourly Worker run, Vercel's daily fallback
+ * FOR UPDATE SKIP LOCKED, so the 15-minute Worker run, Vercel's daily fallback
  * and a post-save run can overlap without sending anything twice. A row left
  * SENDING by a crashed run (older than MARKETING_SEND_STALE_MS) is marked
  * FAILED rather than retried: the crash may have come after the email went

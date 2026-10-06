@@ -74,7 +74,7 @@ async function announceSiteWideDiscount(config: SiteWideDiscountConfig, now: Dat
       ...siteWideDiscountEmail({ name: recipient.name, offer, window, unsubscribeUrl: unsubscribePageUrl(recipient.email) }),
     })),
   );
-  // First batch now; the hourly marketing-emails cron sends the rest.
+  // First batch now; the marketing-emails cron (every 15 minutes) sends the rest.
   after(() => drainMarketingQueue());
   return recipients.length;
 }

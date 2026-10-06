@@ -9,7 +9,7 @@ import { PaymentWindowTimer } from "@/components/store/payment-window-timer";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPHP } from "@/domain/money";
 import { isDueForAutoReject, paymentDeadline } from "@/domain/auto-reject";
-import { PAYMENT_REMINDER_AFTER_MS } from "@/domain/payment-reminder";
+import { paymentReminderTime } from "@/domain/payment-reminder";
 import { expireUnpaidOrderIfDue } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +113,8 @@ export default async function PaymentPage({
           <PaymentWindowTimer
             orderId={order.id}
             deadline={paymentDeadline(order.statusUpdatedAt).toISOString()}
-            remindAt={new Date(order.statusUpdatedAt.getTime() + PAYMENT_REMINDER_AFTER_MS).toISOString()}
+            remindAt={paymentReminderTime(order.statusUpdatedAt).toISOString()}
+            now={new Date().toISOString()}
           >
             <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
           </PaymentWindowTimer>

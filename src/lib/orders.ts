@@ -551,6 +551,8 @@ export async function loadActiveQrs() {
     .orderBy(qrCodes.position);
 }
 
+const NOT_AWAITING_PAYMENT = "Order is no longer awaiting payment";
+
 /** Cancels an unpaid order once its hour is up. Returns true when this call cancelled it. */
 export async function expireUnpaidOrderIfDue(orderId: string, userId: string): Promise<boolean> {
   const row = (
@@ -563,7 +565,18 @@ export async function expireUnpaidOrderIfDue(orderId: string, userId: string): P
   if (!isDueForAutoReject({ status: row.status, statusUpdatedAt: row.statusUpdatedAt, now: new Date() })) {
     return false;
   }
-  await transitionOrderStatus({ orderId, next: "CANCELLED", reason: AUTO_REJECT_REASON });
+  try {
+    await transitionOrderStatus({
+      orderId,
+      next: "CANCELLED",
+      reason: AUTO_REJECT_REASON,
+      expectedStatus: "AWAITING_PAYMENT",
+    });
+  } catch (error) {
+    // A receipt landed between the read above and the lock: leave the order be.
+    if (error instanceof Error && error.message === NOT_AWAITING_PAYMENT) return false;
+    throw error;
+  }
   return true;
 }
 
@@ -619,6 +632,15 @@ export async function submitReceipt(
   let itemRows: (typeof orderItems.$inferSelect)[];
   try {
     itemRows = await client.transaction(async (tx) => {
+      // The status was read before the upload. Lock the row and look again: an
+      // auto-cancel during the upload has already released the stock and promo,
+      // and this must not put that terminal order back to Receipt submitted.
+      const current = (
+        await tx.select({ status: orders.status }).from(orders).where(eq(orders.id, orderRow.id)).for("update")
+      )[0];
+      if (current?.status !== "AWAITING_PAYMENT") {
+        throw new Error("This order was cancelled because an hour passed with no receipt.");
+      }
       await tx.insert(receipts).values({
         orderId: orderRow.id,
         blobUrl: uploaded.url,
@@ -1064,7 +1086,11 @@ export async function releaseStockForOrder(orderId: string): Promise<void> {
           inArray(stockMovements.reason, ["ORDER_RESERVED", "ML_RESERVED"]),
         ),
       );
-    if (reserved.length === 0) return;
+    if (reserved.length === 0) {
+      // No unit or ml rows, but a tester can still be held (a pre-order that earned one).
+      await releaseTesterWithinTx(tx, orderId);
+      return;
+    }
     const alreadyReleased = new Set<string>();
     const existingReleases = await tx
       .select()
@@ -1165,6 +1191,8 @@ export async function transitionOrderStatus(args: {
   reason?: string | null;
   /** Set by cancellation approval. Re-checked under the row lock so a Deny that already committed cannot be overwritten. */
   requirePendingCancellation?: boolean;
+  /** Only move the order if it is still in this status, checked under the row lock (the auto-cancel passes AWAITING_PAYMENT so it can't cancel an order whose receipt just arrived). */
+  expectedStatus?: OrderStatus;
 }): Promise<void> {
   const client = db();
   // Read-validate-write in one transaction, with the order row locked for
@@ -1179,6 +1207,7 @@ export async function transitionOrderStatus(args: {
   const { row: orderRow, reason: statusReason } = await client.transaction(async (tx) => {
     const row = (await tx.select().from(orders).where(eq(orders.id, args.orderId)).for("update"))[0];
     if (!row) throw new Error("Order not found");
+    if (args.expectedStatus && row.status !== args.expectedStatus) throw new Error(NOT_AWAITING_PAYMENT);
     if (row.cancellationRequestedAt && args.next !== "CANCELLED") {
       throw new Error("Resolve the pending cancellation request before changing this order");
     }

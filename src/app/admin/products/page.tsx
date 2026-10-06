@@ -78,10 +78,14 @@ async function ProductsList({
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   // Archived products only show under the Archived tab; the other tabs and
   // their counts are the live catalog (visible or hidden, not archived).
+  const skusByProduct = new Map<string, typeof skuRows>();
+  for (const sku of skuRows) {
+    const list = skusByProduct.get(sku.productId);
+    if (list) list.push(sku);
+    else skusByProduct.set(sku.productId, [sku]);
+  }
   const archivedIds = new Set(
-    allProductRows
-      .filter((p) => isArchivedProduct(p, skuRows.filter((s) => s.productId === p.id)))
-      .map((p) => p.id),
+    allProductRows.filter((p) => isArchivedProduct(p, skusByProduct.get(p.id) ?? [])).map((p) => p.id),
   );
   const liveRows = allProductRows.filter((p) => !archivedIds.has(p.id));
   const countByType = new Map<ProductType, number>();
@@ -186,7 +190,7 @@ async function ProductsList({
         </div>
       ) : null}
       {productRows.map((product) => {
-        const skusForProduct = skuRows.filter((s) => s.productId === product.id).sort(compareSkuOrder);
+        const skusForProduct = [...(skusByProduct.get(product.id) ?? [])].sort(compareSkuOrder);
         const archived = archivedIds.has(product.id);
         // A sold-out partial is archived until it has stock again; Unarchive
         // has nothing to switch back on, so it isn't offered.

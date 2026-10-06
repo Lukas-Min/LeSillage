@@ -15,7 +15,7 @@ import { ConfirmReceivedButton } from "@/components/store/confirm-received-butto
 import { AskAboutOrderButton } from "@/components/store/ask-about-order-button";
 import { describeStatus, customerCancelMode, isTerminal } from "@/domain/order-state";
 import { isDueForAutoReject, paymentDeadline } from "@/domain/auto-reject";
-import { PAYMENT_REMINDER_AFTER_MS } from "@/domain/payment-reminder";
+import { paymentReminderTime } from "@/domain/payment-reminder";
 import { expireUnpaidOrderIfDue } from "@/lib/orders";
 import { DEFAULT_DELIVERY_FEE_CENTAVOS, formatPHP } from "@/domain/money";
 import { getEnv } from "@/lib/env";
@@ -312,7 +312,8 @@ export default async function OrderDetailPage({
                 <PaymentWindowTimer
                   orderId={order.id}
                   deadline={paymentDeadline(order.statusUpdatedAt).toISOString()}
-                  remindAt={new Date(order.statusUpdatedAt.getTime() + PAYMENT_REMINDER_AFTER_MS).toISOString()}
+                  remindAt={paymentReminderTime(order.statusUpdatedAt).toISOString()}
+                  now={new Date().toISOString()}
                 >
                   <ReceiptUploader orderId={order.id} />
                 </PaymentWindowTimer>

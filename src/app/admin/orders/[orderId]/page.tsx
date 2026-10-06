@@ -359,7 +359,7 @@ function ItemPrice({
       {before !== cost ? (
         <p className="text-xs tabular-nums text-muted-foreground">
           <s>{formatPHP(before)}</s>
-          {promoShareCentavos > 0 ? ` − ${formatPHP(promoShareCentavos)} promo` : null}
+          {promoShareCentavos > 0 ? ` − ${formatPHP(promoShareCentavos)} promo (est.)` : null}
         </p>
       ) : null}
     </div>

@@ -17,17 +17,21 @@ export function PaymentWindowTimer({
   orderId,
   deadline,
   remindAt,
+  now: serverNow,
   children,
 }: {
   orderId: string;
   deadline: string;
   remindAt: string;
+  /** The server's clock when the page rendered. The first paint uses it (so server and client text match) and the countdown ticks from its offset to the device clock, so a wrong phone clock can't end the window early. */
+  now: string;
   children?: ReactNode;
 }) {
   const router = useRouter();
   const deadlineMs = new Date(deadline).getTime();
   const remindMs = new Date(remindAt).getTime();
-  const [now, setNow] = useState(() => Date.now());
+  const serverNowMs = new Date(serverNow).getTime();
+  const [now, setNow] = useState(serverNowMs);
   const remaining = deadlineMs - now;
 
   useEffect(() => {
@@ -35,6 +39,8 @@ export function PaymentWindowTimer({
     let expired = false;
     let reminding = false;
     let nextTryAt = 0;
+    const offset = serverNowMs - Date.now();
+    const current = () => Date.now() + offset;
     const maybeRemind = (tick: number) => {
       if (reminded || reminding || tick < remindMs || tick >= deadlineMs || tick < nextTryAt) return;
       reminding = true;
@@ -44,12 +50,12 @@ export function PaymentWindowTimer({
           reminded = true;
           return;
         }
-        nextTryAt = Date.now() + PAYMENT_REMINDER_RETRY_MS;
+        nextTryAt = current() + PAYMENT_REMINDER_RETRY_MS;
       });
     };
-    maybeRemind(Date.now());
+    maybeRemind(current());
     const id = window.setInterval(() => {
-      const tick = Date.now();
+      const tick = current();
       setNow(tick);
       maybeRemind(tick);
       if (!expired && tick >= deadlineMs) {
@@ -58,7 +64,7 @@ export function PaymentWindowTimer({
       }
     }, 1000);
     return () => window.clearInterval(id);
-  }, [deadlineMs, orderId, remindMs, router]);
+  }, [deadlineMs, orderId, remindMs, router, serverNowMs]);
 
   if (remaining <= 0) {
     return (

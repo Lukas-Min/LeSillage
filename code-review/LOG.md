@@ -40,6 +40,7 @@ Entry template:
   12. [low] Pay-by and reminder times are computed inline in three places despite `paymentDeadline()` — `src/lib/payment-reminders.ts:64` — status: confirmed, not fixed this pass
   13. [low] A REJECTED order is offered a receipt uploader that `submitReceipt` refuses (predates this range) — `src/app/(store)/checkout/payment/page.tsx:60` — status: confirmed, not fixed this pass
   14. [low] The Archived computation scans every SKU per product — `src/app/admin/products/page.tsx:81` — status: confirmed, not fixed this pass
+  - **Follow-up, same day:** findings 1, 2, 3, 5, 6, 7, 8 (estimate label and tests; a snapshot of the code's terms needs a column), 9, 10, 11 (archived check only), 12, and 14 fixed; 4 skipped (the cancelled orders are gone, nothing left to protect); 13 skipped (the rejection email promises a re-upload, so dropping the uploader or adding a resubmit path is a product decision)
 - **Checkpoint advanced to:** `6c4c5fc137bdc2d9848e296d212567208b43d706` (HEAD at review time)
 
 ## 2026-10-01 — One-hour stock hold (targeted, uncommitted)
