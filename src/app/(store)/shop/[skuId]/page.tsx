@@ -190,6 +190,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             pyramid={notePyramid}
             showComposition
             priority
+            sizes="(min-width: 640px) 50vw, 100vw"
             imageUrl={catalog.image?.url}
             imageAlt={catalog.image?.alt}
             cornerLabel={labelForCategory(row.fragranceCategory)}

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { OPTIMIZED_IMAGE_HOSTS } from "./src/lib/remote-images";
 
 const SECURITY_HEADERS: Array<{ key: string; value: string }> = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -35,10 +36,10 @@ const csp = process.env.NODE_ENV === "production" ? cspProduction : cspDevelopme
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
-      { protocol: "https", hostname: "fimgs.net" },
-    ],
+    remotePatterns: OPTIMIZED_IMAGE_HOSTS.map((hostname) => ({ protocol: "https" as const, hostname })),
+    // 75 is Next's default (the logo); product photos use 80, where the WebP
+    // looks the same as Fragrantica's source JPEG at a fraction of the bytes.
+    qualities: [75, 80],
   },
   experimental: {
     serverActions: {

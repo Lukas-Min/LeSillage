@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { canOptimizeImage } from "@/lib/remote-images";
 import { notFound, redirect } from "next/navigation";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { AlertCircle } from "lucide-react";
@@ -230,11 +232,16 @@ export default async function OrderDetailPage({
                     <li key={item.id} className="flex gap-3 py-3">
                       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border/60 bg-white">
                         {image ? (
-                          // Plain img, same as the shop card, so a missing host does not break the page.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          // Optimized like the shop card; an unknown host is shown as-is
+                          // so it can't break the page (canOptimizeImage).
+                          <Image
                             src={image.url}
                             alt={image.alt ?? item.productName}
+                            width={64}
+                            height={64}
+                            sizes="64px"
+                            quality={80}
+                            unoptimized={!canOptimizeImage(image.url)}
                             className="h-full w-full object-contain"
                           />
                         ) : null}

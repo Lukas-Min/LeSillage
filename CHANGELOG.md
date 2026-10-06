@@ -4,6 +4,7 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Product photos (shop and homepage cards, the product page, the homepage flagship, wishlist and order thumbnails) go through the Next image optimizer: Fragrantica's JPEGs are served as WebP at quality 80 and at the width each spot draws them, about half the bytes (24.1KB → 12.9KB, 32.8KB → 17.0KB at full size) with no visible difference (39–41.5 dB PSNR against the original). A photo from any host outside the optimizer's list is still shown as-is, and the QR codes are untouched (`src/lib/remote-images.ts`, `next.config.ts` images, `composition-canvas.tsx`, `src/app/account/wishlist/page.tsx`, `src/app/account/orders/[orderId]/page.tsx`)
 - The store no longer refetches the session and reloads the cart on every click: the session is refetched only after leaving a page that signs in or out, the cart reloads only when the signed-in account changes, and checkout refreshes the cart badge itself after placing an order (`store-header.tsx`, `cart-context.tsx`, `checkout-form.tsx`)
 - Cart edits (add, quantity, remove, clear, size change) no longer revalidate /checkout, which also dropped every visited page from the browser's cache so the next Back reloaded; checkout is force-dynamic and reads the cart fresh on every visit anyway (`src/actions/cart-actions.ts`)
 - A first-time visitor no longer gets an empty cart row and cookie just by loading a page; the cart is created on the first add (`findActiveCartId` in `src/lib/cart.ts`, `getCart`)

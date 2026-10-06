@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { canOptimizeImage } from "@/lib/remote-images";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { Trash2 } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
@@ -113,9 +115,14 @@ export default async function WishlistPage() {
                 <Link href={sku ? `/shop/${sku.id}` : "/shop"} className="flex items-center gap-3">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-secondary">
                     {image ? (
-                      <img
+                      <Image
                         src={image.url}
                         alt={image.alt ?? row.name}
+                        width={64}
+                        height={64}
+                        sizes="64px"
+                        quality={80}
+                        unoptimized={!canOptimizeImage(image.url)}
                         className="h-full w-full object-cover"
                       />
                     ) : null}

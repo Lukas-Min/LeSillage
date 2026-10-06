@@ -146,6 +146,7 @@ async function FlagshipPanel() {
           imageAlt={flagship.imageAlt}
           enableLightbox
           priority
+          sizes="320px"
         />
       </div>
       <div className="mx-auto flex w-full max-w-xs flex-col gap-2 sm:max-w-none">

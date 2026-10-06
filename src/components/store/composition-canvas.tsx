@@ -1,12 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { canOptimizeImage } from "@/lib/remote-images";
 import type { NotePyramid } from "@/lib/note-pyramid";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OVERLAY_PILL_CLASS } from "@/components/store/overlay-pill";
 
 const LIGHTBOX_ZOOM_SCALE = 1.5;
+
+/** A grid or rail card: two across on a phone, three from sm, four or five on desktop. */
+const CARD_PHOTO_SIZES = "(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw";
 
 /** Keeps a drag from panning the zoomed photo so far that its edge leaves a
  *  gap inside the (fixed-size) lightbox — at `scale`, the photo overhangs
@@ -47,6 +52,7 @@ export function CompositionCanvas({
   cornerLabel,
   enableLightbox = false,
   priority = false,
+  sizes = CARD_PHOTO_SIZES,
 }: {
   brand: string;
   name: string;
@@ -66,6 +72,8 @@ export function CompositionCanvas({
    *  page photo, the homepage flagship, the first cards of a grid): fetch it
    *  first. Every other photo loads only as it nears the screen. */
   priority?: boolean;
+  /** How wide the photo is drawn, so the optimizer serves a file that size. */
+  sizes?: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
@@ -103,13 +111,21 @@ export function CompositionCanvas({
     const photo = (
       <>
         {cornerLabel ? <CornerLabel>{cornerLabel}</CornerLabel> : null}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        {/* Through the image optimizer: re-encoded as WebP at quality 80 and
+            the width `sizes` asks for, so a card gets a file sized for it
+            instead of the full source JPEG. width/height only set the
+            placeholder shape (Fragrantica's photos are 375×500); the classes
+            size the box. An unknown host is shown as-is (canOptimizeImage). */}
+        <Image
           src={imageUrl}
           alt={alt}
+          width={375}
+          height={500}
+          sizes={sizes}
+          quality={80}
+          unoptimized={!canOptimizeImage(imageUrl)}
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
-          decoding="async"
           onError={() => setImageFailed(true)}
           className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.05]"
         />
