@@ -39,6 +39,9 @@ const fraunces = Fraunces({
   variable: "--font-price",
   subsets: ["latin"],
   display: "swap",
+  // .font-price-display only ever draws it at 600, so one static weight is
+  // served instead of the whole variable font.
+  weight: "600",
 });
 
 export const metadata: Metadata = {

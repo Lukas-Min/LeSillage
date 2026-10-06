@@ -1,6 +1,7 @@
 import { getEnv } from "@/lib/env";
+import type { OAuthProvider } from "@/lib/oauth-provider-label";
 
-export type OAuthProvider = "google" | "facebook";
+export { oauthProviderLabel, type OAuthProvider } from "@/lib/oauth-provider-label";
 
 export function configuredOAuthProviders(): OAuthProvider[] {
   const env = getEnv();
@@ -8,17 +9,4 @@ export function configuredOAuthProviders(): OAuthProvider[] {
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) providers.push("google");
   // Facebook login stays off until the app is actually using it.
   return providers;
-}
-
-export function oauthProviderLabel(provider: OAuthProvider): string {
-  switch (provider) {
-    case "google":
-      return "Google";
-    case "facebook":
-      return "Facebook";
-    default: {
-      const exhaustive: never = provider;
-      return exhaustive;
-    }
-  }
 }

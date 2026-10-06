@@ -36,8 +36,10 @@ export function CatalogResults({
         // scaling up to 5 columns, the max, on wide desktop (xl). ProductCard and CatalogPrice size themselves for the
         // narrow phone cards and step up in the roomier 576-767px tier.
         <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 min-[576px]:gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
-          {cards.map((card) => (
-            <ProductCard key={card.productId} card={card} />
+          {/* The first row on a phone (two cards) holds the largest photo on
+              load; the rest load as they scroll near. */}
+          {cards.map((card, index) => (
+            <ProductCard key={card.productId} card={card} priority={index < 2} />
           ))}
         </div>
       )}

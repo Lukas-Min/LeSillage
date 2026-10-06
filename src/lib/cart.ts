@@ -72,6 +72,22 @@ export async function resolveActiveCart() {
   return { cart, isGuest: true, subject: token };
 }
 
+/**
+ * The cart to show, without creating one: a first-time guest has no cart
+ * cookie or row yet, and making both on a read meant a database insert for
+ * every new visitor (rows nobody ever cleans up) plus a cookie write, which
+ * makes Next re-render the page the read was made from. Null means there is
+ * nothing in a cart yet; the first add creates it (resolveActiveCart).
+ */
+export async function findActiveCartId(): Promise<string | null> {
+  const session = await auth();
+  if (session?.user?.id) return (await getOrCreateCartForUser(session.user.id)).id;
+  const token = (await cookies()).get(GUEST_CART_COOKIE)?.value;
+  if (!token) return null;
+  const [cart] = await db().select({ id: carts.id }).from(carts).where(eq(carts.guestToken, token));
+  return cart?.id ?? null;
+}
+
 export async function getOrCreateCartForUser(userId: string) {
   const client = db();
   const existing = (await client.select().from(carts).where(eq(carts.userId, userId)))[0];
@@ -361,7 +377,7 @@ async function priceCombinedRows(
  * does. See loadCartView and loadCartViewForBothMethods below.
  */
 async function loadPricedCart(
-  cartId: string,
+  cartId: string | null,
   preloadedPromoConfig?: PromoConfig & { decantPreOrderThresholdMl: number },
 ): Promise<PricedCart> {
   const client = db();
@@ -373,20 +389,23 @@ async function loadPricedCart(
   // back as a row (sku/productType/etc. null) instead of silently
   // disappearing — same resilience the old two-query version had via `found?.`.
   const [combined, promoConfig] = await Promise.all([
-    client
-      .select({
-        skuId: cartItems.skuId,
-        quantity: cartItems.quantity,
-        sku: skus,
-        productType: products.type,
-        productBrand: products.brand,
-        productName: products.name,
-        remainingMl: products.remainingMl,
-      })
-      .from(cartItems)
-      .leftJoin(skus, eq(skus.id, cartItems.skuId))
-      .leftJoin(products, eq(products.id, skus.productId))
-      .where(eq(cartItems.cartId, cartId)),
+    // No cart yet (a first-time guest): price an empty cart.
+    cartId === null
+      ? []
+      : client
+          .select({
+            skuId: cartItems.skuId,
+            quantity: cartItems.quantity,
+            sku: skus,
+            productType: products.type,
+            productBrand: products.brand,
+            productName: products.name,
+            remainingMl: products.remainingMl,
+          })
+          .from(cartItems)
+          .leftJoin(skus, eq(skus.id, cartItems.skuId))
+          .leftJoin(products, eq(products.id, skus.productId))
+          .where(eq(cartItems.cartId, cartId)),
     preloadedPromoConfig ?? loadPromoConfig(),
   ]);
   const { lines, unavailableLines, priced } = await priceCombinedRows(combined, promoConfig);
@@ -462,7 +481,7 @@ async function loadPricedDirectItem(
 }
 
 export async function loadCartView(
-  cartId: string,
+  cartId: string | null,
   fulfillmentMethod: FulfillmentMethod = "DELIVERY",
   // Callers that already fetched promo config for their own cap/fulfillment
   // calculations (addItemToCart, updateCartItem, changeCartItemSize) can

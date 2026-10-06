@@ -12,7 +12,7 @@ import {
 } from "@/domain/phone";
 import { startEmailChange, startPasswordChange, updateProfile } from "@/actions/account-actions";
 import { linkOAuthAccount } from "@/actions/auth-actions";
-import { oauthProviderLabel, type OAuthProvider } from "@/lib/oauth-providers";
+import { oauthProviderLabel, type OAuthProvider } from "@/lib/oauth-provider-label";
 
 type ProfileFormProps = {
   initialName: string;

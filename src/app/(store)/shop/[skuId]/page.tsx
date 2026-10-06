@@ -69,11 +69,11 @@ export async function generateMetadata({ params }: { params: Promise<{ skuId: st
 
 export default async function ProductPage({ params }: { params: Promise<{ skuId: string }> }) {
   const { skuId } = await params;
-  const catalog = await getProductPageCatalog(skuId);
+  // Independent reads: the session check doesn't wait on the catalog.
+  const [catalog, session] = await Promise.all([getProductPageCatalog(skuId), auth()]);
   const row = catalog?.row;
   if (!catalog || !row || !row.isActive || !row.productActive) return notFound();
 
-  const session = await auth();
   // Wishlist is per signed-in shopper — leave it off the shared catalog cache.
   const wishlisted = session?.user
     ? (
@@ -189,6 +189,7 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
             name={row.name}
             pyramid={notePyramid}
             showComposition
+            priority
             imageUrl={catalog.image?.url}
             imageAlt={catalog.image?.alt}
             cornerLabel={labelForCategory(row.fragranceCategory)}

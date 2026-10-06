@@ -216,27 +216,30 @@ If anything looks off, reply to this email and we will sort it out.
 }
 
 export function receiptRejectedEmail(input: OrderEmailInput): OrderEmail {
-  const subject = `Receipt needs another look — ${input.orderNumber}`;
+  const subject = `We couldn't verify your payment — ${input.orderNumber}`;
   const text = `Hi ${input.recipientName},
 
 We could not verify the payment receipt for order ${input.orderNumber}.
 
 Reason: ${input.reason ?? "Not provided"}
 
-You can upload a new receipt from your account page. If you believe this is a mistake, reply to this email.
+This order is now closed and its items are released. To still get them, open the order in your account and tap Reorder, then pay for the new order. If you believe this is a mistake, reply to this email.
 
 — Le Sillage Manila`;
   const html = renderOrderEmailHtml({
     siteUrl: siteUrl(),
     eyebrow: eyebrow(input),
-    title: "Receipt needs another look",
+    title: "We couldn't verify your payment",
     greeting: greeting(input),
     intro: [`We could not verify the payment receipt for order ${input.orderNumber}.`],
     facts: [{ label: "Reason", value: input.reason ?? "Not provided" }],
     items: input.lines,
-    totals: [{ label: "Total to pay", value: formatPHP(input.totalCentavos), strong: true }],
-    cta: { label: "Upload a new receipt", url: paymentPageUrl(input.orderNumber) },
-    outro: ["If you believe this is a mistake, reply to this email."],
+    totals: [{ label: "Order total", value: formatPHP(input.totalCentavos), strong: true }],
+    cta: { label: "View your orders", url: accountOrdersUrl() },
+    outro: [
+      "This order is now closed and its items are released. To still get them, open the order and tap Reorder, then pay for the new order.",
+      "If you believe this is a mistake, reply to this email.",
+    ],
   });
   return { subject, text, html };
 }

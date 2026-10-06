@@ -318,14 +318,6 @@ export default async function OrderDetailPage({
                   <ReceiptUploader orderId={order.id} />
                 </PaymentWindowTimer>
               </SectionCard>
-            ) : order.status === "REJECTED" ? (
-              <SectionCard
-                eyebrow="Payment"
-                title="Upload a receipt"
-                description="Upload a new screenshot of your transfer."
-              >
-                <ReceiptUploader orderId={order.id} />
-              </SectionCard>
             ) : null}
           </>
         }

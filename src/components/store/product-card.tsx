@@ -20,10 +20,13 @@ import type { CatalogCardModel } from "@/lib/catalog";
 export function ProductCard({
   card,
   headingLevel = 2,
+  priority = false,
 }: {
   card: CatalogCardModel;
   /** 3 when the card sits under a section's own h2 (the homepage rails). */
   headingLevel?: 2 | 3;
+  /** One of the first cards on screen: its photo loads first (CompositionCanvas). */
+  priority?: boolean;
 }) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const concentration = concentrationLabel(card.concentration);
@@ -66,6 +69,7 @@ export function ProductCard({
             pyramid={card.notePyramid}
             imageUrl={card.imageUrl}
             imageAlt={card.imageAlt}
+            priority={priority}
             className="p-3 min-[576px]:p-4"
           />
         </div>

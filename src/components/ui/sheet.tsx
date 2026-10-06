@@ -72,7 +72,8 @@ function SheetContent({
           <SheetPrimitive.Close data-slot="sheet-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-3 right-3"
+              // 28px button, 44px tap area (the ::after reaches 8px past it).
+              className="absolute top-3 right-3 after:absolute after:-inset-2"
               size="icon-sm"
             >
               <XIcon

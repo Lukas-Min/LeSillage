@@ -6,7 +6,14 @@ import { profitQueries } from "../dashboard-stats";
 // they would send: no database needed, but it catches a malformed statement.
 describe("profitQueries", () => {
   const client = drizzle.mock();
-  const { salesQuery, costQuery } = profitQueries(client as never, new Date("2026-10-06T10:00:00Z"));
+  const { salesQuery, costQuery, testerQuery } = profitQueries(client as never, new Date("2026-10-06T10:00:00Z"));
+
+  it("costs each free tester at its size's cost price, from paid orders only", () => {
+    const { sql } = testerQuery.toSQL();
+    expect(sql).toContain('sum("sku"."costPrice")');
+    expect(sql).toContain('inner join "sku" on "sku"."id" = "order"."promoTesterSkuId"');
+    expect(sql).toMatch(/"order"\."status" in \(/);
+  });
 
   it("counts only paid orders and cuts the months at Manila midnight", () => {
     const { sql, params } = salesQuery.toSQL();

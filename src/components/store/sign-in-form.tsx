@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signInWithPassword } from "@/actions/auth-credentials-actions";
 import { OAuthButton } from "@/components/store/oauth-button";
-import type { OAuthProvider } from "@/lib/oauth-providers";
+import type { OAuthProvider } from "@/lib/oauth-provider-label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";

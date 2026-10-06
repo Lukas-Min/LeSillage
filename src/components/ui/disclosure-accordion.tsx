@@ -46,14 +46,19 @@ function DisclosureRow({
   className,
 }: DisclosureItem & { className?: string }) {
   const [open, setOpen] = React.useState(Boolean(defaultOpen));
+  // Unique per instance: two accordions on one page can share item ids.
+  const panelId = `disclosure-${id}-${React.useId()}`;
   return (
     <div className={cn("py-4", className)}>
       <button
         type="button"
         aria-expanded={open}
-        aria-controls={`disclosure-${id}`}
+        aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 text-left"
+        // The label is small type (~17px tall); the ::after stretches the tap
+        // area over the padding above and the panel's pt-3 below to ~45px,
+        // without moving anything.
+        className="relative flex w-full items-center justify-between gap-3 text-left after:absolute after:inset-x-0 after:-top-4 after:-bottom-3"
       >
         <span className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground">
           {label}
@@ -66,7 +71,7 @@ function DisclosureRow({
         />
       </button>
       <div
-        id={`disclosure-${id}`}
+        id={panelId}
         hidden={!open}
         className="pt-3 text-sm leading-relaxed text-muted-foreground"
       >

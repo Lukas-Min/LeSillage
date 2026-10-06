@@ -71,7 +71,8 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
+              // 28px button, 44px tap area (the ::after reaches 8px past it).
+              className="absolute top-2 right-2 after:absolute after:-inset-2"
               size="icon-sm"
             >
               <XIcon

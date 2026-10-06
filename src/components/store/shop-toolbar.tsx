@@ -30,7 +30,7 @@ const SORT_LABELS: Record<CatalogSort, string> = {
 // Below 400px the toolbar (count line + Clear/Filter/Sort) can't fit on one
 // row with the button labels, so every toolbar button collapses to a uniform
 // 44px square showing just its icon — the label stays in the DOM as sr-only
-// so the accessible name is unchanged. Same `sr-only min-[…]:not-sr-only`
+// so the accessible name is unchanged. Same sr-only-until-a-breakpoint
 // pattern the header uses for its wordmark.
 const TOOLBAR_BUTTON_CLASS =
   "min-h-11 min-w-11 gap-1.5 rounded-md px-0 text-[11px] sm:text-[10px] uppercase tracking-[0.2em] min-[400px]:px-2.5";

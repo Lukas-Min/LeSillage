@@ -17,6 +17,7 @@ import {
   loadCartView,
   loadPromoConfig,
   mergeGuestCartIntoUser as mergeGuest,
+  findActiveCartId,
   resolveActiveCart,
   resolveCartCap,
   resolveGuestCartConflict as resolveGuestCartConflictLib,
@@ -25,8 +26,7 @@ import {
 } from "@/lib/cart";
 
 export async function getCart(): Promise<CartView> {
-  const { cart } = await resolveActiveCart();
-  return loadCartView(cart.id);
+  return loadCartView(await findActiveCartId());
 }
 
 export async function addItemToCart(skuId: string, requestedQuantity: number): Promise<CartView> {
@@ -59,12 +59,12 @@ export async function addItemToCart(skuId: string, requestedQuantity: number): P
   // Cart badge/drawer/page are all client-managed state, updated directly
   // from this action's own return value — none of them need a server
   // revalidation. Checkout is the only page that reads cart data
-  // server-side, so it's the only path worth invalidating here and at every
-  // other revalidatePath call in this file. Revalidating the whole layout
-  // (as this used to, everywhere) forced every route's Server Components to
-  // re-render on every cart click, including /shop's full catalog query —
-  // measured ~600ms of pure waste on top of the action's own DB work.
-  revalidatePath("/checkout");
+  // server-side, and it's force-dynamic, so every visit already reads the
+  // cart fresh; cart editing is locked while on it. So the edits here don't
+  // revalidate at all: in a Server Action revalidatePath also drops every
+  // previously visited page from the client cache, making the next Back
+  // reload. Only the merge/conflict/import actions below, which can run
+  // while checkout is open, still revalidate it.
   return loadCartView(cart.id, undefined, promoConfig);
 }
 
@@ -74,7 +74,6 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
     await db()
       .delete(cartItems)
       .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, skuId)));
-    revalidatePath("/checkout");
     return loadCartView(cart.id);
   }
   const [found, promoConfig] = await Promise.all([
@@ -111,21 +110,18 @@ export async function updateCartItem(skuId: string, quantity: number): Promise<C
     .update(cartItems)
     .set({ quantity: clampQuantity(quantity, cap) })
     .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, skuId)));
-  revalidatePath("/checkout");
   return loadCartView(cart.id, undefined, promoConfig);
 }
 
 export async function removeCartItem(skuId: string): Promise<CartView> {
   const { cart } = await resolveActiveCart();
   await db().delete(cartItems).where(and(eq(cartItems.cartId, cart.id), eq(cartItems.skuId, skuId)));
-  revalidatePath("/checkout");
   return loadCartView(cart.id);
 }
 
 export async function clearCart(): Promise<CartView> {
   const { cart } = await resolveActiveCart();
   await db().delete(cartItems).where(eq(cartItems.cartId, cart.id));
-  revalidatePath("/checkout");
   return loadCartView(cart.id);
 }
 
@@ -267,6 +263,5 @@ export async function changeCartItemSize(fromSkuId: string, toSkuId: string): Pr
       await tx.update(cartItems).set({ skuId: toSkuId, quantity: clamped }).where(eq(cartItems.id, fromItem.id));
     }
   });
-  revalidatePath("/checkout");
   return loadCartView(cart.id, undefined, promoConfig);
 }

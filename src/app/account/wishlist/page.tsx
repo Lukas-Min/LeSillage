@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { Trash2 } from "lucide-react";
 import { requireActiveCustomer } from "@/auth";
 import { isPartialSkuSoldOut } from "@/domain/product-archive";
@@ -62,7 +62,7 @@ export default async function WishlistPage() {
         fulfillment: skus.fulfillment,
       })
       .from(skus)
-      .where(eq(skus.isActive, true)),
+      .where(and(eq(skus.isActive, true), inArray(skus.productId, productIds))),
     client
       .select({
         productId: productImages.productId,

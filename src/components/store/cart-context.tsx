@@ -96,8 +96,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [resolving, setResolving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Who the cart belongs to. A session refetch flips status to "loading" and
+  // back without changing who is signed in, so the cart reloads only when
+  // this key actually changes (sign in, sign out, another account).
+  const cartOwner = status === "loading" ? null : status === "authenticated" ? `user:${session?.user?.id ?? ""}` : "guest";
+  const loadedOwnerRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (status === "loading") return;
+    if (cartOwner === null || cartOwner === loadedOwnerRef.current) return;
+    loadedOwnerRef.current = cartOwner;
     const finishLoad = (next: CartView) => {
       setView(next);
       setLoading(false);
@@ -124,7 +131,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     void getCart().then(finishLoad);
-  }, [status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartOwner]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

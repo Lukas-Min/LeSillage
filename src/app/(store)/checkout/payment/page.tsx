@@ -57,7 +57,10 @@ export default async function PaymentPage({
     redirect(`/account/orders/${order.id}`);
   }
   const awaiting = order.status === "AWAITING_PAYMENT";
-  const canUpload = awaiting || order.status === "REJECTED";
+  // Only an order awaiting payment takes a receipt. A rejected one is final
+  // (its stock is released and submitReceipt refuses it); the customer
+  // reorders from the order page instead.
+  const canUpload = awaiting;
   const qrs = canUpload
     ? await client
         .select()
@@ -118,10 +121,6 @@ export default async function PaymentPage({
           >
             <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
           </PaymentWindowTimer>
-        </div>
-      ) : canUpload ? (
-        <div className="mt-6">
-          <ReceiptUploader orderId={order.id} redirectOnSuccessTo="/shop" />
         </div>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">

@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatPHP } from "@/domain/money";
 import { PHONE_COUNTRY, PHONE_PLACEHOLDER } from "@/domain/phone";
 import { createCheckoutOrder } from "@/actions/order-actions";
+import { useCart } from "@/components/store/cart-context";
 import { previewPromoCodes, type PromoCodePreview } from "@/actions/promo-code-actions";
 import { PhAddressFields, type PhAddressValues } from "@/components/store/ph-address-fields";
 import type { CartLineView } from "@/lib/cart";
@@ -58,6 +59,7 @@ export function CheckoutForm({
   directItem?: { skuId: string; quantity: number };
 }) {
   const router = useRouter();
+  const cart = useCart();
   const [fulfillmentMethod, setFulfillmentMethod] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
   // Read by an in-flight promo preview, which outlives the render it started in.
   const fulfillmentMethodRef = useRef<"DELIVERY" | "PICKUP">("DELIVERY");
@@ -235,6 +237,9 @@ export function CheckoutForm({
           toast.error(result.error);
           return;
         }
+        // The order emptied the cart on the server; show that in the header
+        // badge too (the cart no longer reloads on every navigation).
+        void cart.refresh();
         router.push(`/checkout/payment?orderNumber=${encodeURIComponent(result.orderNumber)}`);
       } catch {
         // Same as applyPromoCode: a thrown error here is unexpected and its

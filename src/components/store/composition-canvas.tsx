@@ -46,6 +46,7 @@ export function CompositionCanvas({
   imageAlt,
   cornerLabel,
   enableLightbox = false,
+  priority = false,
 }: {
   brand: string;
   name: string;
@@ -61,6 +62,10 @@ export function CompositionCanvas({
    *  Link-wrapped and never pass this; the product detail page and the
    *  homepage flagship aren't, so both do. */
   enableLightbox?: boolean;
+  /** The photo is likely the page's largest element on load (the product
+   *  page photo, the homepage flagship, the first cards of a grid): fetch it
+   *  first. Every other photo loads only as it nears the screen. */
+  priority?: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
@@ -102,6 +107,9 @@ export function CompositionCanvas({
         <img
           src={imageUrl}
           alt={alt}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          decoding="async"
           onError={() => setImageFailed(true)}
           className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.05]"
         />

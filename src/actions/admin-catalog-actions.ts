@@ -565,6 +565,8 @@ export async function setSkuTester(input: {
     targetId: parsed.data.skuId,
     metadata: { isTester: parsed.data.isTester },
   });
+  // The cached catalog groups a product's sizes by isTester.
+  invalidateCatalog();
   revalidatePath(`/admin/products/${row.productId}`);
   return { ok: true };
 }

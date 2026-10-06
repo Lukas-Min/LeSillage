@@ -45,7 +45,7 @@ export function StoreFooter() {
       <div className="grid w-full gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 2xl:mx-auto 2xl:max-w-[80vw]">
         <div className="space-y-3">
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
-            <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" />
+            <Image src="/logo/mark.png" alt="" width={37} height={32} className="h-8 w-auto" />
             <span className="sr-only">Le Sillage Manila</span>
             <span className="flex flex-col leading-none">
               <span>Le Sillage</span>

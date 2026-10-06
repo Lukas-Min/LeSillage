@@ -175,9 +175,9 @@ export default async function AdminDashboard() {
                 <p className="text-xs text-muted-foreground">
                   Paid orders only (confirmed onward), by the day they were placed. Sales are what customers paid for
                   the items after discounts; delivery fees aren&apos;t counted. Cost is each item&apos;s cost today, so
-                  changing a cost changes past profit too.
+                  changing a cost changes past profit too. Free testers count at their cost price.
                   {profit.uncostedUnits > 0
-                    ? ` ${profit.uncostedUnits} item${profit.uncostedUnits === 1 ? "" : "s"} sold had no cost set and count at ${formatPHP(0)}.`
+                    ? ` ${profit.uncostedUnits} item${profit.uncostedUnits === 1 ? "" : "s"} sold or given as testers had no cost set and count at ${formatPHP(0)}.`
                     : ""}
                 </p>
               </CardContent>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -57,6 +57,16 @@ const MENU_GROUPS = [
   },
 ] as const;
 
+/** Pages whose Server Action signs in or out and then redirects. */
+const SESSION_CHANGING_PATHS = [
+  "/sign-in",
+  "/sign-up",
+  "/verify-email",
+  "/reset-password",
+  "/account/archive",
+  "/account/delete",
+];
+
 /** `announcement` comes from the root layout (a Server Component) because this
  *  header is a client component and cannot read the database itself. */
 export function StoreHeader({ announcement = [] }: { announcement?: string[] }) {
@@ -80,11 +90,17 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
   // client-router navigation. This header never unmounts across that, so
   // useSession()'s cached client state doesn't know the cookie changed until
   // something else (window focus, a timer) triggers a refetch — the header
-  // keeps showing "Sign in" right after a successful login. Forcing a
-  // refetch on every pathname change (the redirect target differs from
-  // wherever the sign-in form was) closes that gap.
+  // keeps showing "Sign in" right after a successful login. So the session is
+  // refetched when leaving one of the pages whose form signs in or out. Only
+  // those: a refetch on every navigation cost a session request plus a cart
+  // reload (CartProvider re-runs on the status flip) for every click.
+  const previousPathRef = useRef(pathname);
   useEffect(() => {
-    updateSession();
+    const previous = previousPathRef.current;
+    previousPathRef.current = pathname;
+    if (previous !== pathname && SESSION_CHANGING_PATHS.some((path) => previous?.startsWith(path))) {
+      updateSession();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -118,7 +134,11 @@ export function StoreHeader({ announcement = [] }: { announcement?: string[] }) 
               is `hidden` below 360px, without replacing the visible text
               (the mark's alt stays "", decorative). */}
           <Link href="/" className="flex items-center gap-2 font-serif-display text-lg">
-            <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-8 w-auto" priority />
+            {/* Sized to what's drawn (32px tall; the mark is 274×240), so the
+                optimizer serves a ~40px file instead of a 274px one. Eager,
+                not preloaded: it's on screen at once but is never the page's
+                main content, so it shouldn't jump ahead of the product photo. */}
+            <Image src="/logo/mark.png" alt="" width={37} height={32} className="h-8 w-auto" loading="eager" />
             <span className="sr-only">Le Sillage Manila</span>
             <span className="hidden min-[360px]:flex min-[360px]:flex-col min-[360px]:leading-none">
               <span className="whitespace-nowrap">Le Sillage</span>
@@ -197,7 +217,7 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
       <SheetContent side="left" className="w-full data-[side=left]:w-full sm:w-72">
         <SheetHeader className="border-b border-border/60">
           <SheetTitle aria-label="Le Sillage Manila" className="flex items-center gap-2 font-serif-display">
-            <Image src="/logo/mark.png" alt="" width={274} height={240} className="h-6 w-auto" />
+            <Image src="/logo/mark.png" alt="" width={27} height={24} className="h-6 w-auto" />
             <span className="flex flex-col leading-none">
               <span>Le Sillage</span>
               <span className="font-sans text-[11px] sm:text-[10px] tracking-[0.32em] text-gold">Manila</span>
