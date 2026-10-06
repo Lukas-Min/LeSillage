@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Docs (CHANGELOG, skills, rules) quote class names in prose. Scanning them
+   put an invalid `min-[…]` media query, and classes no page uses, in the CSS. */
+@source not "../../**/*.md";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
