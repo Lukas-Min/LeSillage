@@ -49,8 +49,8 @@ export function PromoSettingsSkeleton() {
               Tester bonus enabled
             </div>
             <p className="text-xs text-muted-foreground">
-              On a delivered order over the decant threshold, assigns one in-stock SKU marked Tester. Those SKUs stay
-              listed in the shop. Pickup never receives a complimentary tester.
+              On an order over the decant threshold, delivered or picked up, assigns one in-stock SKU marked Tester.
+              Those SKUs stay listed in the shop.
             </p>
             <p className="text-xs text-muted-foreground">
               When remaining ml on an In-house decant drops below this, every In-house size on that fragrance becomes

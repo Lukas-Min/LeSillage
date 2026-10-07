@@ -97,8 +97,8 @@ export default function CartPage() {
               ) : null}
               <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
                 {cart.totals.freeShipping
-                  ? `Free delivery unlocked${cart.totals.testerBonusEligible ? ", plus a complimentary tester on delivery" : ""} from your decants.`
-                  : `Add ${formatPHP(Math.max(0, DECANT_PROMO_THRESHOLD_CENTAVOS - cart.totals.decantSubtotalCentavos))} more in decants to unlock free delivery and a complimentary tester on delivered orders.`}
+                  ? `Free delivery unlocked${cart.totals.testerBonusEligible ? ", plus a complimentary tester" : ""} from your decants.`
+                  : `Add ${formatPHP(Math.max(0, DECANT_PROMO_THRESHOLD_CENTAVOS - cart.totals.decantSubtotalCentavos))} more in decants to unlock free delivery and a complimentary tester (pickup orders get the tester too).`}
               </p>
             </CardContent>
             <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

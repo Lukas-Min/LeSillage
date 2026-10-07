@@ -158,7 +158,9 @@ export function CheckoutForm({
 
   const deliveryHint = useMemo(() => {
     if (fulfillmentMethod === "PICKUP") {
-      return "Pickup is free. The complimentary tester promo applies to delivered orders only.";
+      return totals.testerBonusEligible
+        ? "Pickup is free, and your decants unlock a complimentary tester."
+        : `Pickup is free. Add ${formatPHP(Math.max(0, 200000 - totals.decantSubtotalCentavos))} more in discounted decants for a complimentary tester.`;
     }
     if (totals.freeShipping) {
       return totals.testerBonusEligible

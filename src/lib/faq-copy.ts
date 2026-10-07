@@ -73,7 +73,7 @@ export const FAQ_GROUPS = [
       },
       {
         q: "Can I buy a tester bottle?",
-        a: "Yes — testers are listed in the shop like any other bottle, just look for the size marked Tester. You can also earn one free: spend ₱2,000 or more on decants (after discounts) in a delivered order and we'll include a complimentary tester.",
+        a: "Yes — testers are listed in the shop like any other bottle, just look for the size marked Tester. You can also earn one free: spend ₱2,000 or more on decants (after discounts) in one order, delivered or picked up, and we'll include a complimentary tester.",
       },
       {
         q: "Do I need an account to order?",
@@ -145,7 +145,7 @@ export const FAQ_GROUPS = [
       },
       {
         q: "Can I pick up instead of having it delivered?",
-        a: "Yes — pickup is free and by appointment. Choose Pickup at checkout and we'll set a time once your payment is verified. Note: the free tester promo is for delivered orders only.",
+        a: "Yes — pickup is free and by appointment. Choose Pickup at checkout and we'll set a time once your payment is verified. Pickup orders earn the free tester too.",
       },
     ],
   },
@@ -157,12 +157,12 @@ export const FAQ_GROUPS = [
       {
         q: "How does the tester promo work?",
         a: {
-          lead: "Spend ₱2,000 or more on decants (counted after discounts) in one delivered order, and you get:",
+          lead: "Spend ₱2,000 or more on decants (counted after discounts) in one order, and you get:",
           bullets: [
-            "Free delivery",
-            "One complimentary tester, matched to a brand in your order",
+            "Free delivery, if it's delivered",
+            "One complimentary tester, matched to a brand in your order, for delivery or pickup",
           ],
-          note: "Testers are also sold on their own in the shop — this promo is a bonus, not the only way to get one. Pickup is already free but doesn't include the tester, and we'll follow up if no matching tester is in stock.",
+          note: "Testers are also sold on their own in the shop — this promo is a bonus, not the only way to get one. Pickup is already free and still gets the tester, and we'll follow up if no matching tester is in stock.",
         } satisfies FaqAnswer,
       },
       {

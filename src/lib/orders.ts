@@ -269,8 +269,8 @@ export async function createOrderFromCart(input: CreateOrderInput) {
       freeShipping: false,
     },
   );
+  // Pickup and delivery orders earn the free tester alike.
   const testerEligible =
-    !isPickup &&
     promoConfig.testerBonusEnabled &&
     isTesterBonusEligible(
       priced.lines.map((line) => ({

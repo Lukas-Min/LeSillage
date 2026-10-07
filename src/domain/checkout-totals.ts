@@ -121,7 +121,8 @@ export function buildCartTotals(
       deliveryFeeCentavos: 0,
       totalCentavos: merchandiseAfterOrderDiscount,
       freeShipping: true,
-      testerBonusEligible: false,
+      // The free tester comes with pickup orders too.
+      testerBonusEligible: isTesterBonusEligible(lines, promoConfig),
       defaultDeliveryFeeCentavos: promoConfig.deliveryFeeCentavos,
     };
   }

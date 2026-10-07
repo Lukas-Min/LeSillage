@@ -1,7 +1,7 @@
 export const policyCopy = {
   shipping: {
     label: "Shipping & delivery",
-    body: "Each listing shows whether that item is on hand or pre-order. On-hand items ship within 1–2 days, with same-day delivery available on weekends in Metro Manila. Pre-orders take 3–30 days. Mixed orders show both windows. Pickup is free and by appointment. Delivery is ₱120 unless a delivered order reaches ₱2,000 in decants (counted after discounts), which also unlocks a complimentary tester.",
+    body: "Each listing shows whether that item is on hand or pre-order. On-hand items ship within 1–2 days, with same-day delivery available on weekends in Metro Manila. Pre-orders take 3–30 days. Mixed orders show both windows. Pickup is free and by appointment. Delivery is ₱120 unless the order reaches ₱2,000 in decants (counted after discounts). Reaching that also earns a complimentary tester, whether the order is delivered or picked up.",
   },
   returns: {
     label: "Returns & authenticity",
