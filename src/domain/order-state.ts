@@ -144,3 +144,21 @@ export function confirmBlockedReason(args: {
   if (args.next !== "CONFIRMED" || args.promoTesterResult !== "PENDING") return null;
   return "This order earned a free tester — pick one in the Tester bonus card before confirming.";
 }
+
+/**
+ * Whether the admin can choose (or correct) an order's free tester: from the
+ * receipt arriving through completion. Before payment there's nothing to give
+ * yet, and a rejected or cancelled order has already released its tester.
+ * After shipping this is a record correction (the tester sent was a
+ * different one); the swap still moves the stock both ways.
+ */
+export function canChooseTester(status: OrderStatus): boolean {
+  return (
+    status === "RECEIPT_SUBMITTED" ||
+    status === "CONFIRMED" ||
+    status === "SHIPPED" ||
+    status === "READY_FOR_PICKUP" ||
+    status === "DELIVERED" ||
+    status === "COMPLETED"
+  );
+}

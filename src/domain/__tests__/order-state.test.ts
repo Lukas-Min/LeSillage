@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canChooseTester,
   assertTransition,
   canTransition,
   confirmBlockedReason,
@@ -114,5 +115,19 @@ describe("confirmBlockedReason", () => {
   it("never blocks any other transition", () => {
     expect(confirmBlockedReason({ next: "REJECTED", promoTesterResult: "PENDING" })).toBeNull();
     expect(confirmBlockedReason({ next: "SHIPPED", promoTesterResult: "PENDING" })).toBeNull();
+  });
+});
+
+describe("canChooseTester", () => {
+  it("allows choosing or correcting the tester from the receipt through completion", () => {
+    for (const status of ["RECEIPT_SUBMITTED", "CONFIRMED", "SHIPPED", "READY_FOR_PICKUP", "DELIVERED", "COMPLETED"] as const) {
+      expect(canChooseTester(status)).toBe(true);
+    }
+  });
+
+  it("refuses an unpaid, rejected or cancelled order", () => {
+    for (const status of ["AWAITING_PAYMENT", "REJECTED", "CANCELLED"] as const) {
+      expect(canChooseTester(status)).toBe(false);
+    }
   });
 });

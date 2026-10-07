@@ -18,11 +18,11 @@ export interface TesterPickerOption {
 const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm sm:max-w-md";
 
 /**
- * The admin's hand pick for an order's free tester. Shown while the order is
- * awaiting confirmation or being prepared; the auto-pick may already have
- * chosen one (preselected here), or it may have found no brand match and left
- * the order PENDING — in which case Confirm stays locked until something is
- * chosen here (`confirmBlockedReason`, enforced again server-side).
+ * The admin's pick for an order's free tester (there is no automatic pick).
+ * Shown from the receipt through completion (`canChooseTester`): while the
+ * order is PENDING, Confirm stays locked until something is chosen here
+ * (`confirmBlockedReason`, enforced again server-side); after that it swaps
+ * the pick, or corrects the record once the order has shipped.
  */
 export function TesterPicker({
   orderId,

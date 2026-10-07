@@ -12,6 +12,7 @@ import { OrderRowActions } from "@/components/admin/order-row-actions";
 import { TesterPicker, type TesterPickerOption } from "@/components/admin/tester-picker";
 import { loadTesterOptions } from "@/lib/orders";
 import { allocatePromoToLines, summarizeOrderTotals } from "@/domain/order-summary";
+import { canChooseTester } from "@/domain/order-state";
 
 export const dynamic = "force-dynamic";
 // The actions posted to this route send email inside after(); that work
@@ -37,10 +38,10 @@ export default async function AdminOrderDetailPage({
   const order = (await db().select().from(orders).where(eq(orders.id, orderId)))[0];
   if (!order) return notFound();
 
-  // The tester can be picked or swapped until the order leaves preparation.
+  // The tester can be picked, swapped, or corrected after shipping
+  // (canChooseTester) — never on an unpaid, rejected or cancelled order.
   const testerPickable =
-    (order.promoTesterResult === "PENDING" || order.promoTesterResult === "ASSIGNED") &&
-    (order.status === "RECEIPT_SUBMITTED" || order.status === "CONFIRMED");
+    (order.promoTesterResult === "PENDING" || order.promoTesterResult === "ASSIGNED") && canChooseTester(order.status);
 
   const [items, customer, receiptRows, testerSku, testerOptions, promoRows] = await Promise.all([
     db().select().from(orderItems).where(eq(orderItems.orderId, orderId)),

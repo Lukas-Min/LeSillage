@@ -34,7 +34,7 @@ import {
   type PromoCodesByScope,
 } from "@/domain/promo-code";
 import { AUTO_REJECT_REASON, isDueForAutoReject } from "@/domain/auto-reject";
-import { assertTransition, confirmBlockedReason, customerCancelMode } from "@/domain/order-state";
+import { assertTransition, canChooseTester, confirmBlockedReason, customerCancelMode } from "@/domain/order-state";
 import { mlToReserve } from "@/domain/decant";
 import { loadPromoConfig, effectiveFulfillment, resolveCartCap } from "@/lib/cart";
 import { clampQuantity } from "@/domain/money";
@@ -924,8 +924,8 @@ export async function assignTesterToOrder(args: { orderId: string; skuId: string
   await client.transaction(async (tx) => {
     const orderRow = (await tx.select().from(orders).where(eq(orders.id, args.orderId)).for("update"))[0];
     if (!orderRow) throw new Error("Order not found");
-    if (orderRow.status !== "RECEIPT_SUBMITTED" && orderRow.status !== "CONFIRMED") {
-      throw new Error("A tester can only be chosen while the order is awaiting confirmation or being prepared");
+    if (!canChooseTester(orderRow.status)) {
+      throw new Error("A tester can't be chosen for an unpaid, rejected or cancelled order");
     }
     if (orderRow.promoTesterResult !== "PENDING" && orderRow.promoTesterResult !== "ASSIGNED") {
       throw new Error("This order did not earn a free tester");
