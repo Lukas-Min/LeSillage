@@ -5,7 +5,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { AlertCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db/client";
-import { orders, orderItems, productImages, skus } from "@/db/schema";
+import { orders, orderItems, productImages, promoCodeRedemptions, promoCodes, skus } from "@/db/schema";
 import { SectionCard } from "@/components/ui/section";
 import { AreaHeader, PageColumns } from "@/components/ui/page-layout";
 import { formatOrderStatus, OrderStatusPill } from "@/components/ui/status-pill";
@@ -24,7 +24,7 @@ import { getEnv } from "@/lib/env";
 import { instagramChatUrl, messengerChatUrl } from "@/lib/social-links";
 import { formatDateTime } from "@/lib/utils";
 import { computeEtaSummary } from "@/domain/eta";
-import { summarizeOrderTotals } from "@/domain/order-summary";
+import { allocatePromoToLines, summarizeOrderTotals } from "@/domain/order-summary";
 import {
   canRevealPickupAddress,
   pickupAddressPlaceholder,
@@ -66,7 +66,15 @@ export default async function OrderDetailPage({
     await expireUnpaidOrderIfDue(order.id, session.user.id as string);
     redirect(`/account/orders/${order.id}`);
   }
-  const items = await client.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+  const [items, orderCode] = await Promise.all([
+    client.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
+    client
+      .select({ code: promoCodes.code, type: promoCodes.type, amount: promoCodes.amount, typeAmounts: promoCodes.typeAmounts })
+      .from(promoCodeRedemptions)
+      .innerJoin(promoCodes, eq(promoCodes.id, promoCodeRedemptions.promoCodeId))
+      .where(and(eq(promoCodeRedemptions.orderId, order.id), eq(promoCodes.scope, "ORDER")))
+      .then((rows) => rows[0] ?? null),
+  ]);
   const summary = summarizeOrderTotals({
     lines: items,
     subtotalCentavos: order.subtotalCentavos,
@@ -74,6 +82,18 @@ export default async function OrderDetailPage({
     totalCentavos: order.totalCentavos,
     discountCentavos: order.discountCentavos,
   });
+  // Each item's share of the promo code, so a line shows what it cost (same
+  // split as checkout and the admin order page).
+  const promoShares = allocatePromoToLines(
+    items.map((item) => ({
+      id: item.id,
+      lineTotalCentavos: item.lineTotalCentavos,
+      itemDiscountCentavos: item.discountCentavos,
+      productType: item.productType,
+    })),
+    summary.promoCodeCentavos,
+    orderCode,
+  );
   const imageBySku = new Map<string, { url: string; alt: string | null }>();
   const skuIds = [...new Set(items.map((item) => item.skuId))];
   if (skuIds.length > 0) {
@@ -253,8 +273,19 @@ export default async function OrderDetailPage({
                             {item.skuLabel} · × {item.quantity}
                           </p>
                         </div>
-                        <span className="text-sm tabular-nums sm:shrink-0">
-                          {item.discountCentavos > 0 ? (
+                        <span className="text-sm tabular-nums sm:shrink-0 sm:text-right">
+                          {(promoShares.get(item.id) ?? 0) > 0 ? (
+                            <span className="flex flex-col sm:items-end">
+                              <span className="inline-flex items-baseline gap-2">
+                                <s className="text-muted-foreground">{formatPHP(item.lineTotalCentavos)}</s>
+                                <span>{formatPHP(item.lineTotalCentavos - (promoShares.get(item.id) ?? 0))}</span>
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                −{formatPHP(promoShares.get(item.id) ?? 0)}
+                                {orderCode ? ` ${orderCode.code}` : " promo code"}
+                              </span>
+                            </span>
+                          ) : item.discountCentavos > 0 ? (
                             <span className="inline-flex items-baseline gap-2">
                               <s className="text-muted-foreground">{formatPHP(item.originalUnitCentavos * item.quantity)}</s>
                               <span>{formatPHP(item.lineTotalCentavos)}</span>

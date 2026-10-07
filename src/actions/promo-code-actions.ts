@@ -15,12 +15,18 @@ import {
 import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { loadCartViewForBothMethods, loadDirectItemViewForBothMethods, resolveActiveCart } from "@/lib/cart";
 import { withAllowedUsers } from "@/lib/promo-code-access";
+import { allocatePromoToLines } from "@/domain/order-summary";
 
 export interface PromoCodePreview {
   code: string;
   scope: "ORDER" | "DELIVERY";
   orderDiscountCentavos: number;
   deliveryDiscountCentavos: number;
+  /** An ORDER code's discount split across the order's lines, by skuId, so
+   *  checkout can show each item's price after the code. Same split as the
+   *  admin order page (allocatePromoToLines): lines with their own item
+   *  discount get none, and a per-type code weighs each type by its amount. */
+  lineShares?: Record<string, number>;
 }
 
 /**
@@ -138,11 +144,24 @@ export async function previewPromoCodes(
   const previews: PromoCodePreview[] = [];
   const { order, delivery } = grouped.codes;
   if (order) {
+    const orderDiscountCentavos = orderCodeBases(order, totals).discountCentavos;
+    const available = view.items.filter((item) => item.available);
+    const shares = allocatePromoToLines(
+      available.map((item) => ({
+        id: item.skuId,
+        lineTotalCentavos: item.lineTotalCentavos,
+        itemDiscountCentavos: Math.max(0, item.originalUnitCentavos * item.quantity - item.lineTotalCentavos),
+        productType: item.productType,
+      })),
+      orderDiscountCentavos,
+      order,
+    );
     previews.push({
       code: order.code,
       scope: "ORDER",
-      orderDiscountCentavos: orderCodeBases(order, totals).discountCentavos,
+      orderDiscountCentavos,
       deliveryDiscountCentavos: 0,
+      lineShares: Object.fromEntries(shares),
     });
   }
   if (delivery) {

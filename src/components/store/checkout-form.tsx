@@ -455,12 +455,34 @@ export function CheckoutForm({
                   </p>
                 </div>
                 <div className="shrink-0 text-right tabular-nums">
-                  <p className="font-medium">{formatPHP(item.lineTotalCentavos)}</p>
-                  {item.originalUnitCentavos > item.retailPriceCentavos ? (
-                    <p className="text-xs text-muted-foreground line-through">
-                      {formatPHP(item.originalUnitCentavos * item.quantity)}
-                    </p>
-                  ) : null}
+                  {(() => {
+                    // With an order code applied, the item's own share of it
+                    // (from the preview), so each line shows what it costs.
+                    const promoShare = orderCodePreview?.lineShares?.[item.skuId] ?? 0;
+                    if (promoShare > 0) {
+                      return (
+                        <>
+                          <p className="font-medium">{formatPHP(item.lineTotalCentavos - promoShare)}</p>
+                          <p className="text-xs text-muted-foreground line-through">
+                            {formatPHP(item.lineTotalCentavos)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            −{formatPHP(promoShare)} {orderCodePreview?.code}
+                          </p>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        <p className="font-medium">{formatPHP(item.lineTotalCentavos)}</p>
+                        {item.originalUnitCentavos > item.retailPriceCentavos ? (
+                          <p className="text-xs text-muted-foreground line-through">
+                            {formatPHP(item.originalUnitCentavos * item.quantity)}
+                          </p>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                 </div>
               </li>
             ))}
