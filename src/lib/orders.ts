@@ -25,7 +25,7 @@ import {
 } from "@/db/schema";
 import { priceCart } from "@/domain/cart";
 import { generateOrderNumber } from "@/domain/order-number";
-import { isTesterBonusEligible, pickTester, testerUnitsAvailable } from "@/domain/promo";
+import { isTesterBonusEligible, testerUnitsAvailable } from "@/domain/promo";
 import { buildCartTotals, type ActivePromoCode } from "@/domain/checkout-totals";
 import {
   checkPromoCodeSet,
@@ -1038,33 +1038,9 @@ async function reserveStockWithinTx(
       });
     }
 
-    if (orderRow.promoTesterResult !== "PENDING" || items.length === 0) return;
-
-    const purchasedProducts = await tx
-      .select({
-        brand: products.brand,
-      })
-      .from(skus)
-      .innerJoin(products, eq(products.id, skus.productId))
-      .where(inArray(skus.id, items.map((it) => it.skuId)));
-    const purchasedBrands = new Set<string>();
-    for (const p of purchasedProducts) {
-      if (p.brand) purchasedBrands.add(p.brand);
-    }
-    // Brand-matched auto-pick; anything it can't place stays PENDING for the
-    // admin to choose by hand (never SKIPPED, never an unrelated brand).
-    const options = await loadTesterOptions(tx);
-    const assignment = pickTester(
-      options.map((o) => ({ skuId: o.skuId, brand: o.brand, stock: o.unitsAvailable })),
-      purchasedBrands,
-    );
-    const chosen = options.find((o) => o.skuId === assignment.skuId);
-    if (assignment.result !== "ASSIGNED" || !chosen) return;
-    if (!(await reserveTesterUnit(tx, orderId, chosen))) return;
-    await tx
-      .update(orders)
-      .set({ promoTesterResult: "ASSIGNED", promoTesterSkuId: chosen.skuId })
-      .where(eq(orders.id, orderId));
+    // No automatic tester pick: an order that earned one stays PENDING
+    // until the admin chooses it on the order page (assignTesterToOrder),
+    // and Confirm is refused until then (confirmBlockedReason).
 }
 
 export async function releaseStockForOrder(orderId: string): Promise<void> {

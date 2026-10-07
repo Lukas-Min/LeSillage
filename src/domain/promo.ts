@@ -2,7 +2,7 @@ import {
   DECANT_PROMO_THRESHOLD_CENTAVOS,
   DEFAULT_DELIVERY_FEE_CENTAVOS,
 } from "./money";
-import type { DiscountType, ProductType, PromoSetting, TesterResult } from "@/db/schema";
+import type { DiscountType, ProductType, PromoSetting } from "@/db/schema";
 
 export interface SiteWideDiscountConfig {
   enabled: boolean;
@@ -92,17 +92,6 @@ export function isTesterBonusEligible(
   return decantSubtotal(lines) >= config.decantThresholdCentavos;
 }
 
-export interface TesterAssignment {
-  result: TesterResult;
-  skuId: string | null;
-}
-
-export interface TesterCandidate {
-  skuId: string;
-  brand: string;
-  stock: number;
-}
-
 /**
  * How many free-tester units a tester SKU can hand out right now. A tester is
  * a decant, so this follows the same provenance split as the cart: an
@@ -123,17 +112,4 @@ export function testerUnitsAvailable(sku: {
   return Math.max(0, sku.stock);
 }
 
-export function pickTester(
-  candidates: TesterCandidate[],
-  purchasedBrands: Set<string>,
-  random: () => number = Math.random,
-): TesterAssignment {
-  const pool = candidates.filter((c) => c.stock > 0 && purchasedBrands.has(c.brand));
 
-  if (pool.length === 0) {
-    return { result: "PENDING", skuId: null };
-  }
-
-  const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
-  return { result: "ASSIGNED", skuId: pool[index].skuId };
-}

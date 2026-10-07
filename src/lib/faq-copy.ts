@@ -160,9 +160,9 @@ export const FAQ_GROUPS = [
           lead: "Spend ₱2,000 or more on decants (counted after discounts) in one order, and you get:",
           bullets: [
             "Free delivery, if it's delivered",
-            "One complimentary tester, matched to a brand in your order, for delivery or pickup",
+            "One complimentary tester, chosen by our team, for delivery or pickup",
           ],
-          note: "Testers are also sold on their own in the shop — this promo is a bonus, not the only way to get one. Pickup is already free and still gets the tester, and we'll follow up if no matching tester is in stock.",
+          note: "Testers are also sold on their own in the shop — this promo is a bonus, not the only way to get one. Pickup is already free and still gets the tester. We choose your tester when we confirm your order.",
         } satisfies FaqAnswer,
       },
       {

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   isFreeShippingEligible,
   isTesterBonusEligible,
-  pickTester,
   siteWideDiscountFromSettings,
   siteWideDiscountStatus,
   testerUnitsAvailable,
@@ -75,34 +74,6 @@ describe("site-wide discount schedule", () => {
     expect(bestDiscount(discounts, 100000, 1, new Date("2026-09-30T12:00:00Z"))).toBeNull();
     expect(bestDiscount(discounts, 100000, 1, now)?.id).toBe("sitewide");
     expect(bestDiscount(discounts, 100000, 1, new Date("2026-11-01T12:00:00Z"))).toBeNull();
-  });
-});
-
-describe("pickTester", () => {
-  const candidates = [
-    { skuId: "wood-match", brand: "Maison Ivre", stock: 3 },
-    { skuId: "aquatic-match", brand: "Casa Luz", stock: 1 },
-    { skuId: "unrelated", brand: "Bloom", stock: 5 },
-  ];
-
-  it("assigns a tester matching a purchased brand", () => {
-    const result = pickTester(candidates, new Set(["Casa Luz"]), () => 0);
-    expect(result).toEqual({ result: "ASSIGNED", skuId: "aquatic-match" });
-  });
-
-  it("returns PENDING when nothing in stock matches", () => {
-    const result = pickTester(
-      candidates.map((c) => ({ ...c, stock: 0 })),
-      new Set(["Maison Ivre"]),
-      () => 0,
-    );
-    expect(result.result).toBe("PENDING");
-    expect(result.skuId).toBeNull();
-  });
-
-  it("returns PENDING when in-stock testers do not match brand", () => {
-    const result = pickTester(candidates, new Set(["Other House"]), () => 0);
-    expect(result).toEqual({ result: "PENDING", skuId: null });
   });
 });
 

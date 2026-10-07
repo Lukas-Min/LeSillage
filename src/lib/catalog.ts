@@ -164,7 +164,7 @@ function decantVariantFulfillment(
 }
 
 // isTester is purely a backend eligibility flag for the free-tester promo
-// draw (src/domain/promo.ts pickTester) — it does not change what the
+// pool (the admin's TesterPicker) — it does not change what the
 // customer is buying, so it must never surface as a label or badge here.
 // IN_HOUSE is the implied default for a decant (what every decant SKU was
 // before the Retail/In-house split existed) — naming it on every button is

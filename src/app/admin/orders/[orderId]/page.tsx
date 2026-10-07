@@ -309,8 +309,8 @@ export default async function AdminOrderDetailPage({
                     </p>
                   ) : order.promoTesterResult === "PENDING" ? (
                     <p className="text-amber-600">
-                      This order earned a free tester, but nothing from a brand in the order was available to hand out
-                      automatically. {testerPickable ? "Choose one below — Confirm stays locked until you do." : "It was never assigned."}
+                      This order earned a free tester.{" "}
+                      {testerPickable ? "Choose one below — Confirm stays locked until you do." : "It was never assigned."}
                     </p>
                   ) : (
                     <p className="text-muted-foreground">Skipped.</p>
