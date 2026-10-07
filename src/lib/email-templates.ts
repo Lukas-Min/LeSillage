@@ -20,6 +20,10 @@ export interface EmailLine {
   fulfillment: Fulfillment;
   /** Primary product photo for the HTML version; the text version ignores it. */
   imageUrl?: string | null;
+  /** This item's share of an order promo code (toEmailLines); 0 without one. */
+  promoShareCentavos?: number;
+  /** That promo code, for the line's note. */
+  promoCode?: string | null;
 }
 
 /** Every order email ships both: `text` for plain-text clients and as the
@@ -63,6 +67,10 @@ function etaLinesSummary(lines: EmailLine[], orderedAt: Date): string {
 }
 
 function formatLineForEmail(line: EmailLine): string {
+  const promoShare = line.promoShareCentavos ?? 0;
+  if (promoShare > 0) {
+    return `- ${line.productName} (${line.skuLabel}) × ${line.quantity} — ~~${formatPHP(line.lineTotalCentavos)}~~ ${formatPHP(line.lineTotalCentavos - promoShare)} (−${formatPHP(promoShare)} ${line.promoCode ?? "promo code"})`;
+  }
   // lineTotalCentavos is the authoritative, DB-stored line total;
   // unitPriceCentavos is only a rounded-per-unit derivative of it and
   // multiplying it back out by quantity can drift a centavo from the real
@@ -147,11 +155,16 @@ function deliveryTotal(input: OrderEmailInput): EmailTotal {
 // Subtotal is the lines as listed, and only a promo code's part is shown as a
 // deduction — the stored subtotal already has it taken off, so showing that as
 // "Subtotal" read as the code coming off twice (see summarizeOrderTotals).
+function promoCodeLabel(input: OrderEmailInput): string {
+  const code = input.lines.find((line) => line.promoCode)?.promoCode;
+  return code ? `Promo code (${code})` : "Promo code";
+}
+
 function orderTotals(input: OrderEmailInput, totalLabel: string): EmailTotal[] {
   const summary = summarizeOrderTotals(input);
   const rows: EmailTotal[] = [{ label: "Subtotal", value: formatPHP(summary.itemsCentavos) }];
   if (summary.promoCodeCentavos > 0) {
-    rows.push({ label: "Promo code", value: `-${formatPHP(summary.promoCodeCentavos)}` });
+    rows.push({ label: promoCodeLabel(input), value: `-${formatPHP(summary.promoCodeCentavos)}` });
   }
   rows.push(deliveryTotal(input));
   if (summary.savedCentavos > 0) rows.push({ label: "You saved", value: formatPHP(summary.savedCentavos) });
@@ -164,7 +177,7 @@ function textTotals(input: OrderEmailInput, totalLabel: string): string {
   const summary = summarizeOrderTotals(input);
   return [
     `Subtotal: ${formatPHP(summary.itemsCentavos)}`,
-    summary.promoCodeCentavos > 0 ? `Promo code: -${formatPHP(summary.promoCodeCentavos)}` : null,
+    summary.promoCodeCentavos > 0 ? `${promoCodeLabel(input)}: -${formatPHP(summary.promoCodeCentavos)}` : null,
     `Delivery: ${deliveryLine(input)}`,
     `${totalLabel}: ${formatPHP(summary.totalCentavos)}`,
     summary.savedCentavos > 0 ? `You saved: ${formatPHP(summary.savedCentavos)}` : null,

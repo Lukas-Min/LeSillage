@@ -95,7 +95,7 @@ export async function sendDueDeliveryFollowups(now = new Date()): Promise<Delive
         recipientName: order.recipientName,
         email: order.email,
         fulfillmentMethod: order.fulfillmentMethod,
-        lines: await toEmailLines(items),
+        lines: await toEmailLines(items, order),
         subtotalCentavos: order.subtotalCentavos,
         discountCentavos: order.discountCentavos,
         deliveryFeeCentavos: order.deliveryFeeCentavos,

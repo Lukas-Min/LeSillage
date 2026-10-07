@@ -1,6 +1,7 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { orderItems, orders, productImages, skus, type OrderStatus } from "@/db/schema";
+import { orderItems, orders, productImages, promoCodeRedemptions, promoCodes, skus, type OrderStatus } from "@/db/schema";
+import { allocatePromoToLines } from "@/domain/order-summary";
 import type { EmailLine, OrderEmailInput } from "@/lib/email-templates";
 
 /**
@@ -44,10 +45,18 @@ type OrderItemRow = Pick<
  * `order_item` rows → email lines, with each line's photo attached. Shared by
  * checkout, receipt submission, status transitions and both cron emails so the
  * field mapping (and the image lookup) is maintained in exactly one place.
+ *
+ * With the order passed, each line also gets its share of an order promo code
+ * (the order's stored subtotal already has the code taken off), split the same
+ * way as the checkout summary and the order pages (allocatePromoToLines), so
+ * the email shows what each item cost after the code.
  */
-export async function toEmailLines(rows: OrderItemRow[]): Promise<EmailLine[]> {
-  const images = await loadSkuImageMap(rows.map((row) => row.skuId));
-  return rows.map((row) => ({
+export async function toEmailLines(
+  rows: OrderItemRow[],
+  order?: { id: string; subtotalCentavos: number },
+): Promise<EmailLine[]> {
+  const [images, shares] = await Promise.all([loadSkuImageMap(rows.map((row) => row.skuId)), promoSharesFor(rows, order)]);
+  return rows.map((row, index) => ({
     productName: row.productName,
     skuLabel: row.skuLabel,
     quantity: row.quantity,
@@ -58,7 +67,35 @@ export async function toEmailLines(rows: OrderItemRow[]): Promise<EmailLine[]> {
     productType: row.productType,
     fulfillment: row.fulfillment,
     imageUrl: images.get(row.skuId) ?? null,
+    promoShareCentavos: shares?.amounts.get(String(index)) ?? 0,
+    promoCode: shares?.code ?? null,
   }));
+}
+
+async function promoSharesFor(
+  rows: OrderItemRow[],
+  order?: { id: string; subtotalCentavos: number },
+): Promise<{ amounts: Map<string, number>; code: string | null } | null> {
+  if (!order) return null;
+  const itemsCentavos = rows.reduce((sum, row) => sum + row.lineTotalCentavos, 0);
+  const promoCentavos = Math.max(0, itemsCentavos - order.subtotalCentavos);
+  if (promoCentavos <= 0) return null;
+  const [code] = await db()
+    .select({ code: promoCodes.code, type: promoCodes.type, amount: promoCodes.amount, typeAmounts: promoCodes.typeAmounts })
+    .from(promoCodeRedemptions)
+    .innerJoin(promoCodes, eq(promoCodes.id, promoCodeRedemptions.promoCodeId))
+    .where(and(eq(promoCodeRedemptions.orderId, order.id), eq(promoCodes.scope, "ORDER")));
+  const amounts = allocatePromoToLines(
+    rows.map((row, index) => ({
+      id: String(index),
+      lineTotalCentavos: row.lineTotalCentavos,
+      itemDiscountCentavos: row.discountCentavos,
+      productType: row.productType,
+    })),
+    promoCentavos,
+    code ?? null,
+  );
+  return { amounts, code: code?.code ?? null };
 }
 
 /**
@@ -78,7 +115,7 @@ export async function orderEmailInputFromRow(
     recipientName: order.recipientName,
     email: order.email,
     fulfillmentMethod: order.fulfillmentMethod,
-    lines: await toEmailLines(items),
+    lines: await toEmailLines(items, order),
     subtotalCentavos: order.subtotalCentavos,
     discountCentavos: order.discountCentavos,
     deliveryFeeCentavos: order.deliveryFeeCentavos,

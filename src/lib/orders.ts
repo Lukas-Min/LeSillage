@@ -697,7 +697,7 @@ export async function submitReceipt(
       recipientName: orderRow.recipientName,
       email: orderRow.email,
       fulfillmentMethod: orderRow.fulfillmentMethod,
-      lines: await toEmailLines(itemRows),
+      lines: await toEmailLines(itemRows, orderRow),
       testerAwarded: await loadTesterAwarded(fresh?.promoTesterSkuId ?? null),
       subtotalCentavos: orderRow.subtotalCentavos,
       discountCentavos: orderRow.discountCentavos,

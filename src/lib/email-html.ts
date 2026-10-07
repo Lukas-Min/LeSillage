@@ -38,6 +38,9 @@ export interface EmailHtmlItem {
   discountCentavos?: number;
   /** Current primary product photo; `null`/missing renders an initial instead. */
   imageUrl?: string | null;
+  /** This item's share of an order promo code; 0 or missing without one. */
+  promoShareCentavos?: number;
+  promoCode?: string | null;
 }
 
 export interface EmailFact {
@@ -99,6 +102,16 @@ function thumbnail(item: EmailHtmlItem): string {
 }
 
 function priceCell(item: EmailHtmlItem): string {
+  // With an order promo code: the item's price after its share of the code,
+  // the price before it struck through, and the share itself.
+  const promoShare = item.promoShareCentavos ?? 0;
+  if (promoShare > 0) {
+    return [
+      `<div style="font-size:15px;color:${INK};white-space:nowrap">${formatPHP(item.lineTotalCentavos - promoShare)}</div>`,
+      `<div style="font-size:12px;color:${MUTED};text-decoration:line-through;white-space:nowrap">${formatPHP(item.lineTotalCentavos)}</div>`,
+      `<div style="font-size:12px;color:${GOLD};white-space:nowrap">−${formatPHP(promoShare)} ${escapeHtml(item.promoCode ?? "promo code")}</div>`,
+    ].join("");
+  }
   // item.lineTotalCentavos is the authoritative, DB-stored line total;
   // unitPriceCentavos is only a rounded-per-unit derivative of it
   // (Math.round(lineSubtotal / quantity) upstream) and multiplying it back
