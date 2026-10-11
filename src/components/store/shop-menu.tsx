@@ -4,19 +4,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { ShopTile } from "@/components/store/shop-tile";
+import type { ShopTileArtName } from "@/components/store/shop-tile-art";
 import { cn } from "@/lib/utils";
 
-type ShopMenuTile = { href: string; title: string; description: string };
+type ShopMenuTile = { href: string; title: string; description: string; art: ShopTileArtName };
 
-const ALL_TILE: ShopMenuTile = { href: "/shop", title: "All fragrances", description: "Every bottle, partial, and decant" };
+const ALL_TILE: ShopMenuTile = { href: "/shop", title: "All fragrances", description: "Every bottle, partial, and decant", art: "all" };
 const TYPE_TILES: ShopMenuTile[] = [
-  { href: "/shop?type=DECANT", title: "Decants", description: "Try before the full bottle" },
-  { href: "/shop?type=FULL_BOTTLE", title: "Full bottles", description: "Sealed, ready to ship" },
-  { href: "/shop?type=PARTIAL", title: "Partials", description: "Opened once, priced to move" },
+  { href: "/shop?type=DECANT", title: "Decants", description: "Try before the full bottle", art: "decant" },
+  { href: "/shop?type=FULL_BOTTLE", title: "Full bottles", description: "Sealed, ready to ship", art: "full-bottle" },
+  { href: "/shop?type=PARTIAL", title: "Partials", description: "Opened once, priced to move", art: "partial" },
 ];
 const GENDER_TILES: ShopMenuTile[] = [
-  { href: "/shop?gender=men", title: "Men", description: "Fragrances made for him" },
-  { href: "/shop?gender=women", title: "Women", description: "Fragrances made for her" },
+  { href: "/shop?gender=men", title: "Men", description: "Fragrances made for him", art: "men" },
+  { href: "/shop?gender=women", title: "Women", description: "Fragrances made for her", art: "women" },
 ];
 
 /**
