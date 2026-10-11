@@ -3,6 +3,10 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Changed
+- Header Shop menu: full screen width (no 80vw cap on wide screens), three cards per row: Decants, Full bottles, Partials, then a new row of All fragrances, Men, and Women (`/shop?gender=men|women`). It fades and slides in and out, with the cards following in a short stagger (none with reduced motion). The phone menu gains the Men and Women cards too (`src/components/store/shop-menu.tsx`)
+### Fixed
+- Header Shop menu no longer closes when the mouse crosses the promo banner on its way down to the menu: an invisible bridge over the banner, present only while the menu is open, counts as part of the menu (`src/components/store/shop-menu.tsx`)
 ### Fixed
 - Order status emails can no longer arrive out of order when the admin clicks through statuses quickly (Confirm, Ship, Deliver within seconds sent "Delivered" before "Shipped"): each status change now queues its email as a QUEUED `notification_log` row in the same transaction, and `drainQueuedStatusEmails` sends one order's queue oldest first, one at a time under a per-order lock. A failed send stays queued and holds the later ones back; after 3 tries it's marked FAILED and the rest go out. A new hourly `/api/cron/order-emails` route (Cloudflare Worker job and daily Vercel fallback) retries anything left queued. Adds `payload` and `attempts` to `notification_log` (`src/lib/orders.ts`, `src/db/schema.ts`, `scripts/migrate.ts`, `src/app/api/cron/order-emails/route.ts`, `workers/auto-reject-cron/src/index.ts`, `vercel.json`)
 ### Changed

@@ -6,20 +6,33 @@ import { ChevronDown } from "lucide-react";
 import { ShopTile } from "@/components/store/shop-tile";
 import { cn } from "@/lib/utils";
 
-/**
- * The shop's shelves as cards (All first), shared by the header's Shop menu
- * and the phone hamburger menu. Same copy as the homepage Browse-by-type rows.
- */
-export const SHOP_TYPE_TILES: Array<{ href: string; title: string; description: string }> = [
-  { href: "/shop", title: "All fragrances", description: "Every bottle, partial, and decant" },
+type ShopMenuTile = { href: string; title: string; description: string };
+
+const ALL_TILE: ShopMenuTile = { href: "/shop", title: "All fragrances", description: "Every bottle, partial, and decant" };
+const TYPE_TILES: ShopMenuTile[] = [
   { href: "/shop?type=DECANT", title: "Decants", description: "Try before the full bottle" },
   { href: "/shop?type=FULL_BOTTLE", title: "Full bottles", description: "Sealed, ready to ship" },
   { href: "/shop?type=PARTIAL", title: "Partials", description: "Opened once, priced to move" },
 ];
+const GENDER_TILES: ShopMenuTile[] = [
+  { href: "/shop?gender=men", title: "Men", description: "Fragrances made for him" },
+  { href: "/shop?gender=women", title: "Women", description: "Fragrances made for her" },
+];
+
+/**
+ * The phone hamburger menu's cards, one column: All first, then the shelves,
+ * then Men and Women. Same copy as the homepage Browse-by-type rows.
+ */
+export const SHOP_TYPE_TILES: ShopMenuTile[] = [ALL_TILE, ...TYPE_TILES, ...GENDER_TILES];
+
+/** The header's Shop menu, three per row: the shelves, then All, Men, Women. */
+const MENU_TILES: ShopMenuTile[] = [...TYPE_TILES, ALL_TILE, ...GENDER_TILES];
 
 const PANEL_ID = "shop-mega-menu";
 /** Grace period for the pointer to travel from "Shop" down into the panel. */
 const CLOSE_DELAY_MS = 150;
+/** How long the panel takes to animate out; it unmounts after this. */
+const EXIT_MS = 180;
 
 /**
  * Desktop (md+) "Shop" nav item: a dropdown button, not a link. Hovering it,
@@ -29,6 +42,9 @@ const CLOSE_DELAY_MS = 150;
  */
 export function ShopMegaMenu({ active }: { active: boolean }) {
   const [open, setOpen] = useState(false);
+  // Stays true through the exit animation, so the panel can fade out
+  // instead of vanishing; `open` alone decides what it shows as.
+  const [rendered, setRendered] = useState(false);
   const closeTimer = useRef<number | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const hoverOpened = useRef(false);
@@ -59,6 +75,17 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
     Promise.resolve().then(close);
   }, [pathname, close]);
   useEffect(() => cancelClose, [cancelClose]);
+
+  useEffect(() => {
+    if (open) {
+      Promise.resolve().then(() => setRendered(true));
+      return;
+    }
+    // A timer, not animationend: with reduced motion there's no animation
+    // and so no event, and the panel would never unmount.
+    const timer = window.setTimeout(() => setRendered(false), EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   // Hover via native pointer events on the wrapper (the panel is inside it,
   // so moving from "Shop" down into the panel never counts as leaving), and
@@ -146,26 +173,41 @@ export function ShopMegaMenu({ active }: { active: boolean }) {
         {active ? <span className="absolute inset-x-0 -bottom-px h-px bg-gold" /> : null}
       </button>
 
-      {open ? (
-        // `fixed`, but anchored to the sticky <header>, not the viewport: the
-        // header sets `contain: layout`, which makes it the containing block
-        // for fixed descendants (and nothing between here and it has a
-        // transform — the nav is centred without one for exactly this
-        // reason). So inset-x-0/top-full = the header's full width, right
-        // under it and the promo bar, and it rides along with the sticky
-        // header.
-        <div
-          id={PANEL_ID}
-          className="fixed inset-x-0 top-full z-40 border-y border-border bg-background shadow-[0_24px_48px_-24px_rgba(31,28,24,0.35)]"
-        >
-          <ul className="grid grid-cols-4 gap-4 px-8 py-6 normal-case tracking-normal 2xl:mx-auto 2xl:max-w-[80vw]">
-            {SHOP_TYPE_TILES.map((tile) => (
-              <li key={tile.href}>
-                <ShopTile {...tile} size="menu" as="p" onClick={close} />
-              </li>
-            ))}
-          </ul>
-        </div>
+      {open || rendered ? (
+        <>
+          {/* An invisible bridge over the promo banner, between the nav row
+              (h-14) and the panel. It's inside this wrapper, so moving the
+              mouse from "Shop" down across the banner never counts as
+              leaving, and a slow move no longer closes the menu. Fixed
+              against the header like the panel (see below). */}
+          {open ? <div className="fixed inset-x-0 top-14 bottom-0 z-40" aria-hidden="true" /> : null}
+          {/* `fixed`, but anchored to the sticky <header>, not the viewport:
+              the header sets `contain: layout`, which makes it the containing
+              block for fixed descendants (and nothing between here and it has
+              a transform — the nav is centred without one for exactly this
+              reason). So inset-x-0/top-full = the header's full width, right
+              under it and the promo bar, and it rides along with the sticky
+              header. Full width on every screen, ultra-wide included. */}
+          <div
+            id={PANEL_ID}
+            data-state={open ? "open" : "closed"}
+            inert={!open}
+            className="fixed inset-x-0 top-full z-40 border-y border-border bg-background shadow-[0_24px_48px_-24px_rgba(31,28,24,0.35)] duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2 motion-reduce:animate-none"
+          >
+            <ul className="grid grid-cols-3 gap-4 px-8 py-6 normal-case tracking-normal">
+              {MENU_TILES.map((tile, index) => (
+                <li
+                  key={tile.href}
+                  // Cards follow the panel in a quick stagger, row by row.
+                  style={{ animationDelay: `${60 + index * 30}ms` }}
+                  className="duration-300 fill-mode-both animate-in fade-in-0 slide-in-from-top-1 motion-reduce:animate-none"
+                >
+                  <ShopTile {...tile} size="menu" as="p" onClick={close} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
       ) : null}
     </div>
   );
