@@ -180,7 +180,18 @@ export default async function AdminProductDetailPage({
               <CardTitle className="text-base">Product</CardTitle>
             </CardHeader>
             <CardContent>
-              <form id="save-product-form" action={saveProduct} className="space-y-6">
+              {/* Keyed by the last save so the form remounts with the saved
+                  values. React resets a form after its action runs, and an
+                  uncontrolled <select> resets to the value it had when it
+                  first mounted, not the newly saved one: after saving
+                  "Direct retail price", the next Save sent "Percentage
+                  markup" with the new amount (₱2,900 became a 2,900% markup). */}
+              <form
+                key={product.updatedAt.getTime()}
+                id="save-product-form"
+                action={saveProduct}
+                className="space-y-6"
+              >
                 <input type="hidden" name="productId" value={product.id} />
                 {/* Type is fixed at creation — existing SKUs assume this field set. */}
                 <input type="hidden" name="type" value={product.type} />
@@ -353,7 +364,8 @@ export default async function AdminProductDetailPage({
                       confirmLabel="Archive or delete"
                     />
                   </div>
-                  <form action={upsertSku} className="space-y-4">
+                  {/* Keyed by the last save, like the product form above. */}
+                  <form key={sku.updatedAt.getTime()} action={upsertSku} className="space-y-4">
                     <input type="hidden" name="skuId" value={sku.id} />
                     <input type="hidden" name="productId" value={product.id} />
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -521,7 +533,17 @@ export default async function AdminProductDetailPage({
                   })}
                 </ul>
               )}
-              <form action={upsertDiscount} className="space-y-3 border-t pt-4">
+              {/* Keyed by the saved discount, like the product form: its Type
+                  dropdown would otherwise reset to its first-loaded value. */}
+              <form
+                key={
+                  activeDiscount
+                    ? [activeDiscount.id, activeDiscount.type, activeDiscount.amount, activeDiscount.startsAt?.getTime(), activeDiscount.endsAt?.getTime()].join(":")
+                    : "none"
+                }
+                action={upsertDiscount}
+                className="space-y-3 border-t pt-4"
+              >
                 <input type="hidden" name="productId" value={product.id} />
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Type" htmlFor="new-discount-type">

@@ -4,6 +4,10 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Changed
+- Admin audit log reads as sentences instead of raw codes: "Le Sillage moved order LS-… to Shipped", "added Lanvin Eclat d'Arpège" with "Sells at ₱2,820.00 (cost ₱2,350.00 + 20%)", and so on for every action, with names resolved (people, orders, products, sizes, promo codes, QR banks) and linked to their admin pages, plus readable details from each event (a reason, a price, a promo code's terms, an error). Events are grouped by Manila day (Today, Yesterday, then dates), each with a category icon and its time; back-to-back identical events collapse into one row with a count; tabs filter by Orders, Catalog, Promos, Payments, Customers with counts; 50 per page with Newer/Older. Loading screen matches (`src/lib/audit-describe.ts`, `src/app/admin/audit/page.tsx`, `loading.tsx`, `src/components/admin/audit-skeleton.tsx`)
+### Fixed
+- Admin product page: saving twice could silently change the pricing formula. React resets a form after its action, and an uncontrolled dropdown resets to the value it first loaded with, so after saving "Direct retail price ₱2,900" the next Save sent "Percentage markup" with 2900 (a 2,900% markup, ₱70,500). The product, SKU and discount forms are now keyed by their last save, so they remount with the saved values (`src/app/admin/products/[productId]/page.tsx`)
+### Changed
 - Header Shop menu: full screen width (no 80vw cap on wide screens), three cards per row: Decants, Full bottles, Partials, then a new row of All fragrances, Men, and Women (`/shop?gender=men|women`). It fades and slides in and out, with the cards following in a short stagger (none with reduced motion). The phone menu gains the Men and Women cards too (`src/components/store/shop-menu.tsx`)
 ### Fixed
 - Header Shop menu no longer closes when the mouse crosses the promo banner on its way down to the menu: an invisible bridge over the banner, present only while the menu is open, counts as part of the menu (`src/components/store/shop-menu.tsx`)
