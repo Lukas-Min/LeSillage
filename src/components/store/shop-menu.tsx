@@ -21,10 +21,13 @@ const GENDER_TILES: ShopMenuTile[] = [
 ];
 
 /**
- * The phone hamburger menu's cards, one column: All first, then the shelves,
- * then Men and Women. Same copy as the homepage Browse-by-type rows.
+ * The phone hamburger menu's Shop group: All as a small button first, then
+ * the shelves as cards one per row, then Men and Women side by side. Same
+ * copy as the homepage Browse-by-type rows.
  */
-export const SHOP_TYPE_TILES: ShopMenuTile[] = [ALL_TILE, ...TYPE_TILES, ...GENDER_TILES];
+export const SHOP_ALL_LINK = { href: ALL_TILE.href, title: ALL_TILE.title };
+export const SHOP_TYPE_TILES: ShopMenuTile[] = TYPE_TILES;
+export const SHOP_GENDER_TILES: ShopMenuTile[] = GENDER_TILES;
 
 /** The header's Shop menu, three per row: the shelves, then All, Men, Women. */
 const MENU_TILES: ShopMenuTile[] = [...TYPE_TILES, ALL_TILE, ...GENDER_TILES];

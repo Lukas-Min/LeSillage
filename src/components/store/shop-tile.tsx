@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { ShopTileArt, type ShopTileArtName } from "@/components/store/shop-tile-art";
 import { cn } from "@/lib/utils";
 
-type TileSize = "page" | "menu" | "compact";
+type TileSize = "page" | "menu" | "compact" | "half";
 
 const SIZE = {
   page: {
@@ -19,6 +19,13 @@ const SIZE = {
   compact: {
     tile: "min-h-24 p-4",
     art: "bottom-2 right-3 h-16 w-16",
+    title: "text-xl",
+  },
+  /** Two side by side in the phone menu: too narrow for the drawing beside
+   *  the text, so it sits top-left across from "Explore". */
+  half: {
+    tile: "min-h-32 p-4",
+    art: "top-3 left-3 h-11 w-11",
     title: "text-xl",
   },
 } satisfies Record<TileSize, Record<string, string>>;

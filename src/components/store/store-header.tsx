@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
+  ArrowRight,
   Menu,
   HelpCircle,
   MessageCircle,
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { PromoMarquee } from "@/components/store/promo-marquee";
-import { SHOP_TYPE_TILES, ShopMegaMenu } from "@/components/store/shop-menu";
+import { SHOP_ALL_LINK, SHOP_GENDER_TILES, SHOP_TYPE_TILES, ShopMegaMenu } from "@/components/store/shop-menu";
 import { ShopTile } from "@/components/store/shop-tile";
 
 /** Besides Shop, which is its own mega-menu item (ShopMegaMenu). */
@@ -240,10 +241,28 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
           </div>
           <div className="space-y-1.5">
             <p className="px-3 text-[11px] sm:text-[10px] uppercase tracking-[0.3em] text-gold">Shop</p>
-            <ul className="space-y-2">
+            <ul className="grid grid-cols-2 gap-2">
+              <li className="col-span-2">
+                <Link
+                  href={SHOP_ALL_LINK.href}
+                  onClick={() => setOpen(false)}
+                  className="group flex min-h-11 items-center justify-center gap-2 rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] px-3 text-sm font-medium transition-colors hover:border-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-ink"
+                >
+                  {SHOP_ALL_LINK.title}
+                  <ArrowRight
+                    className="h-4 w-4 text-gold-ink transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
               {SHOP_TYPE_TILES.map((tile) => (
-                <li key={tile.href}>
+                <li key={tile.href} className="col-span-2">
                   <ShopTile {...tile} size="compact" as="p" onClick={() => setOpen(false)} />
+                </li>
+              ))}
+              {SHOP_GENDER_TILES.map((tile) => (
+                <li key={tile.href}>
+                  <ShopTile {...tile} size="half" as="p" onClick={() => setOpen(false)} />
                 </li>
               ))}
             </ul>
