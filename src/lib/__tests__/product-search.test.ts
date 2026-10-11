@@ -7,8 +7,10 @@ const dialect = new PgDialect();
 /**
  * Runs the generated condition the way Postgres would for one product:
  * substitutes the row's name/brand for the columns and evaluates the
- * `translate()` / `replace()` / `ILIKE` SQL in JS, so a test exercises the
- * SQL side of the fold, not just `foldSearchText`.
+ * `translate()` / `regexp_replace()` / `replace()` / `ILIKE` SQL in JS, so a
+ * test exercises the SQL side of the fold, not just `foldSearchText`.
+ * `[^[:alnum:][:space:]]` is read as its Unicode meaning, as on the
+ * database's ICU collation.
  */
 function matches(query: string, product: { name: string; brand: string }): boolean {
   const condition = productSearchCondition(query);
@@ -23,12 +25,17 @@ function matches(query: string, product: { name: string; brand: string }): boole
     }).join("");
   const columns: Record<string, string> = { '"product"."name"': product.name, '"product"."brand"': product.brand };
 
-  // Innermost first: translate(column, $a, $b), then replace(expr, $c, $d) layers.
+  // Innermost first: regexp_replace(translate(column, $a, $b), $c, '', 'g'),
+  // then replace(expr, $d, $e) layers.
   let expr = sql;
   const literals: string[] = [];
   const lit = (value: string) => `@${literals.push(value) - 1}`;
-  expr = expr.replace(/translate\(("product"\."\w+"), (\$\d+), (\$\d+)\)/g, (_, col, a, b) =>
-    lit(translate(columns[col], param(a), param(b))),
+  expr = expr.replace(
+    /regexp_replace\(translate\(("product"\."\w+"), (\$\d+), (\$\d+)\), (\$\d+), '', 'g'\)/g,
+    (_, col, a, b, pattern) => {
+      expect(param(pattern)).toBe("[^[:alnum:][:space:]]");
+      return lit(translate(columns[col], param(a), param(b)).replace(/[^\p{L}\p{N}\s]/gu, ""));
+    },
   );
   for (let prev = ""; prev !== expr; ) {
     prev = expr;
@@ -50,17 +57,23 @@ const arpege = { name: "Eclat d'Arpège", brand: "Lanvin" };
 describe("foldSearchText", () => {
   it("drops accents", () => {
     expect(foldSearchText("Arpège")).toBe("Arpege");
+    expect(foldSearchText("Wulóng Chá")).toBe("Wulong Cha");
     expect(foldSearchText("ÉCLAT Crème Brûlée Ça Mañana")).toBe("ECLAT Creme Brulee Ca Manana");
-    expect(foldSearchText("Rosé Ø ł")).toBe("Rose O l");
+    expect(foldSearchText("Rosé Ø ł Ūmi Đà Nẵng Ș")).toBe("Rose O l Umi Da Nang S");
   });
 
   it("folds a typed combining accent like the precomposed letter", () => {
     expect(foldSearchText("Arpège")).toBe("Arpege");
   });
 
-  it("folds curly and other apostrophes to a straight one", () => {
-    expect(foldSearchText("d’Arpège")).toBe("d'Arpege");
-    expect(foldSearchText("L‘Homme L`Eau Lʼete")).toBe("L'Homme L'Eau L'ete");
+  it("drops apostrophes of any style and other punctuation and symbols", () => {
+    expect(foldSearchText("d’Arpège d'Arpège")).toBe("dArpege dArpege");
+    expect(foldSearchText("L‘Homme L`Eau Lʼete")).toBe("LHomme LEau Lete");
+    expect(foldSearchText("Eau-de-Parfum No.5 Flowers & Flames Sauvage®")).toBe("EaudeParfum No5 Flowers  Flames Sauvage");
+  });
+
+  it("keeps letters from other scripts", () => {
+    expect(foldSearchText("香水 Ébène")).toBe("香水 Ebene");
   });
 
   it("expands ligatures", () => {
@@ -78,7 +91,7 @@ describe("productSearchCondition", () => {
     const { sql, params } = dialect.sqlToQuery(productSearchCondition("d’arpège")!);
     expect(sql).toContain('translate("product"."name", $1, $2)');
     expect(sql).toContain('translate("product"."brand", ');
-    expect(params).toContain("%d'arpege%");
+    expect(params).toContain("%darpege%");
   });
 
   it("finds an accented name without the accent or with a curly apostrophe", () => {
@@ -91,6 +104,16 @@ describe("productSearchCondition", () => {
 
   it("finds a curly-apostrophe name from a straight-apostrophe query", () => {
     expect(matches("d'arpege", { name: "Eclat d’Arpège", brand: "Lanvin" })).toBe(true);
+  });
+
+  it("finds every special-character name by plain letters", () => {
+    expect(matches("wulong cha", { name: "Wulóng Chá", brand: "Nishane" })).toBe(true);
+    expect(matches("darpege", arpege)).toBe(true);
+    expect(matches("raed", { name: "Ra'ed Luxe", brand: "Lattafa" })).toBe(true);
+    expect(matches("collectors edition", { name: "Supremacy Collector's Edition", brand: "Afnan" })).toBe(true);
+    expect(matches("idole lancome", { name: "Idôle", brand: "Lancôme" })).toBe(true);
+    expect(matches("flowers flames", { name: "Libre Flowers & Flames", brand: "Yves Saint Laurent" })).toBe(true);
+    expect(matches("dolce & gabbana", { name: "Devotion", brand: "Dolce & Gabbana" })).toBe(true);
   });
 
   it("still needs every word, each in the name or the brand", () => {
