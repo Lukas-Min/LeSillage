@@ -8,19 +8,16 @@ type TileSize = "page" | "menu" | "compact";
 const SIZE = {
   page: {
     tile: "min-h-40 p-5 sm:min-h-56 sm:p-6",
-    letter: "-top-7 right-4 text-[6.5rem] sm:-top-9 sm:right-5 sm:text-[8rem]",
-    art: "bottom-3 right-4 h-24 w-24 sm:bottom-4 sm:right-5 sm:h-32 sm:w-32",
+    art: "top-10 right-4 h-16 w-16 sm:top-14 sm:right-5 sm:h-24 sm:w-24",
     title: "text-2xl sm:text-3xl",
   },
   menu: {
     tile: "min-h-40 p-6",
-    letter: "-top-7 right-5 text-[7rem]",
     art: "bottom-3 right-5 h-24 w-24",
     title: "text-2xl",
   },
   compact: {
     tile: "min-h-24 p-4",
-    letter: "-top-5 right-3 text-[5rem]",
     art: "bottom-2 right-3 h-16 w-16",
     title: "text-xl",
   },
@@ -28,9 +25,8 @@ const SIZE = {
 
 /**
  * The store's framed, gold-tinted link card: an inner hairline frame, a
- * watermark (a line drawing in the bottom-right when `art` is given, else the
- * title's initial, large in the top-right with "Explore" drawn over it), and
- * the title plus a short line at the bottom. "Explore" is in the
+ * line drawing of the shelf or family as a watermark in the bottom-right,
+ * "Explore" in the top-right, and the title plus a short line at the bottom. "Explore" is in the
  * flow, not pinned: a title that wraps on a narrow tile ("All fragrances")
  * makes the tile taller instead of running into it. Used for the
  * homepage scent families, the header's Shop menu, and the phone menu, so
@@ -53,8 +49,8 @@ export function ShopTile({
   size?: TileSize;
   /** "p" inside menus, where a heading per link would be noise. */
   as?: "h3" | "p";
-  /** A line drawing in place of the initial (the Shop menus' shelves). */
-  art?: ShopTileArtName;
+  /** The watermark drawing (`shop-tile-art.tsx`). */
+  art: ShopTileArtName;
   onClick?: () => void;
   className?: string;
 }) {
@@ -70,25 +66,13 @@ export function ShopTile({
       )}
     >
       <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
-      {art ? (
-        <ShopTileArt
-          name={art}
-          className={cn(
-            "pointer-events-none absolute text-gold/45 transition-colors group-hover:text-gold/70 dark:text-gold/30 dark:group-hover:text-gold/50",
-            s.art,
-          )}
-        />
-      ) : (
-        <span
-          className={cn(
-            "pointer-events-none absolute font-serif-display leading-[0.8] text-gold/15 transition-colors group-hover:text-gold/25",
-            s.letter,
-          )}
-          aria-hidden="true"
-        >
-          {title.charAt(0)}
-        </span>
-      )}
+      <ShopTileArt
+        name={art}
+        className={cn(
+          "pointer-events-none absolute text-gold/45 transition-colors group-hover:text-gold/70 dark:text-gold/30 dark:group-hover:text-gold/50",
+          s.art,
+        )}
+      />
       <span className="relative inline-flex items-center gap-1 self-end text-xs uppercase tracking-[0.2em] text-gold-ink">
         Explore
         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />

@@ -4,6 +4,7 @@ import type { FragranceCategory } from "@/db/schema";
 import { ProductCard } from "@/components/store/product-card";
 import { RailCarousel } from "@/components/store/rail-carousel";
 import { ShopTile } from "@/components/store/shop-tile";
+import type { ShopTileArtName } from "@/components/store/shop-tile-art";
 import { CatalogCardSkeleton } from "@/components/store/loading";
 import { Eyebrow } from "@/components/ui/section";
 import type { CatalogCardModel } from "@/lib/catalog";
@@ -171,19 +172,19 @@ export function ShelfTiles() {
 
 /** Each tile opens the shop's All tab filtered to that family, the same
  *  filter the shop toolbar sets, rather than a separate collection page. */
-const FAMILIES: Array<{ category: FragranceCategory; title: string; description: string }> = [
-  { category: "MIDDLE_EASTERN", title: "Middle Eastern", description: "Luxury scents, without the luxury price" },
-  { category: "DESIGNER", title: "Designer", description: "The names you know, polished and easy to wear" },
-  { category: "NICHE", title: "Niche", description: "Independent houses with unexpected compositions" },
+const FAMILIES: Array<{ category: FragranceCategory; title: string; description: string; art: ShopTileArtName }> = [
+  { category: "MIDDLE_EASTERN", title: "Middle Eastern", description: "Luxury scents, without the luxury price", art: "middle-eastern" },
+  { category: "DESIGNER", title: "Designer", description: "The names you know, polished and easy to wear", art: "designer" },
+  { category: "NICHE", title: "Niche", description: "Independent houses with unexpected compositions", art: "niche" },
 ];
 
 /** ShopTile cards into the shop's scent-family filter. */
 export function ScentFamilies() {
   return (
     <ul className="grid grid-cols-1 gap-3 px-4 sm:grid-cols-3 sm:gap-4">
-      {FAMILIES.map(({ category, title, description }) => (
+      {FAMILIES.map(({ category, title, description, art }) => (
         <li key={category}>
-          <ShopTile href={`/shop?category=${category}`} title={title} description={description} />
+          <ShopTile href={`/shop?category=${category}`} title={title} description={description} art={art} />
         </li>
       ))}
     </ul>

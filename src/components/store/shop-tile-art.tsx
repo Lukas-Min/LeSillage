@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 
-export type ShopTileArtName = "decant" | "full-bottle" | "partial" | "all" | "men" | "women";
+export type ShopTileArtName =
+  | "decant"
+  | "full-bottle"
+  | "partial"
+  | "all"
+  | "men"
+  | "women"
+  | "middle-eastern"
+  | "designer"
+  | "niche";
 
 /** A fill drawn faintly inside an outline, standing in for the liquid. */
 const LIQUID = { fill: "currentColor", fillOpacity: 0.28, stroke: "none" } as const;
@@ -8,7 +17,10 @@ const LIQUID = { fill: "currentColor", fillOpacity: 0.28, stroke: "none" } as co
 /**
  * Line drawings on a 64×64 grid, stroked in `currentColor`: an atomizer vial
  * for decants, a full flacon, the same flacon half full for partials, the
- * three side by side for everything, and the Mars and Venus signs.
+ * three side by side for everything, the Mars and Venus signs, and for the
+ * scent families an attar bottle with a spire stopper (Middle Eastern), a
+ * tall bottle tied with a bow (Designer), and a corked apothecary bottle with
+ * a hand-tied tag (Niche).
  */
 const ART: Record<ShopTileArtName, ReactNode> = {
   decant: (
@@ -70,6 +82,38 @@ const ART: Record<ShopTileArtName, ReactNode> = {
     <>
       <circle cx="32" cy="24" r="15" />
       <path d="M32 39v20M23 51h18" />
+    </>
+  ),
+  "middle-eastern": (
+    <>
+      <path d="M32 4c1 5 7 9 7 14a7 5 0 0 1-14 0c0-5 6-9 7-14Z" />
+      <rect x="27" y="23" width="10" height="2" rx="0.5" />
+      <rect x="29" y="25" width="6" height="5" />
+      <path d="M28 30c-12 6-14 20-7 27h22c7-7 5-21-7-27Z" />
+      <path d="M18.5 41h27M17.5 48h29" />
+      <path d="M32 42.5l2.5 2.5-2.5 2.5-2.5-2.5Z" fill="currentColor" fillOpacity={0.28} />
+      <path d="M17.6 48c.2 3.5 1.4 6.6 3.4 9h22c2-2.4 3.2-5.5 3.4-9Z" {...LIQUID} />
+    </>
+  ),
+  designer: (
+    <>
+      <rect x="27" y="4" width="10" height="9" rx="1" />
+      <rect x="29" y="13" width="6" height="9" />
+      <path d="M32 17l-9-4.5v9ZM32 17l9-4.5v9Z" />
+      <circle cx="32" cy="17" r="1.6" fill="currentColor" stroke="none" />
+      <rect x="21" y="22" width="22" height="36" rx="2" />
+      <rect x="24" y="26" width="16" height="29" rx="1" {...LIQUID} />
+    </>
+  ),
+  niche: (
+    <>
+      <rect x="28" y="6" width="8" height="7" rx="1" />
+      <rect x="29" y="13" width="6" height="7" />
+      <path d="M29 20c0 4-13 5-13 13v21a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4V33c0-8-13-9-13-13" />
+      <rect x="19" y="38" width="26" height="17" rx="2" {...LIQUID} />
+      <path d="M35 16c7 0 11 2 13 6" />
+      <path d="M47 21l8 4-3 7-8-4Z" />
+      <circle cx="48.5" cy="24" r="0.9" fill="currentColor" stroke="none" />
     </>
   ),
 };
