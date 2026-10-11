@@ -689,6 +689,10 @@ async function main() {
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestedAt" timestamp`);
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestReason" text`);
 
+  // Order status email queue (QUEUED rows, sent oldest-first per order).
+  await db.execute(`ALTER TABLE "notification_log" ADD COLUMN IF NOT EXISTS "payload" jsonb`);
+  await db.execute(`ALTER TABLE "notification_log" ADD COLUMN IF NOT EXISTS "attempts" integer NOT NULL DEFAULT 0`);
+
   await sqlClient.end({ timeout: 5 });
   console.log("Migration complete");
 }
@@ -727,6 +731,8 @@ async function main() {
 // ALTER TABLE "promo_code" DROP COLUMN IF EXISTS "description";
 // ALTER TABLE "promo_code" DROP COLUMN IF EXISTS "typeAmounts";
 // ALTER TABLE "newsletter_subscriber" DROP COLUMN IF EXISTS "confirmedAt";
+// ALTER TABLE "notification_log" DROP COLUMN IF EXISTS "payload";
+// ALTER TABLE "notification_log" DROP COLUMN IF EXISTS "attempts";
 
 main().catch((error) => {
   console.error(error);

@@ -31,6 +31,9 @@ const APP_URL = "https://le-sillage.vercel.app";
 // closed a second later.
 const JOBS = [
   "auto-reject-orders",
+  // Retries queued order status emails (a failed send, or an after() that
+  // never ran) before anything newer is sent for the same order.
+  "order-emails",
   "payment-reminders",
   "delivery-auto-complete",
   "delivery-followups",

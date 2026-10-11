@@ -174,6 +174,13 @@ export type NotificationChannel = (typeof notificationChannel)[number];
 export const notificationStatus = ["QUEUED", "SENT", "FAILED"] as const;
 export type NotificationStatus = (typeof notificationStatus)[number];
 
+/** What a QUEUED order status email is built from at send time. */
+export interface QueuedStatusEmailPayload {
+  status: OrderStatus;
+  previousStatus: OrderStatus;
+  reason: string | null;
+}
+
 // --- Auth.js core tables ---
 export const users = pgTable("user", {
   id: text("id")
@@ -829,6 +836,13 @@ export const notificationLog = pgTable(
     template: text("template").notNull(),
     status: text("status").$type<NotificationStatus>().notNull(),
     error: text("error"),
+    // Order status emails are queued here (status QUEUED) inside the status
+    // change's own transaction and sent oldest-first per order, so a fast
+    // Confirm, Ship, Deliver can't arrive out of order. `payload` holds what
+    // the email is built from; `attempts` counts failed sends. See
+    // drainQueuedStatusEmails in src/lib/orders.ts.
+    payload: jsonb("payload").$type<QueuedStatusEmailPayload>(),
+    attempts: integer("attempts").notNull().default(0),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => ({

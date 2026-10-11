@@ -1145,7 +1145,7 @@ export async function releasePromoCodeRedemption(orderId: string): Promise<void>
   });
 }
 
-// One send + one notificationLog insert per status that emails the
+// One queued notificationLog row (then one send) per status that emails the
 // customer; statuses with no entry (e.g. RECEIPT_SUBMITTED, COMPLETED) send
 // nothing here. COMPLETED has none deliberately — it's reached via the
 // customer's own action, the day-2 email's link, or the day-3 auto-complete
@@ -1236,6 +1236,21 @@ export async function transitionOrderStatus(args: {
         ...deliveryFields,
       })
       .where(eq(orders.id, args.orderId));
+    // Queued in this same transaction, after the order row lock, so the
+    // queue order is the status order: clock_timestamp() is the moment of
+    // this insert, and the lock makes a second transition on this order wait
+    // until this one commits. (now() would be the transaction's start, which
+    // a transition still waiting on the lock can have earlier.)
+    if (STATUS_EMAIL_TEMPLATES[args.next]) {
+      await tx.insert(notificationLog).values({
+        orderId: args.orderId,
+        recipient: row.email,
+        template: STATUS_EMAIL_TEMPLATES[args.next]!.template,
+        status: "QUEUED",
+        payload: { status: args.next, previousStatus: row.status, reason: reason ?? null },
+        createdAt: sql`clock_timestamp()`,
+      });
+    }
     return { row, reason };
   });
 
@@ -1247,51 +1262,101 @@ export async function transitionOrderStatus(args: {
     await releasePromoCodeRedemption(args.orderId);
   }
 
-  // The status change is committed (and stock released, where relevant);
-  // the customer email runs after the response so admin actions and
-  // self-service cancels return as soon as the DB work is done.
-  after(async () => {
-    const entry = STATUS_EMAIL_TEMPLATES[args.next];
-    if (!entry) return;
-    try {
-      const emailInput = await orderEmailInputFromRow(orderRow, {
-        status: args.next,
-        reason: statusReason ?? null,
-        previousStatus: orderRow.status,
-        testerAwarded: args.next === "CONFIRMED" ? await loadTesterAwarded(orderRow.promoTesterSkuId) : null,
-      });
+  // The status change and its queued email are committed (and stock
+  // released, where relevant); the email goes out after the response so
+  // admin actions and self-service cancels return as soon as the DB work is
+  // done. Sent through the queue, oldest first, so clicking Confirm, Ship,
+  // Deliver in quick succession can't deliver them out of order.
+  after(() => drainQueuedStatusEmails(args.orderId));
+}
 
-      const r = await sendEmail({ to: orderRow.email, ...entry.build(emailInput) });
-      await client.insert(notificationLog).values({
-        orderId: args.orderId,
-        recipient: orderRow.email,
-        template: entry.template,
-        status: r.ok ? "SENT" : "FAILED",
-        error: r.ok ? null : r.error ?? "unknown error",
+/** A queued status email that keeps failing is given up on after this many
+ *  tries, so the order's later emails still go out. */
+const MAX_STATUS_EMAIL_ATTEMPTS = 3;
+
+/**
+ * Sends one order's QUEUED status emails, oldest first, one per transaction
+ * under a per-order advisory lock: two of these running at once (two fast
+ * clicks, each with its own after()) take turns, and each sends whatever is
+ * oldest at that moment. A failed send stays QUEUED and stops the run, so a
+ * later step can't overtake it; the next run (another status change, or the
+ * order-emails cron) retries it. After MAX_STATUS_EMAIL_ATTEMPTS it's marked
+ * FAILED and the rest go out. Never throws: it runs from after() and cron.
+ */
+export async function drainQueuedStatusEmails(orderId: string): Promise<void> {
+  const client = db();
+  try {
+    // Bounded so a bug can't loop forever; an order never has this many.
+    for (let i = 0; i < 20; i++) {
+      const sentOne = await client.transaction(async (tx) => {
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`order-status-email:${orderId}`}))`);
+        const queued = (
+          await tx
+            .select()
+            .from(notificationLog)
+            .where(and(eq(notificationLog.orderId, orderId), eq(notificationLog.status, "QUEUED")))
+            .orderBy(asc(notificationLog.createdAt), asc(notificationLog.id))
+            .limit(1)
+            .for("update")
+        )[0];
+        if (!queued) return false;
+        const payload = queued.payload;
+        const entry = payload ? STATUS_EMAIL_TEMPLATES[payload.status] : undefined;
+        const order = (await tx.select().from(orders).where(eq(orders.id, orderId)))[0];
+        if (!payload || !entry || !order) {
+          await tx
+            .update(notificationLog)
+            .set({ status: "FAILED", error: "Nothing to build this email from" })
+            .where(eq(notificationLog.id, queued.id));
+          return true;
+        }
+        let error: string;
+        try {
+          const emailInput = await orderEmailInputFromRow(order, {
+            status: payload.status,
+            reason: payload.reason,
+            previousStatus: payload.previousStatus,
+            testerAwarded: payload.status === "CONFIRMED" ? await loadTesterAwarded(order.promoTesterSkuId) : null,
+          });
+          const result = await sendEmail({ to: queued.recipient, ...entry.build(emailInput) });
+          if (result.ok) {
+            await tx
+              .update(notificationLog)
+              .set({ status: "SENT", error: null, attempts: queued.attempts + 1 })
+              .where(eq(notificationLog.id, queued.id));
+            return true;
+          }
+          error = result.error ?? "unknown error";
+        } catch (caught) {
+          error = caught instanceof Error ? caught.message : "unknown error";
+        }
+        const attempts = queued.attempts + 1;
+        const givingUp = attempts >= MAX_STATUS_EMAIL_ATTEMPTS;
+        console.error(`Failed to send ${queued.template} email for order ${orderId} (try ${attempts})`, error);
+        await tx
+          .update(notificationLog)
+          .set({ status: givingUp ? "FAILED" : "QUEUED", error, attempts })
+          .where(eq(notificationLog.id, queued.id));
+        return givingUp;
       });
-    } catch (error) {
-      // Status change already committed; this must not surface as a failure
-      // to the caller. But previously it also left zero trace — a throw
-      // anywhere above (building the email input, an unexpected sendEmail
-      // rejection) skipped the notificationLog insert entirely, so a status
-      // email could silently never send with no record it was even
-      // attempted. Log and record it as FAILED instead, best-effort.
-      console.error(`Failed to send ${entry.template} email for order ${args.orderId}`, error);
-      await client
-        .insert(notificationLog)
-        .values({
-          orderId: args.orderId,
-          recipient: orderRow.email,
-          template: entry.template,
-          status: "FAILED",
-          error: error instanceof Error ? error.message : "unknown error",
-        })
-        .catch(() => {
-          // Even the audit-trail insert failed; nothing more to do from a
-          // fire-and-forget after() callback.
-        });
+      if (!sentOne) return;
     }
-  });
+  } catch (error) {
+    console.error(`Failed to drain status emails for order ${orderId}`, error);
+  }
+}
+
+/** The order-emails cron: retries every order with a status email still
+ *  queued (a failed send, or an after() that never ran). */
+export async function drainAllQueuedStatusEmails(): Promise<{ orders: number }> {
+  const rows = await db()
+    .selectDistinct({ orderId: notificationLog.orderId })
+    .from(notificationLog)
+    .where(and(eq(notificationLog.status, "QUEUED"), sql`${notificationLog.payload} is not null`));
+  for (const row of rows) {
+    if (row.orderId) await drainQueuedStatusEmails(row.orderId);
+  }
+  return { orders: rows.length };
 }
 
 export interface RequestCancellationInput {

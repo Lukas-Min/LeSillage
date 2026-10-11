@@ -26,6 +26,10 @@
     {
       "path": "/api/cron/marketing-emails",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/order-emails",
+      "schedule": "0 8 * * *"
     }
   ]
 }
