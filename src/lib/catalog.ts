@@ -1,5 +1,5 @@
 import { unstable_cache, updateTag } from "next/cache";
-import { and, asc, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   productDiscounts,
@@ -20,6 +20,7 @@ import { applyDiscount, bestDiscount, isDiscountActive, withSiteWideDiscount } f
 import { siteWideDiscountFromSettings } from "@/domain/promo";
 import { DECANT_SIZES_ML, decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { resolveBottleAvailability } from "@/domain/product-type";
+import { productSearchCondition } from "@/lib/product-search";
 import { isPartialSkuSoldOut } from "@/domain/product-archive";
 import {
   CONDITION_PACKAGING_ORDER,
@@ -379,24 +380,6 @@ export function buildVariantOptions(
     });
   }
   return options.sort(compareSkuOrder);
-}
-
-/**
- * Text-search condition over a product's name and brand. Every
- * whitespace-separated word must appear in the name OR the brand, in any
- * order — so "Velixir paladin" matches brand "Velixir" + name "Paladin",
- * which a single `%whole query%` against one column at a time never could.
- * Returns undefined for a blank query (no filter).
- */
-function productSearchCondition(query: string | undefined): SQL | undefined {
-  const words = (query ?? "").trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return undefined;
-  return and(
-    ...words.map((word) => {
-      const needle = `%${word}%`;
-      return or(ilike(products.name, needle), ilike(products.brand, needle));
-    }),
-  );
 }
 
 async function loadCatalogCardsUncached(filter: CatalogFilter = {}): Promise<CatalogCardModel[]> {
