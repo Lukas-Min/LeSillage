@@ -22,7 +22,8 @@ const GENDER_TILES: ShopMenuTile[] = [
 
 /**
  * The phone hamburger menu's Shop group: All as a small button first, then
- * the shelves as cards one per row, then Men and Women side by side. Same
+ * the shelves as cards one per row, then Men and Women side by side as small
+ * centred cards. Same
  * copy as the homepage Browse-by-type rows.
  */
 export const SHOP_ALL_LINK = { href: ALL_TILE.href, title: ALL_TILE.title };

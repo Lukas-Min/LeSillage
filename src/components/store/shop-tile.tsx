@@ -3,7 +3,11 @@ import { ArrowRight } from "lucide-react";
 import { ShopTileArt, type ShopTileArtName } from "@/components/store/shop-tile-art";
 import { cn } from "@/lib/utils";
 
-type TileSize = "page" | "menu" | "compact" | "half";
+type TileSize = "page" | "menu" | "compact";
+
+/** The frame and gold tint every card shares. */
+const CARD =
+  "group relative flex select-none flex-col overflow-hidden rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] transition-colors hover:border-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-ink";
 
 const SIZE = {
   page: {
@@ -19,13 +23,6 @@ const SIZE = {
   compact: {
     tile: "min-h-24 p-4",
     art: "bottom-2 right-3 h-16 w-16",
-    title: "text-xl",
-  },
-  /** Two side by side in the phone menu: too narrow for the drawing beside
-   *  the text, so it sits top-left across from "Explore". */
-  half: {
-    tile: "min-h-32 p-4",
-    art: "top-3 left-3 h-11 w-11",
     title: "text-xl",
   },
 } satisfies Record<TileSize, Record<string, string>>;
@@ -66,11 +63,7 @@ export function ShopTile({
     <Link
       href={href}
       onClick={onClick}
-      className={cn(
-        "group relative flex h-full select-none flex-col overflow-hidden rounded-md border border-gold/35 bg-[color-mix(in_oklch,var(--card),var(--gold)_10%)] transition-colors hover:border-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-ink",
-        s.tile,
-        className,
-      )}
+      className={cn(CARD, "h-full", s.tile, className)}
     >
       <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
       <ShopTileArt
@@ -86,6 +79,39 @@ export function ShopTile({
       </span>
       <Title className={cn("relative mt-auto pt-3 font-serif-display leading-tight", s.title)}>{title}</Title>
       <p className="relative mt-1 text-sm text-muted-foreground">{description}</p>
+    </Link>
+  );
+}
+
+/**
+ * A small ShopTile for two side by side in the phone menu (Men, Women): the
+ * drawing centred on top, the title under it, and a short "Shop" with an
+ * arrow, in the same frame and gold. No description; at half the menu's
+ * width it would wrap to a cramped two lines.
+ */
+export function ShopMiniTile({
+  href,
+  title,
+  art,
+  onClick,
+}: {
+  href: string;
+  title: string;
+  art: ShopTileArtName;
+  onClick?: () => void;
+}) {
+  return (
+    <Link href={href} onClick={onClick} className={cn(CARD, "h-full items-center px-3 py-4 text-center")}>
+      <span className="pointer-events-none absolute inset-2 border border-gold/20" aria-hidden="true" />
+      <ShopTileArt
+        name={art}
+        className="relative h-12 w-12 text-gold/70 transition-colors group-hover:text-gold dark:text-gold/60"
+      />
+      <p className="relative mt-2 font-serif-display text-xl leading-tight">{title}</p>
+      <span className="relative mt-1 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-gold-ink">
+        Shop
+        <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+      </span>
     </Link>
   );
 }

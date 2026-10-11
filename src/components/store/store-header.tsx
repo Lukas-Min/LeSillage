@@ -32,7 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PromoMarquee } from "@/components/store/promo-marquee";
 import { SHOP_ALL_LINK, SHOP_GENDER_TILES, SHOP_TYPE_TILES, ShopMegaMenu } from "@/components/store/shop-menu";
-import { ShopTile } from "@/components/store/shop-tile";
+import { ShopMiniTile, ShopTile } from "@/components/store/shop-tile";
 
 /** Besides Shop, which is its own mega-menu item (ShopMegaMenu). */
 const PRIMARY_LINKS = [
@@ -262,7 +262,7 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
               ))}
               {SHOP_GENDER_TILES.map((tile) => (
                 <li key={tile.href}>
-                  <ShopTile {...tile} size="half" as="p" onClick={() => setOpen(false)} />
+                  <ShopMiniTile href={tile.href} title={tile.title} art={tile.art} onClick={() => setOpen(false)} />
                 </li>
               ))}
             </ul>
