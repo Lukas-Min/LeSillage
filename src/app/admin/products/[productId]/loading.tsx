@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FORM_ACTION_CLASS } from "@/components/ui/form-action";
+import { ProductBrowseNavSkeleton } from "@/components/admin/product-browse-nav";
 
 function Field({ label, className }: { label: string; className?: string }) {
   return (
@@ -27,6 +28,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function AdminProductLoading() {
   return (
     <div className="space-y-6">
+      <ProductBrowseNavSkeleton />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
           <Skeleton className="h-3 w-48" />

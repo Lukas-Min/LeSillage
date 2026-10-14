@@ -4,6 +4,9 @@ All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
 ### Added
+- Admin product page: Previous / Next buttons, "2 of 3", and a Back link to the list, walking the Products list the product was opened from: the same tab (All, Decants, Full bottles, Partials, Archived) and search, in the same order. The list's cards carry the tab and search in the product's URL (`?type=…&q=…`); without them it walks All. The list and the buttons share one builder, `buildAdminProductList`, so they can't disagree (`src/lib/admin-product-list.ts`, `src/components/admin/product-browse-nav.tsx`, `src/app/admin/products/page.tsx`, `src/app/admin/products/[productId]/page.tsx`, `loading.tsx`)
+- Admin Products list shows what customers pay when a discount is running: each size's full price struck through, then the discounted price (the product's discount or the site-wide sale, whichever the shop applies), plus an "On sale" badge on the card (`src/app/admin/products/page.tsx`)
+### Added
 - Admin product page Discount card shows what comes off each size, live as you type: each size's price, its price after the discount, and the peso deduction (same math as the shop, `applyDiscount`), or "No discount" at 0. Prefilled with the saved discount, so it also shows what the current one takes off (`src/components/admin/discount-amount-fields.tsx`, `src/app/admin/products/[productId]/page.tsx`)
 ### Changed
 - Admin Products search now matches like the shop's: every word, in any order, in the name or brand, ignoring accents, apostrophes and case ("eclat arpege", "velixir paladin"), instead of the whole query as one piece of text. `matchesProductSearch` is the in-memory twin of `productSearchCondition`, sharing its word split and fold, with a test that the two agree (`src/lib/product-search.ts`, `src/app/admin/products/page.tsx`)

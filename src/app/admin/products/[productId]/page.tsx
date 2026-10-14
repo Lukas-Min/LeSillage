@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { and, asc, eq } from "drizzle-orm";
@@ -16,6 +17,8 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { DecantSkuFields } from "@/components/admin/decant-sku-fields";
 import { TesterToggle } from "@/components/admin/tester-toggle";
 import { DiscountAmountFields } from "@/components/admin/discount-amount-fields";
+import { ProductBrowseNav, ProductBrowseNavSkeleton } from "@/components/admin/product-browse-nav";
+import { parseProductListTab } from "@/lib/admin-product-list";
 import {
   addProductImage,
   adjustDecantMl,
@@ -73,10 +76,13 @@ export default async function AdminProductDetailPage({
   searchParams,
 }: {
   params: Promise<{ productId: string }>;
-  searchParams: Promise<{ welcome?: string }>;
+  searchParams: Promise<{ welcome?: string; type?: string; q?: string }>;
 }) {
   const { productId } = await params;
-  const { welcome } = await searchParams;
+  const { welcome, type: typeParam, q: qParam } = await searchParams;
+  // The Products list tab and search this was opened from, for Previous/Next.
+  const listTab = parseProductListTab(typeParam);
+  const listQuery = (qParam ?? "").trim();
   const product = (await db().select().from(products).where(eq(products.id, productId)))[0];
   if (!product) return notFound();
   const [skuList, discountList, imageList] = await Promise.all([
@@ -120,6 +126,11 @@ export default async function AdminProductDetailPage({
   }
   return (
     <div className="space-y-6">
+      {/* Its own boundary: it reads the whole product list, which shouldn't
+          hold up this product's page. */}
+      <Suspense fallback={<ProductBrowseNavSkeleton />}>
+        <ProductBrowseNav productId={product.id} tab={listTab} query={listQuery} />
+      </Suspense>
       <AreaHeader
         eyebrow={`${product.brand} · ${labelForType(product.type)} · ${labelForCategory(product.fragranceCategory)}`}
         title={product.name}

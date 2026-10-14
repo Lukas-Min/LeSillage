@@ -1,20 +1,28 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { products, productImages, skus, promoSettings, type ProductType } from "@/db/schema";
+import { productDiscounts, products, productImages, skus, promoSettings, type ProductType } from "@/db/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { formatPHP } from "@/domain/money";
+import { applyDiscount, bestDiscount, withSiteWideDiscount } from "@/domain/discount";
+import { siteWideDiscountFromSettings } from "@/domain/promo";
 import { concentrationLabel } from "@/domain/concentration";
 import { decantFulfillment, DEFAULT_DECANT_PREORDER_THRESHOLD_ML } from "@/domain/decant";
 import { labelForType } from "@/domain/product-type";
 import { compareSkuOrder } from "@/domain/variant-options";
-import { isArchivedProduct, isSoldOutPartial } from "@/domain/product-archive";
+import { isSoldOutPartial } from "@/domain/product-archive";
 import { productsMissingCost } from "@/domain/product-cost";
-import { matchesProductSearch } from "@/lib/product-search";
+import {
+  ADMIN_PRODUCTS_PAGE_SIZE,
+  adminProductHref,
+  adminProductsListHref,
+  buildAdminProductList,
+  parseProductListTab,
+} from "@/lib/admin-product-list";
 import { isSelfHostedProductPhoto } from "@/lib/remote-images";
 import { MovePhotosNotice } from "@/components/admin/move-photos-notice";
 import { cn } from "@/lib/utils";
@@ -25,7 +33,7 @@ import { PRODUCT_TYPE_TABS, ProductsListSkeleton, type ProductListTab } from "@/
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = ADMIN_PRODUCTS_PAGE_SIZE;
 
 export default async function ProductsAdminPage({
   searchParams,
@@ -33,10 +41,7 @@ export default async function ProductsAdminPage({
   searchParams: Promise<{ type?: string; q?: string; page?: string }>;
 }) {
   const { type: typeParam, q: qParam, page: pageParam } = await searchParams;
-  const activeType: ProductListTab =
-    typeParam === "DECANT" || typeParam === "FULL_BOTTLE" || typeParam === "PARTIAL" || typeParam === "ARCHIVED"
-      ? typeParam
-      : "ALL";
+  const activeType = parseProductListTab(typeParam);
   const query = (qParam ?? "").trim();
   const requestedPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
@@ -74,26 +79,39 @@ async function ProductsList({
   query: string;
   requestedPage: number;
 }) {
-  const [allProductRows, skuRows, promoRow, photoRows] = await Promise.all([
+  const [allProductRows, skuRows, promoRow, photoRows, discountRows] = await Promise.all([
     db().select().from(products),
     db().select().from(skus),
     db().select().from(promoSettings),
     db().select({ url: productImages.url }).from(productImages),
+    db().select().from(productDiscounts),
   ]);
+  // Each size's price after the best discount running now (the product's
+  // own, or the site-wide sale), worked out exactly as the shop does.
+  const siteWideDiscount = siteWideDiscountFromSettings(promoRow[0]);
+  const discountsByProduct = new Map<string, typeof discountRows>();
+  for (const discount of discountRows) {
+    const list = discountsByProduct.get(discount.productId);
+    if (list) list.push(discount);
+    else discountsByProduct.set(discount.productId, [discount]);
+  }
+  const salePrice = (productId: string, retailPrice: number) => {
+    const discounts = withSiteWideDiscount(discountsByProduct.get(productId) ?? [], productId, siteWideDiscount);
+    return applyDiscount(retailPrice, bestDiscount(discounts, retailPrice)).discountedUnitCentavos;
+  };
   const photosToMove = photoRows.filter((photo) => !isSelfHostedProductPhoto(photo.url)).length;
   const threshold = promoRow[0]?.decantPreOrderThresholdMl ?? DEFAULT_DECANT_PREORDER_THRESHOLD_ML;
   // Archived products only show under the Archived tab; the other tabs and
   // their counts are the live catalog (visible or hidden, not archived).
-  const skusByProduct = new Map<string, typeof skuRows>();
-  for (const sku of skuRows) {
-    const list = skusByProduct.get(sku.productId);
-    if (list) list.push(sku);
-    else skusByProduct.set(sku.productId, [sku]);
-  }
-  const archivedIds = new Set(
-    allProductRows.filter((p) => isArchivedProduct(p, skusByProduct.get(p.id) ?? [])).map((p) => p.id),
+  // Shared with the product page's Previous/Next (buildAdminProductList),
+  // so both walk the same list in the same order: the tab, the search (the
+  // shop's matching), alphabetical by brand, then name.
+  const { skusByProduct, archivedIds, liveRows, filtered } = buildAdminProductList(
+    allProductRows,
+    skuRows,
+    activeType,
+    query,
   );
-  const liveRows = allProductRows.filter((p) => !archivedIds.has(p.id));
   const missingCost = productsMissingCost(allProductRows, skuRows);
   const missingCostIds = new Set(missingCost.map((p) => p.id));
   const countByType = new Map<ProductType, number>();
@@ -101,37 +119,17 @@ async function ProductsList({
   const tabCount = (tab: ProductListTab) =>
     tab === "ALL" ? liveRows.length : tab === "ARCHIVED" ? archivedIds.size : (countByType.get(tab) ?? 0);
 
-  let filtered =
-    activeType === "ARCHIVED"
-      ? allProductRows.filter((p) => archivedIds.has(p.id))
-      : activeType === "ALL"
-        ? liveRows
-        : liveRows.filter((p) => p.type === activeType);
-  // Same matching as the shop's search: every word, in any order, in the
-  // name or brand, ignoring accents and punctuation ("eclat arpege").
-  if (query) filtered = filtered.filter((p) => matchesProductSearch(query, p));
-  // Always alphabetical, A first — by brand, then name within a brand.
-  filtered = [...filtered].sort((a, b) => {
-    const byBrand = a.brand.localeCompare(b.brand, undefined, { sensitivity: "base" });
-    if (byBrand !== 0) return byBrand;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const page = Math.min(requestedPage, totalPages);
   const productRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function hrefFor(overrides: { type?: ProductListTab; q?: string; page?: number }) {
-    const params = new URLSearchParams();
-    const t = overrides.type ?? activeType;
-    if (t !== "ALL") params.set("type", t);
-    const qq = overrides.q ?? query;
-    if (qq) params.set("q", qq);
-    const p = overrides.page ?? page;
-    if (p > 1) params.set("page", String(p));
-    const qs = params.toString();
-    return `/admin/products${qs ? `?${qs}` : ""}`;
+    return adminProductsListHref(overrides.type ?? activeType, overrides.q ?? query, overrides.page ?? page);
   }
+  // Each product opens with this tab and search in its URL, so its
+  // Previous/Next walk this same list.
+  const productHref = (productId: string) => adminProductHref(productId, activeType, query);
 
   return (
     <div className="flex flex-col gap-4">
@@ -210,6 +208,7 @@ async function ProductsList({
         // A sold-out partial is archived until it has stock again; Unarchive
         // has nothing to switch back on, so it isn't offered.
         const soldOut = archived && isSoldOutPartial(product, skusForProduct);
+        const onSale = skusForProduct.some((sku) => salePrice(product.id, sku.retailPrice) < sku.retailPrice);
         const details = (
           <>
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -221,6 +220,11 @@ async function ProductsList({
                       <Badge variant="destructive">No concentration</Badge>
                     )}
                     {missingCostIds.has(product.id) ? <Badge variant="secondary">No cost</Badge> : null}
+                    {onSale ? (
+                      <Badge variant="outline" className="border-gold/50 text-gold-ink">
+                        On sale
+                      </Badge>
+                    ) : null}
                     <span className="text-xs text-muted-foreground">
                       {soldOut ? "Sold out" : archived ? "Archived" : product.isActive ? "Visible" : "Hidden"}
                     </span>
@@ -240,14 +244,25 @@ async function ProductsList({
                             thresholdMl: threshold,
                           })
                         : `${sku.fulfillment} · stock ${sku.stock}`;
+                    const sale = salePrice(product.id, sku.retailPrice);
                     return (
-                      <li key={sku.id} className="flex justify-between border-t pt-1">
+                      <li key={sku.id} className="flex justify-between gap-3 border-t pt-1">
                         <span>
                           {sku.label} · {availability}
                           {sku.isActive ? "" : " · archived"}
                         </span>
-                        <span>
-                          {formatPHP(sku.retailPrice)} (cost {formatPHP(sku.costPrice)})
+                        {/* With a discount running: the full price struck
+                            through, then what customers pay. */}
+                        <span className="shrink-0 text-right tabular-nums">
+                          {sale < sku.retailPrice ? (
+                            <>
+                              <span className="text-muted-foreground line-through">{formatPHP(sku.retailPrice)}</span>{" "}
+                              <span className="font-medium">{formatPHP(sale)}</span>
+                            </>
+                          ) : (
+                            formatPHP(sku.retailPrice)
+                          )}{" "}
+                          <span className="text-muted-foreground">(cost {formatPHP(sku.costPrice)})</span>
                         </span>
                       </li>
                     );
@@ -264,7 +279,7 @@ async function ProductsList({
                 {details}
                 <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
                   <Button asChild variant="outline" className="h-11">
-                    <Link href={`/admin/products/${product.id}`}>
+                    <Link href={productHref(product.id)}>
                       Open<span className="sr-only"> {product.name}</span>
                     </Link>
                   </Button>
@@ -282,7 +297,7 @@ async function ProductsList({
           );
         }
         return (
-          <Link key={product.id} href={`/admin/products/${product.id}`} className="block">
+          <Link key={product.id} href={productHref(product.id)} className="block">
             <Card className="transition-colors hover:border-gold/40 hover:bg-muted/30">
               <CardContent className="space-y-2 p-4 text-sm">{details}</CardContent>
             </Card>
