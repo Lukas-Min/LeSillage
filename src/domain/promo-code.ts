@@ -129,7 +129,7 @@ export function checkPromoCodeEligibility(
  * price. Orders placed before it were charged under the old rule, so their
  * receipts and emails split the code the old way (allocatePromoToLines).
  */
-export const ORDER_CODES_ON_SALE_ITEMS_SINCE = new Date("2026-10-14T15:30:00Z");
+export const ORDER_CODES_ON_SALE_ITEMS_SINCE = new Date("2026-10-14T15:20:30Z");
 
 /** Whether an order placed at `placedAt` had its code skip sale items (the old rule). */
 export function orderCodeSkippedSaleItems(placedAt: Date | null | undefined): boolean {
