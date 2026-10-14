@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cache } from "react";
 import type { Metadata } from "next";
+import { Star } from "lucide-react";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -237,7 +238,12 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
 
         <div className="contents sm:flex sm:flex-col sm:gap-6 sm:sticky sm:top-20 sm:self-stretch sm:pl-8 md:pl-12">
           <div className="order-2 flex items-start justify-between gap-3">
-            <ProductTitleText brand={row.brand} name={row.name} concentrationGender={concentrationGender} />
+            <ProductTitleText
+              brand={row.brand}
+              name={row.name}
+              concentrationGender={concentrationGender}
+              ratingText={formatProductRating(row.ratingValue)}
+            />
             <WishlistButton productId={row.productId} variant="icon" initiallySaved={wishlisted} />
           </div>
 
@@ -300,6 +306,13 @@ export default async function ProductPage({ params }: { params: Promise<{ skuId:
   );
 }
 
+function formatProductRating(value: string | null): string | null {
+  if (!value) return null;
+  const rating = Number(value);
+  if (!Number.isFinite(rating) || rating <= 0) return null;
+  return rating.toFixed(1);
+}
+
 /** Pure text, no interactive state — safe to render more than once (see the
  *  mobile/desktop split above). WishlistButton is NOT part of this: it's a
  *  stateful client component and must stay single-instance. */
@@ -307,18 +320,32 @@ function ProductTitleText({
   brand,
   name,
   concentrationGender,
+  ratingText,
   className,
 }: {
   brand: string;
   name: string;
   concentrationGender: string | null;
+  ratingText: string | null;
   className?: string;
 }) {
   return (
     <div className={cn("space-y-1.5", className)}>
       <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{brand}</p>
       <h1 className="font-serif-display text-3xl leading-[1.05] md:text-4xl lg:text-5xl">{name}</h1>
-      {concentrationGender ? <p className="text-sm text-muted-foreground">{concentrationGender}</p> : null}
+      {concentrationGender || ratingText ? (
+        <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+          {concentrationGender}
+          {ratingText ? (
+            <span className="inline-flex items-center gap-1 text-foreground">
+              <Star className="h-3.5 w-3.5 shrink-0 fill-gold text-gold" aria-hidden="true" />
+              <span className="sr-only">Rated </span>
+              {ratingText}
+              <span className="sr-only"> out of 5</span>
+            </span>
+          ) : null}
+        </p>
+      ) : null}
     </div>
   );
 }

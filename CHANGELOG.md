@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Fixed
+- Product page shows a gold star and one-decimal rating on the concentration line when a product has one, and Bright Crystal, Terre d'Hermès, Le Male Elixir and Eclat d'Arpège now have their Fragrantica ratings (`src/app/(store)/shop/[skuId]/page.tsx`)
 ### Changed
 - Order promo codes (WELCOME10 and the like) now apply to sale items too, taking their cut from the already-discounted price: a 10% code on a ₱4,650 bottle that's 5% off (₱4,417.50) takes ₱441.75, and it never touches the original price. Before, a code only discounted items with no discount of their own, and was refused when everything in the bag was on sale. The site-wide sale and a product's own discount still don't stack with each other (the bigger one wins). Orders placed before the change (`ORDER_CODES_ON_SALE_ITEMS_SINCE`) keep their old per-item split on receipts and emails, since that's how they were charged. The FAQ ("How do promo codes work?") and store docs say so (`src/domain/checkout-totals.ts`, `src/domain/promo-code.ts`, `src/domain/order-summary.ts`, `src/lib/order-email-lines.ts`, `src/app/account/orders/[orderId]/page.tsx`, `src/app/admin/orders/[orderId]/page.tsx`, `src/actions/promo-code-actions.ts`, `src/lib/faq-copy.ts`)
 ### Added
