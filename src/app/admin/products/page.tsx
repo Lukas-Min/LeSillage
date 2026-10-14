@@ -14,6 +14,7 @@ import { labelForType } from "@/domain/product-type";
 import { compareSkuOrder } from "@/domain/variant-options";
 import { isArchivedProduct, isSoldOutPartial } from "@/domain/product-archive";
 import { productsMissingCost } from "@/domain/product-cost";
+import { matchesProductSearch } from "@/lib/product-search";
 import { isSelfHostedProductPhoto } from "@/lib/remote-images";
 import { MovePhotosNotice } from "@/components/admin/move-photos-notice";
 import { cn } from "@/lib/utils";
@@ -106,12 +107,9 @@ async function ProductsList({
       : activeType === "ALL"
         ? liveRows
         : liveRows.filter((p) => p.type === activeType);
-  if (query) {
-    const q = query.toLowerCase();
-    filtered = filtered.filter(
-      (p) => p.brand.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
-    );
-  }
+  // Same matching as the shop's search: every word, in any order, in the
+  // name or brand, ignoring accents and punctuation ("eclat arpege").
+  if (query) filtered = filtered.filter((p) => matchesProductSearch(query, p));
   // Always alphabetical, A first — by brand, then name within a brand.
   filtered = [...filtered].sort((a, b) => {
     const byBrand = a.brand.localeCompare(b.brand, undefined, { sensitivity: "base" });

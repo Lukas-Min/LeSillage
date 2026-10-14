@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { foldSearchText, productSearchCondition } from "../product-search";
+import { foldSearchText, matchesProductSearch, productSearchCondition } from "../product-search";
 
 const dialect = new PgDialect();
 
@@ -127,5 +127,32 @@ describe("productSearchCondition", () => {
     const coeur = { name: "Cœur de Jardin", brand: "Maison" };
     expect(matches("coeur", coeur)).toBe(true);
     expect(matches("cœur", coeur)).toBe(true);
+  });
+});
+
+describe("matchesProductSearch", () => {
+  const eclat = { brand: "Lanvin", name: "Eclat d'Arpège" };
+  const paladin = { brand: "Velixir", name: "Paladin" };
+
+  it("matches every word in the name or brand, in any order, like the shop", () => {
+    expect(matchesProductSearch("paladin velixir", paladin)).toBe(true);
+    expect(matchesProductSearch("velixir uranus", paladin)).toBe(false);
+  });
+
+  it("ignores accents, apostrophes and case", () => {
+    expect(matchesProductSearch("ECLAT darpege", eclat)).toBe(true);
+    expect(matchesProductSearch("d’arpège", eclat)).toBe(true);
+  });
+
+  it("agrees with the shop's SQL condition", () => {
+    for (const query of ["arpege", "lanvin eclat", "d'arp", "velixir", "x"]) {
+      for (const product of [eclat, paladin]) {
+        expect(matchesProductSearch(query, product)).toBe(matches(query, product));
+      }
+    }
+  });
+
+  it("matches everything for a blank query", () => {
+    expect(matchesProductSearch("  ", eclat)).toBe(true);
   });
 });

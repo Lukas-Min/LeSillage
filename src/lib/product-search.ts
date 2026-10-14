@@ -79,6 +79,11 @@ function foldColumn(column: AnyPgColumn): SQL {
   return expr;
 }
 
+/** The query's words, folded (`foldSearchText`); empty for a blank query. */
+function searchWords(query: string | undefined): string[] {
+  return foldSearchText(query ?? "").trim().split(/\s+/).filter(Boolean);
+}
+
 /**
  * Text-search condition over a product's name and brand. Every
  * whitespace-separated word must appear in the name OR the brand, in any
@@ -88,7 +93,7 @@ function foldColumn(column: AnyPgColumn): SQL {
  * Returns undefined for a blank query (no filter).
  */
 export function productSearchCondition(query: string | undefined): SQL | undefined {
-  const words = foldSearchText(query ?? "").trim().split(/\s+/).filter(Boolean);
+  const words = searchWords(query);
   if (words.length === 0) return undefined;
   return and(
     ...words.map((word) => {
@@ -96,4 +101,18 @@ export function productSearchCondition(query: string | undefined): SQL | undefin
       return or(ilike(foldColumn(products.name), needle), ilike(foldColumn(products.brand), needle));
     }),
   );
+}
+
+/**
+ * The same match as `productSearchCondition`, in JS, for lists already in
+ * memory (the admin Products page filters every product it loaded). Each
+ * word must appear in the folded name or brand; case doesn't matter, as with
+ * ILIKE. A blank query matches everything.
+ */
+export function matchesProductSearch(query: string | undefined, product: { name: string; brand: string }): boolean {
+  const words = searchWords(query).map((word) => word.toLowerCase());
+  if (words.length === 0) return true;
+  const name = foldSearchText(product.name).toLowerCase();
+  const brand = foldSearchText(product.brand).toLowerCase();
+  return words.every((word) => name.includes(word) || brand.includes(word));
 }
