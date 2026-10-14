@@ -15,6 +15,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { DecantSkuFields } from "@/components/admin/decant-sku-fields";
 import { TesterToggle } from "@/components/admin/tester-toggle";
+import { DiscountAmountFields } from "@/components/admin/discount-amount-fields";
 import {
   addProductImage,
   adjustDecantMl,
@@ -546,34 +547,21 @@ export default async function AdminProductDetailPage({
               >
                 <input type="hidden" name="productId" value={product.id} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Type" htmlFor="new-discount-type">
-                    <select
-                      id="new-discount-type"
-                      name="type"
-                      defaultValue={activeDiscount?.type ?? "PERCENTAGE"}
-                      className={selectClass}
-                    >
-                      <option value="PERCENTAGE">Percentage</option>
-                      <option value="FIXED">Fixed ₱ off</option>
-                    </select>
-                  </Field>
-                  <Field label="Amount (0 removes it)" htmlFor="new-discount-amount">
-                    <Input
-                      id="new-discount-amount"
-                      name="amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                      defaultValue={
-                        activeDiscount
-                          ? activeDiscount.type === "FIXED"
-                            ? (activeDiscount.amount / 100).toFixed(2)
-                            : activeDiscount.amount
-                          : undefined
-                      }
-                    />
-                  </Field>
+                  <DiscountAmountFields
+                    defaultType={activeDiscount?.type ?? "PERCENTAGE"}
+                    defaultAmount={
+                      activeDiscount
+                        ? activeDiscount.type === "FIXED"
+                          ? (activeDiscount.amount / 100).toFixed(2)
+                          : String(activeDiscount.amount)
+                        : ""
+                    }
+                    sizes={(skuList.some((sku) => sku.isActive) ? skuList.filter((sku) => sku.isActive) : skuList).map((sku) => ({
+                      id: sku.id,
+                      label: sku.label,
+                      retailPrice: sku.retailPrice,
+                    }))}
+                  />
                   <Field label="Starts" htmlFor="new-discount-starts-at" className="col-span-2 min-w-0 sm:col-span-1 xl:col-span-2">
                     <Input
                       id="new-discount-starts-at"

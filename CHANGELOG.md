@@ -3,6 +3,8 @@
 All notable changes to Le Sillage are documented here. Newest entries on top.
 
 ## [Unreleased]
+### Added
+- Admin product page Discount card shows what comes off each size, live as you type: each size's price, its price after the discount, and the peso deduction (same math as the shop, `applyDiscount`), or "No discount" at 0. Prefilled with the saved discount, so it also shows what the current one takes off (`src/components/admin/discount-amount-fields.tsx`, `src/app/admin/products/[productId]/page.tsx`)
 ### Changed
 - Admin Products search now matches like the shop's: every word, in any order, in the name or brand, ignoring accents, apostrophes and case ("eclat arpege", "velixir paladin"), instead of the whole query as one piece of text. `matchesProductSearch` is the in-memory twin of `productSearchCondition`, sharing its word split and fold, with a test that the two agree (`src/lib/product-search.ts`, `src/app/admin/products/page.tsx`)
 ### Changed
