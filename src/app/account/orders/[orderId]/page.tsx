@@ -93,6 +93,7 @@ export default async function OrderDetailPage({
     })),
     summary.promoCodeCentavos,
     orderCode,
+    { placedAt: order.createdAt },
   );
   const imageBySku = new Map<string, { url: string; alt: string | null }>();
   const skuIds = [...new Set(items.map((item) => item.skuId))];

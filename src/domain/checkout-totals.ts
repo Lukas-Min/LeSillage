@@ -24,15 +24,16 @@ export interface ProductTypeTotals {
 export interface CheckoutTotals {
   merchandiseSubtotalCentavos: number;
   discountCentavos: number;
-  /** The portion of merchandiseSubtotalCentavos actually eligible for an
-   *  ORDER-scope promo code's discount — lines that already carry their own
-   *  item discount (a product's own productDiscounts row, or the site-wide
-   *  discount) are excluded, so a code like WELCOME10 only ever discounts
-   *  regular-price lines, never stacking on top of an item discount that's
-   *  already applied. Exposed so callers validating a code before it's
-   *  redeemed (checkPromoCodeEligibility's zero-benefit check, the checkout
-   *  "Apply" preview) use the exact same base this function computes
-   *  orderDiscountCentavos from below. */
+  /** What an ORDER-scope promo code's discount is taken from: every line at
+   *  its price after its own item discount (a product's productDiscounts
+   *  row, or the site-wide discount), so a code like WELCOME10 stacks on sale
+   *  items, taking its cut from the sale price. Today that's the whole
+   *  merchandise subtotal; it stays its own field so the base is defined in
+   *  one place. Exposed so callers validating a code before it's redeemed
+   *  (checkPromoCodeEligibility's zero-benefit check, the checkout "Apply"
+   *  preview) use the exact same base this function computes
+   *  orderDiscountCentavos from below. (Before ORDER_CODES_ON_SALE_ITEMS_SINCE,
+   *  lines with an item discount were left out.) */
   orderDiscountEligibleSubtotalCentavos: number;
   /** The two subtotals above split by product type, so an ORDER code limited
    *  with per-type amounts (PromoCode.typeAmounts) is measured and applied
@@ -63,7 +64,9 @@ function totalsByProductType(lines: readonly PricedLine[]): Record<ProductType, 
   };
   for (const line of lines) {
     totals[line.productType].merchandiseCentavos += line.lineSubtotalCentavos;
-    if (line.lineDiscountCentavos === 0) totals[line.productType].eligibleCentavos += line.lineSubtotalCentavos;
+    // Sale lines count too, at their discounted price (see
+    // orderDiscountEligibleSubtotalCentavos).
+    totals[line.productType].eligibleCentavos += line.lineSubtotalCentavos;
   }
   return totals;
 }
@@ -87,13 +90,9 @@ export function buildCartTotals(
     productType: line.productType,
     discountedLineTotalCentavos: line.lineSubtotalCentavos,
   }));
-  // Lines that already have their own item discount (lineDiscountCentavos >
-  // 0) don't contribute to the base an ORDER-scope code discounts from — see
+  // Every line counts, sale lines at their already-discounted price — see
   // orderDiscountEligibleSubtotalCentavos's own doc comment above.
-  const orderDiscountEligibleSubtotalCentavos = priced.lines.reduce(
-    (sum, line) => (line.lineDiscountCentavos === 0 ? sum + line.lineSubtotalCentavos : sum),
-    0,
-  );
+  const orderDiscountEligibleSubtotalCentavos = priced.lines.reduce((sum, line) => sum + line.lineSubtotalCentavos, 0);
   const byProductType = totalsByProductType(priced.lines);
   // An ORDER-scope code's discount depends only on that eligible subtotal
   // (split by product type, if the code has per-type amounts), so it's the

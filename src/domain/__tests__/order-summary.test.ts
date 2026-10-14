@@ -54,8 +54,16 @@ describe("allocatePromoToLines", () => {
     expect([...shares.values()].sort()).toEqual([33, 33, 34]);
   });
 
-  it("gives nothing to a line that already has its own item discount", () => {
+  it("shares the code with a sale line too, by what it sold for", () => {
     const shares = allocatePromoToLines([line("a", 20000, 5000), line("b", 20000)], 1000);
+    expect(shares.get("a")).toBe(500);
+    expect(shares.get("b")).toBe(500);
+  });
+
+  it("keeps the old split, sale lines left out, for an order placed before codes applied to them", () => {
+    const shares = allocatePromoToLines([line("a", 20000, 5000), line("b", 20000)], 1000, null, {
+      placedAt: new Date("2026-10-01T00:00:00Z"),
+    });
     expect(shares.get("a")).toBe(0);
     expect(shares.get("b")).toBe(1000);
   });

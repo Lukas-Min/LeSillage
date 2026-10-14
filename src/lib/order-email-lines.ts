@@ -53,7 +53,7 @@ type OrderItemRow = Pick<
  */
 export async function toEmailLines(
   rows: OrderItemRow[],
-  order?: { id: string; subtotalCentavos: number },
+  order?: { id: string; subtotalCentavos: number; createdAt: Date },
 ): Promise<EmailLine[]> {
   const [images, shares] = await Promise.all([loadSkuImageMap(rows.map((row) => row.skuId)), promoSharesFor(rows, order)]);
   return rows.map((row, index) => ({
@@ -74,7 +74,7 @@ export async function toEmailLines(
 
 async function promoSharesFor(
   rows: OrderItemRow[],
-  order?: { id: string; subtotalCentavos: number },
+  order?: { id: string; subtotalCentavos: number; createdAt: Date },
 ): Promise<{ amounts: Map<string, number>; code: string | null } | null> {
   if (!order) return null;
   const itemsCentavos = rows.reduce((sum, row) => sum + row.lineTotalCentavos, 0);
@@ -94,6 +94,7 @@ async function promoSharesFor(
     })),
     promoCentavos,
     code ?? null,
+    { placedAt: order.createdAt },
   );
   return { amounts, code: code?.code ?? null };
 }

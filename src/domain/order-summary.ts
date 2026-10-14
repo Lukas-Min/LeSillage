@@ -1,5 +1,5 @@
 import type { DiscountType, ProductType, PromoCodeTypeAmounts } from "@/db/schema";
-import { amountForType } from "@/domain/promo-code";
+import { amountForType, orderCodeSkippedSaleItems } from "@/domain/promo-code";
 
 /**
  * What an order's totals block shows, from what the order stores.
@@ -47,7 +47,8 @@ export function summarizeOrderTotals(input: OrderSummaryInput): OrderSummary {
 export interface PromoShareLine {
   id: string;
   lineTotalCentavos: number;
-  /** Item discount already inside the line total. An order code does not apply to these. */
+  /** Item discount already inside the line total. Only matters for an order
+   *  placed before ORDER_CODES_ON_SALE_ITEMS_SINCE, whose code skipped these. */
   itemDiscountCentavos: number;
   productType: ProductType;
 }
@@ -56,19 +57,24 @@ export interface PromoShareLine {
  * Splits an order-scope promo across the lines it applied to, so each
  * fragrance can show what it cost. Shares are whole centavos and sum to
  * promoCentavos, unless a share would exceed its line (then it is capped).
- * A line that already had its own item discount gets none.
+ * The code applies to sale lines too (at their discounted price), except on
+ * an order placed before ORDER_CODES_ON_SALE_ITEMS_SINCE (`placedAt`), whose
+ * code skipped them; with no `placedAt` (checkout, before the order exists)
+ * it's today's rule.
  */
 export function allocatePromoToLines(
   lines: readonly PromoShareLine[],
   promoCentavos: number,
   code?: { type: DiscountType; amount: number; typeAmounts: PromoCodeTypeAmounts | null } | null,
+  options: { placedAt?: Date | null } = {},
 ): Map<string, number> {
   const shares = new Map<string, number>();
   for (const line of lines) shares.set(line.id, 0);
   if (promoCentavos <= 0 || lines.length === 0) return shares;
+  const skipSaleLines = orderCodeSkippedSaleItems(options.placedAt);
 
   const weightFor = (line: PromoShareLine) => {
-    if (line.itemDiscountCentavos > 0 || line.lineTotalCentavos <= 0) return 0;
+    if ((skipSaleLines && line.itemDiscountCentavos > 0) || line.lineTotalCentavos <= 0) return 0;
     if (!code) return line.lineTotalCentavos;
     const amount = amountForType(code, line.productType);
     if (amount <= 0) return 0;

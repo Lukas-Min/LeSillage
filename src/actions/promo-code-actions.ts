@@ -24,8 +24,9 @@ export interface PromoCodePreview {
   deliveryDiscountCentavos: number;
   /** An ORDER code's discount split across the order's lines, by skuId, so
    *  checkout can show each item's price after the code. Same split as the
-   *  admin order page (allocatePromoToLines): lines with their own item
-   *  discount get none, and a per-type code weighs each type by its amount. */
+   *  admin order page (allocatePromoToLines): every line shares it, sale
+   *  items at their discounted price, and a per-type code weighs each type
+   *  by its amount. */
   lineShares?: Record<string, number>;
 }
 
@@ -138,9 +139,9 @@ export async function previewPromoCodes(
   });
   if (!eligibility.ok) return { ok: false, error: eligibility.error, code: eligibility.code };
 
-  // Same bases buildCartTotals discounts from: an ORDER code against the
-  // regular-price lines (per product type, if it has per-type amounts), a
-  // DELIVERY code against the fee before any code.
+  // Same bases buildCartTotals discounts from: an ORDER code against every
+  // line at its already-discounted price (per product type, if it has
+  // per-type amounts), a DELIVERY code against the fee before any code.
   const previews: PromoCodePreview[] = [];
   const { order, delivery } = grouped.codes;
   if (order) {

@@ -170,7 +170,7 @@ export const FAQ_GROUPS = [
         a: {
           lead: "At checkout you can use one order code and one delivery code together:",
           bullets: [
-            "Order code — takes money off items that aren't already on sale.",
+            "Order code — takes money off your items, sale items included: on a discounted fragrance it comes off the sale price.",
             "Delivery code — takes money off the delivery fee, so it has nothing to discount on pickup or once delivery is already free.",
           ],
           note: "A code can also have a minimum spend (counted after your other discounts), start and end dates, or be limited to a first order or one use per customer. Codes you can use, including any made just for you, are under Account → Promo codes. To get new codes by email, turn on \"Send me news and promotions\" under Account → Notifications.",

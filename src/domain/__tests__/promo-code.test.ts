@@ -147,14 +147,14 @@ describe("checkPromoCodeEligibility", () => {
     expect(checkPromoCodeEligibility(code, baseEligibility).ok).toBe(false);
   });
 
-  it("rejects an ORDER-scope code with a specific reason when every item is already individually discounted", () => {
+  it("rejects an ORDER-scope code that would discount nothing", () => {
     const code = makeCode({ scope: "ORDER", type: "PERCENTAGE", amount: 10 });
     const result = checkPromoCodeEligibility(code, {
       ...baseEligibility,
       orderDiscountEligibleSubtotalCentavos: 0,
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/already discounted/);
+    if (!result.ok) expect(result.error).toMatch(/wouldn't apply any discount/);
   });
 });
 
@@ -260,11 +260,10 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
     expect(eligibility.ok).toBe(false);
   });
 
-  it("rejects the code once the item-discounted price clears the minimum, but the whole cart is that one already-discounted item", () => {
+  it("stacks the code on a sale item, taking its cut from the sale price", () => {
     // ₱3,000 original, 5% site-wide discount -> ₱2,850 — clears the ₱2,000
-    // minimum. But this is the *only* line in the cart, and it's already
-    // discounted, so there's nothing left for an ORDER-scope code to apply
-    // to — rejected outright rather than silently applying for ₱0.
+    // minimum. The only line is already discounted, and the code still
+    // applies: 10% of the ₱2,850 sale price, not of the ₱3,000 original.
     const discounts = withSiteWideDiscount([], "p1", { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null });
     const item: CartSkuInput = {
       sku: makeSku(300000),
@@ -283,7 +282,7 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       "DELIVERY",
       null,
     );
-    expect(preCodeTotals.orderDiscountEligibleSubtotalCentavos).toBe(0);
+    expect(preCodeTotals.orderDiscountEligibleSubtotalCentavos).toBe(285000);
 
     const eligibility = checkPromoCodeEligibility(code, {
       merchandiseSubtotalCentavos: priced.merchandiseSubtotalCentavos,
@@ -294,26 +293,21 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       hasPriorRedemption: false,
       userId: "user1",
     });
-    expect(eligibility.ok).toBe(false);
-    if (!eligibility.ok) expect(eligibility.error).toMatch(/already discounted/);
+    expect(eligibility.ok).toBe(true);
 
-    // Even if a code were forced through anyway, buildCartTotals itself
-    // would still compute a ₱0 order discount — the rejection above isn't
-    // the only thing enforcing this.
     const totals = buildCartTotals(
       priced,
       { decantThresholdCentavos: 200000, deliveryFeeCentavos: 12000, freeDeliveryEnabled: false, testerBonusEnabled: false, siteWideDiscount: { enabled: true, type: "PERCENTAGE", amount: 5, startsAt: null, endsAt: null } },
       "DELIVERY",
       { order: { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: null }, delivery: null },
     );
-    expect(totals.orderDiscountCentavos).toBe(0);
-    expect(totals.totalCentavos).toBe(285000 + 12000);
+    expect(totals.orderDiscountCentavos).toBe(28500);
+    expect(totals.totalCentavos).toBe(285000 - 28500 + 12000);
   });
 
-  it("applies the code only to a regular-price line, skipping a sibling line that already has its own item discount", () => {
-    // Item A: ₱3,000, its own 10% product discount -> ₱2,700 (item-
-    // discounted, excluded from the code's base). Item B: ₱1,000, no
-    // discount at all (regular price, included in the code's base).
+  it("applies the code to every line, a sale line at its discounted price", () => {
+    // Item A: ₱3,000, its own 10% product discount -> ₱2,700 (in the code's
+    // base at ₱2,700). Item B: ₱1,000, no discount (in the base at ₱1,000).
     const productOwnDiscount = [
       { id: "own1", productId: "pA", type: "PERCENTAGE" as const, amount: 10, startsAt: null, endsAt: null, isActive: true, createdAt: new Date() },
     ];
@@ -341,10 +335,10 @@ describe("full pipeline order-of-operations (site-wide item discount -> promo co
       "DELIVERY",
       { order: { scope: code.scope, type: code.type, amount: code.amount, typeAmounts: null }, delivery: null },
     );
-    // Only item B (₱1,000, regular price) is in the code's base.
-    expect(totals.orderDiscountEligibleSubtotalCentavos).toBe(100000);
-    // 10% of ₱1,000 = ₱100 — not 10% of the full ₱3,700 subtotal.
-    expect(totals.orderDiscountCentavos).toBe(10000);
+    // Both lines, at what they sell for: ₱2,700 + ₱1,000.
+    expect(totals.orderDiscountEligibleSubtotalCentavos).toBe(370000);
+    // 10% of ₱3,700 = ₱370 — never of the ₱4,000 original prices.
+    expect(totals.orderDiscountCentavos).toBe(37000);
   });
 
   it("evaluates a DELIVERY-scope code's discount against the delivery fee, unaffected by item/order discounts", () => {

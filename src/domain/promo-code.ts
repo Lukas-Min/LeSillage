@@ -18,13 +18,12 @@ export interface PromoCodeEligibilityInput {
    *  — minimum spend is always about how much the customer is buying, not
    *  how much shipping costs. */
   merchandiseSubtotalCentavos: number;
-  /** The portion of merchandiseSubtotalCentavos not already covered by an
-   *  item discount — see CheckoutTotals.orderDiscountEligibleSubtotalCentavos
-   *  (src/domain/checkout-totals.ts), which computes this same number.
-   *  Only used to reject an ORDER-scope code up front when it would
-   *  discount nothing — e.g. every item in the cart is already
-   *  individually discounted — so it doesn't silently burn a
-   *  maxRedemptions/onePerCustomer slot for zero benefit. */
+  /** What an ORDER-scope code discounts from — see
+   *  CheckoutTotals.orderDiscountEligibleSubtotalCentavos
+   *  (src/domain/checkout-totals.ts), which computes this same number: every
+   *  line at its already-discounted price, sale items included. Used to
+   *  reject a code up front when it would discount nothing, so it doesn't
+   *  silently burn a maxRedemptions/onePerCustomer slot for zero benefit. */
   orderDiscountEligibleSubtotalCentavos: number;
   /** Both subtotals above split by product type, for an ORDER code with
    *  per-type amounts (typeAmounts) — see orderCodeBases. */
@@ -106,28 +105,35 @@ export function checkPromoCodeEligibility(
     };
   }
   // A code that would discount nothing (e.g. a DELIVERY-scope code when
-  // free shipping already applies, or an ORDER-scope code when every item
-  // is already individually discounted) is rejected outright — otherwise
-  // it'd silently consume a maxRedemptions/onePerCustomer slot for zero
-  // benefit.
+  // free shipping already applies) is rejected outright — otherwise it'd
+  // silently consume a maxRedemptions/onePerCustomer slot for zero benefit.
   const discount = bases
     ? bases.discountCentavos
     : calculatePromoCodeDiscount(code.type, code.amount, input.deliveryFeeCentavos);
   if (discount <= 0) {
-    const everythingAlreadyDiscounted = bases !== null && bases.merchandiseCentavos > 0 && bases.eligibleCentavos === 0;
     return {
       ok: false,
       error:
         code.scope === "DELIVERY"
           ? "This code has nothing to discount — delivery is already free on this order"
-          : everythingAlreadyDiscounted
-            ? only
-              ? `This code only applies to regular-price ${only}, and every one in your bag is already discounted`
-              : "This code only applies to regular-price items, and everything in your bag is already discounted"
-            : "This code wouldn't apply any discount to your order",
+          : "This code wouldn't apply any discount to your order",
     };
   }
   return { ok: true };
+}
+
+/**
+ * When order codes started applying to sale items too. Before this, an
+ * ORDER code only discounted lines with no item discount of their own; from
+ * here it discounts every line, taking its cut from the already-discounted
+ * price. Orders placed before it were charged under the old rule, so their
+ * receipts and emails split the code the old way (allocatePromoToLines).
+ */
+export const ORDER_CODES_ON_SALE_ITEMS_SINCE = new Date("2026-10-14T15:30:00Z");
+
+/** Whether an order placed at `placedAt` had its code skip sale items (the old rule). */
+export function orderCodeSkippedSaleItems(placedAt: Date | null | undefined): boolean {
+  return placedAt != null && placedAt < ORDER_CODES_ON_SALE_ITEMS_SINCE;
 }
 
 type AmountCode = Pick<PromoCode, "type" | "amount" | "typeAmounts">;
@@ -163,10 +169,10 @@ function joinTypes(types: readonly ProductType[]): string {
 
 /**
  * What an ORDER code is measured against and takes off. Without per-type
- * amounts: the whole bag for its minimum spend, and its amount off the
- * regular-price (no item discount) lines. With them, only the types it
- * discounts count toward the minimum, and each amount comes off its own
- * types' regular-price lines — so {amount 15, FULL_BOTTLE 0, PARTIAL 0} with
+ * amounts: the whole bag for its minimum spend, and its amount off every
+ * line at its already-discounted price (sale items included). With them,
+ * only the types it discounts count toward the minimum, and each amount
+ * comes off its own types' lines — so {amount 15, FULL_BOTTLE 0, PARTIAL 0} with
  * a ₱1,000 minimum needs ₱1,000 of decants and takes 15% off those decants.
  * A FIXED amount shared by several types comes off their lines together,
  * once, matching how the offer reads ("₱100 off decants and partials").

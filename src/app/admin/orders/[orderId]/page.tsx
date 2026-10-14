@@ -128,6 +128,7 @@ export default async function AdminOrderDetailPage({
     })),
     summary.promoCodeCentavos,
     orderCode ? { ...orderCode, typeAmounts: orderCode.typeAmounts ?? null } : null,
+    { placedAt: order.createdAt },
   );
 
   return (
