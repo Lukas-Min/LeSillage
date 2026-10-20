@@ -19,12 +19,10 @@ const selectClass = "h-11 w-full rounded-lg border bg-background px-3 text-base 
  * plain HTML; only this one field group needs to react live to another
  * field's value.
  *
- * In-house is being phased out for new listings — Retail is now the default
- * and the only choice offered for a brand-new SKU, or one that's already
- * Retail. "In-house" only appears in the dropdown when that's the SKU's
- * current stored value, so an existing In-house SKU still displays and
- * saves correctly (and an admin can still deliberately move it to Retail),
- * without offering In-house as a fresh choice anywhere.
+ * Retail is the default for a brand-new SKU, but In-house is offered too:
+ * a decant poured from a bottle the store owns (its sizes share the
+ * product's ml pool) is still listed that way, and an existing SKU can be
+ * moved either way.
  */
 export function DecantSkuFields({
   idPrefix,
@@ -52,7 +50,6 @@ export function DecantSkuFields({
   const [provenance, setProvenance] = useState<"RETAIL" | "IN_HOUSE" | "TESTER">(initialProvenance);
   const [mode, setMode] = useState<PricingMode>(pricingMode);
   const isRetail = provenance === "RETAIL";
-  const showInHouseOption = initialProvenance === "IN_HOUSE";
 
   return (
     <>
@@ -65,7 +62,7 @@ export function DecantSkuFields({
           onChange={(event) => setProvenance(event.target.value as "RETAIL" | "IN_HOUSE")}
           className={selectClass}
         >
-          {showInHouseOption ? <option value="IN_HOUSE">In-house — poured from a whole bottle</option> : null}
+          <option value="IN_HOUSE">In-house — poured from a whole bottle</option>
           <option value="RETAIL">Retail — bought pre-made as a decant</option>
         </select>
       </div>
