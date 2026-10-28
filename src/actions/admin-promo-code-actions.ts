@@ -30,7 +30,8 @@ import {
 } from "@/domain/promo-code";
 import { unsubscribePageUrl } from "@/lib/email-links";
 import { promoAssignedEmail } from "@/lib/email-templates";
-import { drainMarketingQueue, enqueueMarketingEmails } from "@/lib/marketing-queue";
+import { cancelCampaign, drainMarketingQueue, enqueueMarketingEmails, rescheduleCampaign } from "@/lib/marketing-queue";
+import { announcementSendAfter } from "@/domain/marketing";
 import { withAllowedUsers } from "@/lib/promo-code-access";
 
 const createSchema = z.object({
@@ -151,8 +152,20 @@ function hasEnded(endsAt: Date | null): boolean {
 
 /** Queues a promo email for every still-eligible subscriber after the
  *  response, and sends the first batch; the 15-minute cron sends the rest. */
+/** The marketing-queue campaign for one promo code's emails. */
+function promoCampaign(id: string): string {
+  return `promo_code:${id}`;
+}
+
+/**
+ * Queues a promo code's announcement, held until the code starts (sent on
+ * creation if it already has). Any earlier announcement of the same code that
+ * hasn't gone out yet is dropped, so re-saving with "send email" doesn't send
+ * it twice.
+ */
 function broadcastPromoEmail(code: {
   id: string;
+  startsAt: Date | null;
   code: string;
   type: "PERCENTAGE" | "FIXED";
   amount: number;
@@ -170,6 +183,7 @@ function broadcastPromoEmail(code: {
   const offer = describeCustomerOffer(code, code.maxRedemptions);
   after(async () => {
     const recipients = await loadEligibleSubscribers(code);
+    await cancelCampaign(promoCampaign(code.id), "Replaced by a newer announcement of this code");
     await enqueueMarketingEmails(
       recipients.map((recipient) => ({
         recipient: recipient.email,
@@ -184,6 +198,7 @@ function broadcastPromoEmail(code: {
           unsubscribeUrl: unsubscribePageUrl(recipient.email),
         }),
       })),
+      { sendAfter: announcementSendAfter(code.startsAt), campaign: promoCampaign(code.id) },
     );
     await drainMarketingQueue();
   });
@@ -234,9 +249,11 @@ function legacyRestrictedUserId(customers: readonly AllowedCustomer[]): string |
   return (customers.find((customer) => customer.deletedAt === null) ?? customers[0])?.id ?? null;
 }
 
-/** Queues each chosen customer's code email (first batch sent right away).
- *  Skips anyone who turned promotions off or whose account is archived or deleted. */
+/** Queues each chosen customer's code email, held until the code starts
+ *  (first batch sent right away if it already has). Skips anyone who turned
+ *  promotions off or whose account is archived or deleted. */
 function emailAllowedCustomers(
+  promo: { id: string; startsAt: Date | null },
   customers: readonly AllowedCustomer[],
   details: {
     code: string;
@@ -252,6 +269,7 @@ function emailAllowedCustomers(
   );
   if (recipients.length === 0) return;
   after(async () => {
+    await cancelCampaign(promoCampaign(promo.id), "Replaced by a newer announcement of this code");
     await enqueueMarketingEmails(
       recipients.map((recipient) => ({
         recipient: recipient.email,
@@ -262,6 +280,7 @@ function emailAllowedCustomers(
           unsubscribeUrl: unsubscribePageUrl(recipient.email),
         }),
       })),
+      { sendAfter: announcementSendAfter(promo.startsAt), campaign: promoCampaign(promo.id) },
     );
     await drainMarketingQueue();
   });
@@ -411,7 +430,7 @@ export async function createPromoCode(
   if (parsed.sendEmail && !hasEnded(endsAt)) {
     const terms = { type: parsed.type, amount, scope: parsed.scope, typeAmounts };
     if (allowed.length > 0) {
-      emailAllowedCustomers(allowed, {
+      emailAllowedCustomers({ id: createdId, startsAt }, allowed, {
         code: parsed.code,
         offer: describeCustomerOffer(terms, parsed.maxRedemptions ?? null),
         description: parsed.description || null,
@@ -421,6 +440,7 @@ export async function createPromoCode(
     } else {
       broadcastPromoEmail({
         id: createdId,
+        startsAt,
         code: parsed.code,
         ...terms,
         maxRedemptions: parsed.maxRedemptions ?? null,
@@ -656,13 +676,21 @@ export async function updatePromoCode(
   for (const userId of new Set([...previousAllowedUserIds, ...allowed.map((customer) => customer.id)])) {
     revalidatePath(`/admin/customers/${userId}`);
   }
+  // Announcements of this code still waiting to go out follow its new dates:
+  // dropped if it has ended or is switched off, otherwise moved to the new
+  // start. (A fresh send below replaces them anyway.)
+  if (!current.isActive || hasEnded(endsAt)) {
+    await cancelCampaign(promoCampaign(parsed.id), "The code ended or was switched off before it started");
+  } else {
+    await rescheduleCampaign(promoCampaign(parsed.id), announcementSendAfter(startsAt));
+  }
   // A deactivated or already-expired code has no eligible recipients
   // regardless of the checkbox — nobody can use it, so there's nothing worth
   // emailing about.
   if (parsed.sendEmail && current.isActive && !hasEnded(endsAt)) {
     const terms = { type: parsed.type, amount, scope: parsed.scope, typeAmounts };
     if (allowed.length > 0) {
-      emailAllowedCustomers(allowed, {
+      emailAllowedCustomers({ id: parsed.id, startsAt }, allowed, {
         code: parsed.code,
         offer: describeCustomerOffer(terms, parsed.maxRedemptions ?? null),
         description,
@@ -672,6 +700,7 @@ export async function updatePromoCode(
     } else {
       broadcastPromoEmail({
         id: parsed.id,
+        startsAt,
         code: parsed.code,
         ...terms,
         maxRedemptions: parsed.maxRedemptions ?? null,
@@ -693,6 +722,8 @@ export async function togglePromoCodeActive(formData: FormData) {
   const row = (await db().select({ code: promoCodes.code }).from(promoCodes).where(eq(promoCodes.id, id)))[0];
   if (!row) throw new Error("Promo code not found");
   await db().update(promoCodes).set({ isActive }).where(eq(promoCodes.id, id));
+  // A switched-off code's held announcement must not go out on its start day.
+  if (!isActive) await cancelCampaign(promoCampaign(id), "The code was switched off before it started");
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_CODE_UPDATE",
@@ -715,6 +746,7 @@ export async function deletePromoCode(formData: FormData) {
   // code, its allowed-customers list and its redemption records (FK cascade);
   // the redemption count is kept in the audit entry below.
   await db().delete(promoCodes).where(eq(promoCodes.id, id));
+  await cancelCampaign(promoCampaign(id), "The code was deleted before it started");
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_CODE_DELETE",

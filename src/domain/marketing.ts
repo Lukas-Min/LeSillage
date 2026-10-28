@@ -76,3 +76,11 @@ export function shouldAnnounceSiteWideDiscount(
   };
   return !live(previous) && live(next);
 }
+
+/**
+ * When an announcement may go out: on the day its promo code or sale starts,
+ * or right away (null) if it has already started or has no start date.
+ */
+export function announcementSendAfter(startsAt: Date | null | undefined, now: Date = new Date()): Date | null {
+  return startsAt && startsAt > now ? startsAt : null;
+}

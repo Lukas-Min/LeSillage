@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeMarketingRecipients, shouldAnnounceSiteWideDiscount, type MarketingAccount } from "../marketing";
+import { announcementSendAfter, mergeMarketingRecipients, shouldAnnounceSiteWideDiscount, type MarketingAccount } from "../marketing";
 import type { SiteWideDiscountConfig } from "../promo";
 
 function account(overrides: Partial<MarketingAccount> = {}): MarketingAccount {
@@ -93,5 +93,19 @@ describe("shouldAnnounceSiteWideDiscount", () => {
 
   it("stays quiet when the sale is turned off", () => {
     expect(shouldAnnounceSiteWideDiscount(on, off, now)).toBe(false);
+  });
+});
+
+describe("announcementSendAfter", () => {
+  const now = new Date("2026-10-28T04:00:00Z");
+
+  it("holds the email until a promo code or sale that starts later", () => {
+    const startsAt = new Date("2026-11-01T16:00:00Z");
+    expect(announcementSendAfter(startsAt, now)).toEqual(startsAt);
+  });
+
+  it("sends right away when it has already started or has no start date", () => {
+    expect(announcementSendAfter(new Date("2026-10-27T16:00:00Z"), now)).toBeNull();
+    expect(announcementSendAfter(null, now)).toBeNull();
   });
 });

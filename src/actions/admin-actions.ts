@@ -14,11 +14,11 @@ import { rateLimit, getRequestKey } from "@/lib/rate-limit";
 import { auditLogSubject } from "@/lib/audit";
 import { formatPHP, toCentavos } from "@/domain/money";
 import { parsePhDateBoundary, toDisplayDate } from "@/domain/ph-date";
-import { siteWideDiscountFromSettings, type SiteWideDiscountConfig } from "@/domain/promo";
-import { shouldAnnounceSiteWideDiscount } from "@/domain/marketing";
+import { siteWideDiscountFromSettings, siteWideDiscountStatus, type SiteWideDiscountConfig } from "@/domain/promo";
+import { announcementSendAfter, shouldAnnounceSiteWideDiscount } from "@/domain/marketing";
 import { unsubscribePageUrl } from "@/lib/email-links";
 import { siteWideDiscountEmail } from "@/lib/email-templates";
-import { drainMarketingQueue, enqueueMarketingEmails } from "@/lib/marketing-queue";
+import { cancelCampaign, drainMarketingQueue, enqueueMarketingEmails, rescheduleCampaign } from "@/lib/marketing-queue";
 import { loadMarketingRecipients } from "@/lib/marketing-recipients";
 import { formatDate } from "@/lib/utils";
 
@@ -61,18 +61,26 @@ function describeSaleWindow(config: SiteWideDiscountConfig, now: Date): string |
   return null;
 }
 
-/** Queues the sale email for every marketing subscriber. Returns how many. */
+const SALE_CAMPAIGN = "site_wide_discount";
+
+/** Queues the sale email for every marketing subscriber, held until the sale
+ *  starts (sent right away if it already has). Returns how many. */
 async function announceSiteWideDiscount(config: SiteWideDiscountConfig, now: Date): Promise<number> {
   const recipients = await loadMarketingRecipients();
   if (recipients.length === 0) return 0;
   const offer = `${config.type === "PERCENTAGE" ? `${config.amount}%` : formatPHP(config.amount)} off every fragrance`;
-  const window = describeSaleWindow(config, now);
+  const sendAfter = announcementSendAfter(config.startsAt, now);
+  // Worded for the day it's sent: a sale that starts later reads "Through
+  // Oct 5." on its start day, not "Starts Oct 1."
+  const window = describeSaleWindow(config, sendAfter ?? now);
+  await cancelCampaign(SALE_CAMPAIGN, "Replaced by a newer announcement of the sale");
   await enqueueMarketingEmails(
     recipients.map((recipient) => ({
       recipient: recipient.email,
       template: "site_wide_discount_broadcast",
       ...siteWideDiscountEmail({ name: recipient.name, offer, window, unsubscribeUrl: unsubscribePageUrl(recipient.email) }),
     })),
+    { sendAfter, campaign: SALE_CAMPAIGN },
   );
   // First batch now; the marketing-emails cron (every 15 minutes) sends the rest.
   after(() => drainMarketingQueue());
@@ -186,6 +194,13 @@ export async function updateSiteWideDiscount(
   const now = new Date();
   const next = siteWideDiscountFromSettings(values);
   const announcedTo = shouldAnnounceSiteWideDiscount(previous, next, now) ? await announceSiteWideDiscount(next, now) : 0;
+  if (announcedTo === 0) {
+    // A held sale email follows the sale: dropped if it was switched off or
+    // has ended, otherwise moved to the new start date.
+    const status = siteWideDiscountStatus(next, now);
+    if (status === "ACTIVE" || status === "SCHEDULED") await rescheduleCampaign(SALE_CAMPAIGN, announcementSendAfter(next.startsAt, now));
+    else await cancelCampaign(SALE_CAMPAIGN, "The sale was switched off or ended before it started");
+  }
   await auditLogSubject({
     actor: admin.id,
     action: "PROMO_UPDATE",

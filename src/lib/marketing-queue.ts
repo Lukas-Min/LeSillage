@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lt } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { marketingEmails, notificationLog } from "@/db/schema";
 import { MARKETING_EMAILS_PER_RUN, MARKETING_SEND_STALE_MS } from "@/domain/marketing";
@@ -21,7 +21,12 @@ export interface QueuedMarketingEmail {
  * email never comes through here (see .cursor/rules/email-types.mdc). Every
  * email must carry its recipient's unsubscribe link in both versions.
  */
-export async function enqueueMarketingEmails(emails: readonly QueuedMarketingEmail[]): Promise<void> {
+export async function enqueueMarketingEmails(
+  emails: readonly QueuedMarketingEmail[],
+  /** sendAfter holds the emails until then (announcementSendAfter); campaign
+   *  lets rescheduleCampaign/cancelCampaign find them later. */
+  options: { sendAfter?: Date | null; campaign?: string | null } = {},
+): Promise<void> {
   const missing = emails.find((email) => {
     const link = unsubscribePageUrl(email.recipient);
     return !email.text.includes(link) || !email.html.includes(link.replaceAll("&", "&amp;"));
@@ -30,8 +35,31 @@ export async function enqueueMarketingEmails(emails: readonly QueuedMarketingEma
   for (let start = 0; start < emails.length; start += 500) {
     await db()
       .insert(marketingEmails)
-      .values(emails.slice(start, start + 500).map((email) => ({ ...email, recipient: email.recipient.toLowerCase() })));
+      .values(
+        emails.slice(start, start + 500).map((email) => ({
+          ...email,
+          recipient: email.recipient.toLowerCase(),
+          sendAfter: options.sendAfter ?? null,
+          campaign: options.campaign ?? null,
+        })),
+      );
   }
+}
+
+/** Moves a campaign's not-yet-sent emails to a new send time (null = as soon as possible). */
+export async function rescheduleCampaign(campaign: string, sendAfter: Date | null): Promise<void> {
+  await db()
+    .update(marketingEmails)
+    .set({ sendAfter })
+    .where(and(eq(marketingEmails.campaign, campaign), eq(marketingEmails.status, "PENDING")));
+}
+
+/** Drops a campaign's not-yet-sent emails (code deleted or switched off, sale cancelled, or re-announced). */
+export async function cancelCampaign(campaign: string, reason: string): Promise<void> {
+  await db()
+    .update(marketingEmails)
+    .set({ status: "SKIPPED", error: reason })
+    .where(and(eq(marketingEmails.campaign, campaign), eq(marketingEmails.status, "PENDING")));
 }
 
 export interface MarketingQueueRunResult {
@@ -63,7 +91,13 @@ export async function drainMarketingQueue(
     const next = await tx
       .select({ id: marketingEmails.id })
       .from(marketingEmails)
-      .where(eq(marketingEmails.status, "PENDING"))
+      // Held emails (a promo code or sale that starts later) wait until then.
+      .where(
+        and(
+          eq(marketingEmails.status, "PENDING"),
+          or(isNull(marketingEmails.sendAfter), lte(marketingEmails.sendAfter, now)),
+        ),
+      )
       .orderBy(asc(marketingEmails.createdAt))
       .limit(limit)
       .for("update", { skipLocked: true });

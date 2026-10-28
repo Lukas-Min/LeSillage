@@ -685,6 +685,9 @@ async function main() {
   await db.execute(
     `CREATE INDEX IF NOT EXISTS "marketing_email_status_idx" ON "marketing_email" ("status", "createdAt")`,
   );
+  // Promo code and sale announcements are held until the code or sale starts.
+  await db.execute(`ALTER TABLE "marketing_email" ADD COLUMN IF NOT EXISTS "sendAfter" timestamp`);
+  await db.execute(`ALTER TABLE "marketing_email" ADD COLUMN IF NOT EXISTS "campaign" text`);
 
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestedAt" timestamp`);
   await db.execute(`ALTER TABLE "order" ADD COLUMN IF NOT EXISTS "cancellationRequestReason" text`);
@@ -727,6 +730,8 @@ async function main() {
 // ALTER TABLE "order" DROP COLUMN IF EXISTS "cancellationRequestReason";
 // DROP TABLE IF EXISTS "newsletter_subscriber";
 // DROP TABLE IF EXISTS "promo_code_allowed_user";
+// ALTER TABLE "marketing_email" DROP COLUMN IF EXISTS "campaign";
+// ALTER TABLE "marketing_email" DROP COLUMN IF EXISTS "sendAfter";
 // DROP TABLE IF EXISTS "marketing_email";
 // ALTER TABLE "promo_code" DROP COLUMN IF EXISTS "description";
 // ALTER TABLE "promo_code" DROP COLUMN IF EXISTS "typeAmounts";

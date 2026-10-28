@@ -242,6 +242,11 @@ export const marketingEmails = pgTable(
     claimedAt: timestamp("claimedAt", { mode: "date" }),
     sentAt: timestamp("sentAt", { mode: "date" }),
     error: text("error"),
+    /** Not sent before this (a promo code or sale that starts later); null = as soon as possible. */
+    sendAfter: timestamp("sendAfter", { mode: "date" }),
+    /** What the email announces ("promo_code:<id>", "site_wide_discount"), so
+     *  its still-pending emails can be rescheduled or cancelled with it. */
+    campaign: text("campaign"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => ({
