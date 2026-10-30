@@ -1093,5 +1093,73 @@
     "ratingCount": 935,
     "imageUrl": "https://fimgs.net/mdimg/perfume-thumbs/375x500.101224.jpg",
     "fragranticaUrl": "https://www.fragrantica.com/perfume/Lancome/Idole-Power-101224.html"
+  },
+  {
+    "brand": "Bvlgari",
+    "name": "Omnia Crystalline",
+    "concentration": "EAU_DE_TOILETTE",
+    "category": "DESIGNER",
+    "gender": "women",
+    "costPricePhp": 3759,
+    "markupPercent": 20,
+    "sizeMl": 100,
+    "releaseYear": 2005,
+    "perfumers": [
+      "Alberto Morillas"
+    ],
+    "notes": {
+      "top": [
+        "Bamboo",
+        "Pear"
+      ],
+      "middle": [
+        "Lotus",
+        "Tea",
+        "Cassia"
+      ],
+      "base": [
+        "Musk",
+        "Guaiac Wood",
+        "Oakmoss"
+      ]
+    },
+    "accords": [
+      {
+        "name": "woody",
+        "strength": 100
+      },
+      {
+        "name": "floral",
+        "strength": 88
+      },
+      {
+        "name": "musky",
+        "strength": 87
+      },
+      {
+        "name": "green",
+        "strength": 78
+      },
+      {
+        "name": "aquatic",
+        "strength": 78
+      },
+      {
+        "name": "ozonic",
+        "strength": 69
+      },
+      {
+        "name": "fruity",
+        "strength": 66
+      },
+      {
+        "name": "fresh",
+        "strength": 62
+      }
+    ],
+    "ratingValue": 4.04,
+    "ratingCount": 10531,
+    "imageUrl": "https://fimgs.net/mdimg/perfume-thumbs/375x500.152.jpg",
+    "fragranticaUrl": "https://www.fragrantica.com/perfume/Bvlgari/Omnia-Crystalline-Eau-de-Toilette-152.html"
   }
 ]
