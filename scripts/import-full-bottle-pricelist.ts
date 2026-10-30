@@ -1,7 +1,8 @@
 /**
  * Upserts full-bottle products from `scripts/data/full-bottle-pricelist.json`,
  * or another file passed as an argument. Cost is the file's discounted price.
- * Retail is that cost plus markupPercent, or 20% when the file omits it.
+ * Retail is retailPricePhp when the file sets it (a fixed price), otherwise
+ * that cost plus markupPercent, or 20% when the file omits both.
  * Does not touch a decant of the same name.
  *
  *   npx tsx scripts/import-full-bottle-pricelist.ts
@@ -31,6 +32,7 @@ interface FullBottleEntry {
   gender: "men" | "women" | "unisex";
   costPricePhp: number;
   markupPercent?: number;
+  retailPricePhp?: number;
   sizeMl: number;
   releaseYear: number;
   perfumers: string[];
@@ -53,6 +55,10 @@ export async function runFullBottlePricelist(): Promise<void> {
   for (const entry of catalog) {
     const costPrice = pesosToCentavos(entry.costPricePhp);
     const markupPercent = entry.markupPercent ?? DEFAULT_FULL_BOTTLE_MARKUP_PERCENT;
+    const retailPrice =
+      entry.retailPricePhp === undefined
+        ? retailFromMarkup(costPrice, markupPercent)
+        : pesosToCentavos(entry.retailPricePhp);
     const productValues = {
       type: "FULL_BOTTLE" as const,
       fragranceCategory: entry.category,
@@ -70,8 +76,9 @@ export async function runFullBottlePricelist(): Promise<void> {
       releaseYear: entry.releaseYear,
       fragranticaUrl: entry.fragranticaUrl,
       costPrice,
-      pricingMode: "PERCENTAGE" as const,
-      pricingInput: markupPercent,
+      ...(entry.retailPricePhp === undefined
+        ? { pricingMode: "PERCENTAGE" as const, pricingInput: markupPercent }
+        : { pricingMode: "DIRECT" as const, pricingInput: retailPrice }),
     };
 
     const [existing] = await client
@@ -89,7 +96,6 @@ export async function runFullBottlePricelist(): Promise<void> {
       productId = inserted.id;
     }
 
-    const retailPrice = retailFromMarkup(costPrice, markupPercent);
     const label = `${entry.sizeMl}ml Full bottle`;
     const skuCode = `${catalogSlug(entry.brand)}-${catalogSlug(entry.name)}-${entry.sizeMl}ML`;
     const [existingSku] = await client.select({ id: skus.id }).from(skus).where(eq(skus.productId, productId)).limit(1);
